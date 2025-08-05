@@ -15,10 +15,10 @@ spring:
   # redis
   data:
     redis:
-      host: localhost
+      database: 1
       port: 6379
-      password:
-      ttl: 3600
+      timeout: 5000
+      host: localhost
   profiles:
     active: local
 server:

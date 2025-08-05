@@ -79,7 +79,7 @@ public class MyBatisFlexCodeGenerator {
 
         // 文档注释配置
         globalConfig.getJavadocConfig()
-                .setAuthor("<a href=\"https://github.com/Moo-Jie\">莫桀</a>")
+                .setAuthor("@author DuRuiChi")
                 .setSince("");  // 清空@since标签（避免固定版本号影响后续生成）
 
         return globalConfig;
