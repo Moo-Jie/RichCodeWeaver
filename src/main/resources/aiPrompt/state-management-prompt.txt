@@ -1,0 +1,16 @@
+状态管理规范
+
+1. 状态流架构
+- 单向数据流：View → Action → State → View
+- 使用 immer 实现不可变状态
+- 业务逻辑与 UI 分离
+
+2. 持久化策略
+- 本地存储加密（window.crypto.subtle）
+- 数据压缩（pako 库）
+- 版本迁移机制
+
+3. 性能优化
+- 批量更新（unstable_batchedUpdates）
+- 记忆化选择器（reselect 模式）
+- 状态订阅粒度控制

@@ -21,6 +21,7 @@ spring:
       host: localhost
   profiles:
     active: local
+
 server:
   port: 8101
   servlet:

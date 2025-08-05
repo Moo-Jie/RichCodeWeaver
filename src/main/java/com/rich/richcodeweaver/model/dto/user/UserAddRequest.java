@@ -5,8 +5,11 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 用户创建请求
- */
+ * 用户创建响应类
+ *
+ * @author DuRuiChi
+ * @create 2025/8/5
+ **/
 @Data
 public class UserAddRequest implements Serializable {
 

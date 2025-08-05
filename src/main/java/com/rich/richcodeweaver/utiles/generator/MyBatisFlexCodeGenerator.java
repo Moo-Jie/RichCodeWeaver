@@ -17,7 +17,7 @@ import java.util.Map;
  **/
 public class MyBatisFlexCodeGenerator {
 
-    // 定义需要生成代码的数据库表名（可配置多个表）
+    // 定义需要生成代码的数据库表名（可配置多表）
     private static final String[] TABLE_NAMES = {"user"};
 
     public static void main(String[] args) {

@@ -1,0 +1,16 @@
+构建工具配置规范
+
+1. 打包优化
+- 代码分割按路由维度
+- 资源哈希指纹（[name].[hash:8].[ext]）
+- Tree-shaking 白名单配置
+
+2. 环境变量
+- 分 development/staging/production 环境
+- 通过 DefinePlugin 注入
+- 敏感变量加密存储
+
+3. 质量保障
+- 源码地图生成策略
+- 构建时长分析（speed-measure-webpack-plugin）
+- 依赖大小可视化（webpack-bundle-analyzer）
