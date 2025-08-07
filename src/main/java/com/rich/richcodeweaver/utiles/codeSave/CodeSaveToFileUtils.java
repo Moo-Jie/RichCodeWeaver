@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles;
+package com.rich.richcodeweaver.utiles.codeSave;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
@@ -10,15 +10,15 @@ import com.rich.richcodeweaver.model.dto.ai.MultiFileCodeResult;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
  * 代码文件存储至本地工具类
- * 
+ *
  * @author DuRuiChi
  * @create 2025/8/5
  **/
+@Deprecated
 public class CodeSaveToFileUtils {
 
     /**
@@ -28,18 +28,20 @@ public class CodeSaveToFileUtils {
 
     /**
      * 保存HTML代码结果
-     * @param htmlCodeResult HTML代码结果对象（必须非空）
+     *
+     * @param result HTML代码结果对象（必须非空）
      * @return 生成的目录File对象
      * @throws IllegalArgumentException 如果输入参数为空
      */
-    public static File saveHtmlCodeResult(HtmlCodeResult htmlCodeResult)  {
-        if (htmlCodeResult == null) {
+    public static File saveHtmlCodeResult(HtmlCodeResult result) {
+        // 校验参数
+        if (result == null) {
             throw new IllegalArgumentException("HTML代码结果不能为空");
         }
         // 生成唯一目录
         String baseDirPath = buildUniqueDir(CodeGeneratorTypeEnum.HTML.getValue());
         // 写入文件
-        writeSingleToFile(baseDirPath, "index.html", htmlCodeResult.getHtmlCode());
+        writeSingleToFile(baseDirPath, "index.html", result.getHtmlCode());
         return new File(baseDirPath);
     }
 
@@ -49,8 +51,14 @@ public class CodeSaveToFileUtils {
      * @param result
      * @return
      */
-    public static File saveMultiFileCodeResult(MultiFileCodeResult result)  {
+    public static File saveMultiFileCodeResult(MultiFileCodeResult result) {
+        // 校验参数
+        if (result == null) {
+            throw new IllegalArgumentException("HTML代码结果不能为空");
+        }
+        // 生成唯一目录
         String baseDirPath = buildUniqueDir(CodeGeneratorTypeEnum.MULTI_FILE.getValue());
+        // 写入文件
         writeSingleToFile(baseDirPath, "index.html", result.getHtmlCode());
         writeSingleToFile(baseDirPath, "style.css", result.getCssCode());
         writeSingleToFile(baseDirPath, "script.js", result.getJsCode());
@@ -59,6 +67,7 @@ public class CodeSaveToFileUtils {
 
     /**
      * 生成唯一目录路径并创建目录
+     *
      * @param bizType 代码类型标识（用于目录名前缀）
      * @return 完整目录路径
      */
@@ -74,14 +83,15 @@ public class CodeSaveToFileUtils {
 
     /**
      * 将内容写入指定文件
+     *
      * @param content 要写入的内容
      */
-    private static void writeSingleToFile(String dirPath, String filename, String content)  {
+    private static void writeSingleToFile(String dirPath, String filename, String content) {
         File targetFile = new File(dirPath, filename);
         try {
             FileUtil.writeString(content, targetFile, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR,"文件写入失败：" + filename);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "文件写入失败：" + filename);
         }
     }
 }
