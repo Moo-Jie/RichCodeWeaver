@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.common.response;
+package com.rich.richcodeweaver.model.common;
 
 import lombok.Data;
 

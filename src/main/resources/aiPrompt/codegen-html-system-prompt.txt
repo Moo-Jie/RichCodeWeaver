@@ -37,10 +37,7 @@
 - 关键函数添加 JSDoc 注释
 - 避免 !important 声明
 
-输出格式：
+严格保证输出格式如下：
+
 ```html
-<!DOCTYPE html>
-<html lang="zh-CN">
-...
-</html>
-```
+... HTML 代码 ...

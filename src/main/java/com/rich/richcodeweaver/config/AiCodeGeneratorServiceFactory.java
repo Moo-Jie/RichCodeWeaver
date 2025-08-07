@@ -2,6 +2,7 @@ package com.rich.richcodeweaver.config;
 
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,9 @@ public class AiCodeGeneratorServiceFactory {
     @Resource
     private ChatModel chatModel;
 
+    @Resource
+    private StreamingChatModel streamingChatModel;
+
     /**
      * 创建 AI 代码生成器服务
      *
@@ -28,12 +32,15 @@ public class AiCodeGeneratorServiceFactory {
      **/
     @Bean
     public AiCodeGeneratorService aiCodeGeneratorService() {
-        /*
-          create 主要作用：
-          1.动态代理创建：为 AiCodeGeneratorService 接口生成实现类
-          2.AI能力注入：将 chatModel 配置的大语言模型与接口方法绑定
-          3.注解解析：自动解析接口方法上的SystemMessage等 LangChain4J 注解
+        /**
+         * 1.动态代理创建：为 AiCodeGeneratorService 接口生成实现类
+         * 2.AI能力注入：将 chatModel、streamingChatModel 配置的大语言模型与接口方法绑定
+         * 3.注解解析：自动解析接口方法上的 SystemMessage 等 LangChain4J 注解
          */
-        return AiServices.create(AiCodeGeneratorService.class, chatModel);
+        return AiServices.builder(AiCodeGeneratorService.class)
+                .chatModel(chatModel)
+                // 流式响应
+                .streamingChatModel(streamingChatModel)
+                .build();
     }
 }

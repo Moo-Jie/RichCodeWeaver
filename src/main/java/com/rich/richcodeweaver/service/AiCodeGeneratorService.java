@@ -12,6 +12,23 @@ import reactor.core.publisher.Flux;
  * @create 2025/8/5
  **/
 public interface AiCodeGeneratorService {
+    /**
+     * AI 流式生成 HTML 代码
+     *
+     * @param userMessage 用户提示词
+     * @return AI 的输出结果
+     */
+    @SystemMessage(fromResource = "/aiPrompt//codegen-html-system-prompt.txt")
+    Flux<String> generateHtmlCodeStream(String userMessage);
+
+    /**
+     * AI 流式生成多文件代码
+     *
+     * @param userMessage 用户提示词
+     * @return AI 的输出结果
+     */
+    @SystemMessage(fromResource = "/aiPrompt//codegen-multi-file-system-prompt.txt")
+    Flux<String> generateMultiFileCodeStream(String userMessage);
 
     /**
      * AI 生成 HTML 代码
@@ -30,22 +47,4 @@ public interface AiCodeGeneratorService {
      */
     @SystemMessage(fromResource = "/aiPrompt/codegen-multi-file-system-prompt.txt")
     MultiFileCodeResult generateMultiFileCode(String userMessage);
-
-    /**
-     * AI 流式生成 HTML 代码
-     *
-     * @param userMessage 用户提示词
-     * @return AI 的输出结果
-     */
-    @SystemMessage(fromResource = "/aiPrompt//codegen-html-system-prompt.txt")
-    Flux<String> generateHtmlCodeStream(String userMessage);
-
-    /**
-     * AI 流式生成多文件代码
-     *
-     * @param userMessage 用户提示词
-     * @return AI 的输出结果
-     */
-    @SystemMessage(fromResource = "/aiPrompt//codegen-multi-file-system-prompt.txt")
-    Flux<String> generateMultiFileCodeStream(String userMessage);
 }

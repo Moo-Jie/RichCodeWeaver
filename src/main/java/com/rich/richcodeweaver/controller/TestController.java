@@ -1,7 +1,7 @@
 package com.rich.richcodeweaver.controller;
 
-import com.rich.richcodeweaver.common.response.BaseResponse;
-import com.rich.richcodeweaver.common.ResultUtils;
+import com.rich.richcodeweaver.model.common.BaseResponse;
+import com.rich.richcodeweaver.utiles.ResultUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

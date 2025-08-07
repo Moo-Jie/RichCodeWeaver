@@ -1,6 +1,6 @@
-package com.rich.richcodeweaver.common;
+package com.rich.richcodeweaver.utiles;
 
-import com.rich.richcodeweaver.common.response.BaseResponse;
+import com.rich.richcodeweaver.model.common.BaseResponse;
 import com.rich.richcodeweaver.exception.ErrorCode;
 
 /**

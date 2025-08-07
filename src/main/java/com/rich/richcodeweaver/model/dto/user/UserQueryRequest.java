@@ -1,6 +1,6 @@
 package com.rich.richcodeweaver.model.dto.user;
 
-import com.rich.richcodeweaver.common.response.PageRequest;
+import com.rich.richcodeweaver.model.common.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
