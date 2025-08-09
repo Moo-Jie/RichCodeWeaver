@@ -4,16 +4,18 @@ import lombok.Data;
 
 import java.io.Serializable;
 
-/**
- * 应用创建请求
- */
 @Data
-public class AppAddRequest implements Serializable {
+public class AppCodeGenRequest implements Serializable {
 
     /**
-     * 应用初始化的用户 prompt
+     * 应用id
      */
-    private String initPrompt;
+    private Long appId;
+
+    /**
+     * 用户消息
+     */
+    private String message;
 
     private static final long serialVersionUID = 1L;
 } 

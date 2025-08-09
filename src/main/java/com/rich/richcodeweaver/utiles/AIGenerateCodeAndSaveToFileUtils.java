@@ -39,11 +39,12 @@ public class AIGenerateCodeAndSaveToFileUtils {
      *
      * @param userMessage     用户提示词
      * @param codeGenTypeEnum 代码生成类型
+     * @param appId           应用id
      * @return java.io.File
      * @author DuRuiChi
      * @create 2025/8/5
      **/
-    public File aiGenerateAndSaveCode(String userMessage, CodeGeneratorTypeEnum codeGenTypeEnum) {
+    public File aiGenerateAndSaveCode(String userMessage, CodeGeneratorTypeEnum codeGenTypeEnum, Long appId) {
         try {
             if (codeGenTypeEnum == null) {
                 log.error("代码生成类型为空，用户输入：{}", userMessage);
@@ -55,11 +56,11 @@ public class AIGenerateCodeAndSaveToFileUtils {
             return switch (codeGenTypeEnum) {
                 case HTML -> {
                     HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
-                    yield CodeSaveToFileUtils.saveHtmlCodeResult(result);
+                    yield CodeResultSaveExecutor.executeSaver(result, codeGenTypeEnum, appId);
                 }
                 case MULTI_FILE -> {
                     MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-                    yield CodeSaveToFileUtils.saveMultiFileCodeResult(result);
+                    yield CodeResultSaveExecutor.executeSaver(result, codeGenTypeEnum, appId);
                 }
                 default -> {
                     String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -81,11 +82,12 @@ public class AIGenerateCodeAndSaveToFileUtils {
      *
      * @param userMessage     用户提示词
      * @param codeGenTypeEnum 代码生成类型
+     * @param appId           应用id
      * @return reactor.core.publisher.Flux<java.lang.String>    代码流
      * @author DuRuiChi
      * @create 2025/8/6
      **/
-    public Flux<String> aiGenerateAndSaveCodeStream(String userMessage, CodeGeneratorTypeEnum codeGenTypeEnum) {
+    public Flux<String> aiGenerateAndSaveCodeStream(String userMessage, CodeGeneratorTypeEnum codeGenTypeEnum, Long appId) {
         try {
             if (codeGenTypeEnum == null) {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
@@ -97,11 +99,11 @@ public class AIGenerateCodeAndSaveToFileUtils {
                 // langchain4j 不支持流式输出格式化，故自定义相关解析逻辑
                 case HTML -> {
                     Flux<String> resultStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
-                    yield parseAndSaveCodeStream(resultStream, codeGenTypeEnum);
+                    yield parseAndSaveCodeStream(resultStream, codeGenTypeEnum, appId);
                 }
                 case MULTI_FILE -> {
                     Flux<String> resultStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-                    yield parseAndSaveCodeStream(resultStream, codeGenTypeEnum);
+                    yield parseAndSaveCodeStream(resultStream, codeGenTypeEnum, appId);
                 }
                 default -> {
                     String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -123,11 +125,12 @@ public class AIGenerateCodeAndSaveToFileUtils {
      *
      * @param resultStream          代码流
      * @param codeGeneratorTypeEnum 代码类型
+     * @param appId                 应用id
      * @return reactor.core.publisher.Flux<java.lang.String>    代码流
      * @author DuRuiChi
      * @create 2025/8/6
      **/
-    private Flux<String> parseAndSaveCodeStream(Flux<String> resultStream, CodeGeneratorTypeEnum codeGeneratorTypeEnum) {
+    private Flux<String> parseAndSaveCodeStream(Flux<String> resultStream, CodeGeneratorTypeEnum codeGeneratorTypeEnum, Long appId) {
         // 拼接代码流内的代码块
         StringBuilder codeBuilder = new StringBuilder();
         // 代码块拼接完成后，解析代码块
@@ -135,7 +138,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
             // 代码字符串解析为代码封装类执行器
             Object codeResult = CodeParseExecutor.executeParseCode(codeBuilder.toString(), codeGeneratorTypeEnum);
             // 代码封装类保存文件执行器
-            CodeResultSaveExecutor.executeSaver(codeResult, codeGeneratorTypeEnum);
+            CodeResultSaveExecutor.executeSaver(codeResult, codeGeneratorTypeEnum, appId);
         });
     }
 }

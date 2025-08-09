@@ -20,14 +20,14 @@ class AIGenerateCodeAndSaveToFileUtilsTest {
     @Test
     void aiGenerateAndSaveCode() {
 //        File htmlFile = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCode("为我生成一个自律打卡网站网站", CodeGeneratorTypeEnum.HTML);
-        File htmlFile = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCode("为我生成一个自律打卡网站网站", CodeGeneratorTypeEnum.MULTI_FILE);
+        File htmlFile = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCode("为我生成一个自律打卡网站网站", CodeGeneratorTypeEnum.MULTI_FILE, 8848L);
         Assertions.assertNotNull(htmlFile);
     }
 
     @Test
     void aiGenerateAndSaveCodeStream() {
 //        Flux<String> codeStream = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream("为我生成一个自律打卡网站网站", CodeGeneratorTypeEnum.HTML);
-        Flux<String> codeStream = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream("为我生成一个自律打卡网站网站", CodeGeneratorTypeEnum.MULTI_FILE);
+        Flux<String> codeStream = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream("为我生成一个自律打卡网站网站", CodeGeneratorTypeEnum.MULTI_FILE, 10086L);
 
         // 收集流式对象
         List<String> result = codeStream.collectList().block();

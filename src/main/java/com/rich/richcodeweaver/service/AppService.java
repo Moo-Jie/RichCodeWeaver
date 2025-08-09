@@ -4,25 +4,24 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
-import com.rich.richcodeweaver.model.dto.app.AppAddRequest;
-import com.rich.richcodeweaver.model.dto.app.AppAdminUpdateRequest;
-import com.rich.richcodeweaver.model.dto.app.AppQueryRequest;
-import com.rich.richcodeweaver.model.dto.app.AppUpdateRequest;
+import com.rich.richcodeweaver.model.dto.app.*;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import jakarta.servlet.http.HttpServletRequest;
+import reactor.core.publisher.Flux;
 
+import java.io.File;
 import java.util.List;
 
 /**
- * 应用 服务层。
+ *  AI 应用 服务层。
  *
  *
  */
 public interface AppService extends IService<App> {
 
     /**
-     * 获取应用封装类
+     * 获取 AI 应用封装类
      *
      * @param app
      * @return
@@ -30,7 +29,7 @@ public interface AppService extends IService<App> {
     AppVO getAppVO(App app);
 
     /**
-     * 获取应用封装类列表
+     * 获取 AI 应用封装类列表
      *
      * @param appList
      * @return
@@ -38,7 +37,7 @@ public interface AppService extends IService<App> {
     List<AppVO> getAppVOList(List<App> appList);
 
     /**
-     * 构造应用查询条件
+     * 构造 AI 应用查询条件
      *
      * @param appQueryRequest
      * @return
@@ -46,24 +45,24 @@ public interface AppService extends IService<App> {
     QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest);
 
     /**
-     * 添加应用
+     * 添加 AI 应用
      *
-     * @param appAddRequest 应用添加请求
+     * @param appAddRequest  AI 应用添加请求
      * @param request       请求
-     * @return  应用id
+     * @return   AI 应用id
      */
     Long addApp(AppAddRequest appAddRequest, HttpServletRequest request);
 
     /**
-     * 更新应用
+     * 更新 AI 应用
      *
-     * @param appUpdateRequest 应用更新请求
+     * @param appUpdateRequest  AI 应用更新请求
      * @return 是否更新成功
      */
     Boolean updateApp(AppUpdateRequest appUpdateRequest, HttpServletRequest request);
 
     /**
-     * 删除应用
+     * 删除 AI 应用
      *
      * @param deleteRequest 删除请求
      * @param request       请求
@@ -72,35 +71,55 @@ public interface AppService extends IService<App> {
     Boolean deleteApp(DeleteRequest deleteRequest, HttpServletRequest request);
 
     /**
-     * 分页获取我的应用列表
+     * 分页获取我的 AI 应用列表
      *
-     * @param appQueryRequest 应用查询请求
+     * @param appQueryRequest  AI 应用查询请求
      * @param request         请求
-     * @return 应用视图对象分页
+     * @return  AI 应用视图对象分页
      */
     Page<AppVO> listMyAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request);
 
     /**
-     * 分页获取星标应用列表
+     * 分页获取星标 AI 应用列表
      *
-     * @param appQueryRequest 应用查询请求
-     * @return 应用视图对象分页
+     * @param appQueryRequest  AI 应用查询请求
+     * @return  AI 应用视图对象分页
      */
     Page<AppVO> listStarAppVOByPage(AppQueryRequest appQueryRequest);
 
     /**
-     * 管理员更新应用
+     * 管理员更新 AI 应用
      *
-     * @param appAdminUpdateRequest 应用管理员更新请求
+     * @param appAdminUpdateRequest  AI 应用管理员更新请求
      * @return 是否更新成功
      */
     Boolean updateAppByAdmin(AppAdminUpdateRequest appAdminUpdateRequest);
 
     /**
-     * 管理员分页获取应用列表
+     * 管理员分页获取 AI 应用列表
      *
-     * @param appQueryRequest 应用查询请求
-     * @return 应用视图对象分页
+     * @param appQueryRequest  AI 应用查询请求
+     * @return  AI 应用视图对象分页
      */
     Page<AppVO> listAppVOByPageByAdmin(AppQueryRequest appQueryRequest);
+
+    /**
+     * 执行 AI 对话并并生成代码(流式)
+     *
+     * @param appId   AI 应用id
+     * @param userId 用户id
+     * @param message  对话消息
+     * @return  代码流
+     */
+    Flux<String> aiChatAndGenerateCodeStream(Long appId,Long userId, String message);
+
+    /**
+     * 执行 AI 对话并并生成代码(非流式)
+     *
+     * @param appId   AI 应用id
+     * @param userId 用户id
+     * @param message  对话消息
+     * @return  代码文件
+     */
+    File aiChatAndGenerateCode(Long appId, Long userId, String message);
 }

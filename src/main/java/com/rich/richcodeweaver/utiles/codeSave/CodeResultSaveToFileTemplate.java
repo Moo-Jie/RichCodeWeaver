@@ -25,16 +25,17 @@ public abstract class CodeResultSaveToFileTemplate<T> {
      * 保存代码封装类至文件
      *
      * @param result 代码封装类对象
+     * @param appId  应用id
      * @return 生成的目录File对象
      * @throws IllegalArgumentException 如果输入参数为空
      */
-    public final File saveCodeResult(T result) {
+    public final File saveCodeResult(T result, Long appId) {
         // 校验参数
         if (result == null) {
             throw new IllegalArgumentException("代码封装参数不能为空。");
         }
         // 生成唯一目录
-        String baseDirPath = buildUniqueDir(getCodeGeneratorTypeEnumValue());
+        String baseDirPath = buildUniqueDir(getCodeGeneratorTypeEnumValue(),appId);
         // 保存文件
         doSaveCodeResult(result, baseDirPath);
         // 返沪文件
@@ -62,11 +63,11 @@ public abstract class CodeResultSaveToFileTemplate<T> {
      * @param bizType 代码类型标识（用于目录名前缀）
      * @return 完整目录路径
      */
-    protected final String buildUniqueDir(String bizType) {
+    protected String buildUniqueDir(String bizType,Long appId) {
         if (StrUtil.isBlank(bizType)) {
             throw new IllegalArgumentException("业务类型不能为空或空白");
         }
-        String uniqueDirName = StrUtil.format("{}_{}", bizType, IdUtil.getSnowflakeNextIdStr());
+        String uniqueDirName = StrUtil.format("{}_{}", bizType, appId);
         String dirPath = FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
         FileUtil.mkdir(dirPath);
         return dirPath;

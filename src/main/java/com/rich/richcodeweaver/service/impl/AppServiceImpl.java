@@ -13,10 +13,7 @@ import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.mapper.AppMapper;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
-import com.rich.richcodeweaver.model.dto.app.AppAddRequest;
-import com.rich.richcodeweaver.model.dto.app.AppAdminUpdateRequest;
-import com.rich.richcodeweaver.model.dto.app.AppQueryRequest;
-import com.rich.richcodeweaver.model.dto.app.AppUpdateRequest;
+import com.rich.richcodeweaver.model.dto.app.*;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
@@ -24,11 +21,15 @@ import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.UserService;
+import com.rich.richcodeweaver.utiles.AIGenerateCodeAndSaveToFileUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +38,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 应用 服务层实现
+ * AI 应用 服务层实现
  *
  * @author DuRuiChi
  * @create 2025/8/5
@@ -50,38 +51,72 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private UserService userService;
 
     @Resource
+    @Lazy
     private AppService appService;
 
+    @Resource
+    private AIGenerateCodeAndSaveToFileUtils aiGenerateCodeAndSaveToFileUtils;
+
     /**
-     * 获取应用 VO 封装类
-     */
+     * 管理员执行 AI 对话并并生成代码(流式)
+     *
+     * @param appId   AI 应用id
+     * @param userId  用户id
+     * @param message 对话消息
+     * @return 代码流
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
     @Override
-    public AppVO getAppVO(App app) {
-        // 空值校验
-        if (app == null) {
-            return null;
-        }
-        // 创建VO对象
-        AppVO appVO = new AppVO();
-        // 复制属性到VO对象
-        BeanUtil.copyProperties(app, appVO);
-        // 获取关联用户ID
-        Long userId = app.getUserId();
-        // 处理用户关联数据
-        if (userId != null) {
-            // 查询用户信息
-            User user = userService.getById(userId);
-            // 获取用户VO对象
-            UserVO userVO = userService.getUserVO(user);
-            // 设置用户VO到应用VO
-            appVO.setUser(userVO);
-        }
-        return appVO;
+    public Flux<String> aiChatAndGenerateCodeStream(Long appId, Long userId, String message) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
+        // 查询 AI 应用
+        App app = appService.getById(appId);
+        // 校验 AI 应用是否存在
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
+        // 是否为当前用户所属 AI 应用
+        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
+        // 获取生成类型
+        CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
+        // 调用 AI 响应代码流
+        return aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
     }
 
     /**
-     * 批量获取 VO 列表
-     */
+     * 管理员执行 AI 对话并并生成代码(非流式)
+     *
+     * @param appId   AI 应用id
+     * @param userId  用户id
+     * @param message 对话消息
+     * @return 代码流
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
+    @Override
+    public File aiChatAndGenerateCode(Long appId, Long userId, String message) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
+        // 查询 AI 应用
+        App app = appService.getById(appId);
+        // 校验 AI 应用是否存在
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
+        // 是否为当前用户所属 AI 应用
+        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
+        // 获取生成类型
+        CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
+        // 调用 AI 响应代码流
+        return aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCode(message, type, appId);
+    }
+
+    /**
+     * 批量获取 AI 应用 VO 列表
+     *
+     * @param appList AI 应用列表
+     * @return java.util.List<com.rich.richcodeweaver.model.vo.AppVO>
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
     @Override
     public List<AppVO> getAppVOList(List<App> appList) {
         // 空列表处理
@@ -97,7 +132,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         Map<Long, UserVO> userVOMap = userService.listByIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, userService::getUserVO));
 
-        // 转换应用实体为VO对象
+        // 转换 AI 应用实体为VO对象
         return appList.stream().map(app -> {
             // 获取基础VO信息
             AppVO appVO = getAppVO(app);
@@ -109,8 +144,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 获取应用查询条件
-     */
+     * 构造 AI 应用查询条件
+     *
+     * @param appQueryRequest AI 应用查询请求
+     * @return com.mybatisflex.core.query.QueryWrapper  查询条件
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
     @Override
     public QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest) {
         // 请求参数校验
@@ -146,8 +186,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 添加应用
-     */
+     * 添加 AI 应用
+     *
+     * @param appAddRequest AI 应用添加请求
+     * @param request       请求
+     * @return java.lang.Long
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
     @Override
     public Long addApp(AppAddRequest appAddRequest, HttpServletRequest request) {
         // 校验初始化提示
@@ -157,18 +203,18 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
 
-        // 创建应用实体
+        // 创建 AI 应用实体
         App app = new App();
         // 复制请求属性到实体
         BeanUtil.copyProperties(appAddRequest, app);
         // 设置用户关联
         app.setUserId(loginUser.getId());
-        // 生成应用名称（截取提示前15字符）
+        // 生成 AI 应用名称（截取提示前 15 字符）
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 15)));
         // 设置默认生成策略
         app.setCodeGenType(CodeGeneratorTypeEnum.MULTI_FILE.getValue());
 
-        // 保存应用数据
+        // 保存 AI 应用数据
         boolean result = appService.save(app);
         // 校验保存结果
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -176,49 +222,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 更新应用
-     */
-    @Override
-    public Boolean updateApp(AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
-        // 获取当前登录用户
-        User loginUser = userService.getLoginUser(request);
-        // 解析应用ID
-        long id = appUpdateRequest.getId();
-
-        // 查询现有应用
-        App oldApp = appService.getById(id);
-        // 存在性校验
-        ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
-
-        // 权限校验：仅所有者可更新
-        if (!oldApp.getUserId().equals(loginUser.getId())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-
-        // 创建更新对象
-        App app = new App();
-        // 设置更新ID
-        app.setId(id);
-        // 设置新应用名称
-        app.setAppName(appUpdateRequest.getAppName());
-        // 记录更新时间
-        app.setEditTime(LocalDateTime.now());
-
-        // 执行更新操作
-        boolean result = appService.updateById(app);
-        // 校验更新结果
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return true;
-    }
-
+     * 删除 AI 应用
+     *
+     * @param deleteRequest 删除请求
+     * @param request       请求
+     * @return java.lang.Boolean
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
     @Override
     public Boolean deleteApp(DeleteRequest deleteRequest, HttpServletRequest request) {
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
-        // 解析应用ID
+        // 解析 AI 应用ID
         long id = deleteRequest.getId();
 
-        // 查询目标应用
+        // 查询目标 AI 应用
         App oldApp = appService.getById(id);
         // 存在性校验
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
@@ -233,6 +252,114 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return appService.removeById(id);
     }
 
+    /**
+     * 更新 AI 应用
+     *
+     * @param appUpdateRequest AI 应用更新请求
+     * @param request          请求
+     * @return java.lang.Boolean
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
+    @Override
+    public Boolean updateApp(AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 解析 AI 应用ID
+        long id = appUpdateRequest.getId();
+
+        // 查询现有 AI 应用
+        App oldApp = appService.getById(id);
+        // 存在性校验
+        ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
+
+        // 权限校验：仅所有者可更新
+        if (!oldApp.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+
+        // 创建更新对象
+        App app = new App();
+        // 设置更新ID
+        app.setId(id);
+        // 设置新 AI 应用名称
+        app.setAppName(appUpdateRequest.getAppName());
+        // 记录更新时间
+        app.setEditTime(LocalDateTime.now());
+
+        // 执行更新操作
+        boolean result = appService.updateById(app);
+        // 校验更新结果
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return true;
+    }
+
+    /**
+     * 管理员更新 AI 应用
+     *
+     * @param appAdminUpdateRequest AI 应用管理员更新请求
+     * @return java.lang.Boolean
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
+    @Override
+    public Boolean updateAppByAdmin(AppAdminUpdateRequest appAdminUpdateRequest) {
+        // 解析 AI 应用ID
+        long id = appAdminUpdateRequest.getId();
+
+        // 查询现有 AI 应用
+        App oldApp = appService.getById(id);
+        // 存在性校验
+        ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
+
+        // 复制管理员更新属性
+        App app = new App();
+        BeanUtil.copyProperties(appAdminUpdateRequest, app);
+        // 记录更新时间
+        app.setEditTime(LocalDateTime.now());
+
+        // 执行管理员更新
+        boolean result = appService.updateById(app);
+        // 校验更新结果
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return true;
+    }
+
+    /**
+     * 管理员获取 AI 应用分页
+     *
+     * @param appQueryRequest AI 应用查询请求
+     * @return com.mybatisflex.core.paginate.Page<com.rich.richcodeweaver.model.vo.AppVO>
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
+    @Override
+    public Page<AppVO> listAppVOByPageByAdmin(AppQueryRequest appQueryRequest) {
+        // 获取分页参数
+        long pageNum = appQueryRequest.getPageNum();
+        long pageSize = appQueryRequest.getPageSize();
+        // 构建查询条件
+        QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryRequest);
+        // 执行分页查询
+        Page<App> appPage = appService.page(Page.of(pageNum, pageSize), queryWrapper);
+
+        // 构造VO分页
+        Page<AppVO> appVOPage = new Page<>(pageNum, pageSize, appPage.getTotalRow());
+        // 转换实体列表为VO列表
+        List<AppVO> appVOList = appService.getAppVOList(appPage.getRecords());
+        appVOPage.setRecords(appVOList);
+        return appVOPage;
+    }
+
+    /**
+     * 获取我的 AI 应用分页
+     *
+     * @param appQueryRequest AI 应用查询请求
+     * @param request         请求
+     * @return com.mybatisflex.core.paginate.Page<com.rich.richcodeweaver.model.vo.AppVO>
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
     @Override
     public Page<AppVO> listMyAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request) {
         // 获取当前登录用户
@@ -241,7 +368,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 分页参数处理
         long pageSize = appQueryRequest.getPageSize();
         // 分页大小限制
-        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个应用");
+        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个 AI 应用");
         long pageNum = appQueryRequest.getPageNum();
 
         // 设置用户ID过滤条件
@@ -260,16 +387,24 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return appVOPage;
     }
 
+    /**
+     * 获取星标 AI 应用分页
+     *
+     * @param appQueryRequest AI 应用查询请求
+     * @return com.mybatisflex.core.paginate.Page<com.rich.richcodeweaver.model.vo.AppVO>
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
     @Override
     public Page<AppVO> listStarAppVOByPage(AppQueryRequest appQueryRequest) {
         // 分页参数处理
         long pageSize = appQueryRequest.getPageSize();
         // 分页大小限制
-        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个应用");
+        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个 AI 应用");
         long pageNum = appQueryRequest.getPageNum();
 
-        // 设置星标应用过滤条件
-        appQueryRequest.setPriority(AppConstant.GOOD_APP_PRIORITY);
+        // 设置星标 AI 应用过滤条件
+        appQueryRequest.setPriority(AppConstant.STAR_APP_PRIORITY);
 
         // 构建查询条件
         QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryRequest);
@@ -284,45 +419,35 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return appVOPage;
     }
 
+    /**
+     * 获取 AI 应用 VO 封装类
+     *
+     * @param app AI 应用实体类
+     * @return com.rich.richcodeweaver.model.vo.AppVO
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
     @Override
-    public Boolean updateAppByAdmin(AppAdminUpdateRequest appAdminUpdateRequest) {
-        // 解析应用ID
-        long id = appAdminUpdateRequest.getId();
-
-        // 查询现有应用
-        App oldApp = appService.getById(id);
-        // 存在性校验
-        ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
-
-        // 复制管理员更新属性
-        App app = new App();
-        BeanUtil.copyProperties(appAdminUpdateRequest, app);
-        // 记录更新时间
-        app.setEditTime(LocalDateTime.now());
-
-        // 执行管理员更新
-        boolean result = appService.updateById(app);
-        // 校验更新结果
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return true;
-    }
-
-    @Override
-    public Page<AppVO> listAppVOByPageByAdmin(AppQueryRequest appQueryRequest) {
-        // 获取分页参数
-        long pageNum = appQueryRequest.getPageNum();
-        long pageSize = appQueryRequest.getPageSize();
-
-        // 构建查询条件
-        QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryRequest);
-        // 执行分页查询
-        Page<App> appPage = appService.page(Page.of(pageNum, pageSize), queryWrapper);
-
-        // 构造VO分页
-        Page<AppVO> appVOPage = new Page<>(pageNum, pageSize, appPage.getTotalRow());
-        // 转换实体列表为VO列表
-        List<AppVO> appVOList = appService.getAppVOList(appPage.getRecords());
-        appVOPage.setRecords(appVOList);
-        return appVOPage;
+    public AppVO getAppVO(App app) {
+        // 空值校验
+        if (app == null) {
+            return null;
+        }
+        // 创建VO对象
+        AppVO appVO = new AppVO();
+        // 复制属性到VO对象
+        BeanUtil.copyProperties(app, appVO);
+        // 获取关联用户ID
+        Long userId = app.getUserId();
+        // 关联用户数据
+        if (userId != null) {
+            // 查询用户信息
+            User user = userService.getById(userId);
+            // 获取用户 VO 对象
+            UserVO userVO = userService.getUserVO(user);
+            // 设置用户 VO
+            appVO.setUser(userVO);
+        }
+        return appVO;
     }
 }
