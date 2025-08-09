@@ -18,6 +18,7 @@ import com.rich.richcodeweaver.utiles.ResultUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
@@ -167,7 +168,7 @@ public class AppController {
     }
 
     /**
-     * 执行 AI 生成应用代码（流式)
+     * 执行 AI 生成应用代码（SSE 流式)
      *
      * @param appId 应用id
      * @param message 用户消息
@@ -175,7 +176,7 @@ public class AppController {
      * @return 生成结果流
      */
     @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> chatToGenCodeStream(@RequestParam Long appId, @RequestParam String message, HttpServletRequest request) {
+    public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId, @RequestParam String message, HttpServletRequest request) {
         // 参数校验
         Long userId = userService.getLoginUser(request).getId();
         ThrowUtils.throwIf(appId == null || userId == null || message == null, ErrorCode.PARAMS_ERROR);

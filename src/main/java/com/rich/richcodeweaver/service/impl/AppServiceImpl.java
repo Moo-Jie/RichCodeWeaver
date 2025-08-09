@@ -3,6 +3,7 @@ package com.rich.richcodeweaver.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -25,9 +26,12 @@ import com.rich.richcodeweaver.utiles.AIGenerateCodeAndSaveToFileUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.Server;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -68,7 +72,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @create 2025/8/8
      **/
     @Override
-    public Flux<String> aiChatAndGenerateCodeStream(Long appId, Long userId, String message) {
+    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
         // 查询 AI 应用
@@ -80,7 +84,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 获取生成类型
         CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
         // 调用 AI 响应代码流
-        return aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
+        return aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId)
+                // 封装为 JOSN 格式的 SSE 事件
+                .map(
+                        strBlock -> {
+                            // 封装为 JSON 字符串，预防直接进行字符串流式传输丢失空格符、换行符等问题
+                            // {"data": "代码内容"}
+                            String jsonStrBlock = JSONUtil.toJsonStr(Map.of("data", strBlock));
+                            // 封装为 SSE 事件
+                            return ServerSentEvent.<String>builder()
+                                    .data(jsonStrBlock)
+                                    .build();
+                        }
+                )
+                // 拼接结束事件
+                // Flux 适用于处理 0-N 个项目的情况，而 Mono 适用于处理 0-1 个项目的情况，故使用 Mono.just() 执行一次结束事件拼接
+                .concatWith(Mono.just(
+                        ServerSentEvent.<String>builder()
+                                .event("end")
+                                .data("")
+                                .build()
+                ));
     }
 
     /**

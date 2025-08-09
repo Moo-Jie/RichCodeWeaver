@@ -8,6 +8,7 @@ import com.rich.richcodeweaver.model.dto.app.*;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.codec.ServerSentEvent;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
@@ -111,7 +112,7 @@ public interface AppService extends IService<App> {
      * @param message  对话消息
      * @return  代码流
      */
-    Flux<String> aiChatAndGenerateCodeStream(Long appId,Long userId, String message);
+    Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message);
 
     /**
      * 执行 AI 对话并并生成代码(非流式)
