@@ -6,6 +6,7 @@ import com.mybatisflex.core.service.IService;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
 import com.rich.richcodeweaver.model.dto.app.*;
 import com.rich.richcodeweaver.model.entity.App;
+import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -130,9 +131,18 @@ public interface AppService extends IService<App> {
     /**
      * 预览指定应用
      *
-     * @param deployKey 应用浏览标识，用于定位应用输出目录
+     * @param appId 应用 ID
      * @param request   请求对象
      * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
      */
-    ResponseEntity<FileSystemResource> serverStaticResource(String deployKey, HttpServletRequest request);
+    ResponseEntity<FileSystemResource> serverStaticResource(Long appId, HttpServletRequest request);
+
+    /**
+     * 部署应用
+     *
+     * @param appId 应用id
+     * @param loginUser 登录用户
+     * @return 部署后的应用访问url
+     */
+    String deployApp(Long appId, User loginUser);
 }

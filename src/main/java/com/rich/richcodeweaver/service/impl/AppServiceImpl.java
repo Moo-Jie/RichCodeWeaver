@@ -2,6 +2,8 @@ package com.rich.richcodeweaver.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.paginate.Page;
@@ -145,15 +147,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     /**
      * 预览指定应用
      *
-     * @param viewKey 应用浏览标识，用于定位应用输出目录
+     * @param appId   应用 ID
      * @param request 请求对象
      * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
      * @author DuRuiChi
      * @create 2025/8/8
      **/
     @Override
-    public ResponseEntity<FileSystemResource> serverStaticResource(String viewKey, HttpServletRequest request) {
+    public ResponseEntity<FileSystemResource> serverStaticResource(Long appId, HttpServletRequest request) {
         try {
+            // 构建 viewKey，用于定位应用输出目录
+            App app = appService.getById(appId);
+            String codeGenType = app.getCodeGenType();
+            String viewKey = codeGenType + "_" + appId;
             // 获取原始请求路径
             String resourcePath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
             // 获取的资源文件后缀
@@ -187,9 +193,61 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
     }
 
+    @Override
+    public String deployApp(Long appId, User loginUser) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        // 应用信息校验
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "未检测到应用");
+        // 权限校验
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "这不是您的应用，无法部署");
+        }
+        // deployKey 校验
+        String deployKey = app.getDeployKey();
+        // 生成 deployKey
+        if (StrUtil.isBlank(deployKey)) {
+            deployKey = RandomUtil.randomString(8);
+        }
+        // 复制文件（ 生成目录 到 部署目录 ）
+        try {
+            // 执行覆盖
+            // 构建生成目录
+            String codeGenType = app.getCodeGenType();
+            String outputDirName = codeGenType + "_" + appId;
+            File outputDir = new File(AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
+            if (!outputDir.exists() || !outputDir.isDirectory()) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "未检测到源码，无法部署，请先生成源码");
+            }
+            // 构建部署目录
+            File deployDir = new File(AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey);
+            // 复制目录（执行覆盖）
+            FileUtil.copyContent(outputDir, deployDir, true);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用转储失败：" + e.getMessage());
+        }
+        // 更新应用信息
+        App updateApp = new App();
+        updateApp.setId(appId);
+        updateApp.setDeployKey(deployKey);
+        updateApp.setDeployedTime(LocalDateTime.now());
+        boolean updateResult = this.updateById(updateApp);
+        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "应用信息变更失败");
+        // 部署 URL
+        return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+    }
+
+
     /**
      * 根据文件扩展名返回带字符编码的 Content-Type
-     */
+     *
+     * @param filePath 文件路径
+     * @return java.lang.String 带字符编码的 Content-Type
+     * @author DuRuiChi
+     * @create 2025/8/10
+     **/
     private String getContentTypeWithCharset(String filePath) {
         if (filePath.endsWith(".html")) return "text/html; charset=UTF-8";
         if (filePath.endsWith(".css")) return "text/css; charset=UTF-8";

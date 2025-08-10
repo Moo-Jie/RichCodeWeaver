@@ -11,6 +11,7 @@ import com.rich.richcodeweaver.model.common.BaseResponse;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
 import com.rich.richcodeweaver.model.dto.app.*;
 import com.rich.richcodeweaver.model.entity.App;
+import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.UserService;
@@ -45,21 +46,44 @@ public class AppController {
 
     /**
      * 预览指定应用
-     * URL：/api/app/{deployKey}[/{fileName}]
+     * URL：/api/app/{appId}[/{fileName}]
      *
-     * @param viewKey 应用浏览标识，用于定位应用输出目录
+     * @param appId 应用浏览标识，用于定位应用输出目录
      * @param request   请求对象
      * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
      * @author DuRuiChi
      * @create 2025/8/9
      **/
-    @GetMapping("/view/{viewKey}/**")
-    public ResponseEntity<FileSystemResource> viewApp(@PathVariable String viewKey, HttpServletRequest request) {
+    @GetMapping("/view/{appId}/**")
+    public ResponseEntity<FileSystemResource> viewApp(@PathVariable Long appId, HttpServletRequest request) {
         // 参数校验
-        ThrowUtils.throwIf(viewKey == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR);
         // 响应服务静态资源
-        return appService.serverStaticResource(viewKey, request);
+        return appService.serverStaticResource(appId, request);
     }
+
+    /**
+     * 部署应用
+     *
+     * @param appDeployRequest  部署请求参数
+     * @param request   请求信息
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.String>  部署成功后的 URL
+     * @author DuRuiChi
+     * @create 2025/8/10
+     **/
+    @PostMapping("/deploy")
+    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
+        Long appId = appDeployRequest.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+
+        User loginUser = userService.getLoginUser(request);
+        // 执行部署逻辑
+        String deployUrl = appService.deployApp(appId, loginUser);
+        return ResultUtils.success(deployUrl);
+    }
+
 
     /**
      * 创建 AI 应用
