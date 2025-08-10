@@ -7,7 +7,10 @@ import com.rich.richcodeweaver.model.common.DeleteRequest;
 import com.rich.richcodeweaver.model.dto.app.*;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.vo.AppVO;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import reactor.core.publisher.Flux;
 
@@ -123,4 +126,13 @@ public interface AppService extends IService<App> {
      * @return  代码文件
      */
     File aiChatAndGenerateCode(Long appId, Long userId, String message);
+
+    /**
+     * 预览指定应用
+     *
+     * @param deployKey 应用浏览标识，用于定位应用输出目录
+     * @param request   请求对象
+     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
+     */
+    ResponseEntity<FileSystemResource> serverStaticResource(String deployKey, HttpServletRequest request);
 }

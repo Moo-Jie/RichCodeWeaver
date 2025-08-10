@@ -17,7 +17,9 @@ import com.rich.richcodeweaver.service.UserService;
 import com.rich.richcodeweaver.utiles.ResultUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -39,6 +41,25 @@ public class AppController {
 
     @Resource
     private UserService userService;
+
+
+    /**
+     * 预览指定应用
+     * URL：/api/app/{deployKey}[/{fileName}]
+     *
+     * @param viewKey 应用浏览标识，用于定位应用输出目录
+     * @param request   请求对象
+     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
+     * @author DuRuiChi
+     * @create 2025/8/9
+     **/
+    @GetMapping("/view/{viewKey}/**")
+    public ResponseEntity<FileSystemResource> viewApp(@PathVariable String viewKey, HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(viewKey == null, ErrorCode.PARAMS_ERROR);
+        // 响应服务静态资源
+        return appService.serverStaticResource(viewKey, request);
+    }
 
     /**
      * 创建 AI 应用
@@ -170,9 +191,9 @@ public class AppController {
     /**
      * 执行 AI 生成应用代码（SSE 流式)
      *
-     * @param appId 应用id
+     * @param appId   应用id
      * @param message 用户消息
-     * @param request           请求对象
+     * @param request 请求对象
      * @return 生成结果流
      */
     @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

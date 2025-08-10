@@ -14,7 +14,10 @@ import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.mapper.AppMapper;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
-import com.rich.richcodeweaver.model.dto.app.*;
+import com.rich.richcodeweaver.model.dto.app.AppAddRequest;
+import com.rich.richcodeweaver.model.dto.app.AppAdminUpdateRequest;
+import com.rich.richcodeweaver.model.dto.app.AppQueryRequest;
+import com.rich.richcodeweaver.model.dto.app.AppUpdateRequest;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
@@ -26,10 +29,14 @@ import com.rich.richcodeweaver.utiles.AIGenerateCodeAndSaveToFileUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.Server;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.HandlerMapping;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -40,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.rich.richcodeweaver.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
 
 /**
  * AI 应用 服务层实现
@@ -89,8 +98,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 .map(
                         strBlock -> {
                             // 封装为 JSON 字符串，预防直接进行字符串流式传输丢失空格符、换行符等问题
-                            // {"data": "代码内容"}
-                            String jsonStrBlock = JSONUtil.toJsonStr(Map.of("data", strBlock));
+                            // {"b": "代码内容"}
+                            String jsonStrBlock = JSONUtil.toJsonStr(Map.of("b", strBlock));
                             // 封装为 SSE 事件
                             return ServerSentEvent.<String>builder()
                                     .data(jsonStrBlock)
@@ -131,6 +140,63 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
         // 调用 AI 响应代码流
         return aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCode(message, type, appId);
+    }
+
+    /**
+     * 预览指定应用
+     *
+     * @param viewKey 应用浏览标识，用于定位应用输出目录
+     * @param request 请求对象
+     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
+     * @author DuRuiChi
+     * @create 2025/8/8
+     **/
+    @Override
+    public ResponseEntity<FileSystemResource> serverStaticResource(String viewKey, HttpServletRequest request) {
+        try {
+            // 获取原始请求路径
+            String resourcePath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+            // 获取的资源文件后缀
+            resourcePath = resourcePath.substring(("/app/view/" + viewKey).length());
+            // 当路径为空时自动添加斜杠，避免路径解析问题
+            if (resourcePath.isEmpty()) {
+                HttpHeaders headers = new HttpHeaders();
+                headers.add("Location", request.getRequestURI() + "/");
+                return new ResponseEntity<>(headers, HttpStatus.MOVED_PERMANENTLY);
+            }
+            // 默认进入 index.html
+            if (resourcePath.equals("/")) {
+                resourcePath = "/index.html";
+            }
+            // 拼装完整的路径
+            String filePath = CODE_OUTPUT_ROOT_DIR + "/" + viewKey + resourcePath;
+            File file = new File(filePath);
+            // 检查文件是否存在
+            if (!file.exists()) {
+                // 响应 notFound
+                return ResponseEntity.notFound()
+                        .build();
+            }
+            // 返回应用文件资源
+            FileSystemResource fileSystemResource = new FileSystemResource(file);
+            return ResponseEntity.ok()
+                    .header("Content-Type", getContentTypeWithCharset(filePath))
+                    .body(fileSystemResource);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * 根据文件扩展名返回带字符编码的 Content-Type
+     */
+    private String getContentTypeWithCharset(String filePath) {
+        if (filePath.endsWith(".html")) return "text/html; charset=UTF-8";
+        if (filePath.endsWith(".css")) return "text/css; charset=UTF-8";
+        if (filePath.endsWith(".js")) return "application/javascript; charset=UTF-8";
+        if (filePath.endsWith(".png")) return "image/png";
+        if (filePath.endsWith(".jpg")) return "image/jpeg";
+        return "application/octet-stream";
     }
 
     /**

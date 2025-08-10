@@ -9,6 +9,8 @@ import com.rich.richcodeweaver.exception.ErrorCode;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 
+import static com.rich.richcodeweaver.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
+
 /**
  * 代码封装类保存至文件模板类
  *
@@ -16,11 +18,6 @@ import java.nio.charset.StandardCharsets;
  * @create 2025/8/7
  **/
 public abstract class CodeResultSaveToFileTemplate<T> {
-    /**
-     * 存储路径
-     */
-    public static final String FILE_SAVE_ROOT_DIR = System.getProperty("user.dir") + File.separator + "appCode";
-
     /**
      * 保存代码封装类至文件
      *
@@ -68,7 +65,7 @@ public abstract class CodeResultSaveToFileTemplate<T> {
             throw new IllegalArgumentException("业务类型不能为空或空白");
         }
         String uniqueDirName = StrUtil.format("{}_{}", bizType, appId);
-        String dirPath = FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
+        String dirPath = CODE_OUTPUT_ROOT_DIR + File.separator + uniqueDirName;
         FileUtil.mkdir(dirPath);
         return dirPath;
     }
