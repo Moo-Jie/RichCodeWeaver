@@ -7,6 +7,10 @@ package com.rich.richcodeweaver.constant;
  * @create 2025/8/4
  **/
 public interface AppConstant {
+    /**
+     * 默认封面
+     */
+    String APP_COVER = "https://rich-tams.oss-cn-beijing.aliyuncs.com/logo.png";
 
     /**
      * 星标应用的优先级

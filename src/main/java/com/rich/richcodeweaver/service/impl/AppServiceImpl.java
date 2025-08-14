@@ -163,7 +163,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             // 获取原始请求路径
             String resourcePath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
             // 获取的资源文件后缀
-            resourcePath = resourcePath.substring(("/app/view/" + viewKey).length());
+            resourcePath = resourcePath.substring(("/app/view/" + appId).length());
             // 当路径为空时自动添加斜杠，避免路径解析问题
             if (resourcePath.isEmpty()) {
                 HttpHeaders headers = new HttpHeaders();
@@ -176,7 +176,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             }
             // 拼装完整的路径
             String filePath = CODE_OUTPUT_ROOT_DIR + "/" + viewKey + resourcePath;
-            File file = new File(filePath);
+            File file = new File(filePath.replace("/", File.separator));
             // 检查文件是否存在
             if (!file.exists()) {
                 // 响应 notFound
@@ -360,7 +360,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 生成 AI 应用名称（截取提示前 15 字符）
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 15)));
         // 设置默认生成策略
-        app.setCodeGenType(CodeGeneratorTypeEnum.MULTI_FILE.getValue());
+        app.setCodeGenType(CodeGeneratorTypeEnum.HTML.getValue());
+        // 设置默认封面
+        app.setCover(AppConstant.APP_COVER);
 
         // 保存 AI 应用数据
         boolean result = appService.save(app);

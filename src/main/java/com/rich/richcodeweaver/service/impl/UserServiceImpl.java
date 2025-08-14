@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.model.dto.user.UserQueryRequest;
@@ -24,7 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static com.rich.richcodeweaver.constant.UserConstant.USER_LOGIN_STATE;
+import static com.rich.richcodeweaver.constant.UserConstant.*;
 
 /**
  * 用户服务层实现
@@ -37,12 +38,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     // 加密盐值
     private static final String PASSWORD_SALT = "rich";
-    // 最小账号长度
-    private static final int MIN_ACCOUNT_LENGTH = 4;
-    // 最小密码长度
-    private static final int MIN_PASSWORD_LENGTH = 8;
-    // 默认用户名
-    private static final String DEFAULT_USER_NAME = "无名";
 
     /**
      * 用户注册
@@ -71,6 +66,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserPassword(encryptPassword);
         user.setUserName(DEFAULT_USER_NAME);
         user.setUserRole(UserRoleEnum.USER.getValue());
+        user.setUserAvatar(APP_AVATAR);
+        user.setUserProfile(DEFAULT_PROFILE);
 
         if (!this.save(user)) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户注册失败");

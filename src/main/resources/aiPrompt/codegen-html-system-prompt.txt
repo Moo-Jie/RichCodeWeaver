@@ -37,7 +37,13 @@
 - 关键函数添加 JSDoc 注释
 - 避免 !important 声明
 
-严格保证输出格式如下：
+7. 内容真实
+若使用照片，可访问随机照片 https://picsum.photos/200/300?random=1
+若使用图标，可访问 https://fontawesome.com/icons
+若需要进行 API KEY 的填入，需要引导填写真实 KEY
+你要尽量少的添加无用按钮。
+
+8. 重点！！！严格保证输出格式如下：
 
 ```html
-... HTML 代码 ...
+... 此处为 HTML 代码 ...
