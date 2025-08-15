@@ -19,6 +19,15 @@
           />
         </a-form-item>
 
+        <a-form-item label="提示关键词" class="search-item">
+          <a-input
+            v-model:value="searchParams.initPrompt"
+            placeholder="输入提示关键词"
+            suffix-icon="search"
+            allow-clear
+          />
+        </a-form-item>
+
         <a-form-item label="创建者" class="search-item">
           <a-input
             v-model:value="searchParams.userId"
@@ -45,8 +54,18 @@
           </a-select>
         </a-form-item>
 
+        <a-form-item label="部署密钥">
+          <a-input
+            v-model:value="searchParams.initPrompt"
+            placeholder="输入部署密钥"
+            suffix-icon="deployKey"
+            allow-clear
+          />
+        </a-form-item>
+
         <a-form-item class="search-actions">
           <a-button type="primary" html-type="submit">搜索</a-button>
+          &nbsp;
           <a-button @click="resetSearch">重置</a-button>
         </a-form-item>
       </a-form>
@@ -223,9 +242,14 @@ const columns = [
     width: 120,
   },
   {
-    title: '状态',
+    title: '推送等级',
     dataIndex: 'priority',
     width: 100,
+  },
+  {
+    title: '部署密钥',
+    dataIndex: 'deployKey',
+    width: 120,
   },
   {
     title: '部署时间',

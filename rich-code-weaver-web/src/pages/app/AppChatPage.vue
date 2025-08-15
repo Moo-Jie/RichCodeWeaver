@@ -121,7 +121,7 @@
     </div>
 
     <!-- 应用详情弹窗 -->
-    <AppDetailModal
+    <AppInfo
       v-model:open="appDetailVisible"
       :app="appInfo"
       :show-actions="isOwner || isAdmin"
@@ -152,7 +152,7 @@ import { CodeGenTypeEnum } from '@/utils/codeGenTypes'
 import request from '@/request'
 
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
-import AppDetailModal from '@/components/AppDetailModal.vue'
+import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
