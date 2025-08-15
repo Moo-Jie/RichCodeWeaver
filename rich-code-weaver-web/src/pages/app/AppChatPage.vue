@@ -1,22 +1,22 @@
 <template>
-  <div id="appChatPage">
+  <div id="appChatPage" class="creative-chat">
     <!-- 顶部栏 -->
     <div class="header-bar">
       <div class="header-left">
-        <h1 class="app-name">{{ appInfo?.appName || '网站生成器' }}</h1>
+        <h1 class="app-name">{{ appInfo?.appName?.substring(0, 10) + '  ...' || '网站生成器' }}</h1>
       </div>
       <div class="header-right">
-        <a-button type="default" @click="showAppDetail">
+        <a-button type="default" class="detail-btn" @click="showAppDetail">
           <template #icon>
             <InfoCircleOutlined />
           </template>
           应用详情
         </a-button>
-        <a-button type="primary" @click="deployApp" :loading="deploying">
+        <a-button type="primary" class="deploy-btn" @click="deployApp" :loading="deploying">
           <template #icon>
             <CloudUploadOutlined />
           </template>
-          部署按钮
+          部署网站
         </a-button>
       </div>
     </div>
@@ -25,24 +25,30 @@
     <div class="main-content">
       <!-- 左侧对话区域 -->
       <div class="chat-section">
+        <div class="section-header">
+          <div class="decorative-line"></div>
+          <h2 class="section-title">AI创作对话区</h2>
+          <div class="decorative-line"></div>
+        </div>
+
         <!-- 消息区域 -->
         <div class="messages-container" ref="messagesContainer">
           <div v-for="(message, index) in messages" :key="index" class="message-item">
             <div v-if="message.type === 'user'" class="user-message">
-              <div class="message-content">{{ message.content }}</div>
+              <div class="message-content creative-bubble">{{ message.content }}</div>
               <div class="message-avatar">
-                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+                <a-avatar :src="loginUserStore.loginUser.userAvatar" class="avatar-glow" />
               </div>
             </div>
             <div v-else class="ai-message">
               <div class="message-avatar">
-                <a-avatar :src="aiAvatar" />
+                <a-avatar :src="aiAvatar" class="avatar-glow ai-avatar" />
               </div>
-              <div class="message-content">
+              <div class="message-content creative-bubble">
                 <MarkdownRenderer v-if="message.content" :content="message.content" />
                 <div v-if="message.loading" class="loading-indicator">
                   <a-spin size="small" />
-                  <span>AI 正在思考...</span>
+                  <span>AI 正在编织灵感...</span>
                 </div>
               </div>
             </div>
@@ -52,36 +58,49 @@
         <!-- 用户消息输入框 -->
         <div class="input-container">
           <div class="input-wrapper">
-            <a-tooltip v-if="!isOwner" title="无法在别人的作品下对话哦~" placement="top">
-              <a-textarea
-                v-model:value="userInput"
-                placeholder="请描述你想生成的网站，越详细效果越好哦"
-                :rows="4"
-                :maxlength="1000"
-                @keydown.enter.prevent="sendMessage"
-                :disabled="isGenerating || !isOwner"
-              />
-            </a-tooltip>
+            <div v-if="!isOwner" class="creator-tip">
+              <a-alert message="这是别人的创作作品" description="如需对话请创建您自己的项目" type="info" show-icon />
+            </div>
             <a-textarea
               v-else
               v-model:value="userInput"
-              placeholder="请描述你想生成的网站，越详细效果越好哦"
+              placeholder="请用丰富语言描述您的网站愿景 🌟"
               :rows="4"
               :maxlength="1000"
               @keydown.enter.prevent="sendMessage"
               :disabled="isGenerating"
+              class="creative-textarea"
             />
             <div class="input-actions">
+              <a-tooltip v-if="!isOwner" title="请创建自己的作品来与AI对话" placement="top">
+                <a-button
+                  type="primary"
+                  shape="circle"
+                  size="large"
+                  :disabled="!isOwner"
+                  class="send-btn"
+                >
+                  <template #icon>
+                    <SendOutlined />
+                  </template>
+                </a-button>
+              </a-tooltip>
               <a-button
+                v-else
                 type="primary"
+                shape="circle"
+                size="large"
                 @click="sendMessage"
                 :loading="isGenerating"
-                :disabled="!isOwner"
+                class="send-btn"
               >
                 <template #icon>
                   <SendOutlined />
                 </template>
               </a-button>
+            </div>
+            <div v-if="isOwner" class="input-tip">
+              描述越详尽，创作越精彩 ✨ 支持 Markdown 语法
             </div>
           </div>
         </div>
@@ -90,24 +109,35 @@
       <!-- 右侧网页展示区域 -->
       <div class="preview-section">
         <div class="preview-header">
-          <h3>生成后的网页展示</h3>
+          <div class="section-header">
+            <div class="decorative-line"></div>
+            <h2 class="section-title">网页预览</h2>
+            <div class="decorative-line"></div>
+          </div>
           <div class="preview-actions">
-            <a-button v-if="previewUrl" type="link" @click="openInNewTab">
+            <a-button v-if="previewUrl" type="primary" ghost @click="openInNewTab" class="preview-action-btn">
               <template #icon>
                 <ExportOutlined />
               </template>
-              新窗口打开
+              全屏查看
             </a-button>
           </div>
         </div>
         <div class="preview-content">
-          <div v-if="!previewUrl && !isGenerating" class="preview-placeholder">
-            <div class="placeholder-icon">🌐</div>
-            <p>网站文件生成完成后将在这里展示</p>
+          <div v-if="!previewUrl && !isGenerating" class="preview-placeholder creative-preview-placeholder">
+            <div class="placeholder-icon">
+              <div class="magic-pattern">
+                <div class="pattern-element pattern-1"></div>
+                <div class="pattern-element pattern-2"></div>
+                <div class="pattern-element pattern-3"></div>
+                <div class="pattern-element pattern-4"></div>
+              </div>
+            </div>
+            <p class="placeholder-text">灵感火花即将绽放</p>
+            <p class="placeholder-subtext">描述您的创意，AI将为您编织网站</p>
           </div>
           <div v-else-if="isGenerating" class="preview-loading">
-            <a-spin size="large" />
-            <p>正在生成网站...</p>
+            <a-spin size="large" :tip="generatingTip" />
           </div>
           <iframe
             v-else
@@ -116,6 +146,15 @@
             frameborder="0"
             @load="onIframeLoad"
           ></iframe>
+        </div>
+        <div v-if="previewUrl" class="preview-footer">
+          <a-alert
+            type="info"
+            message="预览提示"
+            description="预览为静态页面效果，部署后可体验完整功能"
+            show-icon
+            class="preview-alert"
+          />
         </div>
       </div>
     </div>
@@ -496,12 +535,35 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-#appChatPage {
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@300;400;600&family=Caveat:wght@700&display=swap');
+
+#appChatPage.creative-chat {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  background: #fdfdfd;
+  padding: 20px 30px;
+  background: #fcf9f2;
+  background-image: radial-gradient(circle at 5% 10%, rgba(255, 230, 204, 0.3) 0%, transparent 25%),
+  radial-gradient(circle at 95% 90%, rgba(204, 230, 255, 0.3) 0%, transparent 25%),
+  linear-gradient(125deg, transparent 60%, rgba(255, 245, 230, 0.5) 100%);
+  position: relative;
+  overflow: hidden;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+/* 水彩纹理背景 */
+#appChatPage.creative-chat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path fill="none" stroke="rgba(180,170,255,0.1)" stroke-width="1" d="M20,20 Q40,5 60,20 T100,20 M20,40 Q30,30 40,40 T80,40 M10,70 Q35,55 60,70 T90,70"/></svg>');
+  background-size: 300px;
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
 }
 
 /* 顶部栏 */
@@ -509,114 +571,240 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
+  padding: 15px 25px;
+  background: rgba(255, 252, 248, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(155, 140, 125, 0.1);
+  z-index: 10;
+  position: relative;
+  margin-bottom: 25px;
+  border: 1px solid rgba(198, 160, 138, 0.15);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
 }
 
 .app-name {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
+  font-family: 'Playfair Display', serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #5c4a48;
+  letter-spacing: -0.5px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .header-right {
   display: flex;
-  gap: 12px;
+  gap: 15px;
+}
+
+.detail-btn {
+  border-radius: 50px;
+  font-weight: 600;
+  padding: 0 20px;
+  height: 40px;
+  transition: all 0.3s;
+}
+
+.detail-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.deploy-btn {
+  border-radius: 50px;
+  font-weight: 600;
+  padding: 0 25px;
+  height: 40px;
+  background: linear-gradient(to right, #1890ff, #69c0ff);
+  border: none;
+  transition: all 0.3s;
+}
+
+.deploy-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
 }
 
 /* 主要内容区域 */
 .main-content {
   flex: 1;
   display: flex;
-  gap: 16px;
-  padding: 8px;
+  gap: 30px;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 /* 左侧对话区域 */
 .chat-section {
-  flex: 2;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 252, 248, 0.95);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(155, 140, 125, 0.12);
   overflow: hidden;
+  border: 1px solid rgba(198, 160, 138, 0.15);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 25px 0;
+  gap: 15px;
+}
+
+.decorative-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(to right, transparent, rgba(198, 160, 138, 0.4), transparent);
+}
+
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #5c4a48;
+  text-align: center;
+  padding: 0 20px;
+  letter-spacing: -0.5px;
+  position: relative;
 }
 
 .messages-container {
   flex: 1;
-  padding: 16px;
+  padding: 0 25px;
   overflow-y: auto;
   scroll-behavior: smooth;
 }
 
 .message-item {
-  margin-bottom: 12px;
+  margin-bottom: 30px;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .user-message {
   display: flex;
   justify-content: flex-end;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 12px;
 }
 
 .ai-message {
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
-  gap: 8px;
+  gap: 12px;
+}
+
+.creative-bubble {
+  max-width: 75%;
+  padding: 18px 22px;
+  border-radius: 18px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+}
+
+.user-message .creative-bubble {
+  background: linear-gradient(135deg, #1890ff, #096dd9);
+  color: white;
+  border-bottom-right-radius: 5px;
+}
+
+.ai-message .creative-bubble {
+  background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
+  color: #1a1a1a;
+  border-bottom-left-radius: 5px;
 }
 
 .message-content {
-  max-width: 70%;
-  padding: 12px 16px;
-  border-radius: 12px;
-  line-height: 1.5;
-  word-wrap: break-word;
+  position: relative;
 }
 
-.user-message .message-content {
-  background: #1890ff;
-  color: white;
+.user-message .message-content::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  bottom: 0;
+  border: 10px solid transparent;
+  border-bottom: 10px solid #096dd9;
+  border-left: 10px solid #096dd9;
 }
 
-.ai-message .message-content {
-  background: #f5f5f5;
-  color: #1a1a1a;
-  padding: 8px 12px;
+.ai-message .message-content::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  bottom: 0;
+  border: 10px solid transparent;
+  border-bottom: 10px solid #e8e8e8;
+  border-right: 10px solid #e8e8e8;
 }
 
-.message-avatar {
-  flex-shrink: 0;
+.avatar-glow {
+  box-shadow: 0 0 15px rgba(198, 160, 138, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+}
+
+.avatar-glow:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(198, 160, 138, 0.5);
+}
+
+.ai-avatar {
+  background: #ffffff;
 }
 
 .loading-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   color: #666;
+  font-weight: 500;
+  margin-top: 10px;
 }
 
 /* 输入区域 */
 .input-container {
-  padding: 16px;
-  background: white;
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(200, 180, 170, 0.2);
 }
 
 .input-wrapper {
   position: relative;
+  padding-bottom: 35px;
 }
 
-.input-wrapper .ant-input {
-  padding-right: 50px;
+.creative-textarea {
+  padding: 18px;
+  font-size: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(198, 160, 138, 0.3);
+  background: rgba(255, 251, 245, 0.9);
+  resize: none;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.creative-textarea:focus {
+  border-color: rgba(24, 144, 255, 0.7);
+  box-shadow: inset 0 2px 8px rgba(24, 144, 255, 0.1), 0 0 0 2px rgba(24, 144, 255, 0.2);
+  background: white;
 }
 
 .input-actions {
@@ -625,54 +813,145 @@ onUnmounted(() => {
   right: 8px;
 }
 
+.send-btn {
+  width: 48px;
+  height: 48px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #ffffff, #bddeff);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.send-btn:hover {
+  transform: scale(1.1) rotate(8deg);
+  box-shadow: 0 8px 20px rgb(255, 255, 255);
+}
+
+.input-tip {
+  position: absolute;
+  left: 15px;
+  bottom: -30px;
+  font-size: 13px;
+  color: #6d6b80;
+  font-style: italic;
+}
+
+.creator-tip {
+  margin-bottom: 15px;
+}
+
 /* 右侧预览区域 */
 .preview-section {
-  flex: 3;
+  flex: 1.5;
   display: flex;
   flex-direction: column;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 252, 248, 0.95);
+  border-radius: 24px;
   overflow: hidden;
+  box-shadow: 0 10px 30px rgba(155, 140, 125, 0.12);
+  border: 1px solid rgba(198, 160, 138, 0.15);
 }
 
 .preview-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #e8e8e8;
+  padding: 20px 30px 15px;
 }
 
-.preview-header h3 {
-  margin: 0;
-  font-size: 16px;
+.preview-action-btn {
+  border-radius: 50px;
   font-weight: 600;
+  padding: 0 20px;
+  height: 36px;
+  transition: all 0.3s;
 }
 
-.preview-actions {
-  display: flex;
-  gap: 8px;
+.preview-action-btn:hover {
+  background: rgba(24, 144, 255, 0.1);
 }
 
 .preview-content {
   flex: 1;
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.preview-placeholder {
+.creative-preview-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  color: #666;
+  text-align: center;
+  padding: 40px;
 }
 
-.placeholder-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
+.magic-pattern {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin-bottom: 25px;
+}
+
+.pattern-element {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.7;
+  animation: pulse 5s infinite ease-in-out;
+}
+
+.pattern-1 {
+  width: 100px;
+  height: 100px;
+  background: rgba(114, 46, 209, 0.15);
+  top: 0;
+  left: 40px;
+  animation-delay: 0s;
+}
+
+.pattern-2 {
+  width: 70px;
+  height: 70px;
+  background: rgba(24, 144, 255, 0.15);
+  top: 30px;
+  right: 40px;
+  animation-delay: 0.5s;
+}
+
+.pattern-3 {
+  width: 120px;
+  height: 120px;
+  background: rgba(146, 84, 222, 0.1);
+  bottom: 20px;
+  left: 30px;
+  animation-delay: 1s;
+}
+
+.pattern-4 {
+  width: 90px;
+  height: 90px;
+  background: rgba(82, 196, 26, 0.1);
+  bottom: 40px;
+  right: 30px;
+  animation-delay: 1.5s;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.placeholder-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #5c4a48;
+  margin: 15px 0 5px;
+}
+
+.placeholder-subtext {
+  font-size: 15px;
+  color: #6d6b80;
+  max-width: 300px;
 }
 
 .preview-loading {
@@ -680,18 +959,25 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  color: #666;
-}
-
-.preview-loading p {
-  margin-top: 16px;
+  padding: 40px;
 }
 
 .preview-iframe {
   width: 100%;
   height: 100%;
   border: none;
+  background: white;
+}
+
+.preview-footer {
+  padding: 15px 30px;
+  border-top: 1px solid rgba(200, 180, 170, 0.2);
+}
+
+.preview-alert {
+  border-radius: 12px;
+  background: rgba(24, 144, 255, 0.05);
+  border: 1px solid rgba(24, 144, 255, 0.1);
 }
 
 /* 响应式设计 */
@@ -705,24 +991,43 @@ onUnmounted(() => {
     flex: none;
     height: 50vh;
   }
-}
 
-@media (max-width: 768px) {
   .header-bar {
-    padding: 12px 16px;
+    padding: 15px;
   }
 
   .app-name {
-    font-size: 16px;
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  #appChatPage.creative-chat {
+    padding: 15px;
+  }
+
+  .header-bar {
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+  }
+
+  .header-left,
+  .header-right {
+    width: 100%;
+    justify-content: center;
   }
 
   .main-content {
-    padding: 8px;
-    gap: 8px;
+    gap: 15px;
+  }
+
+  .section-title {
+    font-size: 18px;
   }
 
   .message-content {
-    max-width: 85%;
+    max-width: 80%;
   }
 }
 </style>
