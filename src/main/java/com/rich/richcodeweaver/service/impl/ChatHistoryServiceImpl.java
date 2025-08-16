@@ -13,6 +13,7 @@ import com.rich.richcodeweaver.model.entity.ChatHistory;
 import com.rich.richcodeweaver.mapper.ChatHistoryMapper;
 import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
+import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.service.UserService;
@@ -150,6 +151,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                 .eq("userId", userId);
         // 设置游标查询，防止重复查询
         if (lastCreateTime != null) {
+            // 查询指定时间戳游标之前的记录
             queryWrapper.lt("createTime", lastCreateTime);
         }
         // 设置排序

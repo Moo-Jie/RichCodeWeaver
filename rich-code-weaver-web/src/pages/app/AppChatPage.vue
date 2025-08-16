@@ -31,6 +31,20 @@
           <div class="decorative-line"></div>
         </div>
 
+        <!-- 加载更多按钮 -->
+        <div v-if="hasMore.value || loadingHistory.value" class="load-more-container">
+          <a-button
+            v-if="hasMore.value && !loadingHistory.value"
+            type="text"
+            @click="loadMoreHistory"
+            class="load-more-btn"
+          >
+            加载更多历史消息
+          </a-button>
+          <a-spin v-else size="small" />
+        </div>
+
+
         <!-- 消息区域 -->
         <div class="messages-container" ref="messagesContainer">
           <div v-for="(message, index) in messages" :key="index" class="message-item">
@@ -186,7 +200,9 @@ import {
 } from '@/api/appController'
 import { CodeGenTypeEnum } from '@/utils/codeGenTypes'
 import request from '@/request'
-
+import {
+  listAppChatHistoryByPage
+} from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
@@ -213,13 +229,19 @@ interface Message {
   type: 'user' | 'ai'
   content: string
   loading?: boolean
+  createTime?: string
 }
 
 const messages = ref<Message[]>([])
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
-const hasInitialConversation = ref(false) // 标记是否已经进行过初始对话
+// 历史消息加载相关
+const loadingHistory = ref(false)
+const lastCreateTime = ref<LocalDateTime | null>(null)
+const hasMore = ref(true)
+// 标记是否已经进行过初始对话
+const hasInitialConversation = ref(false)
 
 // 预览相关
 const previewUrl = ref('')
@@ -252,7 +274,7 @@ const fetchAppInfo = async () => {
   const id = route.params.id as string
   if (!id) {
     message.error('应用ID不存在')
-    router.push('/')
+    await router.push('/')
     return
   }
 
@@ -263,22 +285,80 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
-      // 检查是否有view=1参数，如果有则不自动发送初始提示词
-      const isViewMode = route.query.view === '1'
+      await fetchChatHistory()
 
       // 自动发送初始提示词（除非是查看模式或已经进行过初始对话）
-      if (appInfo.value.initPrompt && !isViewMode && !hasInitialConversation.value) {
+      if (appInfo.value.initPrompt && isOwner.value && messages.value.length === 0) {
         hasInitialConversation.value = true
         await sendInitialMessage(appInfo.value.initPrompt)
+      } else if (messages.value.length >= 2) {
+        // 如果有至少2条对话记录，更新预览
+        updatePreview()
       }
     } else {
       message.error('获取应用信息失败')
-      router.push('/')
+      await router.push('/')
     }
   } catch (error) {
     console.error('获取应用信息失败：', error)
     message.error('获取应用信息失败')
-    router.push('/')
+    await router.push('/')
+  }
+}
+
+// 获取对话历史
+const fetchChatHistory = async (loadMore = false) => {
+  if (!appId.value || loadingHistory.value) return
+
+  loadingHistory.value = true
+  try {
+    const params = {
+      appId: appId.value,
+      pageSize: 10,
+      lastCreateTime: lastCreateTime.value ? lastCreateTime.value.toISOString() : undefined
+    }
+
+    const res = await listAppChatHistoryByPage(params)
+    if (res.data.code === 0 && res.data.data) {
+      const historyData = res.data.data.records || []
+      const newMessages = historyData.map(item => ({
+        type: item.messageType === 'USER' ? 'user' : 'ai',
+        content: item.message,
+        createTime: item.createTime
+      }))
+
+      // 处理加载更多
+      if (loadMore) {
+        // 加载更多时添加到前面
+        messages.value = [...newMessages, ...messages.value]
+      } else {
+        // 首次加载直接替换
+        messages.value = newMessages
+      }
+
+      // 更新游标和是否有更多数据
+      if (newMessages.length > 0) {
+        lastCreateTime.value = new Date(newMessages[0].createTime!).toISOString()
+        hasMore.value = newMessages.length === 10
+      } else {
+        hasMore.value = false
+      }
+
+      await nextTick()
+      scrollToBottom()
+    }
+  } catch (error) {
+    console.error('获取对话历史失败：', error)
+    message.error('获取对话历史失败')
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+// 加载更多历史消息
+const loadMoreHistory = async () => {
+  if (hasMore.value) {
+    await fetchChatHistory(true)
   }
 }
 
@@ -1024,5 +1104,20 @@ onUnmounted(() => {
   .message-content {
     max-width: 80%;
   }
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.load-more-btn {
+  color: #1890ff;
+  transition: color 0.3s;
+}
+
+.load-more-btn:hover {
+  color: #096dd9;
 }
 </style>

@@ -103,7 +103,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成类型为空");
         }
         // 保存用户消息
-        boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, type.getValue(), userId);
+        boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message,  ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
         // 用于收集 AI 响应内容
         StringBuilder aiResponseBuilder = new StringBuilder();

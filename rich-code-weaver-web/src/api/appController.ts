@@ -184,14 +184,14 @@ export async function updateAppByAdmin(
   })
 }
 
-/** 此处后端没有提供注释 GET /app/view/${param0}/&#42;&#42; */
+/** 此处后端没有提供注释 GET /app/view/${param0}/index.html */
 export async function viewApp(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.viewAppParams,
   options?: { [key: string]: any }
 ) {
   const { appId: param0, ...queryParams } = params
-  return request<string>(`/app/view/${param0}/**`, {
+  return request<string>(`/app/view/${param0}/index.html`, {
     method: 'GET',
     params: { ...queryParams },
     ...(options || {}),
