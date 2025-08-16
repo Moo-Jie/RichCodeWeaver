@@ -47,7 +47,7 @@
 
         <!-- 消息区域 -->
         <div class="messages-container" ref="messagesContainer">
-          <div v-for="(message, index) in messages" :key="index" class="message-item">
+          <div v-for="(message, index) in messages.slice().reverse()" :key="index" class="message-item">
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content creative-bubble">{{ message.content }}</div>
               <div class="message-avatar">
@@ -189,20 +189,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, onUnmounted, computed } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import {
-  getAppVoById,
-  deployApp as deployAppApi,
   deleteApp as deleteAppApi,
+  deployApp as deployAppApi,
+  getAppVoById
 } from '@/api/appController'
 import { CodeGenTypeEnum } from '@/utils/codeGenTypes'
 import request from '@/request'
-import {
-  listAppChatHistoryByPage
-} from '@/api/chatHistoryController'
+import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
@@ -211,9 +209,9 @@ import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
 
 import {
   CloudUploadOutlined,
-  SendOutlined,
   ExportOutlined,
   InfoCircleOutlined,
+  SendOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -287,6 +285,9 @@ const fetchAppInfo = async () => {
 
       await fetchChatHistory()
 
+      // 更新预览
+      updatePreview()
+
       // 自动发送初始提示词（除非是查看模式或已经进行过初始对话）
       if (appInfo.value.initPrompt && isOwner.value && messages.value.length === 0) {
         hasInitialConversation.value = true
@@ -322,7 +323,7 @@ const fetchChatHistory = async (loadMore = false) => {
     if (res.data.code === 0 && res.data.data) {
       const historyData = res.data.data.records || []
       const newMessages = historyData.map(item => ({
-        type: item.messageType === 'USER' ? 'user' : 'ai',
+        type: item.messageType === 'user' ? 'user' : 'ai',
         content: item.message,
         createTime: item.createTime
       }))
@@ -346,6 +347,8 @@ const fetchChatHistory = async (loadMore = false) => {
 
       await nextTick()
       scrollToBottom()
+      // 加载历史消息后更新预览
+      updatePreview()
     }
   } catch (error) {
     console.error('获取对话历史失败：', error)
@@ -513,9 +516,9 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
 // 更新预览
 const updatePreview = () => {
   if (appId.value) {
+    // 默认使用 HTML 类型
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
-    const newPreviewUrl = getStaticPreviewUrl(codeGenType, appId.value)
-    previewUrl.value = newPreviewUrl
+    previewUrl.value = getStaticPreviewUrl(codeGenType, appId.value)
     previewReady.value = true
   }
 }
