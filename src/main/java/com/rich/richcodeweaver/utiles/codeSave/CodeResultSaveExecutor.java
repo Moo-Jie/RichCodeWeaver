@@ -2,8 +2,8 @@ package com.rich.richcodeweaver.utiles.codeSave;
 
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
-import com.rich.richcodeweaver.model.dto.ai.HtmlCodeResult;
-import com.rich.richcodeweaver.model.dto.ai.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
+import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 
 import java.io.File;

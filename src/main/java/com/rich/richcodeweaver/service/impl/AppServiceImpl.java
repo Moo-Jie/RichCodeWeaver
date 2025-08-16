@@ -22,10 +22,12 @@ import com.rich.richcodeweaver.model.dto.app.AppQueryRequest;
 import com.rich.richcodeweaver.model.dto.app.AppUpdateRequest;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.entity.User;
+import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
 import com.rich.richcodeweaver.service.AppService;
+import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.service.UserService;
 import com.rich.richcodeweaver.utiles.AIGenerateCodeAndSaveToFileUtils;
 import jakarta.annotation.Resource;
@@ -72,6 +74,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private AIGenerateCodeAndSaveToFileUtils aiGenerateCodeAndSaveToFileUtils;
 
+    @Resource
+    private ChatHistoryService chatHistoryService;
+
     /**
      * 管理员执行 AI 对话并并生成代码(流式)
      *
@@ -94,8 +99,36 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
         // 获取生成类型
         CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
-        // 调用 AI 响应代码流
+        if (type == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成类型为空");
+        }
+        // 保存用户消息
+        boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, type.getValue(), userId);
+        ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
+        // 用于收集 AI 响应内容
+        StringBuilder aiResponseBuilder = new StringBuilder();
+        // 调用 AI 响应代码流，并进行处理
         return aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId)
+                // 收集 AI 响应内容的数据块，用于保存到对话历史（封装为 JOSN 之前）
+                .map(strBlock -> {
+                    aiResponseBuilder.append(strBlock);
+                    return strBlock;
+                })
+                // 流结束后，保存 AI 响应到对话历史
+                .doOnComplete(() -> {
+                    String aiResponse = aiResponseBuilder.toString();
+                    if (StrUtil.isNotBlank(aiResponse)) {
+                        chatHistoryService.addChatMessage(appId, aiResponse,
+                                ChatHistoryTypeEnum.AI.getValue(),
+                                userId);
+                    }
+                })
+                // 错误处理
+                .doOnError(error -> {
+                    chatHistoryService.addChatMessage(appId, "AI 响应失败,请联系管理员：" + error.getMessage(),
+                            ChatHistoryTypeEnum.AI.getValue(),
+                            userId);
+                })
                 // 封装为 JOSN 格式的 SSE 事件
                 .map(
                         strBlock -> {
@@ -397,6 +430,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
+
+        // 删除关联历史对话消息记录
+        ThrowUtils.throwIf(chatHistoryService.deleteByAppId(id), ErrorCode.OPERATION_ERROR);
 
         // 执行物理删除
         return appService.removeById(id);

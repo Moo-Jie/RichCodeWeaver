@@ -1,7 +1,7 @@
 package com.rich.richcodeweaver.utiles.codeParse;
 
-import com.rich.richcodeweaver.model.dto.ai.HtmlCodeResult;
-import com.rich.richcodeweaver.model.dto.ai.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
+import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

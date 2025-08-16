@@ -1,6 +1,6 @@
 package com.rich.richcodeweaver.utiles.codeSave;
 
-import com.rich.richcodeweaver.model.dto.ai.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 
 /**

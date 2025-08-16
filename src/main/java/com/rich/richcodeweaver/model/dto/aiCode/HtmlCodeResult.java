@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.model.dto.ai;
+package com.rich.richcodeweaver.model.dto.aiCode;
 
 import dev.langchain4j.model.output.structured.Description;
 import lombok.Data;

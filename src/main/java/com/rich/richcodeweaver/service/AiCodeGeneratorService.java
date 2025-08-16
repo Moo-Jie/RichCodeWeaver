@@ -1,7 +1,7 @@
 package com.rich.richcodeweaver.service;
 
-import com.rich.richcodeweaver.model.dto.ai.HtmlCodeResult;
-import com.rich.richcodeweaver.model.dto.ai.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
+import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
 import dev.langchain4j.service.SystemMessage;
 import reactor.core.publisher.Flux;
 

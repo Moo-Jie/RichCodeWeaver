@@ -32,7 +32,7 @@ public class App implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * id
+     * id（雪花）
      */
     @Id(keyType = KeyType.Generator, value = KeyGenerators.snowFlakeId)
     private Long id;

@@ -16,17 +16,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 用户 实体类
+ * 对话历史 实体类。
  *
- * @author DuRuiChi
- * @create 2025/8/5
+ * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("user")
-public class User implements Serializable {
+@Table("chat_history")
+public class ChatHistory implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -38,46 +37,27 @@ public class User implements Serializable {
     private Long id;
 
     /**
-     * 账号
+     * 消息
      */
-    @Column("userAccount")
-    private String userAccount;
+    private String message;
 
     /**
-     * 密码
+     * 消息类型
      */
-    @Column("userPassword")
-    private String userPassword;
+    @Column("messageType")
+    private String messageType;
 
     /**
-     * 用户昵称
+     * 应用id
      */
-    @Column("userName")
-    private String userName;
+    @Column("appId")
+    private Long appId;
 
     /**
-     * 用户头像
+     * 创建用户id
      */
-    @Column("userAvatar")
-    private String userAvatar;
-
-    /**
-     * 用户简介
-     */
-    @Column("userProfile")
-    private String userProfile;
-
-    /**
-     * 用户角色：user/admin
-     */
-    @Column("userRole")
-    private String userRole;
-
-    /**
-     * 编辑时间
-     */
-    @Column("editTime")
-    private LocalDateTime editTime;
+    @Column("userId")
+    private Long userId;
 
     /**
      * 创建时间

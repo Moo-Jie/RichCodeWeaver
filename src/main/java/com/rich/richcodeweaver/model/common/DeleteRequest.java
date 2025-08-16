@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 删除响应类
+ * 删除应用响应类
  *
  * @author DuRuiChi
  * @create 2025/8/4
@@ -14,7 +14,7 @@ import java.io.Serializable;
 public class DeleteRequest implements Serializable {
 
     /**
-     * id
+     * 应用 id
      */
     private Long id;
 
