@@ -64,7 +64,7 @@
             <a-textarea
               v-else
               v-model:value="userInput"
-              placeholder="请用丰富语言描述您的网站愿景 🌟"
+              placeholder="✨ 请用丰富语言描述您的网站愿景 —— 描述越详尽，创作越精彩 ✨"
               :rows="4"
               :maxlength="1000"
               @keydown.enter.prevent="sendMessage"
@@ -98,9 +98,6 @@
                   <SendOutlined />
                 </template>
               </a-button>
-            </div>
-            <div v-if="isOwner" class="input-tip">
-              描述越详尽，创作越精彩 ✨ 支持 Markdown 语法
             </div>
           </div>
         </div>
@@ -814,10 +811,8 @@ onUnmounted(() => {
 }
 
 .send-btn {
-  width: 48px;
-  height: 48px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  background: linear-gradient(135deg, #ffffff, #bddeff);
+  background: linear-gradient(135deg, #98d0ff, #e9ccff);
   border: none;
   transition: all 0.3s ease;
 }

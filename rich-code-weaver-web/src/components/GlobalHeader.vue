@@ -84,7 +84,7 @@ router.afterEach((to) => {
 
 // 个人中心跳转
 const goToProfile = () => {
-  router.push('/user/profile')
+  router.push('/user/userCenter')
 }
 
 // 跳转到登录页面
