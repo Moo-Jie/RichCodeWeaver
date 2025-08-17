@@ -149,7 +149,7 @@
           <a-form-item class="form-actions">
             <a-space>
               <a-button
-                type="primary"
+                type="default"
                 html-type="submit"
                 :loading="submitting"
                 size="large"

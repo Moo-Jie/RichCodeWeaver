@@ -49,7 +49,7 @@
         </div>
 
         <a-form-item>
-          <a-button type="primary" html-type="submit" class="submit-btn" :loading="submitting">
+          <a-button type="default" html-type="submit" class="submit-btn" :loading="submitting">
             注册
           </a-button>
         </a-form-item>

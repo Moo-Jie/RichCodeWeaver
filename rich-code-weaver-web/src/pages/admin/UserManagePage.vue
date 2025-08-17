@@ -41,7 +41,7 @@
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button type="primary" html-type="submit">
+          <a-button type="default" html-type="submit">
             <template #icon>
               <SearchOutlined />
             </template>
@@ -117,7 +117,7 @@
           <template v-else-if="column.key === 'action'">
             <a-space class="action-buttons">
               <a-button
-                type="primary"
+                type="default"
                 size="small"
                 @click="editUser(record)"
               >

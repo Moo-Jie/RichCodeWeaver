@@ -85,7 +85,7 @@
           </div>
 
           <a-form-item>
-            <a-button type="primary" html-type="submit" class="submit-btn" :loading="submitting">
+            <a-button type="default" html-type="submit" class="submit-btn" :loading="submitting">
               登录
             </a-button>
           </a-form-item>

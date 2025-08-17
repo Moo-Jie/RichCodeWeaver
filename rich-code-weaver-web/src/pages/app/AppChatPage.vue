@@ -12,7 +12,7 @@
           </template>
           应用详情
         </a-button>
-        <a-button type="primary" class="deploy-btn" @click="deployApp" :loading="deploying">
+        <a-button type="default" class="deploy-btn" @click="deployApp" :loading="deploying">
           <template #icon>
             <CloudUploadOutlined />
           </template>
@@ -88,7 +88,7 @@
             <div class="input-actions">
               <a-tooltip v-if="!isOwner" title="请创建自己的作品来与AI对话" placement="top">
                 <a-button
-                  type="primary"
+                  type="default"
                   shape="circle"
                   size="large"
                   :disabled="!isOwner"
@@ -101,7 +101,7 @@
               </a-tooltip>
               <a-button
                 v-else
-                type="primary"
+                type="default"
                 shape="circle"
                 size="large"
                 @click="sendMessage"
@@ -126,7 +126,7 @@
             <div class="decorative-line"></div>
           </div>
           <div class="preview-actions">
-            <a-button v-if="previewUrl" type="primary" ghost @click="openInNewTab" class="preview-action-btn">
+            <a-button v-if="previewUrl" type="default" ghost @click="openInNewTab" class="preview-action-btn">
               <template #icon>
                 <ExportOutlined />
               </template>

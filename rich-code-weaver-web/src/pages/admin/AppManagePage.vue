@@ -64,7 +64,7 @@
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button type="primary" html-type="submit">搜索</a-button>
+          <a-button type="default" html-type="submit">搜索</a-button>
           &nbsp;
           <a-button @click="resetSearch">重置</a-button>
         </a-form-item>

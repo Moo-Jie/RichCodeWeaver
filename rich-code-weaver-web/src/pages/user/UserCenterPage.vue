@@ -14,7 +14,7 @@
             <UserOutlined />
             个人信息
           </h2>
-          <a-button type="primary" @click="showEditModal">
+          <a-button type="default" @click="showEditModal">
             <template #icon>
               <EditOutlined />
             </template>
@@ -84,7 +84,7 @@
               <h3>登录密码</h3>
               <p>定期更改密码可提升账户安全</p>
             </div>
-            <a-button type="primary" ghost @click="showPasswordModal">
+            <a-button type="default" ghost @click="showPasswordModal">
               修改密码
             </a-button>
           </div>

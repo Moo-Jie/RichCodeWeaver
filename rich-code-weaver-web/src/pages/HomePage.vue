@@ -334,7 +334,7 @@ onMounted(() => {
           class="prompt-input"
         />
         <div class="input-actions">
-          <a-button type="primary" size="large" @click="createApp" :loading="creating">
+          <a-button type="default" size="large" @click="createApp" :loading="creating">
             <template #icon>
               <span class="create-icon">创建作品</span>
             </template>
@@ -345,7 +345,7 @@ onMounted(() => {
       <!-- 自动填入提示词按钮 -->
       <div class="quick-actions">
         <a-button
-          type="primary"
+          type="default"
           size="large"
           class="rich-select-button"
           @click="showPromptDropdown = !showPromptDropdown"

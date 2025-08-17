@@ -1,14 +1,11 @@
 <template>
   <div id="appHistoryPage" class="history-management">
-    <!-- 新的页面标题 - 应用管理中心风格 -->
     <div class="page-header">
       <h1>对话历史管理</h1>
       <p>管理应用历史对话记录</p>
     </div>
 
-    <!-- 主要内容区域 -->
     <div class="main-content">
-      <!-- 左侧应用列表 -->
       <div class="app-section">
         <div class="section-header">
           <div class="decorative-line"></div>
@@ -16,7 +13,6 @@
           <div class="decorative-line"></div>
         </div>
 
-        <!-- 搜索面板 - 应用管理中心风格 -->
         <a-card class="search-panel">
           <a-input-search
             v-model:value="appSearch"
@@ -27,12 +23,10 @@
           />
         </a-card>
 
-        <!-- 加载状态 -->
         <div v-if="loadingApps" class="loading-container">
           <a-spin size="large" tip="加载应用列表中..." />
         </div>
 
-        <!-- 无数据提示 -->
         <a-empty
           v-else-if="!appList.length"
           description="暂无应用数据"
@@ -48,7 +42,6 @@
           </template>
         </a-empty>
 
-        <!-- 应用列表 -->
         <div v-else class="app-list">
           <div
             v-for="app in filteredAppList"
@@ -68,16 +61,14 @@
         </div>
       </div>
 
-      <!-- 右侧对话详情面板 -->
       <div class="conversation-section">
         <div v-if="selectedApp" class="detail-content">
           <div class="section-header">
             <div class="decorative-line"></div>
-            <h2 class="section-title">应用 <{{ selectedApp.appName }}> 的对话记录</h2>
+            <h2 class="section-title">应用 &lt;{{ selectedApp.appName }}&gt; 的对话记录</h2>
             <div class="decorative-line"></div>
           </div>
 
-          <!-- 应用详情卡片 -->
           <a-card class="app-card" :bordered="false">
             <div class="app-header">
               <a-avatar :src="selectedApp.cover" size="large" />
@@ -90,7 +81,6 @@
                 </div>
               </div>
               <div class="app-actions">
-                <!-- 进入应用按钮 -->
                 <a-button
                   type="default"
                   @click="navigateToApp(selectedApp.id)"
@@ -104,30 +94,32 @@
             </div>
           </a-card>
 
-          <!-- 对话区域 -->
           <div class="dialog-area">
-            <!-- 加载状态 -->
             <div v-if="loadingHistory" class="loading-container">
               <a-spin size="large" tip="加载对话中..." />
             </div>
 
-            <!-- 无数据提示 -->
             <a-empty
               v-else-if="!appHistory.length"
               description="暂无对话记录"
               class="empty-container"
             />
 
-            <!-- 对话记录 -->
             <div v-else class="conversation-container">
-              <div v-for="(history, index) in appHistory" :key="index" class="conversation-item">
+              <div v-for="(history, index) in appHistory" :key="history.id" class="conversation-item">
                 <div v-if="history.messageType === 'ai'" class="ai-message">
                   <div class="message-avatar">
                     <a-avatar :src="aiAvatar" class="ai-avatar" size="default" />
                     <span class="ai-label">AI</span>
                   </div>
+                  <a-button class="delete-icon" @click="deleteMessage(history.id)">
+                    <DeleteOutlined />
+                  </a-button>
                   <div class="message-content">
                     <markdown-renderer v-if="history.message" :content="history.message" />
+                    <div class="message-actions">
+                      <a-icon type="delete" class="delete-icon" @click="deleteMessage(history.id)" />
+                    </div>
                   </div>
                 </div>
 
@@ -135,6 +127,11 @@
                   <div class="message-content">
                     <div class="user-bubble">
                       {{ history.message }}
+                    </div>
+                    <div class="message-actions">
+                      <a-button class="delete-icon" @click="deleteMessage(history.id)">
+                        <DeleteOutlined />
+                      </a-button>
                     </div>
                   </div>
                   <div class="message-avatar">
@@ -145,7 +142,6 @@
               </div>
             </div>
 
-            <!-- 分页控件 -->
             <div v-if="appHistory.length" class="pagination-container">
               <a-pagination
                 v-model:current="currentPage"
@@ -180,21 +176,47 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser'
 import {
+  DeleteOutlined,
+} from '@ant-design/icons-vue'
+import {
   listAppVoByPageByAdmin as listAppsAdmin
 } from '@/api/appController'
 import {
-  listAppChatHistoryByPageAdmin as listHistoryAdmin
+  listAppChatHistoryByPageAdmin as listHistoryAdmin,
+  deleteById
 } from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import {
   ArrowRightOutlined
 } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
 
 import aiAvatar from '@/assets/aiAvatar.png'
-import { formatTime } from '@/utils/time.ts'
+import { formatTime } from '@/utils/time'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+
+// 删除单条对话历史
+const deleteMessage = async (messageId: number) => {
+  if (!selectedApp.value) return
+
+  try {
+    const res = await deleteById({
+      appId: selectedApp.value.id,
+      id: messageId
+    })
+    if (res.data.code === 0) {
+      message.success('删除成功')
+      await loadHistory()
+    } else {
+      message.error('删除失败: ' + res.data.message)
+    }
+  } catch (error) {
+    console.error('删除失败:', error)
+    message.error('删除失败，请重试')
+  }
+}
 
 // 应用列表相关状态
 const appList = ref<any[]>([])
@@ -270,24 +292,6 @@ const handleSearch = (value: string) => {
   appSearch.value = value
 }
 
-// 删除整个应用所有对话
-const deleteAllHistory = async () => {
-  if (!selectedApp.value) return
-
-  try {
-    const res = await deleteAppChatHistory({ appId: selectedApp.value.id })
-    if (res.data.code === 0) {
-      message.success('所有对话已删除')
-      await loadHistory()
-    } else {
-      message.error('删除失败: ' + res.data.message)
-    }
-  } catch (error) {
-    console.error('删除失败:', error)
-    message.error('删除失败，请重试')
-  }
-}
-
 // 导航到应用详情
 const navigateToApp = (appId: string) => {
   if (appId) {
@@ -311,7 +315,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 应用管理中心风格背景 */
 .history-management {
   padding: 24px;
   background: linear-gradient(135deg, #fdfcf9 0%, #f7f5f2 100%);
@@ -321,7 +324,6 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* 几何纹理背景 */
 .history-management::before {
   content: '';
   position: absolute;
@@ -335,7 +337,6 @@ onMounted(() => {
   z-index: 0;
 }
 
-/* 应用管理中心风格的页面标题 */
 .page-header {
   text-align: center;
   margin-bottom: 30px;
@@ -357,7 +358,6 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* 应用管理中心风格搜索面板 */
 .search-panel {
   background: rgba(255, 253, 248, 0.92);
   border-radius: 16px;
@@ -371,7 +371,6 @@ onMounted(() => {
   width: 100%;
 }
 
-/* 卡片样式 - 应用管理中心风格 */
 .app-section,
 .conversation-section {
   background: rgba(255, 253, 248, 0.92);
@@ -603,25 +602,27 @@ onMounted(() => {
 
 .message-actions {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.conversation-item:hover .message-actions {
+  top: 5px;
+  right: 5px;
   opacity: 1;
+  transition: opacity 0.3s, transform 0.2s;
+  display: block;
 }
 
 .delete-icon {
-  color: #ff4d4f;
-  font-size: 16px;
-  transition: all 0.3s;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .delete-icon:hover {
-  transform: scale(1.2);
-  color: #cf1322;
+  transform: scale(1.1);
+  background-color: #fff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
 }
 
 .pagination-container {
@@ -695,7 +696,6 @@ onMounted(() => {
   }
 }
 
-/* 响应式设计 */
 @media (max-width: 1200px) {
   .main-content {
     flex-direction: column;

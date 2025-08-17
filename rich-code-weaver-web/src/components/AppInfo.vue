@@ -101,7 +101,7 @@
       <!-- 操作栏 -->
       <div v-if="showActions" class="app-actions">
         <a-space>
-          <a-button type="primary" @click="handleEdit">
+          <a-button type="default" @click="handleEdit">
             <template #icon>
               <EditOutlined />
             </template>
