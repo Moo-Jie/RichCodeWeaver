@@ -177,4 +177,16 @@ public class UserController {
         userVOPage.setRecords(userVOList);
         return ResultUtils.success(userVOPage);
     }
+
+    /**
+     * 更新用户密码
+     *
+     * @param userUpdatePasswordRequest 更新密码请求参数
+     * @return  更新密码是否成功
+     */
+    @PostMapping("/update/password")
+    public BaseResponse<Boolean> updateUserPassword(@RequestBody UserUpdatePasswordRequest userUpdatePasswordRequest) {
+        ThrowUtils.throwIf(userUpdatePasswordRequest == null, ErrorCode.PARAMS_ERROR);
+        return ResultUtils.success(userService.updatePassword(userUpdatePasswordRequest));
+    }
 }

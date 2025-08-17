@@ -8,7 +8,9 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
+import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.model.dto.user.UserQueryRequest;
+import com.rich.richcodeweaver.model.dto.user.UserUpdatePasswordRequest;
 import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.mapper.UserMapper;
 import com.rich.richcodeweaver.model.enums.UserRoleEnum;
@@ -274,6 +276,37 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return DigestUtils.md5DigestAsHex(input.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * 更新密码
+     *
+     * @param userUpdatePasswordRequest 用户更新密码请求对象
+     * @return  是否更新成功
+     */
+    @Override
+    public Boolean updatePassword(UserUpdatePasswordRequest userUpdatePasswordRequest) {
+        long userId = userUpdatePasswordRequest.getUserId();
+        String oldPassword = userUpdatePasswordRequest.getOldPassword();
+        String newPassword = userUpdatePasswordRequest.getNewPassword();
+
+        // 校验参数
+        ThrowUtils.throwIf(userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(oldPassword), ErrorCode.PARAMS_ERROR, "旧密码不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(newPassword), ErrorCode.PARAMS_ERROR, "新密码不能为空");
+        // 校验旧密码
+        User user = this.getById(userId);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        String encryptedOldPassword = encryptPassword(oldPassword);
+        ThrowUtils.throwIf(!encryptedOldPassword.equals(user.getUserPassword()), ErrorCode.PARAMS_ERROR, "旧密码错误");
+        // 校验新密码
+        ThrowUtils.throwIf(newPassword.equals(oldPassword), ErrorCode.PARAMS_ERROR, "新密码不能与旧密码相同");
+        ThrowUtils.throwIf(newPassword.length() < MIN_PASSWORD_LENGTH, ErrorCode.PARAMS_ERROR, "新密码长度不能小于6位");
+        ThrowUtils.throwIf(newPassword.length() > MAX_PASSWORD_LENGTH, ErrorCode.PARAMS_ERROR, "新密码长度不能大于20位");
+        // 加密新密码
+        String encryptedNewPassword = encryptPassword(newPassword);
+        // 更新密码
+        user.setUserPassword(encryptedNewPassword);
+        return this.updateById(user);
+    }
     /**
      * 验证用户账号合规性
      *

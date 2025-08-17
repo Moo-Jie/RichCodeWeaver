@@ -116,8 +116,20 @@
 
           <template v-else-if="column.dataIndex === 'codeGenType'">
             <a-tag :color="getTypeColor(record.codeGenType)">
-              {{ formatCodeGenType(record.codeGenType) }}
+              {{ record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : formatCodeGenType(record.codeGenType) }}
             </a-tag>
+          </template>
+
+          <template v-else-if="column.dataIndex === 'deployKey'">
+            <div @click="toggleDeployKey(record.id)" class="deploy-key-cell">
+              <span v-if="showDeployKey[record.id]">{{ record.deployKey }}</span>
+              <span v-else>*******</span>
+              <component
+                :is="showDeployKey[record.id] ? EyeOutlined : EyeInvisibleOutlined"
+                class="eye-icon"
+                :style="{ marginLeft: '5px', cursor: 'pointer' }"
+              />
+            </div>
           </template>
 
           <template v-else-if="column.dataIndex === 'priority'">
@@ -201,7 +213,9 @@ import {
   StarOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
-  UserOutlined
+  UserOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined
 } from '@ant-design/icons-vue'
 import { listAppVoByPageByAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController'
 import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/utils/codeGenTypes'
@@ -301,6 +315,14 @@ const fetchData = async () => {
     console.error('获取数据失败：', error)
     message.error('获取数据失败')
   }
+}
+
+// 添加部署密钥显示状态管理
+const showDeployKey = ref<Record<number, boolean>>({})
+
+// 切换部署密钥显示状态
+const toggleDeployKey = (id: number) => {
+  showDeployKey.value[id] = !showDeployKey.value[id]
 }
 
 // 页面加载时请求数据
@@ -652,5 +674,11 @@ const deleteApp = async (id: number | undefined) => {
       align-self: flex-start;
     }
   }
+}
+
+.deploy-key-cell {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 </style>

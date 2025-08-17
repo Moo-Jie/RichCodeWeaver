@@ -3,6 +3,7 @@ package com.rich.richcodeweaver.service;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.rich.richcodeweaver.model.dto.user.UserQueryRequest;
+import com.rich.richcodeweaver.model.dto.user.UserUpdatePasswordRequest;
 import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.vo.LoginUserVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
@@ -92,4 +93,12 @@ public interface UserService extends IService<User> {
      * @return 加密后的用户密码
      */
     String getEncryptPassword(String userPassword);
+
+    /**
+     * 更新密码
+     *
+     * @param userUpdatePasswordRequest
+     * @return
+     */
+    Boolean updatePassword(UserUpdatePasswordRequest userUpdatePasswordRequest);
 }

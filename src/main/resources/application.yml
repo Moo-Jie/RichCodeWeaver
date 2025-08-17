@@ -17,8 +17,13 @@ spring:
     redis:
       database: 1
       port: 6379
-      timeout: 5000
       host: localhost
+      password:
+      user:
+      # 连接超时时间
+      timeout: 5000
+      # 过期时间
+      ttl: 5000
   profiles:
     active: local
 

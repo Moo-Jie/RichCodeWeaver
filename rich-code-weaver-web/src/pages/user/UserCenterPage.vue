@@ -92,7 +92,8 @@
           <div class="setting-item">
             <div>
               <h3>手机绑定</h3>
-              <p>{{ userInfo.phone ? `已绑定手机: ${maskPhone(userInfo.phone)}` : '未绑定手机号' }}</p>
+              <p>{{ userInfo.phone ? `已绑定手机: ${maskPhone(userInfo.phone)}` : '未绑定手机号'
+                }}</p>
             </div>
             <a-button @click="handleMobile">
               {{ userInfo.phone ? '更换手机' : '绑定手机' }}
@@ -102,7 +103,8 @@
           <div class="setting-item">
             <div>
               <h3>邮箱验证</h3>
-              <p>{{ userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱' }}</p>
+              <p>{{ userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
+                }}</p>
             </div>
             <a-button @click="handleEmail">
               {{ userInfo.email ? '更换邮箱' : '绑定邮箱' }}
@@ -111,9 +113,7 @@
         </div>
 
         <div class="logout-section">
-          <a-button danger icon="logout" @click="handleLogout">
-            退出登录
-          </a-button>
+          <a-button danger icon="退出登录" @click="handleLogout"/>
         </div>
       </a-card>
     </div>
@@ -153,7 +153,8 @@
           <a-input-password v-model:value="passwordForm.newPassword" placeholder="请输入新密码" />
         </a-form-item>
         <a-form-item label="确认密码">
-          <a-input-password v-model:value="passwordForm.confirmPassword" placeholder="请确认新密码" />
+          <a-input-password v-model:value="passwordForm.confirmPassword"
+                            placeholder="请确认新密码" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -176,7 +177,7 @@ import {
   PhoneOutlined,
   LogoutOutlined
 } from '@ant-design/icons-vue'
-import { getLoginUser, updateUser } from '@/api/userController'
+import { getLoginUser, updateUser, updateUserPassword, userLogout } from '@/api/userController'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -272,7 +273,7 @@ const handlePasswordSubmit = async () => {
   }
 
   try {
-    const res = await updateUser({
+    const res = await updateUserPassword({
       userId: loginUserStore.loginUser.id,
       oldPassword: passwordForm.oldPassword,
       newPassword: passwordForm.newPassword
@@ -294,20 +295,28 @@ const handlePasswordSubmit = async () => {
   }
 }
 
-// 处理手机操作
+// TODO 处理手机操作
 const handleMobile = () => {
   message.info('手机绑定功能即将上线')
 }
 
-// 处理邮箱操作
+// TODO 处理邮箱操作
 const handleEmail = () => {
   message.info('邮箱绑定功能即将上线')
 }
 
 // 退出登录
-const handleLogout = () => {
-  loginUserStore.logout()
-  router.replace('/user/login')
+const handleLogout = async () => {
+  const res = await userLogout()
+  if (res.data.code === 0) {
+    loginUserStore.setLoginUser({
+      userName: '未登录'
+    })
+    message.success('退出登录成功')
+    await router.push('/user/login')
+  } else {
+    message.error('退出登录失败，' + res.data.message)
+  }
 }
 
 // 手机号脱敏处理

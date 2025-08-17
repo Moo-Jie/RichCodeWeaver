@@ -16,6 +16,10 @@ public interface UserConstant {
      */
     int MIN_PASSWORD_LENGTH = 8;
     /**
+     * 最大密码长度
+     */
+    int MAX_PASSWORD_LENGTH = 20;
+    /**
      * 默认用户名
      */
     String DEFAULT_USER_NAME = "无名";
