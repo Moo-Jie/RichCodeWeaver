@@ -117,6 +117,12 @@ const originItems = [
         icon: () => h(BorderlessTableOutlined),
         label: '应用管理',
         title: '应用管理'
+      },
+      {
+        key: '/admin/chatHistory',
+        icon: () => h(BorderlessTableOutlined),
+        label: '对话历史管理',
+        title: '对话历史管理'
       }
     ]
   }

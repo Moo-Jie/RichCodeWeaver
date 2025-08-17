@@ -43,7 +43,7 @@
             placeholder="全部生成类型"
             style="width: 180px"
           >
-            <a-select-option >全部类型</a-select-option>
+            <a-select-option>全部类型</a-select-option>
             <a-select-option
               v-for="option in CODE_GEN_TYPE_OPTIONS"
               :key="option.value"
@@ -116,7 +116,8 @@
 
           <template v-else-if="column.dataIndex === 'codeGenType'">
             <a-tag :color="getTypeColor(record.codeGenType)">
-              {{ record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : formatCodeGenType(record.codeGenType) }}
+              {{ record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : formatCodeGenType(record.codeGenType)
+              }}
             </a-tag>
           </template>
 
@@ -134,7 +135,8 @@
 
           <template v-else-if="column.dataIndex === 'priority'">
             <a-tag v-if="record.priority === 99" color="gold">
-              <star-filled /> 星选应用
+              <star-filled />
+              星选应用
             </a-tag>
             <span v-else>普通应用</span>
           </template>
@@ -166,12 +168,34 @@
 
           <template v-else-if="column.key === 'action'">
             <a-space class="action-buttons">
+              <!-- 进入应用按钮 -->
               <a-button
-                type="primary"
+                type="default"
+                size="small"
+                @click="enterApp(record)"
+              >
+                <template #icon>
+                  <ArrowRightOutlined />
+                </template>
+                进入
+              </a-button>
+              <a-button
+                type="default"
                 size="small"
                 @click="editApp(record)"
               >
                 编辑
+              </a-button>
+              <!-- 信息卡片按钮 -->
+              <a-button
+                type="default"
+                size="small"
+                @click="showAppDetail(record)"
+              >
+                <template #icon>
+                  <InfoCircleOutlined />
+                </template>
+                详情
               </a-button>
 
               <a-button
@@ -181,10 +205,12 @@
                 :class="{ 'featured-btn': record.priority === 99 }"
               >
                 <template v-if="record.priority === 99">
-                  <star-filled /> 取消星选
+                  <star-filled />
+                  取消星选
                 </template>
                 <template v-else>
-                  <star-outlined /> 设为星选
+                  <star-outlined />
+                  设为星选
                 </template>
               </a-button>
 
@@ -199,6 +225,13 @@
         </template>
       </a-table>
     </a-card>
+
+    <!-- 应用详情弹窗 -->
+    <AppInfo
+      v-model:open="appDetailVisible"
+      :app="currentApp"
+      :show-actions="false"
+    />
   </div>
 </template>
 
@@ -215,14 +248,32 @@ import {
   ClockCircleOutlined,
   UserOutlined,
   EyeOutlined,
+  InfoCircleOutlined,
+  ArrowRightOutlined,
   EyeInvisibleOutlined
 } from '@ant-design/icons-vue'
 import { listAppVoByPageByAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController'
 import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/utils/codeGenTypes'
 import { formatTime } from '@/utils/time'
 import UserInfo from '@/components/UserInfo.vue'
+import AppInfo from '@/components/AppInfo.vue'
 
 const router = useRouter()
+// 查看应用详情
+const appDetailVisible = ref(false)
+const currentApp = ref<API.AppVO | null>(null)
+
+const showAppDetail = (app: API.AppVO) => {
+  currentApp.value = app
+  appDetailVisible.value = true
+}
+
+// 进入应用
+const enterApp = (app: API.AppVO) => {
+  if (app.id) {
+    router.push(`/app/chat/${app.id}`)
+  }
+}
 
 // 表格列定义
 const columns = [
@@ -231,62 +282,62 @@ const columns = [
     dataIndex: 'id',
     width: 80,
     fixed: 'left',
-    sorter: true,
+    sorter: true
   },
   {
     title: '应用名称',
     dataIndex: 'appName',
     width: 150,
-    ellipsis: true,
+    ellipsis: true
   },
   {
     title: '封面',
     dataIndex: 'cover',
-    width: 100,
+    width: 100
   },
   {
     title: '初始提示词',
     dataIndex: 'initPrompt',
     width: 200,
-    ellipsis: true,
+    ellipsis: true
   },
   {
     title: '生成类型',
     dataIndex: 'codeGenType',
-    width: 120,
+    width: 120
   },
   {
     title: '推送等级',
     dataIndex: 'priority',
-    width: 100,
+    width: 100
   },
   {
     title: '部署密钥',
     dataIndex: 'deployKey',
-    width: 120,
+    width: 120
   },
   {
     title: '部署时间',
     dataIndex: 'deployedTime',
-    width: 160,
+    width: 160
   },
   {
     title: '创建者',
     dataIndex: 'user',
-    width: 120,
+    width: 120
   },
   {
     title: '创建时间',
     dataIndex: 'createTime',
     width: 160,
-    sorter: true,
+    sorter: true
   },
   {
     title: '操作',
     key: 'action',
     width: 230,
-    fixed: 'right',
-  },
+    fixed: 'right'
+  }
 ]
 
 // 应用数据
@@ -296,14 +347,14 @@ const total = ref(0)
 // 搜索条件
 const searchParams = reactive<API.AppQueryRequest>({
   pageNum: 1,
-  pageSize: 10,
+  pageSize: 10
 })
 
 // 获取数据
 const fetchData = async () => {
   try {
     const res = await listAppVoByPageByAdmin({
-      ...searchParams,
+      ...searchParams
     })
     if (res.data.data) {
       data.value = res.data.data.records ?? []
@@ -355,7 +406,7 @@ const pagination = computed(() => {
     total: total.value,
     showSizeChanger: true,
     pageSizeOptions: ['10', '20', '30', '50'],
-    showTotal: (total: number) => `共 ${total} 条记录`,
+    showTotal: (total: number) => `共 ${total} 条记录`
   }
 })
 
@@ -395,7 +446,7 @@ const toggleFeatured = async (app: API.AppVO) => {
   try {
     const res = await updateAppByAdmin({
       id: app.id,
-      priority: newPriority,
+      priority: newPriority
     })
 
     if (res.data.code === 0) {
@@ -460,7 +511,7 @@ const deleteApp = async (id: number | undefined) => {
     font-weight: 600;
     color: #5c4a48;
     margin-bottom: 8px;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   p {
@@ -551,7 +602,7 @@ const deleteApp = async (id: number | undefined) => {
   .app-cover {
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
   }
 
   .no-cover {
@@ -608,11 +659,13 @@ const deleteApp = async (id: number | undefined) => {
     .ant-btn {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 5px;
       font-size: 0.9rem;
       padding: 4px 12px;
       border-radius: 6px;
       height: 32px;
+      width: 90px;
     }
   }
 

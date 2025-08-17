@@ -24,6 +24,13 @@
           </div>
         </a-descriptions-item>
 
+        <a-descriptions-item label="用户ID">
+          <div class="meta-item">
+            <idcard-outlined />
+            <span>{{ app?.userId || '--' }}</span>
+          </div>
+        </a-descriptions-item>
+
         <a-descriptions-item label="创建时间">
           <div class="meta-item">
             <calendar-outlined />
@@ -87,13 +94,6 @@
           <div class="meta-item">
             <flag-outlined />
             <a-tag :color="getPriorityColor(app?.priority)">{{ app?.priority || '--' }}</a-tag>
-          </div>
-        </a-descriptions-item>
-
-        <a-descriptions-item label="用户ID">
-          <div class="meta-item">
-            <idcard-outlined />
-            <span>{{ app?.userId || '--' }}</span>
           </div>
         </a-descriptions-item>
       </a-descriptions>
