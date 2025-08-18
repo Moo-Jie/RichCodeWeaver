@@ -13,13 +13,13 @@
         <a href="/other/about" class="nav-link">关于我们</a>
         <a href="/other/docs" class="nav-link">文档中心</a>
         <a href="/other/privacy" class="nav-link">隐私政策</a>
-        <a href="/other/terms" class="nav-link">使用条款</a>
+        <a href="/other/terms" class="nav-link">服务条款</a>
       </nav>
 
       <!-- 版权声明 -->
       <div class="copyright-container">
         <p class="copyright">
-          © {{ currentYear }}
+          © {{ currentYear }} RichCodeWeaver - 织码睿奇 |
           <a href="https://github.com/Moo-Jie"
              target="_blank"
              rel="noopener noreferrer"

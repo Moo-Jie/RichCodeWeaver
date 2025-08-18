@@ -8,6 +8,10 @@ import AppChatPage from '@/pages/app/AppChatPage.vue'
 import AppEditPage from '@/pages/app/AppEditPage.vue'
 import UserCenterPage from '@/pages/user/UserCenterPage.vue'
 import ChatHistoryManagePage from '@/pages/admin/ChatHistoryManagePage.vue'
+import DocsPage from '@/pages/other/DocsPage.vue'
+import AboutPage from '@/pages/other/AboutPage.vue'
+import PrivacyPage from '@/pages/other/PrivacyPage.vue'
+import TermsPage from '@/pages/other/TermsPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -56,6 +60,26 @@ const router = createRouter({
       path: '/app/edit/:id',
       name: '编辑应用',
       component: AppEditPage,
+    },
+    {
+      path: '/other/docs',
+      name: '文档',
+      component: DocsPage,
+    },
+    {
+      path: '/other/about',
+      name: '关于',
+      component: AboutPage,
+    },
+    {
+      path: '/other/privacy',
+      name: '用户隐私协议',
+      component: PrivacyPage,
+    },
+    {
+      path: '/other/terms',
+      name: '服务条款',
+      component: TermsPage,
     },
   ],
 })

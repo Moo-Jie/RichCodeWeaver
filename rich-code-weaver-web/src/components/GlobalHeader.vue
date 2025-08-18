@@ -71,7 +71,13 @@ import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
-import { BorderlessTableOutlined, AuditOutlined, UserOutlined, LogoutOutlined, HomeOutlined } from '@ant-design/icons-vue'
+import {
+  BorderlessTableOutlined,
+  AuditOutlined,
+  UserOutlined,
+  LogoutOutlined,
+  HomeOutlined
+} from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
@@ -123,6 +129,38 @@ const originItems = [
         icon: () => h(BorderlessTableOutlined),
         label: '对话历史管理',
         title: '对话历史管理'
+      }
+    ]
+  },
+  {
+    key: '/other',
+    icon: () => h(AuditOutlined),
+    label: '其他',
+    title: '其他',
+    children: [
+      {
+        key: '/other/about',
+        icon: () => h(BorderlessTableOutlined),
+        label: '关于',
+        title: '关于'
+      },
+      {
+        key: '/other/docs',
+        icon: () => h(BorderlessTableOutlined),
+        label: '文档',
+        title: '文档'
+      },
+      {
+        key: '/other/privacy',
+        icon: () => h(BorderlessTableOutlined),
+        label: '隐私政策',
+        title: '隐私政策'
+      },
+      {
+        key: '/other/terms',
+        icon: () => h(BorderlessTableOutlined),
+        label: '服务条款',
+        title: '服务条款'
       }
     ]
   }
