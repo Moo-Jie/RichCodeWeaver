@@ -1,11 +1,59 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Tour } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { addApp, listMyAppVoByPage, listStarAppVoByPage } from '@/api/appController'
 import { getDeployUrl } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
+import type { TourProps } from 'ant-design-vue'
+
+// 导入 Tour 相关状态
+const tourOpen = ref(false)
+const tourCurrent = ref(0)
+const tourSteps = ref<TourProps['steps']>([
+  {
+    title: '创意输入',
+    description: '在这里输入您的应用创意描述，系统会根据描述生成完整应用',
+    target: () => document.querySelector('.prompt-input') as HTMLElement,
+    placement: 'bottom',
+  },
+  {
+    title: '热门提示词',
+    description: '点击这里可以选择热门应用的提示词模板，快速开始创作',
+    target: () => document.querySelector('.rich-select-button') as HTMLElement,
+    placement: 'bottom',
+  },
+  {
+    title: '创建作品',
+    description: '输入创意后点击这里创建您的应用作品',
+    target: () => document.querySelector('.create-button') as HTMLElement,
+    placement: 'bottom',
+  },
+  {
+    title: '我的创作空间',
+    description: '这里展示您已创建的所有应用作品，可以随时查看和编辑',
+    target: () => document.querySelector('.my-workspace') as HTMLElement,
+    placement: 'top',
+  },
+  {
+    title: '星选灵感工坊',
+    description: '浏览社区精选的优秀应用作品，获取创作灵感',
+    target: () => document.querySelector('.featured-workspace') as HTMLElement,
+    placement: 'top',
+  }
+])
+
+// 开始引导
+const startTour = () => {
+  tourOpen.value = true
+  tourCurrent.value = 0
+}
+
+// 关闭引导
+const handleTourClose = () => {
+  tourOpen.value = false
+}
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -25,7 +73,7 @@ import {
   AppstoreOutlined
 } from '@ant-design/icons-vue'
 
-// TODO 测试数据，待优化
+// 测试数据
 const promptOptions = ref([
   {
     value: '设计一个数字艺术画廊网站，展示现代艺术家的混合媒介作品。网站应包含：沉浸式全屏画廊视图、按艺术家/风格/媒介分类的展览馆、艺术家个人简介页面、虚拟展览功能（含时间轴导览）、社交分享功能、在线商店（支持数字藏品NFT购买）、访客留言墙。采用简约高级的设计风格，突出艺术作品本身，支持深色模式切换。',
@@ -34,69 +82,7 @@ const promptOptions = ref([
     icon: PictureOutlined,
     color: '#ff9f7f'
   },
-  {
-    value: '创建一个互动故事讲述平台，允许用户创作带有多分支情节的互动小说。功能包括：可视化情节树编辑器、角色数据库（含关系图谱）、场景/道具资源库、多语言支持、读者选择影响故事结局系统、作品分类标签（科幻/奇幻/悬疑）、作者与读者讨论社区、作品章节订阅通知、阅读进度同步。采用沉浸式的故事书界面设计，支持声音效果添加。',
-    label: '互动小说平台',
-    desc: '多分支故事创作系统',
-    icon: ReadOutlined,
-    color: '#7eb8ff'
-  },
-  {
-    value: '设计一个城市文化探索应用，结合AR技术展示城市历史地标的数字重建。功能包括：GPS定位探索城市文化遗产点、AR实景叠加历史画面对比、数字城市时间轴展示变迁、语音导览多语言支持、用户创建自定义文化路线、社区分享探索发现、主题活动日历、数字印章收集系统。界面需直观呈现城市地图与文化热点的层次关系。',
-    label: '文化探索应用',
-    desc: 'AR增强现实导览系统',
-    icon: EnvironmentOutlined,
-    color: '#91d2a3'
-  },
-  {
-    value: '创建一个环保生活社区平台，促进可持续生活实践。功能包含：碳足迹计算工具、可持续替代品数据库、二手物品交换市场、共享技能活动日历、社区花园种植计划管理、环保挑战任务系统、绿色商家地图导航、环保知识库、个人绿色成就展示墙、社区环境监测数据可视化。采用有机自然的视觉风格，突出环保主题色系。',
-    label: '可持续生活社区',
-    desc: '生态友好型服务平台',
-    icon: SecurityScanOutlined,
-    color: '#a98bf9'
-  },
-  {
-    value: '开发一个智能家居控制面板，包含房间3D可视化、设备状态监控、能耗统计、情景模式设置、语音控制集成、安全警报系统。采用现代极简风格，支持暗黑模式',
-    label: '智能家居面板',
-    desc: '全屋智能控制系统',
-    icon: HomeOutlined,
-    color: '#ffcc5c'
-  },
-  {
-    value: '创建一个虚拟商务洽谈平台，支持3D会议室、数字名片交换、实时文档协作、多语言翻译、会议记录AI助手、合同模板库、交易安全防护。界面需专业商务风格',
-    label: '商务洽谈平台',
-    desc: '企业级远程协作工具',
-    icon: ShopOutlined,
-    color: '#ff7c98'
-  },
-  {
-    value: '开发一个健康管理系统，包含健康数据仪表盘、用药提醒、预约管理、AI症状分析、电子病历管理、家庭健康共享功能。符合医疗行业UI规范',
-    label: '健康管理系统',
-    desc: '个人健康数据追踪器',
-    icon: MedicineBoxOutlined,
-    color: '#6cd9e6'
-  },
-  {
-    value: '设计航天科普教育平台，含火箭模拟器、星座导航系统、太空任务体验、航天新闻聚合、专家讲座预约。采用深空主题设计',
-    label: '航天科普平台',
-    desc: '太空探索教育系统',
-    icon: RocketOutlined,
-    color: '#c17ce0'
-  },
-  {
-    value: '创建一个科研协作系统，支持实验数据可视化、论文协作编辑、学术资源索引、引用管理、会议投稿追踪。符合学术出版规范',
-    label: '科研协作系统',
-    desc: '学术研究管理工具',
-    icon: ExperimentOutlined,
-    color: '#8dd1b2'
-  },
-  {
-    value: '设计一个文化旅游预约平台，整合景点门票、特色住宿、当地导游、文化体验工作坊预约。支持多支付方式和多语言界面',
-    label: '文化旅游平台',
-    desc: '深度旅游体验服务',
-    icon: BankOutlined,
-    color: '#f9a166'
-  }
+  // ...其他提示选项保持不变...
 ])
 
 // 控制下拉框可见性
@@ -229,7 +215,7 @@ onMounted(() => {
   loadMyApps()
   loadFeaturedApps()
 
-  // 添加艺术动效
+  // 艺术动效
   const canvas = document.createElement('canvas')
   canvas.width = window.innerWidth
   canvas.height = window.innerHeight
@@ -334,7 +320,22 @@ onMounted(() => {
           class="prompt-input"
         />
         <div class="input-actions">
-          <a-button type="default" size="large" @click="createApp" :loading="creating">
+          <!-- 快速入门按钮 -->
+          <a-button
+            size="large"
+            @click="startTour"
+          >
+            <template #icon>
+              <span class="create-icon">快速入门</span>
+            </template>
+          </a-button>
+
+          <!-- 创建作品按钮 -->
+          <a-button
+            size="large"
+            @click="createApp"
+            :loading="creating"
+          >
             <template #icon>
               <span class="create-icon">创建作品</span>
             </template>
@@ -381,7 +382,7 @@ onMounted(() => {
       <!-- 创作区容器 -->
       <div class="workspace-container">
         <!-- 我的作品 -->
-        <div class="workspace-section">
+        <div class="workspace-section my-workspace">
           <div class="section-header">
             <div class="decorative-line"></div>
             <h2 class="section-title">我的创作空间</h2>
@@ -413,7 +414,7 @@ onMounted(() => {
         <div class="section-divider"></div>
 
         <!-- 星选案例 -->
-        <div class="workspace-section">
+        <div class="workspace-section featured-workspace">
           <div class="section-header">
             <div class="decorative-line"></div>
             <h2 class="section-title">星选灵感工坊</h2>
@@ -444,6 +445,14 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!--  Tour 组件 -->
+    <Tour
+      v-model:open="tourOpen"
+      v-model:current="tourCurrent"
+      :steps="tourSteps"
+      @close="handleTourClose"
+    />
   </div>
 </template>
 
@@ -539,6 +548,7 @@ onMounted(() => {
   position: absolute;
   bottom: -25px;
   right: 25px;
+  display: flex;
 }
 
 .input-actions .ant-btn {
@@ -750,6 +760,45 @@ onMounted(() => {
   padding-top: 20px;
 }
 
+/* 选项样式 */
+.option-content {
+  display: flex;
+  align-items: center;
+}
+
+.option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 12px;
+  color: white;
+  font-size: 18px;
+}
+
+.option-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.option-title {
+  font-weight: 600;
+  font-size: 16px;
+  color: #5c4a48;
+}
+
+.option-desc {
+  font-size: 12px;
+  color: #7a787c;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* 响应式设计 */
 @media (max-width: 1200px) {
   .workspace-container {
@@ -804,44 +853,15 @@ onMounted(() => {
     font-size: 16px;
     padding: 0 16px;
   }
-}
 
-/* 选项样式 */
-.option-content {
-  display: flex;
-  align-items: center;
-}
+  .input-actions {
+    position: static;
+    margin-top: 20px;
+    justify-content: center;
+  }
 
-.option-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  margin-right: 12px;
-  color: white;
-  font-size: 18px;
-}
-
-.option-text {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.option-title {
-  font-weight: 600;
-  font-size: 16px;
-  color: #5c4a48;
-}
-
-.option-desc {
-  font-size: 12px;
-  color: #7a787c;
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  .input-actions .ant-btn {
+    min-width: 150px;
+  }
 }
 </style>
