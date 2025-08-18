@@ -1,5 +1,6 @@
 package com.rich.richcodeweaver.utiles;
 
+import com.rich.richcodeweaver.config.AiCodeGeneratorServiceFactory;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
@@ -30,7 +31,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
      * 引入 AI 代码生成器服务
      **/
     @Resource
-    private AiCodeGeneratorService aiCodeGeneratorService;
+    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
 
     /**
@@ -51,6 +52,9 @@ public class AIGenerateCodeAndSaveToFileUtils {
             }
 
             log.info("（非流式）开始生成{}类型代码，用户需求：{}", codeGenTypeEnum.getValue(), userMessage);
+
+            // AI 服务工厂，用于通过 AppId 创建 AI 服务实例
+            AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
 
             return switch (codeGenTypeEnum) {
                 case HTML -> {
@@ -93,6 +97,9 @@ public class AIGenerateCodeAndSaveToFileUtils {
             }
 
             log.info("（流式）开始生成{}类型代码，用户需求：{}", codeGenTypeEnum.getValue(), userMessage);
+
+            // AI 服务工厂，用于通过 AppId 创建 AI 服务实例
+            AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
 
             return switch (codeGenTypeEnum) {
                 // langchain4j 不支持流式输出格式化，故自定义相关解析逻辑

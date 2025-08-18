@@ -5,6 +5,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.rich.richcodeweaver.model.dto.chathistory.ChatHistoryQueryRequest;
 import com.rich.richcodeweaver.model.entity.ChatHistory;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
@@ -65,4 +66,15 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      * @create 2025/8/16
      **/
     QueryWrapper getQueryWrapper(ChatHistoryQueryRequest chatHistoryQueryRequest);
+
+    /**
+     * 从数据库中加载对话历史到记忆中
+     *
+     * @param appId 应用 id
+     * @param chatMemory 对话内存
+     * @param i 加载数量
+     * @author DuRuiChi
+     * @create 2025/8/16
+     **/
+    void loadChatHistoryToMemory(long appId, MessageWindowChatMemory chatMemory, int i);
 }
