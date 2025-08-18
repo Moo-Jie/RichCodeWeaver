@@ -8,7 +8,7 @@ export async function deleteById(
   params: API.deleteByIdParams,
   options?: { [key: string]: any }
 ) {
-  const { appId: param0, ...queryParams } = params
+  const { id: param0, ...queryParams } = params
   return request<API.BaseResponseBoolean>(`/chatHistory/admin/delete/${param0}`, {
     method: 'DELETE',
     params: { ...queryParams },

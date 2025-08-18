@@ -82,11 +82,11 @@ public class ChatHistoryController {
      * @author DuRuiChi
      * @create 2025/8/16
      **/
-    @DeleteMapping("/admin/delete/{appId}")
+    @DeleteMapping("/admin/delete/{id}")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteById(@PathVariable Long id) {
         // 参数校验
-        ThrowUtils.throwIf(id == null || id > 0, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("id", id);
         // 删除对话历史

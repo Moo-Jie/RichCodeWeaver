@@ -106,32 +106,28 @@
             />
 
             <div v-else class="conversation-container">
-              <div v-for="(history, index) in appHistory" :key="history.id" class="conversation-item">
+              <div v-for="(history, index) in appHistory" :key="history.id"
+                   class="conversation-item">
                 <div v-if="history.messageType === 'ai'" class="ai-message">
                   <div class="message-avatar">
                     <a-avatar :src="aiAvatar" class="ai-avatar" size="default" />
                     <span class="ai-label">AI</span>
                   </div>
+                  <div class="message-content">
+                    <markdown-renderer v-if="history.message" :content="history.message" />
+                  </div>
+                  <a-button class="delete-icon" @click="deleteMessage(history.id)">
+                    <DeleteOutlined />
+                  </a-button>
+                </div>
+
+                <div v-if="history.messageType === 'user'" class="user-message">
                   <a-button class="delete-icon" @click="deleteMessage(history.id)">
                     <DeleteOutlined />
                   </a-button>
                   <div class="message-content">
-                    <markdown-renderer v-if="history.message" :content="history.message" />
-                    <div class="message-actions">
-                      <a-icon type="delete" class="delete-icon" @click="deleteMessage(history.id)" />
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="history.messageType === 'user'" class="user-message">
-                  <div class="message-content">
                     <div class="user-bubble">
                       {{ history.message }}
-                    </div>
-                    <div class="message-actions">
-                      <a-button class="delete-icon" @click="deleteMessage(history.id)">
-                        <DeleteOutlined />
-                      </a-button>
                     </div>
                   </div>
                   <div class="message-avatar">
@@ -176,7 +172,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser'
 import {
-  DeleteOutlined,
+  DeleteOutlined
 } from '@ant-design/icons-vue'
 import {
   listAppVoByPageByAdmin as listAppsAdmin
@@ -203,7 +199,6 @@ const deleteMessage = async (messageId: number) => {
 
   try {
     const res = await deleteById({
-      appId: selectedApp.value.id,
       id: messageId
     })
     if (res.data.code === 0) {
