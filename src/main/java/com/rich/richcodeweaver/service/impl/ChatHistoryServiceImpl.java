@@ -1,5 +1,6 @@
 package com.rich.richcodeweaver.service.impl;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -7,28 +8,33 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.exception.ThrowUtils;
+import com.rich.richcodeweaver.mapper.ChatHistoryMapper;
 import com.rich.richcodeweaver.model.dto.chathistory.ChatHistoryQueryRequest;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.entity.ChatHistory;
-import com.rich.richcodeweaver.mapper.ChatHistoryMapper;
 import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
-import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.service.UserService;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 对话历史 服务层实现。
  *
  * @author <a href="https://github.com/liyupi">程序员鱼皮</a>
  */
+@Slf4j
 @Service
 public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatHistory> implements ChatHistoryService {
 
@@ -110,7 +116,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
         // 验证权限及应用从属
         ThrowUtils.throwIf(!UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())
-                && !app.getUserId().equals(loginUser.getId()),
+                        && !app.getUserId().equals(loginUser.getId()),
                 ErrorCode.NO_AUTH_ERROR, "无权查看该应用的对话历史");
         // 构建查询条件
         ChatHistoryQueryRequest queryRequest = new ChatHistoryQueryRequest();
@@ -162,5 +168,50 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
             queryWrapper.orderBy("createTime", false);
         }
         return queryWrapper;
+    }
+
+    /**
+     * 从数据库中加载对话历史到记忆中
+     *
+     * @param appId      应用 id
+     * @param chatMemory 对话内存
+     * @param maxCount   加载数量
+     * @return Boolean 是否加载成功
+     * @author DuRuiChi
+     * @create 2025/8/16
+     **/
+    @Override
+    public Boolean loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {
+        try {
+            // 跳过第1条（最新记录），加载后续 maxCount 条，从而排除当前未处理的最新消息，避免重复加载
+            QueryWrapper queryWrapper = QueryWrapper.create()
+                    .eq(ChatHistory::getAppId, appId)
+                    .orderBy(ChatHistory::getCreateTime, false)
+                    .limit(1, maxCount);
+            List<ChatHistory> historyList = this.list(queryWrapper);
+            if (CollUtil.isEmpty(historyList)) {
+                return false;
+            }
+            // 反转列表，反转为正序（旧→新）
+            historyList = historyList.reversed();
+            // 先清理历史缓存，防止重复加载
+            chatMemory.clear();
+            // 加载历史记录到记忆中
+            // UserMessage.from() 方法用于创建用户消息 ; chatMemory.add() 方法用于顺序添加历史消息到 chatMemory 中
+            for (ChatHistory history : historyList) {
+                // 区分对话类型
+                if (ChatHistoryTypeEnum.USER.getValue().equals(history.getMessageType())) {
+                    // 加载用户消息
+                    chatMemory.add(UserMessage.from(history.getMessage()));
+                } else if (ChatHistoryTypeEnum.AI.getValue().equals(history.getMessageType())) {
+                    // 加载 AI 消息
+                    chatMemory.add(AiMessage.from(history.getMessage()));
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("【AI 服务实例缓存】加载对话历史失败，appId: {}，因为:{}", appId, e.getMessage());
+            return false;
+        }
     }
 }

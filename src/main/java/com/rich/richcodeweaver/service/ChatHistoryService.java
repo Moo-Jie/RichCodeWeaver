@@ -72,9 +72,10 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      *
      * @param appId 应用 id
      * @param chatMemory 对话内存
-     * @param i 加载数量
+     * @param maxCount 加载数量
+     * @return Boolean 是否加载成功
      * @author DuRuiChi
      * @create 2025/8/16
      **/
-    void loadChatHistoryToMemory(long appId, MessageWindowChatMemory chatMemory, int i);
+    Boolean loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount);
 }

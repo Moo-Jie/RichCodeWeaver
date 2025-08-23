@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -68,9 +69,9 @@ public class AiCodeGeneratorServiceFactory {
      * @create 2025/8/5
      **/
     public AiCodeGeneratorService getAiCodeGeneratorService(Long appId) {
-        // 从缓存中获取或创建 AI 服务实例：
+        // 从缓存中获取或创建 AI 服务实例:
         // 每次通过 AppId 来获取 AI 服务实例，加入 Caffeine 缓存
-        // 若 appId 相同，会从缓存中获取已构建的实例，不会重复构建
+        // 若 appId 相同，会从缓存中获取已构建的实例，从而避免重复从数据库查询历史对话记录构建实例
         return caffeineService.get(appId, this::createAiCodeGeneratorService);
     }
 
@@ -94,7 +95,12 @@ public class AiCodeGeneratorServiceFactory {
                 .maxMessages(20)
                 .build();
         // 从数据库中加载对话历史到 Redis 类型的 chatMemory 中
-        chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 10);
+        Boolean isSvae = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 10);
+        // 若加载失败，记录日志
+        if (!isSvae) {
+            chatMemory.add(UserMessage.from("历史记录加载失败，可能已经过期。"));
+        }
+        // 构建 AI 服务实例
         return AiServices.builder(AiCodeGeneratorService.class)
                 // 配置 AI 模型
                 .chatModel(chatModel)
