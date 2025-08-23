@@ -1,33 +1,48 @@
+// 导入图标
+import {
+  PictureOutlined,
+  ReadOutlined,
+  EnvironmentOutlined,
+  HomeOutlined,
+  SecurityScanOutlined,
+  ShopOutlined,
+  MedicineBoxOutlined,
+  RocketOutlined,
+  ExperimentOutlined,
+  BankOutlined,
+} from '@ant-design/icons-vue';
+import { ref } from 'vue'
+
 /**
  * 主页推荐提示词
  * TODO 测试数据待优化
  */
 export  const promptOptions = ref([
   {
-    value: '设计一个数字艺术画廊网站，展示现代艺术家的混合媒介作品。网站应包含：沉浸式全屏画廊视图、按艺术家/风格/媒介分类的展览馆、艺术家个人简介页面、虚拟展览功能（含时间轴导览）、社交分享功能、在线商店（支持数字藏品NFT购买）、访客留言墙。采用简约高级的设计风格，突出艺术作品本身，支持深色模式切换。',
-    label: '数字艺术画廊',
+    value: '快速生成一个艺术日历网站，点击可以查看对应日期的主要节日。',
+    label: '艺术日历',
     desc: '沉浸式艺术展示平台',
     icon: PictureOutlined,
     color: '#ff9f7f'
   },
   {
-    value: '创建一个互动故事讲述平台，允许用户创作带有多分支情节的互动小说。功能包括：可视化情节树编辑器、角色数据库（含关系图谱）、场景/道具资源库、多语言支持、读者选择影响故事结局系统、作品分类标签（科幻/奇幻/悬疑）、作者与读者讨论社区、作品章节订阅通知、阅读进度同步。采用沉浸式的故事书界面设计，支持声音效果添加。',
-    label: '互动小说平台',
-    desc: '多分支故事创作系统',
+    value: '快速生成一个计算器网站，可以执行快速计算。',
+    label: '计算器',
+    desc: '快速计算工具',
     icon: ReadOutlined,
     color: '#7eb8ff'
   },
   {
-    value: '设计一个城市文化探索应用，结合AR技术展示城市历史地标的数字重建。功能包括：GPS定位探索城市文化遗产点、AR实景叠加历史画面对比、数字城市时间轴展示变迁、语音导览多语言支持、用户创建自定义文化路线、社区分享探索发现、主题活动日历、数字印章收集系统。界面需直观呈现城市地图与文化热点的层次关系。',
-    label: '文化探索应用',
-    desc: 'AR增强现实导览系统',
+    value: '快速生成一个前端语言知识网站，包含HTML、CSS、JavaScript 等知识。',
+    label: '前端语言知识',
+    desc: '前端开发知识平台',
     icon: EnvironmentOutlined,
     color: '#91d2a3'
   },
   {
-    value: '创建一个环保生活社区平台，促进可持续生活实践。功能包含：碳足迹计算工具、可持续替代品数据库、二手物品交换市场、共享技能活动日历、社区花园种植计划管理、环保挑战任务系统、绿色商家地图导航、环保知识库、个人绿色成就展示墙、社区环境监测数据可视化。采用有机自然的视觉风格，突出环保主题色系。',
-    label: '可持续生活社区',
-    desc: '生态友好型服务平台',
+    value: '快速生成一个蔬菜知识网站。',
+    label: '蔬菜知识',
+    desc: '蔬菜知识平台',
     icon: SecurityScanOutlined,
     color: '#a98bf9'
   },

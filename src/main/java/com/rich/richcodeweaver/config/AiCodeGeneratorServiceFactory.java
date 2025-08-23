@@ -2,6 +2,8 @@ package com.rich.richcodeweaver.config;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.rich.richcodeweaver.exception.ErrorCode;
+import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
@@ -95,10 +97,11 @@ public class AiCodeGeneratorServiceFactory {
                 .maxMessages(20)
                 .build();
         // 从数据库中加载对话历史到 Redis 类型的 chatMemory 中
-        Boolean isSvae = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 10);
+        Boolean isSave = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 10);
         // 若加载失败，记录日志
-        if (!isSvae) {
+        if (!isSave) {
             chatMemory.add(UserMessage.from("历史记录加载失败，可能已经过期。"));
+            log.info("为 appId: {} 加载历史记录失败", appId);
         }
         // 构建 AI 服务实例
         return AiServices.builder(AiCodeGeneratorService.class)

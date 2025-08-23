@@ -194,6 +194,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
             }
             // 反转列表，反转为正序（旧→新）
             historyList = historyList.reversed();
+            log.info("为 appId: {} 加载 {} 条历史记录", appId, historyList.size());
             // 先清理历史缓存，防止重复加载
             chatMemory.clear();
             // 加载历史记录到记忆中

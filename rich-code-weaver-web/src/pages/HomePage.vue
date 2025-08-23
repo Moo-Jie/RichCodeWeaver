@@ -60,16 +60,6 @@ const loginUserStore = useLoginUserStore()
 
 // 导入图标
 import {
-  PictureOutlined,
-  ReadOutlined,
-  EnvironmentOutlined,
-  HomeOutlined,
-  SecurityScanOutlined,
-  ShopOutlined,
-  MedicineBoxOutlined,
-  RocketOutlined,
-  ExperimentOutlined,
-  BankOutlined,
   AppstoreOutlined
 } from '@ant-design/icons-vue'
 import { promptOptions } from '@/constants/prompts.ts'
@@ -262,11 +252,11 @@ onMounted(() => {
   const animateParticles = () => {
     ctx!.clearRect(0, 0, canvas.width, canvas.height)
 
-    for (let i = 0; i < particles.length; i++) {
+    for (let i = 0; i < 5; i++) {
       particles[i].update()
       particles[i].draw()
 
-      for (let j = i; j < particles.length; j++) {
+      for (let j = i; j < 5; j++) {
         const dx = particles[i].x - particles[j].x
         const dy = particles[i].y - particles[j].y
         const distance = Math.sqrt(dx * dx + dy * dy)
