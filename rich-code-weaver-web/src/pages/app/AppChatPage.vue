@@ -47,7 +47,7 @@
 
         <!-- 消息区域 -->
         <div class="messages-container" ref="messagesContainer">
-          <div v-for="(message, index) in messages.slice().reverse()" :key="index" class="message-item">
+          <div v-for="(message, index) in messages" :key="index" class="message-item">
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content creative-bubble">{{ message.content }}</div>
               <div class="message-avatar">
@@ -321,7 +321,7 @@ const fetchChatHistory = async (loadMore = false) => {
 
     const res = await listAppChatHistoryByPage(params)
     if (res.data.code === 0 && res.data.data) {
-      const historyData = res.data.data.records || []
+      const historyData = res.data.data.records.slice().reverse() || []
       const newMessages = historyData.map(item => ({
         type: item.messageType === 'user' ? 'user' : 'ai',
         content: item.message,
