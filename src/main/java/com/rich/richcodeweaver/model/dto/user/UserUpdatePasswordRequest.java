@@ -14,7 +14,7 @@ import java.io.Serializable;
 public class UserUpdatePasswordRequest implements Serializable {
 
     /**
-     * 确认密码
+     * 用户 ID
      */
     private long userId;
 

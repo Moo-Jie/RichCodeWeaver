@@ -68,31 +68,57 @@ const handleClose = () => {
 <style scoped>
 .deploy-success {
   text-align: center;
-  padding: 24px;
+  padding: 32px;
+  background: linear-gradient(135deg, rgba(250, 248, 216, 0.09) 0%, rgba(250, 248, 216, 0.68) 100%);
+  border-radius: 8px;
 }
 
 .success-icon {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .deploy-success h3 {
-  margin: 0 0 16px;
-  font-size: 20px;
-  font-weight: 600;
+  margin: 0 0 20px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #62d591;
 }
 
 .deploy-success p {
-  margin: 0 0 24px;
-  color: #666;
+  margin: 0 0 28px;
+  color: #595959;
+  font-size: 16px;
 }
 
 .deploy-url {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+}
+
+.deploy-url :deep(.ant-input) {
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
 }
 
 .deploy-actions {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   justify-content: center;
+}
+
+.deploy-actions :deep(.ant-btn) {
+  border-radius: 6px;
+  padding: 0 20px;
+  height: 36px;
+  font-weight: 500;
+}
+
+.deploy-actions :deep(.ant-btn-default) {
+  border-color: #ffffff;
+  color: #000000;
+}
+
+.deploy-actions :deep(.ant-btn-default:hover) {
+  background-color: #c2cbff;
+  color: white;
 }
 </style>

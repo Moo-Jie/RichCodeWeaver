@@ -189,4 +189,17 @@ public class UserController {
         ThrowUtils.throwIf(userUpdatePasswordRequest == null, ErrorCode.PARAMS_ERROR);
         return ResultUtils.success(userService.updatePassword(userUpdatePasswordRequest));
     }
+
+    /**
+     * 重置用户密码(管理员)
+     *
+     * @param userId 用户 ID
+     * @return 重置密码是否成功
+     */
+    @PostMapping("/reset/password")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> resetUserPassword(long userId) {
+        ThrowUtils.throwIf(userId <= 0, ErrorCode.PARAMS_ERROR);
+        return ResultUtils.success(userService.resetPassword(userId));
+    }
 }

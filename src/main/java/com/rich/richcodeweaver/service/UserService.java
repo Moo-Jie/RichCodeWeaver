@@ -101,4 +101,12 @@ public interface UserService extends IService<User> {
      * @return
      */
     Boolean updatePassword(UserUpdatePasswordRequest userUpdatePasswordRequest);
+
+    /**
+     * 重置密码
+     *
+     * @param userId 用户 ID
+     * @return 重置密码是否成功
+     */
+    Boolean resetPassword(long userId);
 }

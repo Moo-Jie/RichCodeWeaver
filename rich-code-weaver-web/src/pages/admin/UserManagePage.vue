@@ -81,7 +81,7 @@
             <a-image
               v-if="record.userAvatar"
               :src="record.userAvatar"
-              :width="80"
+              :width="60"
               :height="60"
               :fallback="fallbackImage"
               class="avatar-img"
@@ -119,12 +119,24 @@
               <a-button
                 type="default"
                 size="small"
-                @click="editUser(record)"
+                @click="showEditModal(record)"
               >
                 <template #icon>
                   <EditOutlined />
                 </template>
                 编辑
+              </a-button>
+
+              <a-button
+                type="default"
+                size="small"
+                @click="showResetPasswordModal(record)"
+                class="reset-btn"
+              >
+                <template #icon>
+                  <LockOutlined />
+                </template>
+                重置密码
               </a-button>
 
               <a-popconfirm
@@ -143,6 +155,58 @@
         </template>
       </a-table>
     </a-card>
+
+    <!-- 编辑用户模态框 -->
+    <a-modal
+      v-model:visible="editVisible"
+      title="编辑用户信息"
+      @ok="handleEditSubmit"
+      :ok-text="'提交'"
+      :cancel-text="'取消'"
+      :keyboard="false"
+      :mask-closable="false"
+      class="edit-modal"
+    >
+      <a-form :model="editForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+        <a-form-item label="用户账号">
+          <a-input v-model:value="editForm.userAccount" disabled />
+        </a-form-item>
+        <a-form-item label="用户昵称">
+          <a-input v-model:value="editForm.userName" placeholder="请输入用户昵称" />
+        </a-form-item>
+        <a-form-item label="用户角色">
+          <a-select v-model:value="editForm.userRole" placeholder="请选择用户角色">
+            <a-select-option value="admin">管理员</a-select-option>
+            <a-select-option value="user">普通用户</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="个人简介">
+          <a-textarea
+            v-model:value="editForm.userProfile"
+            placeholder="请输入用户简介..."
+            :rows="4"
+            :maxlength="200"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- 重置密码模态框 -->
+    <a-modal
+      v-model:visible="passwordVisible"
+      title="重置用户密码"
+      @ok="handlePasswordSubmit"
+      class="password-modal">
+      <br><br>
+      <a-alert
+        message="重置后密码将更改为:  zmrq@[账户]"
+        type="info"
+        show-icon
+        style="margin-bottom: 20px;"
+      />
+      <br>
+      <p>确定要重置用户 <strong>{{ passwordForm.userName }}</strong> 的密码吗？</p>
+    </a-modal>
   </div>
 </template>
 
@@ -157,9 +221,16 @@ import {
   CalendarOutlined,
   EllipsisOutlined,
   SearchOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  LockOutlined
 } from '@ant-design/icons-vue'
-import { deleteUser, listUserVoByPage } from '@/api/userController'
+import {
+  deleteUser,
+  listUserVoByPage,
+  resetUserPassword,
+  updateUser,
+  updateUserPassword
+} from '@/api/userController'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -210,7 +281,7 @@ const columns = [
   {
     title: '操作',
     key: 'action',
-    width: 180,
+    width: 220,
     fixed: 'right'
   }
 ]
@@ -223,6 +294,24 @@ const total = ref(0)
 const searchParams = reactive<API.UserQueryRequest>({
   pageNum: 1,
   pageSize: 10
+})
+
+// 模态框状态
+const editVisible = ref(false)
+const passwordVisible = ref(false)
+
+// 编辑表单
+const editForm = reactive({
+  id: '',
+  userAccount: '',
+  userName: '',
+  userRole: '',
+  userProfile: ''
+})
+
+// 密码表单
+const passwordForm = reactive({
+  id: '',
 })
 
 // 获取数据
@@ -280,10 +369,58 @@ const doSearch = () => {
   fetchData()
 }
 
-// 编辑用户
-const editUser = (user: API.UserVO) => {
-  message.info('编辑用户: ' + user.userName)
-  // router.push(`/user/edit/${user.id}`)
+// 显示编辑模态框
+const showEditModal = (user: API.UserVO) => {
+  Object.assign(editForm, {
+    id: user.id,
+    userAccount: user.userAccount,
+    userName: user.userName,
+    userRole: user.userRole,
+    userProfile: user.userProfile
+  })
+  editVisible.value = true
+}
+
+// 提交编辑信息
+const handleEditSubmit = async () => {
+  try {
+    const res = await updateUser(editForm)
+    if (res.data.code === 0) {
+      message.success('用户信息更新成功')
+      editVisible.value = false
+      await fetchData()
+    } else {
+      message.error('更新失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('更新用户信息失败：', error)
+    message.error('更新失败')
+  }
+}
+
+// 显示重置密码模态框
+const showResetPasswordModal = (user: API.UserVO) => {
+  Object.assign(passwordForm, {
+    id: user.id,
+    userName: user.userName
+  })
+  passwordVisible.value = true
+}
+
+// 提交重置密码
+const handlePasswordSubmit = async () => {
+  try {
+    const res = await resetUserPassword({ userId: passwordForm.id })
+    if (res.data.code === 0) {
+      message.success(`密码重置成功，新密码为：zmrq@${passwordForm.userName}`)
+      passwordVisible.value = false
+    } else {
+      message.error('重置失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('重置密码失败：', error)
+    message.error('重置失败:' + error)
+  }
 }
 
 // 删除用户
@@ -294,7 +431,7 @@ const doDelete = async (id: string | undefined) => {
     const res = await deleteUser({ id })
     if (res.data.code === 0) {
       message.success('用户删除成功')
-      fetchData()
+      await fetchData()
     } else {
       message.error('删除失败：' + res.data.message)
     }
@@ -490,6 +627,17 @@ onMounted(() => {
       border-radius: 6px;
       height: 32px;
     }
+
+    .reset-btn {
+      color: #fda27e;
+      border-color: #fda684;
+
+      &:hover {
+        color: #ff9c6e;
+        border-color: #ff9c6e;
+        background: rgba(255, 122, 69, 0.1);
+      }
+    }
   }
 }
 
@@ -517,6 +665,111 @@ onMounted(() => {
   border-radius: 8px;
 }
 
+// 模态框样式
+:deep(.edit-modal), :deep(.password-modal) {
+  .ant-modal {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(92, 74, 72, 0.2);
+  }
+
+  .ant-modal-content {
+    background: linear-gradient(135deg, #fffaf0 0%, #fdf6e3 100%);
+    border: 1px solid rgba(198, 180, 165, 0.4);
+  }
+
+  .ant-modal-header {
+    background: transparent;
+    border-bottom: 1px solid #f0e6d9;
+    padding: 22px 24px;
+    border-radius: 20px 20px 0 0;
+
+    .ant-modal-title {
+      color: #5c4a48;
+      font-size: 1.4rem;
+      font-weight: 600;
+      text-align: center;
+    }
+  }
+
+  .ant-modal-body {
+    padding: 28px 24px;
+  }
+
+  .ant-modal-footer {
+    border-top: 1px solid #f0e6d9;
+    padding: 18px 24px;
+    text-align: center;
+
+    .ant-btn {
+      border-radius: 10px;
+      padding: 0 22px;
+      height: 38px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &.ant-btn-default {
+        border-color: #d9d9d9;
+        color: #5c4a48;
+
+        &:hover {
+          border-color: #c6a08a;
+          color: #c6a08a;
+        }
+      }
+
+      &.ant-btn-primary {
+        background: #c6a08a;
+        border-color: #c6a08a;
+        color: white;
+
+        &:hover {
+          background: #b8917a;
+          border-color: #b8917a;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(198, 160, 138, 0.3);
+        }
+      }
+    }
+  }
+
+  .ant-form {
+    .ant-form-item {
+      margin-bottom: 22px;
+
+      .ant-form-item-label {
+        label {
+          color: #5c4a48;
+          font-weight: 600;
+          font-size: 0.95rem;
+        }
+      }
+
+      .ant-input, .ant-input-textarea, .ant-select {
+        border-radius: 10px;
+        border: 1px solid #d9d9d9;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+
+        &:focus, &:focus-within {
+          border-color: #c6a08a;
+          box-shadow: 0 0 0 2px rgba(198, 160, 138, 0.2);
+        }
+
+        &::placeholder {
+          color: #a8a8a8;
+        }
+      }
+
+      .ant-input-textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+    }
+  }
+}
+
 @media (max-width: 992px) {
   .search-panel {
     .ant-form {
@@ -538,6 +791,10 @@ onMounted(() => {
     .table-tips {
       align-self: flex-start;
     }
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
   }
 }
 </style>

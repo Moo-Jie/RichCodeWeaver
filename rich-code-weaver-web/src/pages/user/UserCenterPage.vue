@@ -113,7 +113,7 @@
         </div>
 
         <div class="logout-section">
-          <a-button danger icon="退出登录" @click="handleLogout"/>
+          <a-button danger icon="退出登录" @click="handleLogout" />
         </div>
       </a-card>
     </div>
@@ -123,6 +123,10 @@
       v-model:visible="editVisible"
       title="编辑个人信息"
       @ok="handleEditSubmit"
+      :ok-text="'提交'"
+      :cancel-text="'取消'"
+      :keyboard="false"
+      :mask-closable="false"
     >
       <a-form :model="editForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户昵称">
@@ -553,6 +557,111 @@ onMounted(() => {
 
       .anticon {
         margin-right: 8px;
+      }
+    }
+  }
+}
+
+// 编辑信息模态框优化样式
+:deep (.edit-modal) {
+  .ant-modal {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(92, 74, 72, 0.2);
+  }
+
+  .ant-modal-content {
+    background: linear-gradient(135deg, #fffaf0 0%, #fdf6e3 100%);
+    border: 1px solid rgba(198, 180, 165, 0.4);
+  }
+
+  .ant-modal-header {
+    background: transparent;
+    border-bottom: 1px solid #f0e6d9;
+    padding: 22px 24px;
+    border-radius: 20px 20px 0 0;
+
+    .ant-modal-title {
+      color: #5c4a48;
+      font-size: 1.4rem;
+      font-weight: 600;
+      text-align: center;
+    }
+  }
+
+  .ant-modal-body {
+    padding: 28px 24px;
+  }
+
+  .ant-modal-footer {
+    border-top: 1px solid #f0e6d9;
+    padding: 18px 24px;
+    text-align: center;
+
+    .ant-btn {
+      border-radius: 10px;
+      padding: 0 22px;
+      height: 38px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+
+      &.ant-btn-default {
+        border-color: #d9d9d9;
+        color: #5c4a48;
+
+        &:hover {
+          border-color: #c6a08a;
+          color: #c6a08a;
+        }
+      }
+
+      &.ant-btn-primary {
+        background: #c6a08a;
+        border-color: #c6a08a;
+        color: white;
+
+        &:hover {
+          background: #b8917a;
+          border-color: #b8917a;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(198, 160, 138, 0.3);
+        }
+      }
+    }
+  }
+
+  .ant-form {
+    .ant-form-item {
+      margin-bottom: 22px;
+
+      .ant-form-item-label {
+        label {
+          color: #5c4a48;
+          font-weight: 600;
+          font-size: 0.95rem;
+        }
+      }
+
+      .ant-input, .ant-input-textarea {
+        border-radius: 10px;
+        border: 1px solid #d9d9d9;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+
+        &:focus {
+          border-color: #c6a08a;
+          box-shadow: 0 0 0 2px rgba(198, 160, 138, 0.2);
+        }
+
+        &::placeholder {
+          color: #a8a8a8;
+        }
+      }
+
+      .ant-input-textarea {
+        min-height: 100px;
+        resize: vertical;
       }
     }
   }

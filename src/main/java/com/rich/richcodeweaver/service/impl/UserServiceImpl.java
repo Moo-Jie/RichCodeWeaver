@@ -68,7 +68,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserPassword(encryptPassword);
         user.setUserName(DEFAULT_USER_NAME);
         user.setUserRole(UserRoleEnum.USER.getValue());
-        user.setUserAvatar(APP_AVATAR);
+        user.setUserAvatar(DEFAULT_USER_PICTURE);
         user.setUserProfile(DEFAULT_PROFILE);
 
         if (!this.save(user)) {
@@ -307,6 +307,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserPassword(encryptedNewPassword);
         return this.updateById(user);
     }
+
+    /**
+     * 重置密码
+     *
+     * @param userId 用户 ID
+     * @return 重置密码是否成功
+     */
+    @Override
+    public Boolean resetPassword(long userId) {
+        // 获取用户信息
+        User user = this.getById(userId);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        // 重置密码
+        String resetPassword = getEncryptPassword("zmrq@"+user.getUserAccount());
+        user.setUserPassword(resetPassword);
+        return this.updateById(user);
+    }
+
     /**
      * 验证用户账号合规性
      *

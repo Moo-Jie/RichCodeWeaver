@@ -114,6 +114,21 @@ export async function userRegister(
   })
 }
 
+/** 此处后端没有提供注释 POST /user/reset/password */
+export async function resetUserPassword(
+  // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
+  params: API.resetUserPasswordParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean>('/user/reset/password', {
+    method: 'POST',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
+}
+
 /** 此处后端没有提供注释 POST /user/update */
 export async function updateUser(body: API.UserUpdateRequest, options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/user/update', {

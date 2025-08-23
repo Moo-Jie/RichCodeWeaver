@@ -700,7 +700,7 @@ onUnmounted(() => {
   font-weight: 600;
   padding: 0 25px;
   height: 40px;
-  background: linear-gradient(to right, #1890ff, #69c0ff);
+  background: linear-gradient(to right, #e3f0ff, #d8dcdd);
   border: none;
   transition: all 0.3s;
 }

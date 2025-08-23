@@ -147,6 +147,10 @@ declare namespace API {
     message: string
   }
 
+  type deleteByIdParams = {
+    id: number
+  }
+
   type DeleteRequest = {
     id?: number
   }
@@ -209,6 +213,10 @@ declare namespace API {
     totalPage?: number
     totalRow?: number
     optimizeCountQuery?: boolean
+  }
+
+  type resetUserPasswordParams = {
+    userId: number
   }
 
   type ServerSentEventString = true
