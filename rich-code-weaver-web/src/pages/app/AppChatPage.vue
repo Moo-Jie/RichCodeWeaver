@@ -198,7 +198,7 @@ import {
   deployApp as deployAppApi,
   getAppVoById
 } from '@/api/appController'
-import { CodeGenTypeEnum } from '@/utils/codeGenTypes'
+import { CodeGenTypeEnum } from '@/enums/codeGenTypes.ts'
 import request from '@/request'
 import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'

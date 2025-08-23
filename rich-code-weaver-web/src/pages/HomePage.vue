@@ -72,18 +72,7 @@ import {
   BankOutlined,
   AppstoreOutlined
 } from '@ant-design/icons-vue'
-
-// 测试数据
-const promptOptions = ref([
-  {
-    value: '设计一个数字艺术画廊网站，展示现代艺术家的混合媒介作品。网站应包含：沉浸式全屏画廊视图、按艺术家/风格/媒介分类的展览馆、艺术家个人简介页面、虚拟展览功能（含时间轴导览）、社交分享功能、在线商店（支持数字藏品NFT购买）、访客留言墙。采用简约高级的设计风格，突出艺术作品本身，支持深色模式切换。',
-    label: '数字艺术画廊',
-    desc: '沉浸式艺术展示平台',
-    icon: PictureOutlined,
-    color: '#ff9f7f'
-  },
-  // ...其他提示选项保持不变...
-])
+import { promptOptions } from '@/constants/prompts.ts'
 
 // 控制下拉框可见性
 const showPromptDropdown = ref(false)

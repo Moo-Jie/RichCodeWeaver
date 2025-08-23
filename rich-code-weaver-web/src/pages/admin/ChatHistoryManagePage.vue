@@ -188,7 +188,7 @@ import {
 import { message } from 'ant-design-vue'
 
 import aiAvatar from '@/assets/aiAvatar.png'
-import { formatTime } from '@/utils/time'
+import { formatTime } from '@/utils/timeUtil.ts'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()

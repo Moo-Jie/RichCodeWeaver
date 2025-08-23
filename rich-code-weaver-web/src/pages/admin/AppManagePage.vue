@@ -253,8 +253,8 @@ import {
   EyeInvisibleOutlined
 } from '@ant-design/icons-vue'
 import { listAppVoByPageByAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController'
-import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/utils/codeGenTypes'
-import { formatTime } from '@/utils/time'
+import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
+import { formatTime } from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'
 import AppInfo from '@/components/AppInfo.vue'
 

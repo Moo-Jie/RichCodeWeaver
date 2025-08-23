@@ -143,8 +143,8 @@ import {
 } from '@ant-design/icons-vue'
 import UserInfo from './UserInfo.vue'
 import AppVO = API.AppVO
-import { formatTime } from '../utils/time.ts'
-import { formatCodeGenType } from '../utils/codeGenTypes.ts'
+import { formatTime } from '../utils/timeUtil.ts'
+import { formatCodeGenType } from '../enums/codeGenTypes.ts'
 
 interface Props {
   open: boolean

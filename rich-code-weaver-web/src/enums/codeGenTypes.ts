@@ -11,13 +11,13 @@ export enum CodeGenTypeEnum {
  */
 export const CODE_GEN_TYPE_CONFIG = {
   [CodeGenTypeEnum.HTML]: {
-    label: '原生 HTML 模式',
-    value: CodeGenTypeEnum.HTML,
+    label: '单文件 HTML 模式',
+    value: CodeGenTypeEnum.HTML
   },
   [CodeGenTypeEnum.MULTI_FILE]: {
-    label: '原生多文件模式',
-    value: CodeGenTypeEnum.MULTI_FILE,
-  },
+    label: '多文件模式',
+    value: CodeGenTypeEnum.MULTI_FILE
+  }
 } as const
 
 /**
@@ -25,7 +25,7 @@ export const CODE_GEN_TYPE_CONFIG = {
  */
 export const CODE_GEN_TYPE_OPTIONS = Object.values(CODE_GEN_TYPE_CONFIG).map((config) => ({
   label: config.label,
-  value: config.value,
+  value: config.value
 }))
 
 /**
