@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 推理模型 （流式），用于生成复杂项目工程代码
+ * 自定义的推理模型 （流式），用于生成复杂项目工程代码
  * 【需要写配置类，因为默认没有提供流式推理模型实例的类】
  *
  * @author DuRuiChi
@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "langchain4j.open-ai.reasoning-chat-model")
-public class reasoningChatModelConfig {
+public class ReasoningChatModelConfig {
     /**
      * 模型名称
      **/
@@ -56,7 +56,7 @@ public class reasoningChatModelConfig {
      * @create 2025/8/24
      **/
     @Bean
-    public StreamingChatModel reasoningChatModelConfig() {
+    public StreamingChatModel reasoningStreamingChatModel() {
         return OpenAiStreamingChatModel.builder()
                 .modelName(modelName)
                 .apiKey(apiKey)

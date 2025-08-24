@@ -35,7 +35,7 @@ langchain4j:
       log-requests: true
       # 开启响应日志
       log-responses: true
-    # 推理模型【需要写配置类，因为默认没有提供流式推理模型实例的类】，用于生成复杂项目工程代码
+    # 自定义的推理模型【需要写配置类，因为默认没有提供流式推理模型实例的类】，用于生成复杂项目工程代码
     reasoning-chat-model:
       # 接口地址
       base-url: https://api.deepseek.com
@@ -43,7 +43,7 @@ langchain4j:
       api-key: 【Your ApiKey】
       # 模型名称
       model-name: deepseek-reasoner
-      # 最大 token 数
+      # 最大 token 数 （推理模型多给点 Token）
       max-tokens: 32768
       # 开启请求日志
       log-requests: true

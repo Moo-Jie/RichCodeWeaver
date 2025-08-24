@@ -2,9 +2,11 @@ package com.rich.richcodeweaver.config;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
@@ -27,11 +29,23 @@ import java.time.Duration;
 @Configuration
 public class AiCodeGeneratorServiceFactory {
 
+    /**
+     * 基础模型
+     **/
     @Resource
     private ChatModel chatModel;
 
+    /**
+     * 基础流式模型，用于生成多文件代码
+     **/
     @Resource
-    private StreamingChatModel streamingChatModel;
+    private StreamingChatModel openAiStreamingChatModel;
+
+    /**
+     * 自定义流式推理模型，用于生成复杂的项目工程代码
+     **/
+    @Resource
+    private StreamingChatModel reasoningStreamingChatModel;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -68,11 +82,11 @@ public class AiCodeGeneratorServiceFactory {
      * @author DuRuiChi
      * @create 2025/8/5
      **/
-    public AiCodeGeneratorService getAiCodeGeneratorService(Long appId) {
+    public AiCodeGeneratorService getAiCodeGeneratorService(Long appId, CodeGeneratorTypeEnum codeGenTypeEnum) {
         // 从缓存中获取或创建 AI 服务实例:
         // 每次通过 AppId 来获取 AI 服务实例，加入 Caffeine 缓存
         // 若 appId 相同，会从缓存中获取已构建的实例，从而避免重复从数据库查询历史对话记录构建实例
-        return caffeineService.get(appId, this::createAiCodeGeneratorService);
+        return caffeineService.get(appId, (key) -> this.createAiCodeGeneratorService(key, codeGenTypeEnum));
     }
 
     /**
@@ -83,7 +97,7 @@ public class AiCodeGeneratorServiceFactory {
      * @author DuRuiChi
      * @create 2025/8/18
      **/
-    private AiCodeGeneratorService createAiCodeGeneratorService(long appId) {
+    private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeGeneratorTypeEnum codeGenTypeEnum) {
         log.info("为 appId: {} 创建新的 AI 服务实例", appId);
         // 根据 appId 创建独立的 chatMemory
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory
@@ -101,14 +115,37 @@ public class AiCodeGeneratorServiceFactory {
             chatMemory.add(UserMessage.from("历史记录加载失败，可能已经过期。"));
             log.info("为 appId: {} 加载历史记录失败", appId);
         }
-        // 构建 AI 服务实例
-        return AiServices.builder(AiCodeGeneratorService.class)
+        // 分模式构建 AI 服务实例
+        AiServices<AiCodeGeneratorService> aiCodeGenServices = AiServices.builder(AiCodeGeneratorService.class)
                 // 配置 AI 模型
                 .chatModel(chatModel)
-                // 配置流式对话
-                .streamingChatModel(streamingChatModel)
                 // 配置 chatMemory
-                .chatMemory(chatMemory)
-                .build();
+                .chatMemory(chatMemory);
+        switch (codeGenTypeEnum) {
+            // 单文件模式、多文件模式
+            case HTML, MULTI_FILE -> {
+                return aiCodeGenServices
+                        // 配置流式模型
+                        .streamingChatModel(openAiStreamingChatModel)
+                        .build();
+            }
+            // Vue 项目工程模式
+            case VUE_PROJECT -> {
+                return aiCodeGenServices
+                        // 配置自定义推理流式模型
+                        .streamingChatModel(reasoningStreamingChatModel)
+                        // 当前模式使用了 memoryId ,强制要求指定 chatMemoryProvider
+                        .chatMemoryProvider(id -> chatMemory)
+                        // 当幻觉调用工具名称时，使用自定义策略
+                        // 参考 ：https://blog.csdn.net/qq_52155674/article/details/147238250
+                        .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
+                                toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()))
+
+                        .build();
+            }
+            default -> {
+                return aiCodeGenServices.build();
+            }
+        }
     }
 }

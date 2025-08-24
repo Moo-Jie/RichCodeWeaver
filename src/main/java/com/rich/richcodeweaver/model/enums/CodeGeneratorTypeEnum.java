@@ -13,7 +13,8 @@ import lombok.Getter;
 public enum CodeGeneratorTypeEnum {
 
     HTML("单 HTML 页面模式", "single_html"),
-    MULTI_FILE("多文件结构模式", "multi_file");
+    MULTI_FILE("多文件结构模式", "multi_file"),
+    VUE_PROJECT("Vue 项目工程模式", "vue_project");
     // TODO 其他模式
 
     private final String text;
