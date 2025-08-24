@@ -4,6 +4,7 @@ import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
 import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
 /**
@@ -39,7 +40,7 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/vue-project-system-prompt.txt")
-    Flux<String> generateVueProjectCodeStream(String userMessage, @MemoryId Long appId);
+    Flux<String> generateVueProjectCodeStream(@UserMessage String userMessage, @MemoryId Long appId);
 
     /**
      * AI 生成 HTML 代码
@@ -58,4 +59,14 @@ public interface AiCodeGeneratorService {
      */
     @SystemMessage(fromResource = "/aiPrompt/multi-file-system-prompt.txt")
     MultiFileCodeResult generateMultiFileCode(String userMessage);
+
+    /**
+     * AI 生成 Vue 项目工程代码
+     *
+     * @param userMessage 用户提示词
+     * @param appId 应用 ID 作为 MemoryId ,用于让 AI 主动唯一标识正在生成的应用
+     * @return AI 的输出结果
+     */
+    @SystemMessage(fromResource = "/aiPrompt/vue-project-system-prompt.txt")
+    MultiFileCodeResult generateVueProjectCode(@UserMessage String userMessage, @MemoryId Long appId);
 }

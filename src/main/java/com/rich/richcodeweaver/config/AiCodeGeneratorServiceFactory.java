@@ -86,7 +86,7 @@ public class AiCodeGeneratorServiceFactory {
         // 从缓存中获取或创建 AI 服务实例:
         // 每次通过 AppId 来获取 AI 服务实例，加入 Caffeine 缓存
         // 若 appId 相同，会从缓存中获取已构建的实例，从而避免重复从数据库查询历史对话记录构建实例
-        return caffeineService.get(appId, (key) -> this.createAiCodeGeneratorService(key, codeGenTypeEnum));
+        return caffeineService.get(appId, (key) -> this.createAiCodeGeneratorService(appId, codeGenTypeEnum));
     }
 
     /**

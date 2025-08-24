@@ -80,7 +80,7 @@ public abstract class CodeResultSaveToFileTemplate<T> {
         try {
             FileUtil.writeString(content, targetFile, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "文件写入失败：" + filename);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "文件写入失败：" + filename + "，因为：" + e.getMessage());
         }
     }
 }

@@ -16,6 +16,8 @@ import reactor.core.publisher.Flux;
 
 import java.io.File;
 
+import static com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum.MULTI_FILE;
+
 /**
  * AI 生成代码并保存为本地文件
  * （门面设计模式：整合 AI 代码生成器服务 和 本地保存工具包，流式整合代码解析为封装类）
@@ -53,8 +55,8 @@ public class AIGenerateCodeAndSaveToFileUtils {
 
             log.info("（非流式）开始生成{}类型代码，用户需求：{}", codeGenTypeEnum.getValue(), userMessage);
 
-            // AI 服务工厂，用于通过 AppId 创建 AI 服务实例
-            AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+            // 自定义 AI 服务工厂，用于通过 AppId 创建 AI 服务实例
+            AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
 
             return switch (codeGenTypeEnum) {
                 case HTML -> {
@@ -64,6 +66,10 @@ public class AIGenerateCodeAndSaveToFileUtils {
                 case MULTI_FILE -> {
                     MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
                     yield CodeResultSaveExecutor.executeSaver(result, codeGenTypeEnum, appId);
+                }
+                case VUE_PROJECT -> {
+                    MultiFileCodeResult result = aiCodeGeneratorService.generateVueProjectCode(userMessage, appId);
+                    yield CodeResultSaveExecutor.executeSaver(result, MULTI_FILE, appId);
                 }
                 default -> {
                     String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -99,7 +105,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
             log.info("（流式）开始生成{}类型代码，用户需求：{}", codeGenTypeEnum.getValue(), userMessage);
 
             // AI 服务工厂，用于通过 AppId 创建 AI 服务实例
-            AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+            AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
 
             return switch (codeGenTypeEnum) {
                 // langchain4j 不支持流式输出格式化，故自定义相关解析逻辑
@@ -110,6 +116,10 @@ public class AIGenerateCodeAndSaveToFileUtils {
                 case MULTI_FILE -> {
                     Flux<String> resultStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
                     yield parseAndSaveCodeStream(resultStream, codeGenTypeEnum, appId);
+                }
+                case VUE_PROJECT -> {
+                    Flux<String> resultStream = aiCodeGeneratorService.generateVueProjectCodeStream(userMessage, appId);
+                    yield parseAndSaveCodeStream(resultStream, MULTI_FILE, appId);
                 }
                 default -> {
                     String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
