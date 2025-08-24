@@ -312,7 +312,7 @@ const showPromptExamples = () => {
 .panel-title {
   font-size: 18px;
   font-weight: 500;
-  color: #1d3660;
+  color: #000000;
 }
 
 .section-icon {

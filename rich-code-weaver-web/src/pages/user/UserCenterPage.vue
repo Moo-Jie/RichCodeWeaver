@@ -84,7 +84,7 @@
               <h3>登录密码</h3>
               <p>定期更改密码可提升账户安全</p>
             </div>
-            <a-button type="default" ghost @click="showPasswordModal">
+            <a-button type="default"  @click="showPasswordModal">
               修改密码
             </a-button>
           </div>
@@ -128,6 +128,7 @@
       :keyboard="false"
       :mask-closable="false"
     >
+      <br>
       <a-form :model="editForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户昵称">
           <a-input v-model:value="editForm.userName" placeholder="请输入新昵称" />
@@ -149,6 +150,7 @@
       title="修改登录密码"
       @ok="handlePasswordSubmit"
     >
+      <br>
       <a-form :model="passwordForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <a-form-item label="原密码">
           <a-input-password v-model:value="passwordForm.oldPassword" placeholder="请输入当前密码" />

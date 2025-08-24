@@ -2,8 +2,6 @@ package com.rich.richcodeweaver.config;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.rich.richcodeweaver.exception.ErrorCode;
-import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
