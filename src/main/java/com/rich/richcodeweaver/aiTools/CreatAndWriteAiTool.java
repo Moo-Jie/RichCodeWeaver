@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.aiUtiles;
+package com.rich.richcodeweaver.aiTools;
 
 import com.rich.richcodeweaver.constant.AppConstant;
 import dev.langchain4j.agent.tool.P;
@@ -19,7 +19,7 @@ import java.nio.file.StandardOpenOption;
  * @create 2025/8/24
  **/
 @Slf4j
-public class AiFileCreatAndWriteTool {
+public class CreatAndWriteAiTool {
     /**
      * 生成文件到指定路径
      *
