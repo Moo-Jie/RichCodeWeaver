@@ -3,8 +3,8 @@ package com.rich.richcodeweaver.utiles;
 import com.rich.richcodeweaver.config.AiCodeGeneratorServiceFactory;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
-import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
-import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
 import com.rich.richcodeweaver.utiles.codeParse.CodeParseExecutor;
@@ -60,15 +60,15 @@ public class AIGenerateCodeAndSaveToFileUtils {
 
             return switch (codeGenTypeEnum) {
                 case HTML -> {
-                    HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
+                    HtmlCodeResponse result = aiCodeGeneratorService.generateHtmlCode(userMessage);
                     yield CodeResultSaveExecutor.executeSaver(result, codeGenTypeEnum, appId);
                 }
                 case MULTI_FILE -> {
-                    MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
+                    MultiFileCodeResponse result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
                     yield CodeResultSaveExecutor.executeSaver(result, codeGenTypeEnum, appId);
                 }
                 case VUE_PROJECT -> {
-                    MultiFileCodeResult result = aiCodeGeneratorService.generateVueProjectCode(userMessage, appId);
+                    MultiFileCodeResponse result = aiCodeGeneratorService.generateVueProjectCode(userMessage, appId);
                     yield CodeResultSaveExecutor.executeSaver(result, MULTI_FILE, appId);
                 }
                 default -> {

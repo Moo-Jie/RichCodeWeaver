@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.model.dto.aiCode;
+package com.rich.richcodeweaver.model.aiChatResponse.codeResponse;
 
 import dev.langchain4j.model.output.structured.Description;
 import lombok.Data;
@@ -11,7 +11,7 @@ import lombok.Data;
  **/
 @Description("生成 HTML 代码文件的结果")
 @Data
-public class HtmlCodeResult {
+public class HtmlCodeResponse {
 
     /**
      * HTML 代码块

@@ -2,8 +2,8 @@ package com.rich.richcodeweaver.utiles.codeSave;
 
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
-import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
-import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 
 import java.io.File;
@@ -31,8 +31,8 @@ public class CodeResultSaveExecutor {
      */
     public static File executeSaver(Object codeResult, CodeGeneratorTypeEnum codeGenType, Long appId) {
         return switch (codeGenType) {
-            case HTML -> htmlCodeFileSaver.saveCodeResult((HtmlCodeResult) codeResult, appId);
-            case MULTI_FILE -> multiFileCodeFileSaver.saveCodeResult((MultiFileCodeResult) codeResult, appId);
+            case HTML -> htmlCodeFileSaver.saveCodeResult((HtmlCodeResponse) codeResult, appId);
+            case MULTI_FILE -> multiFileCodeFileSaver.saveCodeResult((MultiFileCodeResponse) codeResult, appId);
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
         };
     }

@@ -1,6 +1,6 @@
 package com.rich.richcodeweaver.utiles.codeParse;
 
-import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
  * @author DuRuiChi
  * @create 2025/8/7
  **/
-public class AiResToMultiFileCodeResultParser implements CodeParser<MultiFileCodeResult> {
+public class AiResToMultiFileCodeResultParser implements CodeParser<MultiFileCodeResponse> {
     /**
      * 匹配 HTML 代码块的正则模式（不区分大小写）
      */
@@ -41,15 +41,15 @@ public class AiResToMultiFileCodeResultParser implements CodeParser<MultiFileCod
      * 解析多文件模式下的代码内容
      *
      * @param codeContent 包含多种代码类型的原始文本
-     * @return MultiFileCodeResult 包含解析后的各类型代码
+     * @return MultiFileCodeResponse 包含解析后的各类型代码
      * <p>
      * 支持解析的类型：
      * - HTML代码块（```html）
      * - CSS代码块（```css）
      * - JavaScript代码块（```js 或 ```javascript）
      */
-    public MultiFileCodeResult parseCode(String codeContent) {
-        MultiFileCodeResult result = new MultiFileCodeResult();
+    public MultiFileCodeResponse parseCode(String codeContent) {
+        MultiFileCodeResponse result = new MultiFileCodeResponse();
 
         // 分别提取各类型代码
         String htmlCode = extractCodeByPattern(codeContent, HTML_CODE_PATTERN);

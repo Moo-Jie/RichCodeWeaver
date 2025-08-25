@@ -1,6 +1,6 @@
 package com.rich.richcodeweaver.utiles.codeSave;
 
-import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 
 /**
@@ -9,7 +9,7 @@ import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
  * @author DuRuiChi
  * @create 2025/8/10
  **/
-public class multiFileCodeSaver extends CodeResultSaveToFileTemplate<MultiFileCodeResult> {
+public class multiFileCodeSaver extends CodeResultSaveToFileTemplate<MultiFileCodeResponse> {
 
     @Override
     protected String getCodeGeneratorTypeEnumValue() {
@@ -17,7 +17,7 @@ public class multiFileCodeSaver extends CodeResultSaveToFileTemplate<MultiFileCo
     }
 
     @Override
-    protected void doSaveCodeResult(MultiFileCodeResult result, String baseDirPath) {
+    protected void doSaveCodeResult(MultiFileCodeResponse result, String baseDirPath) {
         // 重写保存逻辑，直接调用单文件写入模板方法
         // 写入文件
         writeSingleToFile(baseDirPath, "index.html", result.getHtmlCode());

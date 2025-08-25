@@ -5,8 +5,8 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
-import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
-import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 
 import java.io.File;
@@ -33,7 +33,7 @@ public class CodeSaveToFileUtils {
      * @return 生成的目录File对象
      * @throws IllegalArgumentException 如果输入参数为空
      */
-    public static File saveHtmlCodeResult(HtmlCodeResult result) {
+    public static File saveHtmlCodeResult(HtmlCodeResponse result) {
         // 校验参数
         if (result == null) {
             throw new IllegalArgumentException("HTML代码结果不能为空");
@@ -51,7 +51,7 @@ public class CodeSaveToFileUtils {
      * @param result
      * @return
      */
-    public static File saveMultiFileCodeResult(MultiFileCodeResult result) {
+    public static File saveMultiFileCodeResult(MultiFileCodeResponse result) {
         // 校验参数
         if (result == null) {
             throw new IllegalArgumentException("HTML代码结果不能为空");

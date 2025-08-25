@@ -32,7 +32,7 @@ public class CodeParseExecutor {
      *
      * @param codeContent           代码内容
      * @param codeGeneratorTypeEnum 代码生成类型
-     * @return 解析结果（HtmlCodeResult 或 MultiFileCodeResult）
+     * @return 解析结果（HtmlCodeResponse 或 MultiFileCodeResponse）
      */
     public static Object executeParseCode(String codeContent, CodeGeneratorTypeEnum codeGeneratorTypeEnum) {
         try {

@@ -1,6 +1,5 @@
 package com.rich.richcodeweaver.utiles;
 
-import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
@@ -10,8 +9,6 @@ import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class AIGenerateCodeAndSaveToFileUtilsTest {

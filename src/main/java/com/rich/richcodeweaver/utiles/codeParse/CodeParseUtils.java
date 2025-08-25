@@ -1,7 +1,7 @@
 package com.rich.richcodeweaver.utiles.codeParse;
 
-import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
-import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,15 +38,15 @@ public class CodeParseUtils {
      * 解析单文件模式下的HTML内容
      *
      * @param codeContent 包含HTML代码的原始文本
-     * @return HtmlCodeResult 包含解析后的HTML代码
+     * @return HtmlCodeResponse 包含解析后的HTML代码
      * <p>
      * 处理逻辑：
      * 1. 尝试从内容中提取标准HTML代码块
      * 2. 如果未找到代码块，则将整个输入内容视为HTML代码
      * 3. 自动去除代码前后的空白字符
      */
-    public static HtmlCodeResult parseHtmlCode(String codeContent) {
-        HtmlCodeResult result = new HtmlCodeResult();
+    public static HtmlCodeResponse parseHtmlCode(String codeContent) {
+        HtmlCodeResponse result = new HtmlCodeResponse();
 
         // 提取HTML代码
         String htmlCode = extractHtmlCode(codeContent);
@@ -65,15 +65,15 @@ public class CodeParseUtils {
      * 解析多文件模式下的代码内容
      *
      * @param codeContent 包含多种代码类型的原始文本
-     * @return MultiFileCodeResult 包含解析后的各类型代码
+     * @return MultiFileCodeResponse 包含解析后的各类型代码
      * <p>
      * 支持解析的类型：
      * - HTML代码块（```html）
      * - CSS代码块（```css）
      * - JavaScript代码块（```js 或 ```javascript）
      */
-    public static MultiFileCodeResult parseMultiFileCode(String codeContent) {
-        MultiFileCodeResult result = new MultiFileCodeResult();
+    public static MultiFileCodeResponse parseMultiFileCode(String codeContent) {
+        MultiFileCodeResponse result = new MultiFileCodeResponse();
 
         // 分别提取各类型代码
         String htmlCode = extractCodeByPattern(codeContent, HTML_CODE_PATTERN);

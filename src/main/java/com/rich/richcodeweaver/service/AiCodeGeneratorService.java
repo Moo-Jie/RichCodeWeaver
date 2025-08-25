@@ -1,7 +1,7 @@
 package com.rich.richcodeweaver.service;
 
-import com.rich.richcodeweaver.model.dto.aiCode.HtmlCodeResult;
-import com.rich.richcodeweaver.model.dto.aiCode.MultiFileCodeResult;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
+import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
@@ -49,7 +49,7 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/html-system-prompt.txt")
-    HtmlCodeResult generateHtmlCode(String userMessage);
+    HtmlCodeResponse generateHtmlCode(String userMessage);
 
     /**
      * AI 生成多文件代码
@@ -58,7 +58,7 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/multi-file-system-prompt.txt")
-    MultiFileCodeResult generateMultiFileCode(String userMessage);
+    MultiFileCodeResponse generateMultiFileCode(String userMessage);
 
     /**
      * AI 生成 Vue 项目工程代码
@@ -68,5 +68,5 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/vue-project-system-prompt.txt")
-    MultiFileCodeResult generateVueProjectCode(@UserMessage String userMessage, @MemoryId Long appId);
+    MultiFileCodeResponse generateVueProjectCode(@UserMessage String userMessage, @MemoryId Long appId);
 }
