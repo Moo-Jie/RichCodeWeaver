@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.codeParse;
+package com.rich.richcodeweaver.utiles.aiUtils.codeParse;
 
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;

@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles;
+package com.rich.richcodeweaver.utiles.aiUtils;
 
 import cn.hutool.json.JSONUtil;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamAiChatMsgResponse;
@@ -24,7 +24,7 @@ public class ConvertTokenStreamToFluxUtils {
      * @param tokenStream TokenStream 对象
      * @return Flux<String> 流式响应
      */
-    private Flux<String> convertTokenStreamToFlux(TokenStream tokenStream) {
+    public static Flux<String> convertTokenStreamToFlux(TokenStream tokenStream) {
         // 创建 Flux 流，使用 sink 发射器处理 TokenStream 事件
         return Flux.create(sink -> {
             // 转换的主要逻辑 ：在 tokenStream 事件处理的回调函数中，使用 sink.next() 发射器，把 AI 输出的信息转 ——> 自定义封装类 ——> JSON 格式，最后发射出去

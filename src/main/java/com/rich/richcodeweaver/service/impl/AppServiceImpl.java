@@ -29,7 +29,8 @@ import com.rich.richcodeweaver.model.vo.UserVO;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.service.UserService;
-import com.rich.richcodeweaver.utiles.AIGenerateCodeAndSaveToFileUtils;
+import com.rich.richcodeweaver.utiles.aiUtils.AIGenerateCodeAndSaveToFileUtils;
+import com.rich.richcodeweaver.utiles.aiUtils.streamHandle.StreamHandlerExecutor;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -77,6 +78,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private ChatHistoryService chatHistoryService;
 
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
+
     /**
      * 管理员执行 AI 对话并并生成代码(流式)
      *
@@ -103,52 +107,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成类型为空");
         }
         // 保存用户消息
-        boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message,  ChatHistoryTypeEnum.USER.getValue(), userId);
+        boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
-        // 用于收集 AI 响应内容
+        // 用于收集 AI 响应内容的 StringBuilder
         StringBuilder aiResponseBuilder = new StringBuilder();
-        // 调用 AI 响应代码流，并进行处理
-        return aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId)
-                // 收集 AI 响应内容的数据块，用于保存到对话历史（封装为 JOSN 之前）
-                .map(strBlock -> {
-                    aiResponseBuilder.append(strBlock);
-                    return strBlock;
-                })
-                // 流结束后，保存 AI 响应到对话历史
-                .doOnComplete(() -> {
-                    String aiResponse = aiResponseBuilder.toString();
-                    if (StrUtil.isNotBlank(aiResponse)) {
-                        chatHistoryService.addChatMessage(appId, aiResponse,
-                                ChatHistoryTypeEnum.AI.getValue(),
-                                userId);
-                    }
-                })
-                // 错误处理
-                .doOnError(error -> {
-                    chatHistoryService.addChatMessage(appId, "AI 响应失败,请联系管理员：" + error.getMessage(),
-                            ChatHistoryTypeEnum.AI.getValue(),
-                            userId);
-                })
-                // 封装为 JOSN 格式的 SSE 事件
-                .map(
-                        strBlock -> {
-                            // 封装为 JSON 字符串，预防直接进行字符串流式传输丢失空格符、换行符等问题
-                            // {"b": "代码内容"}
-                            String jsonStrBlock = JSONUtil.toJsonStr(Map.of("b", strBlock));
-                            // 封装为 SSE 事件
-                            return ServerSentEvent.<String>builder()
-                                    .data(jsonStrBlock)
-                                    .build();
-                        }
-                )
-                // 拼接结束事件
-                // Flux 适用于处理 0-N 个项目的情况，而 Mono 适用于处理 0-1 个项目的情况，故使用 Mono.just() 执行一次结束事件拼接
-                .concatWith(Mono.just(
-                        ServerSentEvent.<String>builder()
-                                .event("end")
-                                .data("")
-                                .build()
-                ));
+        // 调用 AI 基础响应流
+        Flux<String> stringFlux = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
+        // 处理 AI 响应流
+        return streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
     }
 
     /**
@@ -226,6 +192,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
     }
 
+    /**
+     * 部署应用
+     *
+     * @param appId
+     * @param loginUser
+     * @return java.lang.String
+     * @author DuRuiChi
+     * @create 2025/8/27
+     **/
     @Override
     public String deployApp(Long appId, User loginUser) {
         // 参数校验
@@ -393,7 +368,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 生成 AI 应用名称（截取提示前 15 字符）
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 15)));
         // 设置默认生成策略
-        app.setCodeGenType(CodeGeneratorTypeEnum.HTML.getValue());
+        // TODO 从请求参数获取
+        app.setCodeGenType(CodeGeneratorTypeEnum.VUE_PROJECT.getValue());
         // 设置默认封面
         app.setCover(AppConstant.APP_COVER);
 

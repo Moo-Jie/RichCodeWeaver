@@ -107,7 +107,7 @@ public class AiCodeGeneratorServiceFactory {
                 // 指定为 Redis 类型的 ChatMemory
                 .chatMemoryStore(redisChatMemoryStore)
                 // 最大消息数
-                .maxMessages(20)
+                .maxMessages(50)
                 .build();
         // 从数据库中加载对话历史到 Redis 类型的 chatMemory 中
         Boolean isSave = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 10);

@@ -4,6 +4,7 @@ import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeRespons
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
@@ -40,7 +41,7 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/vue-project-system-prompt.txt")
-    Flux<String> generateVueProjectCodeStream(@UserMessage String userMessage, @MemoryId Long appId);
+    TokenStream generateVueProjectCodeStream(@UserMessage String userMessage, @MemoryId Long appId);
 
     /**
      * AI 生成 HTML 代码

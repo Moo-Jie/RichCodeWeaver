@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles;
+package com.rich.richcodeweaver.utiles.aiUtils;
 
 import com.rich.richcodeweaver.config.AiCodeGeneratorServiceFactory;
 import com.rich.richcodeweaver.exception.BusinessException;
@@ -7,8 +7,9 @@ import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeRespons
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
-import com.rich.richcodeweaver.utiles.codeParse.CodeParseExecutor;
-import com.rich.richcodeweaver.utiles.codeSave.CodeResultSaveExecutor;
+import com.rich.richcodeweaver.utiles.aiUtils.codeParse.CodeParseExecutor;
+import com.rich.richcodeweaver.utiles.aiUtils.codeSave.CodeResultSaveExecutor;
+import dev.langchain4j.service.TokenStream;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -118,8 +119,9 @@ public class AIGenerateCodeAndSaveToFileUtils {
                     yield parseAndSaveCodeStream(resultStream, codeGenTypeEnum, appId);
                 }
                 case VUE_PROJECT -> {
-                    Flux<String> resultStream = aiCodeGeneratorService.generateVueProjectCodeStream(userMessage, appId);
-                    yield parseAndSaveCodeStream(resultStream, MULTI_FILE, appId);
+                    TokenStream resultStream = aiCodeGeneratorService.generateVueProjectCodeStream(userMessage, appId);
+                    // 将 LangChain4j 的 TokenStream 转换为 Reactor 的 Flux<String>
+                    yield ConvertTokenStreamToFluxUtils.convertTokenStreamToFlux(resultStream);
                 }
                 default -> {
                     String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();

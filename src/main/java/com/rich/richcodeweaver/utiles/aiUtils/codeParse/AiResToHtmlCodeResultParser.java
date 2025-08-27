@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.codeParse;
+package com.rich.richcodeweaver.utiles.aiUtils.codeParse;
 
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
 

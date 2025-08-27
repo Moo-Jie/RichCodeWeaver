@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.codeParse;
+package com.rich.richcodeweaver.utiles.aiUtils.codeParse;
 
 /**
  * 代码解析器接口

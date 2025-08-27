@@ -10,10 +10,9 @@ import lombok.Getter;
  **/
 @Getter
 public enum ReasoningStreamMsgTypeEnum {
-
-    AI_RESPONSE("ai_chat_response_msg", "AI 响应信息"),
-    TOOL_REQUEST("tool_request_msg", "工具请求信息"),
-    TOOL_EXECUTED("tool_executed_msg", "工具执行结果信息");
+    AI_RESPONSE("ai_response", "AI 响应信息"),
+    TOOL_REQUEST("tool_request", "工具请求信息"),
+    TOOL_EXECUTED("tool_executed", "工具执行结果信息");
     // TODO 其他模式
 
     private final String value;
