@@ -48,6 +48,12 @@
           <RouterLink to="/user/login" class="link">去登录</RouterLink>
         </div>
 
+        <div class="tips">
+          <RouterLink to="/other/privacy" class="tips">隐私政策</RouterLink>
+          &nbsp;&nbsp;<span class="tips">|</span>&nbsp;&nbsp;
+          <RouterLink to="/other/terms" class="tips">服务条款</RouterLink>
+        </div>
+
         <a-form-item>
           <a-button type="default" html-type="submit" class="submit-btn" :loading="submitting">
             注册

@@ -365,8 +365,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         BeanUtil.copyProperties(appAddRequest, app);
         // 设置用户关联
         app.setUserId(loginUser.getId());
-        // 生成 AI 应用名称（截取提示前 15 字符）
-        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 15)));
+        // 生成 AI 应用名称（截取提示前 30 字符）
+        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 30)));
         // 设置默认生成策略
         // TODO 从请求参数获取
         app.setCodeGenType(CodeGeneratorTypeEnum.VUE_PROJECT.getValue());

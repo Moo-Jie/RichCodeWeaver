@@ -3,7 +3,7 @@
     <!-- 顶部栏 -->
     <div class="header-bar">
       <div class="header-left">
-        <h1 class="app-name">{{ appInfo?.appName?.substring(0, 10) + '  ...' || '网站生成器' }}</h1>
+        <h1 class="app-name">{{ appInfo?.appName?.substring(0, 20)+'...' || '网站生成器' }}</h1>
       </div>
       <div class="header-right">
         <a-button type="default" class="detail-btn" @click="showAppDetail">
@@ -12,7 +12,8 @@
           </template>
           应用详情
         </a-button>
-        <a-button type="default" class="deploy-btn" @click="deployApp" :loading="deploying">
+        <a-button type="default" class="deploy-btn" @click="deployApp" :loading="deploying"
+                  :disabled="isGenerating">
           <template #icon>
             <CloudUploadOutlined />
           </template>
@@ -73,7 +74,8 @@
         <div class="input-container">
           <div class="input-wrapper">
             <div v-if="!isOwner" class="creator-tip">
-              <a-alert message="这是别人的创作作品" description="如需对话请创建您自己的项目" type="info" show-icon />
+              <a-alert message="这是别人的创作作品" description="如需对话请创建您自己的项目"
+                       type="info" show-icon />
             </div>
             <a-textarea
               v-else
@@ -126,7 +128,8 @@
             <div class="decorative-line"></div>
           </div>
           <div class="preview-actions">
-            <a-button v-if="previewUrl" type="default" ghost @click="openInNewTab" class="preview-action-btn">
+            <a-button v-if="previewUrl" type="default" ghost @click="openInNewTab"
+                      class="preview-action-btn">
               <template #icon>
                 <ExportOutlined />
               </template>
@@ -135,7 +138,8 @@
           </div>
         </div>
         <div class="preview-content">
-          <div v-if="!previewUrl && !isGenerating" class="preview-placeholder creative-preview-placeholder">
+          <div v-if="!previewUrl && !isGenerating"
+               class="preview-placeholder creative-preview-placeholder">
             <div class="placeholder-icon">
               <div class="magic-pattern">
                 <div class="pattern-element pattern-1"></div>
@@ -149,6 +153,11 @@
           </div>
           <div v-else-if="isGenerating" class="preview-loading">
             <a-spin size="large" :tip="generatingTip" />
+            <!-- 已用时间显示 -->
+            <div class="generating-time">
+              <p>已思考时间: {{ generatingTime }}秒</p>
+              <p class="wait-tip">为了生成美观完善的页面，请耐心等待...</p>
+            </div>
           </div>
           <iframe
             v-else
@@ -191,7 +200,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import {
   deleteApp as deleteAppApi,
@@ -218,9 +227,28 @@ const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
+// 添加计时器相关变量
+const generatingTime = ref(0)
+const timer = ref(null)
+
+
+
 // 应用信息
 const appInfo = ref<API.AppVO>()
 const appId = ref<string>()
+
+// 部署按钮点击处理
+const handleDeployClick = () => {
+  if (isGenerating.value) {
+    Modal.info({
+      title: '请等待生成完成',
+      content: '代码正在生成中，请等待生成完毕后部署网站',
+      okText: '知道了'
+    })
+    return
+  }
+  deployApp()
+}
 
 // 对话相关
 interface Message {
@@ -330,7 +358,7 @@ const fetchChatHistory = async (loadMore = false) => {
 
       // 处理加载更多
       if (loadMore) {
-        // 加载更多时添加到前面
+        // 加载更多时到前面
         messages.value = [...newMessages, ...messages.value]
       } else {
         // 首次加载直接替换
@@ -370,7 +398,7 @@ const sendInitialMessage = async (prompt: string) => {
   // 添加用户消息
   messages.value.push({
     type: 'user',
-    content: prompt,
+    content: prompt
   })
 
   // 添加AI消息占位符
@@ -378,7 +406,7 @@ const sendInitialMessage = async (prompt: string) => {
   messages.value.push({
     type: 'ai',
     content: '',
-    loading: true,
+    loading: true
   })
 
   await nextTick()
@@ -401,7 +429,7 @@ const sendMessage = async () => {
   // 添加用户消息
   messages.value.push({
     type: 'user',
-    content: message,
+    content: message
   })
 
   // 添加AI消息占位符
@@ -409,7 +437,7 @@ const sendMessage = async () => {
   messages.value.push({
     type: 'ai',
     content: '',
-    loading: true,
+    loading: true
   })
 
   await nextTick()
@@ -422,6 +450,12 @@ const sendMessage = async () => {
 
 // 生成代码 - 使用 EventSource 处理流式响应
 const generateCode = async (userMessage: string, aiMessageIndex: number) => {
+  // 启动计时器
+  generatingTime.value = 0
+  timer.value = setInterval(() => {
+    generatingTime.value++
+  }, 1000)
+
   let eventSource: EventSource | null = null
   let streamCompleted = false
 
@@ -432,20 +466,20 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     // 构建URL参数
     const params = new URLSearchParams({
       appId: appId.value || '',
-      message: userMessage,
+      message: userMessage
     })
 
     const url = `${baseURL}/app/gen/code/stream?${params}`
 
     // 创建 EventSource 连接
     eventSource = new EventSource(url, {
-      withCredentials: true,
+      withCredentials: true
     })
 
     let fullContent = ''
 
     // 处理接收到的消息
-    eventSource.onmessage = function (event) {
+    eventSource.onmessage = function(event) {
       if (streamCompleted) return
 
       try {
@@ -467,8 +501,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     }
 
     // 处理 end 事件
-    eventSource.addEventListener('end', function () {
+    eventSource.addEventListener('end', function() {
       if (streamCompleted) return
+
+      // 清除计时器
+      if (timer.value) {
+        clearInterval(timer.value)
+        timer.value = null
+      }
 
       streamCompleted = true
       isGenerating.value = false
@@ -482,7 +522,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     })
 
     // 处理错误
-    eventSource.onerror = function () {
+    eventSource.onerror = function() {
       if (streamCompleted || !isGenerating.value) return
       // 检查是否是正常的连接关闭
       if (eventSource?.readyState === EventSource.CONNECTING) {
@@ -506,6 +546,11 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
 
 // 错误处理函数
 const handleError = (error: unknown, aiMessageIndex: number) => {
+  // 清除计时器
+  if (timer.value) {
+    clearInterval(timer.value)
+    timer.value = null
+  }
   console.error('生成代码失败：', error)
   messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
   messages.value[aiMessageIndex].loading = false
@@ -540,7 +585,7 @@ const deployApp = async () => {
   deploying.value = true
   try {
     const res = await deployAppApi({
-      appId: appId.value as unknown as number,
+      appId: appId.value as unknown as number
     })
 
     if (res.data.code === 0 && res.data.data) {
@@ -608,9 +653,11 @@ onMounted(() => {
   fetchAppInfo()
 })
 
-// 清理资源
+// 清理资源,EventSource 会在组件卸载时自动清理
 onUnmounted(() => {
-  // EventSource 会在组件卸载时自动清理
+  if (timer.value) {
+    clearInterval(timer.value)
+  }
 })
 </script>
 
@@ -644,6 +691,22 @@ onUnmounted(() => {
   opacity: 0.3;
   pointer-events: none;
   z-index: 0;
+}
+
+.generating-time {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.generating-time p {
+  margin: 5px 0;
+  color: #666;
+}
+
+.wait-tip {
+  font-style: italic;
+  color: #888;
+  font-size: 14px;
 }
 
 /* 顶部栏 */
@@ -770,8 +833,14 @@ onUnmounted(() => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .user-message {
@@ -1015,8 +1084,12 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 .placeholder-text {

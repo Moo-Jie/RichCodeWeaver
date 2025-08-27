@@ -222,7 +222,7 @@ const doLogout = async () => {
   z-index: 100;
   border-radius: 0 0 35px 35px !important; /* 增强底部圆角 */
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(220, 220, 230, 0.3); /* 添加轻微边框 */
+  border: 1px solid rgba(220, 220, 230, 0.3); /* 轻微边框 */
 }
 
 .header::after {
@@ -253,7 +253,7 @@ const doLogout = async () => {
   border-radius: 16px !important; /* 增强圆角效果 */
   transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
   box-shadow: 0 4px 10px rgba(150, 160, 180, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.5); /* 添加可爱边框 */
+  border: 2px solid rgba(255, 255, 255, 0.5); /* 可爱边框 */
 }
 
 .logo:hover {
@@ -316,7 +316,7 @@ const doLogout = async () => {
   color: #fff;
   background: linear-gradient(45deg, #a3b1c6, #c3cfda);
   box-shadow: 0 6px 14px rgba(150, 160, 180, 0.35); /* 增强选中阴影 */
-  border-radius: 25px !important; /* 保持圆角一致 */
+  border-radius: 25px !important; /* 圆角一致 */
 }
 
 .user-login-status {

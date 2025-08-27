@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 
@@ -38,10 +38,44 @@ const md: MarkdownIt = new MarkdownIt({
   },
 })
 
+// 预处理Markdown内容，修复AI输出中的代码块格式
+const preprocessMarkdown = (content: string): string => {
+  if (!content) return ''
+
+  // 修复代码块格式：移除每行代码前的4个空格缩进
+  let processedContent = content.replace(/( {4}```[\s\S]*? {4}```)/g, (match) => {
+    return match.replace(/^ {4}/gm, '')
+  })
+
+  // 确保代码块有正确的换行
+  processedContent = processedContent.replace(/```(\w+)\s*\n([\s\S]*?)```/g, '```$1\n$2```')
+
+  return processedContent
+}
+
 // 计算渲染后的 Markdown
 const renderedMarkdown = computed(() => {
-  return md.render(props.content)
+  const processedContent = preprocessMarkdown(props.content)
+  return md.render(processedContent)
 })
+
+// 确保代码高亮在内容更新后执行
+onMounted(() => {
+  highlightCode()
+})
+
+watch(() => props.content, () => {
+  // 使用nextTick确保DOM更新后再执行高亮
+  setTimeout(highlightCode, 100)
+})
+
+const highlightCode = () => {
+  setTimeout(() => {
+    document.querySelectorAll('.markdown-content pre code').forEach((block) => {
+      hljs.highlightElement(block as HTMLElement)
+    })
+  }, 0)
+}
 </script>
 
 <style scoped>
@@ -124,6 +158,7 @@ const renderedMarkdown = computed(() => {
   border-radius: 0;
   font-size: 0.9em;
   line-height: 1.4;
+  white-space: pre-wrap;
 }
 
 .markdown-content :deep(table) {
@@ -177,6 +212,8 @@ const renderedMarkdown = computed(() => {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.9em;
   line-height: 1.4;
+  padding: 1em;
+  overflow-x: auto;
 }
 
 /* 特定语言的代码块样式 */
@@ -213,5 +250,24 @@ const renderedMarkdown = computed(() => {
 .markdown-content :deep(.hljs-title) {
   color: #6f42c1;
   font-weight: 600;
+}
+
+/* 工具调用样式 */
+.markdown-content :deep(.tool-call) {
+  background-color: #f0f7ff;
+  border-left: 4px solid #1890ff;
+  padding: 0.5em 1em;
+  margin: 1em 0;
+  border-radius: 0 4px 4px 0;
+  font-family: monospace;
+}
+
+.markdown-content :deep(.tool-call-complete) {
+  background-color: #f0fff4;
+  border-left: 4px solid #52c41a;
+  padding: 0.5em 1em;
+  margin: 1em 0;
+  border-radius: 0 4px 4px 0;
+  font-family: monospace;
 }
 </style>

@@ -12,7 +12,7 @@
         <a-descriptions-item label="应用名称">
           <div class="meta-item">
             <appstore-outlined />
-            <span>{{ app?.appName || '--' }}</span>
+            <span>{{ app?.appName?.substring(0, 20)+'...' || '--' }}</span>
           </div>
         </a-descriptions-item>
 

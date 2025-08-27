@@ -116,7 +116,7 @@
 
           <template v-else-if="column.dataIndex === 'codeGenType'">
             <a-tag :color="getTypeColor(record.codeGenType)">
-              {{ record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : formatCodeGenType(record.codeGenType)
+              {{ record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : record.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(record.codeGenType)
               }}
             </a-tag>
           </template>
@@ -368,7 +368,7 @@ const fetchData = async () => {
   }
 }
 
-// 添加部署密钥显示状态管理
+// 部署密钥显示状态管理
 const showDeployKey = ref<Record<number, boolean>>({})
 
 // 切换部署密钥显示状态
