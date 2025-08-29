@@ -15,7 +15,7 @@ import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.UserService;
-import com.rich.richcodeweaver.utiles.ResultUtils;
+import com.rich.richcodeweaver.utils.ResultUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.FileSystemResource;

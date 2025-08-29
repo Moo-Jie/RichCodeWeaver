@@ -1,18 +1,23 @@
-package com.rich.richcodeweaver.utiles.aiUtils.streamHandle;
+package com.rich.richcodeweaver.utils.aiUtils.streamHandle;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.rich.richcodeweaver.constant.AppConstant;
 import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamAiChatMsgResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamMsgResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamToolExecutedMsgResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamToolInvocMsgResponse;
+import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.model.enums.ReasoningStreamMsgTypeEnum;
 import com.rich.richcodeweaver.service.ChatHistoryService;
+import com.rich.richcodeweaver.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -34,6 +39,9 @@ import static com.rich.richcodeweaver.exception.ErrorCode.OPERATION_ERROR;
 public class JsonStreamHandler {
     @Resource
     private CommonStreamHandler commonStreamHandler;
+
+    @Resource
+    private BuildWebProjectExecutor buildWebProjectExecutor;
 
     /**
      * 处理 AI JSON 输出的流
@@ -58,7 +66,21 @@ public class JsonStreamHandler {
                             return handleJsonChunk(chunk, aiResponseBuilder, seenToolIds);
                         })
                         // 过滤空字串
-                        .filter(StrUtil::isNotEmpty),
+                        .filter(StrUtil::isNotEmpty)
+                        // 流结束后
+                        .doOnComplete(() -> {
+                            // 保存 AI 响应到对话历史
+                            String aiResponse = aiResponseBuilder.toString();
+                            if (StrUtil.isNotBlank(aiResponse)) {
+                                chatHistoryService.addChatMessage(appId, aiResponse,
+                                        ChatHistoryTypeEnum.AI.getValue(),
+                                        userId);
+                            }
+                            // 代码生成完毕后，异步通过 npm 构造 Web 工程项目
+                            String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+                            boolean isBuild = buildWebProjectExecutor.buildProjectAsync(projectPath);
+                            ThrowUtils.throwIf(!isBuild, OPERATION_ERROR, "构建 Vue 项目失败");
+                        }),
                 chatHistoryService,
                 appId,
                 userId,

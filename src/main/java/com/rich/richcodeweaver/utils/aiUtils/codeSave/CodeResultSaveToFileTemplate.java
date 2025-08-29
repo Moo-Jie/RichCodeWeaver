@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.aiUtils.codeSave;
+package com.rich.richcodeweaver.utils.aiUtils.codeSave;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;

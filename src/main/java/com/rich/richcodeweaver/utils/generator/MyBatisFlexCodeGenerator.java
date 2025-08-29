@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.generator;
+package com.rich.richcodeweaver.utils.generator;
 
 import cn.hutool.core.lang.Dict;
 import cn.hutool.setting.yaml.YamlUtil;

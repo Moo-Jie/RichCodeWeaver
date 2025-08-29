@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.aiUtils.streamHandle;
+package com.rich.richcodeweaver.utils.aiUtils.streamHandle;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
@@ -31,15 +31,6 @@ public class CommonStreamHandler {
     public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, StringBuilder aiResponseBuilder) {
         // 处理 AI 响应流
         return stringFlux
-                // 流结束后，保存 AI 响应到对话历史
-                .doOnComplete(() -> {
-                    String aiResponse = aiResponseBuilder.toString();
-                    if (StrUtil.isNotBlank(aiResponse)) {
-                        chatHistoryService.addChatMessage(appId, aiResponse,
-                                ChatHistoryTypeEnum.AI.getValue(),
-                                userId);
-                    }
-                })
                 // 错误处理
                 .doOnError(error -> {
                     chatHistoryService.addChatMessage(appId, "AI 响应失败,请联系管理员：" + error.getMessage(),

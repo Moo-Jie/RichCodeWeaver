@@ -1,7 +1,7 @@
 package com.rich.richcodeweaver.exception;
 
 import com.rich.richcodeweaver.model.common.BaseResponse;
-import com.rich.richcodeweaver.utiles.ResultUtils;
+import com.rich.richcodeweaver.utils.ResultUtils;
 import io.swagger.v3.oas.annotations.Hidden;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;

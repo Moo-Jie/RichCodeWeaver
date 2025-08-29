@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.aiUtils.streamHandle;
+package com.rich.richcodeweaver.utils.aiUtils.streamHandle;
 
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;

@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.aiUtils;
+package com.rich.richcodeweaver.utils.aiUtils;
 
 import cn.hutool.json.JSONUtil;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamAiChatMsgResponse;

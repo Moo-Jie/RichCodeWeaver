@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.aiUtils.codeSave;
+package com.rich.richcodeweaver.utils.aiUtils.codeSave;
 
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;

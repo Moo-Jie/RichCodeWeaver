@@ -1,7 +1,7 @@
-package com.rich.richcodeweaver.utiles;
+package com.rich.richcodeweaver.utils;
 
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
-import com.rich.richcodeweaver.utiles.aiUtils.AIGenerateCodeAndSaveToFileUtils;
+import com.rich.richcodeweaver.utils.aiUtils.AIGenerateCodeAndSaveToFileUtils;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

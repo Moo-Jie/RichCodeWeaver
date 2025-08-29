@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles.aiUtils;
+package com.rich.richcodeweaver.utils.aiUtils;
 
 import com.rich.richcodeweaver.config.AiCodeGeneratorServiceFactory;
 import com.rich.richcodeweaver.exception.BusinessException;
@@ -7,8 +7,8 @@ import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeRespons
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
-import com.rich.richcodeweaver.utiles.aiUtils.codeParse.CodeParseExecutor;
-import com.rich.richcodeweaver.utiles.aiUtils.codeSave.CodeResultSaveExecutor;
+import com.rich.richcodeweaver.utils.aiUtils.codeParse.CodeParseExecutor;
+import com.rich.richcodeweaver.utils.aiUtils.codeSave.CodeResultSaveExecutor;
 import dev.langchain4j.service.TokenStream;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

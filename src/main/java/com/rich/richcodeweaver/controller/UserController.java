@@ -5,7 +5,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.rich.richcodeweaver.annotation.AuthCheck;
 import com.rich.richcodeweaver.model.common.BaseResponse;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
-import com.rich.richcodeweaver.utiles.ResultUtils;
+import com.rich.richcodeweaver.utils.ResultUtils;
 import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;

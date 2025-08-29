@@ -1,6 +1,7 @@
-package com.rich.richcodeweaver.utiles.aiUtils.streamHandle;
+package com.rich.richcodeweaver.utils.aiUtils.streamHandle;
 
 import cn.hutool.core.util.StrUtil;
+import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import jakarta.annotation.Resource;
 import org.springframework.http.codec.ServerSentEvent;
@@ -39,7 +40,16 @@ public class TestStreamHandler {
                             return strBlock;
                         })
                         // 过滤空字串
-                        .filter(StrUtil::isNotEmpty),
+                        .filter(StrUtil::isNotEmpty)
+                        // 流结束后，保存 AI 响应到对话历史
+                        .doOnComplete(() -> {
+                            String aiResponse = aiResponseBuilder.toString();
+                            if (StrUtil.isNotBlank(aiResponse)) {
+                                chatHistoryService.addChatMessage(appId, aiResponse,
+                                        ChatHistoryTypeEnum.AI.getValue(),
+                                        userId);
+                            }
+                        }),
                 chatHistoryService,
                 appId,
                 userId,

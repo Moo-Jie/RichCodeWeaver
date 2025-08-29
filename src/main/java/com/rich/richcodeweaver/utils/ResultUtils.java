@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.utiles;
+package com.rich.richcodeweaver.utils;
 
 import com.rich.richcodeweaver.model.common.BaseResponse;
 import com.rich.richcodeweaver.exception.ErrorCode;
