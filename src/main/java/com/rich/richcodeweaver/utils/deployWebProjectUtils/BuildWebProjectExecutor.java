@@ -38,7 +38,7 @@ public class BuildWebProjectExecutor {
         // 开启 JDK-21 的虚拟线程，避免阻塞主流程
         Thread.ofVirtual().name("vue-builder-" + System.currentTimeMillis()).start(() -> {
             try {
-                buildProject(projectPath);
+                isBuild.set(buildProject(projectPath));
             } catch (Exception e) {
                 isBuild.set(false);
                 log.error("异步打包构建项目失败，因为: {}", e.getMessage(), e);

@@ -48,8 +48,8 @@ public class AppController {
      * 预览指定应用
      * URL：/api/app/{appId}[/{fileName}]
      *
-     * @param appId 应用浏览标识，用于定位应用输出目录
-     * @param request   请求对象
+     * @param appId   应用浏览标识，用于定位应用输出目录
+     * @param request 请求对象
      * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
      * @author DuRuiChi
      * @create 2025/8/9
@@ -65,8 +65,8 @@ public class AppController {
     /**
      * 部署应用
      *
-     * @param appDeployRequest  部署请求参数
-     * @param request   请求信息
+     * @param appDeployRequest 部署请求参数
+     * @param request          请求信息
      * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.String>  部署成功后的 URL
      * @author DuRuiChi
      * @create 2025/8/10

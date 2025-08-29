@@ -107,8 +107,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 保存用户消息
         boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
-        // 用于收集 AI 响应内容的 StringBuilder
-        StringBuilder aiResponseBuilder = new StringBuilder();
         // 调用 AI 基础响应流
         Flux<String> stringFlux = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
         // 处理 AI 响应流
@@ -220,15 +218,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 复制文件（ 生成目录 到 部署目录 ）
         try {
             // 执行覆盖
-            // 构建生成目录
-            String codeGenType = app.getCodeGenType();
-            String outputDirName = codeGenType + "_" + appId;
-            File outputDir = new File(AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
-            if (!outputDir.exists() || !outputDir.isDirectory()) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "未检测到源码，无法部署，请先生成源码");
-            }
-            // 构建部署目录
-            File deployDir = new File(AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey);
+            // 构建代码输出文件夹
+            File outputDir = getOutputDir(appId, app);
+            // 构建代码部署文件夹
+            File deployDir = getDeployDir(deployKey);
             // 复制目录（执行覆盖）
             FileUtil.copyContent(outputDir, deployDir, true);
         } catch (Exception e) {
@@ -245,14 +238,43 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
     }
 
+    /**
+     * 构建代码输出文件夹
+     *
+     * @param appId 应用 ID
+     * @param app   应用
+     * @return java.io.File
+     **/
+    private static File getOutputDir(Long appId, App app) {
+        String codeGenType = app.getCodeGenType();
+        // 通过代码生成类型、应用 ID 构建生成目录名称
+        String outputDirName = codeGenType + "_" + appId;
+        if (codeGenType.equals(CodeGeneratorTypeEnum.VUE_PROJECT.getValue())) {
+            outputDirName += File.separator + "dist";
+        }
+        // 拼接到绝对路径
+        File outputDir = new File(AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
+        if (!outputDir.exists() || !outputDir.isDirectory()) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "未检测到源码，无法部署，请先生成源码");
+        }
+        return outputDir;
+    }
+
+    /**
+     * 构建代码部署文件夹
+     *
+     * @param deployKey 部署密钥
+     * @return java.io.File
+     **/
+    private static File getDeployDir(String deployKey) {
+        return new File(AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey);
+    }
 
     /**
      * 根据文件扩展名返回带字符编码的 Content-Type
      *
      * @param filePath 文件路径
      * @return java.lang.String 带字符编码的 Content-Type
-     * @author DuRuiChi
-     * @create 2025/8/10
      **/
     private String getContentTypeWithCharset(String filePath) {
         if (filePath.endsWith(".html")) return "text/html; charset=UTF-8";
