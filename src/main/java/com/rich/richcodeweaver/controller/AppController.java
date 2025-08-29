@@ -54,7 +54,7 @@ public class AppController {
      * @author DuRuiChi
      * @create 2025/8/9
      **/
-    @GetMapping("/view/{appId}/index.html")
+    @GetMapping("/view/{appId}/**")
     public ResponseEntity<FileSystemResource> viewApp(@PathVariable Long appId, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR);

@@ -1,5 +1,5 @@
 /**
- * 环境变量配置
+ * 环境 URL 变量配置
  */
 
 // 应用部署域名
@@ -16,7 +16,12 @@ export const getDeployUrl = (deployKey: string) => {
   return `${DEPLOY_DOMAIN}/${deployKey}`
 }
 
-// 获取静态资源预览URL
+// 获取静态资源预览 URL
 export const getStaticPreviewUrl = (codeGenType: string, appId: string) => {
   return `${STATIC_BASE_URL}/${appId}/index.html`
+}
+
+// 获取 WEB 工程项目静态资源预览 URL
+export const getWebProjectStaticPreviewUrl = (codeGenType: string, appId: string) => {
+  return `${STATIC_BASE_URL}/${appId}/dist/index.html`
 }

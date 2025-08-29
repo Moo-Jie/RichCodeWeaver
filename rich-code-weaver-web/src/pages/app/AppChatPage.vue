@@ -214,7 +214,7 @@ import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
-import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
+import { API_BASE_URL, getStaticPreviewUrl, getWebProjectStaticPreviewUrl } from '@/config/env'
 
 import {
   CloudUploadOutlined,
@@ -563,7 +563,12 @@ const updatePreview = () => {
   if (appId.value) {
     // 默认使用 HTML 类型
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
-    previewUrl.value = getStaticPreviewUrl(codeGenType, appId.value)
+    if(codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+      previewUrl.value = getWebProjectStaticPreviewUrl(codeGenType, appId.value)
+    } else {
+      previewUrl.value = getStaticPreviewUrl(codeGenType, appId.value)
+    }
+
     previewReady.value = true
   }
 }
