@@ -58,11 +58,11 @@ const handleViewWork = () => {
 <style scoped>
 .app-card {
   background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   transition: transform 0.3s,
   box-shadow 0.3s;
   cursor: pointer;
@@ -70,7 +70,7 @@ const handleViewWork = () => {
 
 .app-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
 }
 
 .app-preview {
@@ -81,6 +81,8 @@ const handleViewWork = () => {
   justify-content: center;
   overflow: hidden;
   position: relative;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
 }
 
 .app-preview img {
@@ -106,6 +108,8 @@ const handleViewWork = () => {
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
 }
 
 .app-card:hover .app-overlay {
@@ -136,6 +140,7 @@ const handleViewWork = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: 'Comic Neue', cursive;
 }
 
 .app-author {
@@ -145,5 +150,6 @@ const handleViewWork = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: 'Nunito', sans-serif;
 }
 </style>

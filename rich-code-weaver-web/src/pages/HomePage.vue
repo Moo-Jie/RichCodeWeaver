@@ -8,6 +8,9 @@ import { getDeployUrl } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
 import type { TourProps } from 'ant-design-vue'
 
+// 当前激活的选项卡状态
+const activeTab = ref('my')
+
 // 导入 Tour 相关状态
 const tourOpen = ref(false)
 const tourCurrent = ref(0)
@@ -36,12 +39,6 @@ const tourSteps = ref<TourProps['steps']>([
     target: () => document.querySelector('.my-workspace') as HTMLElement,
     placement: 'top',
   },
-  {
-    title: '星选灵感工坊',
-    description: '浏览社区精选的优秀应用作品，获取创作灵感',
-    target: () => document.querySelector('.featured-workspace') as HTMLElement,
-    placement: 'top',
-  }
 ])
 
 // 开始引导
@@ -60,7 +57,10 @@ const loginUserStore = useLoginUserStore()
 
 // 导入图标
 import {
-  AppstoreOutlined
+  AppstoreOutlined,
+  PlayCircleOutlined,
+  PlusOutlined,
+  RocketOutlined
 } from '@ant-design/icons-vue'
 import { promptOptions } from '@/constants/prompts.ts'
 
@@ -286,7 +286,7 @@ onMounted(() => {
       <!-- 网站标题和描述 -->
       <div class="hero-section">
         <h1 class="hero-title">RichCodeWeaver - 织码睿奇</h1>
-        <p class="hero-description">< 将创意灵感转化为数字作品 ></p>
+        <p class="hero-description">< 只需一句话，将创意灵感转化为数字作品 ></p>
       </div>
 
       <!-- 用户提示词输入框 -->
@@ -298,43 +298,47 @@ onMounted(() => {
           :maxlength="1000"
           class="prompt-input"
         />
-        <div class="input-actions">
+
+        <!-- 按钮组 - 优化布局 -->
+        <div class="action-buttons">
           <!-- 快速入门按钮 -->
           <a-button
             size="large"
+            class="action-button tour-button"
             @click="startTour"
           >
             <template #icon>
-              <span class="create-icon">快速入门</span>
+              <PlayCircleOutlined />
             </template>
+            快速入门
           </a-button>
 
           <!-- 创建作品按钮 -->
           <a-button
             size="large"
+            type="primary"
+            class="action-button create-button"
             @click="createApp"
             :loading="creating"
           >
             <template #icon>
-              <span class="create-icon">创建作品</span>
+              <RocketOutlined />
             </template>
+            创建作品
+          </a-button>
+
+          <!-- 自动填入提示词按钮 -->
+          <a-button
+            size="large"
+            class="action-button rich-select-button"
+            @click="showPromptDropdown = !showPromptDropdown"
+          >
+            <template #icon>
+              <AppstoreOutlined />
+            </template>
+            热门提示词
           </a-button>
         </div>
-      </div>
-
-      <!-- 自动填入提示词按钮 -->
-      <div class="quick-actions">
-        <a-button
-          type="default"
-          size="large"
-          class="rich-select-button"
-          @click="showPromptDropdown = !showPromptDropdown"
-        >
-          <template #icon>
-            <AppstoreOutlined />
-          </template>
-          点击选择热门应用提示词
-        </a-button>
 
         <div v-if="showPromptDropdown" class="prompt-dropdown">
           <a-list :bordered="false" class="prompt-list">
@@ -359,67 +363,81 @@ onMounted(() => {
       </div>
 
       <!-- 创作区容器 -->
-      <div class="workspace-container">
-        <!-- 我的作品 -->
-        <div class="workspace-section my-workspace">
-          <div class="section-header">
-            <div class="decorative-line"></div>
-            <h2 class="section-title">我的创作空间</h2>
-            <div class="decorative-line"></div>
+      <div class="meituan-workspace-card">
+        <div class="card-header">
+          <div class="header-tabs">
+            <div
+              class="tab"
+              :class="{ active: activeTab === 'my' }"
+              @click="activeTab = 'my'"
+            >
+              <span class="tab-icon">🎨</span>
+              <span class="tab-text">我的创作空间</span>
+            </div>
+            <div
+              class="tab"
+              :class="{ active: activeTab === 'featured' }"
+              @click="activeTab = 'featured'"
+            >
+              <span class="tab-icon">⭐</span>
+              <span class="tab-text">星选灵感工坊</span>
+            </div>
           </div>
-          <div class="app-grid-wrapper">
-            <transition-group name="fade" appear>
-              <AppCard
-                v-for="app in myApps"
-                :key="app.id"
-                :app="app"
-                @view-chat="viewChat"
-                @view-work="viewWork"
-              />
-            </transition-group>
-          </div>
-          <div class="pagination-wrapper">
-            <a-pagination
-              v-model:current="myAppsPage.current"
-              v-model:page-size="myAppsPage.pageSize"
-              :total="myAppsPage.total"
-              :show-size-changer="false"
-              :show-total="(total: number) => `共 ${total} 个项目`"
-              @change="loadMyApps"
-            />
+          <div class="header-actions">
+            <a-button type="link" size="small">查看全部</a-button>
           </div>
         </div>
 
-        <div class="section-divider"></div>
-
-        <!-- 星选案例 -->
-        <div class="workspace-section featured-workspace">
-          <div class="section-header">
-            <div class="decorative-line"></div>
-            <h2 class="section-title">星选灵感工坊</h2>
-            <div class="decorative-line"></div>
-          </div>
-          <div class="app-grid-wrapper">
-            <transition-group name="fade" appear>
-              <AppCard
-                v-for="app in featuredApps"
-                :key="app.id"
-                :app="app"
-                :featured="true"
-                @view-chat="viewChat"
-                @view-work="viewWork"
+        <div class="card-content">
+          <!-- 我的作品区域 -->
+          <div v-show="activeTab === 'my'" class="workspace-section my-workspace">
+            <div class="app-grid-wrapper">
+              <transition-group name="fade" appear>
+                <AppCard
+                  v-for="app in myApps"
+                  :key="app.id"
+                  :app="app"
+                  @view-chat="viewChat"
+                  @view-work="viewWork"
+                />
+              </transition-group>
+            </div>
+            <div class="pagination-wrapper">
+              <a-pagination
+                v-model:current="myAppsPage.current"
+                v-model:page-size="myAppsPage.pageSize"
+                :total="myAppsPage.total"
+                :show-size-changer="false"
+                :show-total="(total: number) => `共 ${total} 个项目`"
+                @change="loadMyApps"
               />
-            </transition-group>
+            </div>
           </div>
-          <div class="pagination-wrapper">
-            <a-pagination
-              v-model:current="featuredAppsPage.current"
-              v-model:page-size="featuredAppsPage.pageSize"
-              :total="featuredAppsPage.total"
-              :show-size-changer="false"
-              :show-total="(total: number) => `共 ${total} 个作品`"
-              @change="loadFeaturedApps"
-            />
+
+          <!-- 星选案例区域 -->
+          <div v-show="activeTab === 'featured'" class="workspace-section featured-workspace">
+            <div class="app-grid-wrapper">
+              <transition-group name="fade" appear>
+                <AppCard
+                  v-for="app in featuredApps"
+                  :key="app.id"
+                  :app="app"
+                  :featured="true"
+                  @view-chat="viewChat"
+                  @view-work="viewWork"
+                />
+              </transition-group>
+            </div>
+            <div class="pagination-wrapper">
+              <a-pagination
+                v-model:current="featuredAppsPage.current"
+                v-model:page-size="featuredAppsPage.pageSize"
+                :total="featuredAppsPage.total"
+                :show-size-changer="false"
+                :show-total="(total: number) => `共 ${total} 个作品`"
+                @change="loadFeaturedApps"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -436,22 +454,19 @@ onMounted(() => {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@300;400;600&family=Caveat:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Nunito:wght@300;400;600;700&display=swap');
 
 #creativeStudio {
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   width: 100%;
   min-height: 100vh;
-  background: #fcf9f2;
-  background-image: radial-gradient(circle at 5% 10%, rgba(255, 230, 204, 0.3) 0%, transparent 25%),
-  radial-gradient(circle at 95% 90%, rgba(204, 230, 255, 0.3) 0%, transparent 25%),
-  linear-gradient(125deg, transparent 60%, rgba(255, 245, 230, 0.5) 100%);
+  background: #f8f9fa;
   position: relative;
   overflow: hidden;
-  color: #3a3a44;
+  color: #333333;
 }
 
-/* 水彩纹理背景 */
+/* 美团风格背景 */
 #creativeStudio::before {
   content: '';
   position: absolute;
@@ -459,16 +474,14 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path fill="none" stroke="rgba(180,170,255,0.1)" stroke-width="1" d="M20,20 Q40,5 60,20 T100,20 M20,40 Q30,30 40,40 T80,40 M10,70 Q35,55 60,70 T90,70"/></svg>');
-  background-size: 300px;
-  opacity: 0.5;
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
   pointer-events: none;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 30px;
+  padding: 20px;
   position: relative;
   z-index: 2;
   box-sizing: border-box;
@@ -477,266 +490,260 @@ onMounted(() => {
 /* 英雄区域 */
 .hero-section {
   text-align: center;
-  padding: 80px 0 40px;
-  margin-bottom: 40px;
+  padding: 60px 0 30px;
+  margin-bottom: 30px;
 }
 
 .hero-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 4.5rem;
+  font-family: 'Comic Neue', cursive;
+  font-size: 3.5rem;
   font-weight: 700;
   margin: 0 0 20px;
   line-height: 1.1;
-  color: #5c4a48;
-  text-shadow: 3px 3px 0px rgba(200, 180, 170, 0.3);
   letter-spacing: -1px;
+  color: #2c3e50;
 }
 
 .hero-description {
-  font-family: 'Caveat', cursive;
-  font-size: 2.4rem;
+  font-size: 1.4rem;
   margin: 0;
-  color: #6d6b80;
+  color: #7f8c8d;
+  font-weight: 400;
+  font-family: 'Comic Neue', cursive;
 }
 
 /* 输入区域 */
 .input-section {
   position: relative;
   margin: 0 auto 40px;
-  max-width: 900px;
+  max-width: 800px;
 }
 
 .prompt-input {
-  border-radius: 20px;
-  border: 2px solid #e4d7c1;
-  font-size: 18px;
-  padding: 25px 25px;
-  background: rgba(255, 251, 245, 0.9);
-  box-shadow: 0 8px 32px rgba(155, 140, 125, 0.15);
-  font-family: 'Source Sans Pro', sans-serif;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 16px;
+  border: 2px solid #e8e8e8;
+  font-size: 16px;
+  padding: 20px;
+  background: #ffffff;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  font-family: 'Nunito', sans-serif;
+  transition: all 0.3s ease;
 }
 
 .prompt-input:focus {
-  border-color: #c9b097;
-  box-shadow: 0 15px 45px rgba(155, 140, 125, 0.25);
-  background: #fffefb;
+  border-color: #ffcc00;
+  box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.2);
+  outline: none;
 }
 
-.input-actions {
-  position: absolute;
-  bottom: -25px;
-  right: 25px;
+/* 按钮组样式 */
+.action-buttons {
   display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+  flex-wrap: wrap;
 }
 
-.input-actions .ant-btn {
-  background: #c6a08a;
-  min-width: 200px;
-  border: none;
-  border-radius: 30px;
-  padding: 0 35px;
-  height: 50px;
-  font-family: 'Playfair Display', serif;
-  font-size: 1.2rem;
-  letter-spacing: 1px;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 15px rgba(155, 110, 90, 0.3);
-}
-
-.input-actions .ant-btn:hover {
-  background: #b38e77;
-  transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 12px 20px rgba(155, 110, 90, 0.4);
-}
-
-.create-icon {
-  font-family: 'Source Sans Pro', sans-serif;
-  padding-left: 0;
+.action-button {
+  border-radius: 12px;
+  padding: 0 25px;
+  height: 48px;
+  font-family: 'Nunito', sans-serif;
   font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* 快捷按钮 */
-.quick-actions {
-  position: relative;
-  margin-bottom: 60px;
+.tour-button {
+  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+  border: none;
+  color: #2c3e50;
+}
+
+.tour-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(168, 230, 207, 0.4);
+}
+
+.create-button {
+  background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+  border: none;
+  color: white;
+}
+
+.create-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(255, 154, 158, 0.4);
 }
 
 .rich-select-button {
-  width: 50%;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  border-radius: 16px;
-  background: rgba(255, 250, 240, 0.95);
+  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
   border: none;
-  box-shadow: 0 10px 25px rgba(155, 140, 125, 0.12);
-  transition: all 0.3s ease-out;
-  position: relative;
-  overflow: hidden;
-  color: #5c4a48;
-  margin: 0 auto;
+  color: white;
 }
 
 .rich-select-button:hover {
-  transform: translateY(-8px) rotate(-1deg);
-  box-shadow: 0 15px 35px rgba(155, 140, 125, 0.25);
-  background: rgba(255, 250, 240, 0.95);
-  color: #5c4a48;
-  z-index: 10;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
 }
 
 .prompt-dropdown {
   position: absolute;
   top: 100%;
-  left: 0;
-  width: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
   background: white;
   border-radius: 16px;
-  margin-top: 12px;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  margin-top: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   z-index: 100;
-  max-height: 450px;
+  max-height: 400px;
   overflow-y: auto;
   padding: 16px 0;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 2px solid #f0f0f0;
 }
 
 .prompt-item {
-  padding: 12px 24px;
+  padding: 12px 20px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  border-radius: 10px;
+  margin: 0 10px;
 }
 
 .prompt-item:hover {
-  background: rgba(198, 160, 138, 0.1);
+  background: #f8f9fa;
+  transform: translateX(5px);
 }
 
 .prompt-list {
-  max-height: 400px;
+  max-height: 350px;
   overflow-y: auto;
   padding: 0;
 }
 
-/* =================== 创作区域优化 =================== */
-.workspace-container {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 30px;
-  margin-bottom: 50px;
-  position: relative;
-  width: 100%;
+/* =================== 美团风格创作区域 =================== */
+.meituan-workspace-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  margin-bottom: 40px;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.section-divider {
-  position: relative;
-  width: 1px;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    #c6a08a,
-    transparent
-  );
-  height: 100%;
-  opacity: 0.5;
+.meituan-workspace-card:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 2px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.header-tabs {
+  display: flex;
+  gap: 24px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #666;
+  font-family: 'Comic Neue', cursive;
+  font-weight: 600;
+}
+
+.tab.active {
+  background: #e6f7ff;
+  color: #1890ff;
+  font-weight: 700;
+}
+
+.tab:hover {
+  background: #f5f5f5;
+}
+
+.tab-icon {
+  font-size: 20px;
+}
+
+.tab-text {
+  font-size: 18px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.card-content {
+  padding: 24px;
 }
 
 .workspace-section {
-  background: rgba(255, 252, 248, 0.95);
-  border-radius: 24px;
-  padding: 30px;
-  border: 1px solid rgba(198, 160, 138, 0.2);
-  box-shadow: 0 15px 35px rgba(155, 140, 125, 0.12);
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.workspace-section:hover {
-  box-shadow: 0 20px 45px rgba(155, 140, 125, 0.18);
-  transform: translateY(-5px);
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 35px;
-  gap: 15px;
-}
-
-.decorative-line {
-  flex: 1;
-  height: 2px;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgba(198, 160, 138, 0.4),
-    transparent
-  );
-}
-
-.section-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 2.6rem;
-  font-weight: 700;
-  color: #5c4a48;
-  text-align: center;
-  padding: 0 20px;
-  text-shadow: 1px 1px 1px rgba(200, 180, 170, 0.2);
-  letter-spacing: -0.5px;
-  position: relative;
+  margin-bottom: 0;
 }
 
 .app-grid-wrapper {
-  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
 .app-grid-wrapper :deep(.app-card) {
-  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  transform-origin: center;
+  border-radius: 20px !important;
+  transition: all 0.3s ease;
 }
 
 .app-grid-wrapper :deep(.app-card):hover {
-  transform: translateY(-12px) scale(1.03);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15),
-  0 0 15px rgba(198, 160, 138, 0.2);
-  z-index: 10;
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
 }
 
 /* 过渡动画 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translateY(20px);
-}
-
-/* 网格布局 */
-.app-grid-wrapper .app-grid,
-.app-grid-wrapper .featured-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 30px;
-  margin-bottom: 30px;
-  position: relative;
+  transform: translateY(10px);
 }
 
 /* 分页 */
 .pagination-wrapper {
   display: flex;
   justify-content: center;
-  margin-top: auto;
-  padding-top: 20px;
+  margin-top: 20px;
+}
+
+.pagination-wrapper :deep(.ant-pagination-item) {
+  border-radius: 10px;
+}
+
+.pagination-wrapper :deep(.ant-pagination-prev .ant-pagination-item-link),
+.pagination-wrapper :deep(.ant-pagination-next .ant-pagination-item-link) {
+  border-radius: 10px;
 }
 
 /* 选项样式 */
@@ -751,7 +758,7 @@ onMounted(() => {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: 10px;
   margin-right: 12px;
   color: white;
   font-size: 18px;
@@ -766,81 +773,72 @@ onMounted(() => {
 .option-title {
   font-weight: 600;
   font-size: 16px;
-  color: #5c4a48;
+  color: #2c3e50;
+  font-family: 'Comic Neue', cursive;
 }
 
 .option-desc {
-  font-size: 12px;
-  color: #7a787c;
-  margin-top: 2px;
+  font-size: 14px;
+  color: #7f8c8d;
+  margin-top: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* 响应式设计 */
-@media (max-width: 1200px) {
-  .workspace-container {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    grid-template-areas:
-      "myWorkspace"
-      "featuredWorkspace";
-  }
-
-  .workspace-section:nth-child(1) {
-    grid-area: myWorkspace;
-  }
-
-  .workspace-section:nth-child(3) {
-    grid-area: featuredWorkspace;
-  }
-
-  .section-divider {
-    display: none;
-  }
-}
-
 @media (max-width: 768px) {
   .hero-title {
-    font-size: 2.8rem;
+    font-size: 2.5rem;
   }
 
   .hero-description {
-    font-size: 1.8rem;
+    font-size: 1.2rem;
   }
 
   .prompt-input {
-    padding: 18px;
+    padding: 16px;
+    border-radius: 12px;
   }
 
-  .section-title {
-    font-size: 2.2rem;
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
   }
 
-  .workspace-section {
-    padding: 20px;
+  .header-tabs {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    gap: 12px;
   }
 
-  .app-grid-wrapper .app-grid,
-  .app-grid-wrapper .featured-grid {
+  .tab {
+    padding: 8px 16px;
+  }
+
+  .app-grid-wrapper {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
-  .rich-select-button {
-    height: 56px;
-    font-size: 16px;
-    padding: 0 16px;
+  .action-buttons {
+    flex-direction: column;
+    align-items: center;
   }
 
-  .input-actions {
-    position: static;
-    margin-top: 20px;
+  .action-button {
+    width: 100%;
+    max-width: 280px;
     justify-content: center;
   }
 
-  .input-actions .ant-btn {
-    min-width: 150px;
+  .prompt-dropdown {
+    width: 90%;
+    left: 5%;
+    transform: translateX(0);
   }
 }
 </style>
