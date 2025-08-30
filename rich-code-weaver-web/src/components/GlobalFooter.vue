@@ -1,10 +1,18 @@
 <template>
   <a-layout-footer class="footer">
     <div class="footer-container">
+      <!-- 社交链接 -->
       <div class="social-links">
         <a href="https://github.com/Moo-Jie"
-           target="_blank">
-          <GithubOutlined style="font-size: 24px;" />
+           target="_blank"
+           class="social-link">
+          <GithubOutlined />
+        </a>
+        <a href="#" class="social-link">
+          <WeiboOutlined />
+        </a>
+        <a href="#" class="social-link">
+          <WechatOutlined />
         </a>
       </div>
 
@@ -14,19 +22,19 @@
         <a href="/other/docs" class="nav-link">文档中心</a>
         <a href="/other/privacy" class="nav-link">隐私政策</a>
         <a href="/other/terms" class="nav-link">服务条款</a>
+        <a href="/other/contact" class="nav-link">联系我们</a>
       </nav>
 
       <!-- 版权声明 -->
       <div class="copyright-container">
         <p class="copyright">
-          © {{ currentYear }} RichCodeWeaver - 织码睿奇 |
+          © {{ currentYear }} RichCodeWeaver - 织码睿奇 | 让创意触手可及 |
           <a href="https://github.com/Moo-Jie"
              target="_blank"
              rel="noopener noreferrer"
              class="author-link">
             莫桀
           </a>
-          版权所有
         </p>
       </div>
     </div>
@@ -35,19 +43,33 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { GithubOutlined } from '@ant-design/icons-vue';
+import { GithubOutlined, WeiboOutlined, WechatOutlined } from '@ant-design/icons-vue';
 
 const currentYear = computed(() => new Date().getFullYear());
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Nunito:wght@300;400;600;700&display=swap');
+
 .footer {
-  padding: 28px 20px;
+  padding: 40px 20px 30px;
   margin-top: auto;
-  background: rgba(255, 255, 255, 0.92);
+  background: linear-gradient(90deg, #d1e4e0, #a5cff2, #92c8f9);
   backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(102, 126, 234, 0.1);
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+  border-top: 1px solid rgb(189, 222, 255);
+  box-shadow: 0 -4px 20px rgb(189, 222, 255);
+  position: relative;
+  overflow: hidden;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
 }
 
 .footer-container {
@@ -56,50 +78,56 @@ const currentYear = computed(() => new Date().getFullYear());
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 24px;
 }
 
 .social-links {
   display: flex;
-  gap: 22px;
+  gap: 20px;
   margin-bottom: 10px;
 }
 
-.social-links a {
+.social-link {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background: rgba(102, 126, 234, 0.1);
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #c8e5ff 0%, #59a7ff 100%);
+  color: white;
+  font-size: 18px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 10px rgb(204, 211, 255);
 }
 
-.social-links a:hover {
-  background: rgba(102, 126, 234, 0.2);
-  transform: translateY(-3px);
+.social-link:hover {
+  transform: translateY(-5px) scale(1.1);
+  box-shadow: 0 8px 15px rgba(255, 255, 255, 0.4);
+  background: linear-gradient(135deg, #59a7ff 0%, #c8e5ff 100%);
 }
 
 .footer-nav {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 24px;
-  margin-bottom: 10px;
+  gap: 32px;
+  margin-bottom: 15px;
 }
 
 .nav-link {
   color: #666;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   text-decoration: none;
-  transition: color 0.3s;
+  transition: all 0.3s ease;
   position: relative;
-  padding: 4px 0;
+  padding: 6px 0;
+  font-weight: 500;
+  font-family: 'Comic Neue', cursive;
 }
 
 .nav-link:hover {
-  color: #1890ff;
+  color: #c8e5ff;
 }
 
 .nav-link::after {
@@ -108,9 +136,10 @@ const currentYear = computed(() => new Date().getFullYear());
   bottom: 0;
   left: 0;
   width: 0;
-  height: 1px;
-  background: #1890ff;
+  height: 2px;
+  background: linear-gradient(90deg, #2998ff, #bddeff);
   transition: width 0.3s ease;
+  border-radius: 2px;
 }
 
 .nav-link:hover::after {
@@ -118,52 +147,90 @@ const currentYear = computed(() => new Date().getFullYear());
 }
 
 .copyright-container {
-  margin-top: 8px;
+  margin-top: 10px;
   text-align: center;
 }
 
 .copyright {
   margin: 0;
-  color: #777;
-  font-size: 0.875rem;
+  color: #888;
+  font-size: 0.9rem;
+  font-family: 'Comic Neue', cursive;
 }
 
 .author-link {
   color: #1890ff;
   text-decoration: none;
-  transition: color 0.3s;
+  transition: all 0.3s;
   margin: 0 4px;
+  font-weight: 600;
+  position: relative;
+}
+
+.author-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: #1890ff;
+  transition: width 0.3s ease;
 }
 
 .author-link:hover {
-  color: #0d76e0;
-  text-decoration: underline;
+  color: #1890ff;
+}
+
+.author-link:hover::after {
+  width: 100%;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  .footer {
+    padding: 30px 15px 25px;
+    border-radius: 25px 25px 0 0;
+  }
+
   .footer-nav {
-    gap: 16px;
+    gap: 20px;
   }
 
   .social-links {
-    gap: 20px;
+    gap: 16px;
+  }
+
+  .social-link {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
   }
 }
 
 @media (max-width: 480px) {
-  .footer-nav {
-    gap: 12px;
-    font-size: 0.8125rem;
+  .footer {
+    padding: 25px 12px 20px;
+    border-radius: 20px 20px 0 0;
   }
 
-  .social-links a {
-    width: 32px;
-    height: 32px;
+  .footer-nav {
+    gap: 16px;
+    font-size: 0.85rem;
+  }
+
+  .social-links {
+    gap: 14px;
+  }
+
+  .social-link {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
   }
 
   .copyright {
-    font-size: 0.8125rem;
+    font-size: 0.85rem;
   }
 }
 </style>

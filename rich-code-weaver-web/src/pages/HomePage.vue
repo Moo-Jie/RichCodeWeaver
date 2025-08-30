@@ -286,7 +286,7 @@ onMounted(() => {
       <!-- 网站标题和描述 -->
       <div class="hero-section">
         <h1 class="hero-title">RichCodeWeaver - 织码睿奇</h1>
-        <p class="hero-description">< 只需一句话，将创意灵感转化为数字作品 ></p>
+        <p class="hero-description">< 只需一句话，将创意灵感转化为应用 ></p>
       </div>
 
       <!-- 用户提示词输入框 -->
@@ -628,7 +628,6 @@ onMounted(() => {
   padding: 0;
 }
 
-/* =================== 美团风格创作区域 =================== */
 .meituan-workspace-card {
   background: #ffffff;
   border-radius: 20px;
