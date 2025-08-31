@@ -33,8 +33,14 @@ public class WebScreenshotUtils {
 
     // 静态初始化块，在类加载时初始化 WebDriver 实例及其配置信息，否则容易初始化 Chrome 浏览器失败
     static {
+        // 静态设置 ChromeDriver 下载镜像源（ /chrome-for-testing 下的镜像源版本比较全）
+        System.setProperty("wdm.chromeDownloadUrl", "https://registry.npmmirror.com/binary.html?path=chrome-for-testing/");
         // 初始化 ChromeDriver,用于执行浏览器操作
         webDriver = initChromeDriver();
+        // 静态设置 WebDriverManager 超时时间为300秒
+        System.setProperty("wdm.timeout", "300");
+        // 静态设置 WebDriverManager 重试次数为3次
+        System.setProperty("wdm.retryCount", "3");
     }
 
     /**
@@ -109,6 +115,9 @@ public class WebScreenshotUtils {
         try {
             // 使用WebDriverManager自动管理ChromeDriver
             WebDriverManager.chromedriver()
+                    // 固定 ChromeDriver 版本 （自动指定版本号会出现版本不一致、版本太老等问题）
+                    // TODO 部署时服务器 Chrome 版本匹配
+                    .driverVersion("139.0.7258.154")
                     // 使用镜像下载
                     .useMirror()
                     // 下载并设置驱动
