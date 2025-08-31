@@ -27,6 +27,7 @@ import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
+import com.rich.richcodeweaver.service.ScreenshotService;
 import com.rich.richcodeweaver.service.UserService;
 import com.rich.richcodeweaver.utils.aiUtils.AIGenerateCodeAndSaveToFileUtils;
 import com.rich.richcodeweaver.utils.aiUtils.streamHandle.StreamHandlerExecutor;
@@ -78,6 +79,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
+
+    @Resource
+    private ScreenshotService screenshotService;
 
     /**
      * 管理员执行 AI 对话并并生成代码(流式)
@@ -188,6 +192,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
     }
 
+
     /**
      * 部署应用
      *
@@ -233,10 +238,36 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         updateApp.setDeployKey(deployKey);
         updateApp.setDeployedTime(LocalDateTime.now());
         boolean updateResult = this.updateById(updateApp);
-        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "应用信息变更失败");
         // 部署 URL
-        return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        String appUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "应用信息变更失败");
+        // 部署后对部署后的网站进行截图并保存为应用封面
+        generateAppScreenshotAsync(appId, appUrl);
+        // 部署 URL
+        return appUrl;
     }
+
+    /**
+     * 异步生成应用截图并更新封面
+     *
+     * @param appId  应用ID
+     * @param appUrl 应用访问URL
+     */
+    private void generateAppScreenshotAsync(Long appId, String appUrl) {
+        // 开启 JDK-21 的虚拟线程，避免阻塞主流程
+        Thread.ofVirtual().start(() -> {
+            // 调用截图服务生成截图并上传
+            String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
+            ThrowUtils.throwIf(screenshotUrl == null || screenshotUrl.isEmpty(), ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+            // 更新应用封面字段
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setCover(screenshotUrl);
+            boolean updated = this.updateById(updateApp);
+            ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+        });
+    }
+
 
     /**
      * 构建代码输出文件夹

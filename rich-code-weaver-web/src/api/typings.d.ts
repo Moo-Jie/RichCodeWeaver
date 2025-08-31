@@ -155,6 +155,29 @@ declare namespace API {
     id?: number
   }
 
+  type FileInfo = {
+    id?: string
+    url?: string
+    size?: number
+    filename?: string
+    originalFilename?: string
+    basePath?: string
+    path?: string
+    ext?: string
+    contentType?: string
+    platform?: string
+    thUrl?: string
+    thFilename?: string
+    thSize?: number
+    thContentType?: string
+    objectId?: string
+    objectType?: string
+    attr?: { empty?: boolean }
+    fileAcl?: Record<string, any>
+    thFileAcl?: Record<string, any>
+    createTime?: string
+  }
+
   type getAppVOByIdByAdminParams = {
     id: number
   }
@@ -220,6 +243,22 @@ declare namespace API {
   }
 
   type ServerSentEventString = true
+
+  type upload2Params = {
+    file: string
+  }
+
+  type uploadImageParams = {
+    file: string
+  }
+
+  type uploadParams = {
+    file: string
+  }
+
+  type uploadPlatform1Params = {
+    file: string
+  }
 
   type User = {
     id?: number

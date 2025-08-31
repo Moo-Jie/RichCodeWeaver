@@ -1,5 +1,11 @@
 package com.rich.richcodeweaver.service;
 
+/**
+ * Web 网页截图服务接口
+ *
+ * @author DuRuiChi
+ * @create 2025/8/31
+ **/
 public interface ScreenshotService {
     /**
      * 生成并上传网页截图
