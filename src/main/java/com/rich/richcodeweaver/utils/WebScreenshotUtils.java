@@ -17,6 +17,9 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -27,21 +30,58 @@ import java.util.UUID;
  **/
 @Slf4j
 public class WebScreenshotUtils {
+    // WebDriver 实例线程池,防止多线程并发时，截图被后生成的截图覆盖
+    // WebDriver 实例，一个应用使用一个浏览器实例，用于执行浏览器操作
+    private static final ThreadLocal<WebDriver> driverThreadLocal = new ThreadLocal<>();
 
-    // 静态WebDriver实例，整个应用共享同一个浏览器实例
-    private static final WebDriver webDriver;
+    // 用于跟踪所有 WebDriver 实例的集合，保证线程安全
+    private static final Set<WebDriver> allDrivers = Collections.synchronizedSet(new HashSet<>());
 
     // 静态初始化块，在类加载时初始化 WebDriver 实例及其配置信息，否则容易初始化 Chrome 浏览器失败
     static {
         // 静态设置 ChromeDriver 下载镜像源（ /chrome-for-testing 下的镜像源版本比较全）
         System.setProperty("wdm.chromeDownloadUrl", "https://registry.npmmirror.com/binary.html?path=chrome-for-testing/");
-        // 初始化 ChromeDriver,用于执行浏览器操作
-        webDriver = initChromeDriver();
-        // 静态设置 WebDriverManager 超时时间为300秒
+        // 静态设置 WebDriverManager 超时时间为300   秒
         System.setProperty("wdm.timeout", "300");
         // 静态设置 WebDriverManager 重试次数为3次
         System.setProperty("wdm.retryCount", "3");
     }
+
+    /**
+     * 从线程池获取 WebDriver 实例
+     *
+     * @return org.openqa.selenium.WebDriver
+     * @author DuRuiChi
+     * @create 2025/9/3
+     **/
+    public static WebDriver getDriver() {
+        WebDriver driver = driverThreadLocal.get();
+        if (driver == null) {
+            driver = initChromeDriver();
+            driverThreadLocal.set(driver);
+            // 将新实例添加到全局集合
+            allDrivers.add(driver);
+        }
+        // 检查驱动是否有效（例如会话是否存活）
+        try {
+            // 检查驱动是否有效
+            driver.getWindowHandle();
+        } catch (Exception e) {
+            log.warn("WebDriver实例无效，重新初始化");
+            // 关闭无效实例
+            driver.quit();
+            // 从集合移除
+            allDrivers.remove(driver);
+            // 清理ThreadLocal
+            driverThreadLocal.remove();
+            // 重新初始化
+            driver = initChromeDriver();
+            driverThreadLocal.set(driver);
+            allDrivers.add(driver);
+        }
+        return driver;
+    }
+
 
     /**
      * 销毁方法，在Spring容器关闭时自动调用
@@ -49,8 +89,19 @@ public class WebScreenshotUtils {
      */
     @PreDestroy
     public void destroy() {
-        // 关闭浏览器并退出驱动
-        webDriver.quit();
+        // 清理所有WebDriver实例
+        synchronized (allDrivers) {
+            for (WebDriver driver : allDrivers) {
+                try {
+                    driver.quit();
+                } catch (Exception e) {
+                    log.error("关闭 WebDriver 实例失败", e);
+                }
+            }
+            allDrivers.clear();
+        }
+        // 清理当前线程的ThreadLocal
+        driverThreadLocal.remove();
     }
 
     /**
@@ -76,6 +127,8 @@ public class WebScreenshotUtils {
             // 原始图片保存路径，使用5位随机数作为文件名
             String imageSavePath = rootPath + File.separator + RandomUtil.randomNumbers(5) + IMAGE_SUFFIX;
 
+            // 从线程池获取 WebDriver 实例
+            WebDriver webDriver = getDriver();
             // 访问网页
             webDriver.get(webUrl);
             // 等待网页加载完成
@@ -210,15 +263,18 @@ public class WebScreenshotUtils {
      */
     private static void waitForPageLoad() {
         try {
+            // 从线程池获取当前线程的 WebDriver 实例（saveWebPageScreenshot 中使用过的）
+            WebDriver webDriver = getDriver();
             // 创建WebDriverWait对象，设置超时时间为10秒
-            WebDriverWait wait = new WebDriverWait(WebScreenshotUtils.webDriver, Duration.ofSeconds(10));
-            // 等待直到页面文档加载完成（readyState为complete）
+            WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(10));
+            // 等待直到页面文档加载完成（readyState 为 complete）
             wait.until(driver -> ((JavascriptExecutor) driver)
                     .executeScript("return document.readyState")
                     .equals("complete")
             );
-            // 额外等待2秒，确保动态内容（如JavaScript、AJAX）加载完成
-            Thread.sleep(2000);
+            // 额外等待 3 秒，确保动态内容（如JavaScript、AJAX）加载完成
+            log.info("等待页面加载...");
+            Thread.sleep(3000);
             log.info("页面加载完成");
         } catch (Exception e) {
             // 记录异常但不中断执行，继续尝试截图
