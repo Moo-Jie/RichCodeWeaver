@@ -11,7 +11,7 @@ import java.io.*;
 /**
  * MultipartFile和File互转工具类
  */
-public class MultipartFileUtil {
+public class MultipartFileUtils {
  
     /**
      * 输入流转MultipartFile
@@ -41,7 +41,7 @@ public class MultipartFileUtil {
     public static MultipartFile getMultipartFile(String url, String fileName) {
         HttpResponse response = HttpRequest.get(url).execute();
         InputStream inputStream = response.bodyStream();
-        return MultipartFileUtil.getMultipartFile(fileName, inputStream);
+        return MultipartFileUtils.getMultipartFile(fileName, inputStream);
     }
  
     /**
@@ -64,7 +64,7 @@ public class MultipartFileUtil {
     }
  
     /**
-     * MultipartFileUtil 转File
+     * MultipartFileUtils 转File
      *
      * @param multipartFile
      * @return

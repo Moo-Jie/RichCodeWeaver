@@ -15,7 +15,7 @@ import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-import static com.rich.richcodeweaver.utils.MultipartFileUtil.getMultipartFile;
+import static com.rich.richcodeweaver.utils.MultipartFileUtils.getMultipartFile;
 
 
 /**
@@ -47,18 +47,14 @@ public class ScreenshotServiceImpl implements ScreenshotService {
         // 校验截图是否生成成功
         ThrowUtils.throwIf(StrUtil.isBlank(localScreenshotPath), ErrorCode.OPERATION_ERROR, "本地截图生成失败");
 
-        try {
-            // 2. 上传截图到对象存储
-            String cosUrl = uploadScreenshotToCos(localScreenshotPath);
-            // 校验上传是否成功
-            ThrowUtils.throwIf(StrUtil.isBlank(cosUrl), ErrorCode.OPERATION_ERROR, "截图上传对象存储失败");
+        // 2. 上传截图到对象存储
+        String cosUrl = uploadScreenshotToOss(localScreenshotPath);
+        // 校验上传是否成功
+        ThrowUtils.throwIf(StrUtil.isBlank(cosUrl), ErrorCode.OPERATION_ERROR, "截图上传对象存储失败");
 
-            log.info("网页截图生成并上传成功: {} -> {}", webUrl, cosUrl);
-            return cosUrl;
-        } finally {
-            // 3. 无论上传成功与否，都清理本地临时文件
-            cleanupLocalFile(localScreenshotPath);
-        }
+        log.info("网页截图生成并上传成功: {} -> {}", webUrl, cosUrl);
+        return cosUrl;
+
     }
 
     /**
@@ -67,7 +63,7 @@ public class ScreenshotServiceImpl implements ScreenshotService {
      * @param localScreenshotPath 本地截图文件路径
      * @return String 对象存储访问URL，失败返回null
      */
-    private String uploadScreenshotToCos(String localScreenshotPath) {
+    private String uploadScreenshotToOss(String localScreenshotPath) {
         // 参数校验
         if (StrUtil.isBlank(localScreenshotPath)) {
             return null;
