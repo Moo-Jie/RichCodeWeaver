@@ -101,14 +101,14 @@
       <!-- 操作栏 -->
       <div v-if="showActions" class="app-actions">
         <a-space>
-          <a-button type="default" @click="handleEdit">
+          <a-button @click="handleEdit">
             <template #icon>
               <EditOutlined />
             </template>
-            修改
+            前往完善应用信息
           </a-button>
           <a-popconfirm
-            title="确定要删除这个应用吗？"
+            title="警告：确定要删除这个应用吗？（删除后将无法恢复）"
             @confirm="handleDelete"
             ok-text="确定"
             cancel-text="取消"
@@ -117,7 +117,7 @@
               <template #icon>
                 <DeleteOutlined />
               </template>
-              删除
+              删除当前应用（谨慎选择）
             </a-button>
           </a-popconfirm>
         </a-space>

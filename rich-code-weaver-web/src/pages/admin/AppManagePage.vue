@@ -252,7 +252,7 @@ import {
   ArrowRightOutlined,
   EyeInvisibleOutlined
 } from '@ant-design/icons-vue'
-import { listAppVoByPageByAdmin, deleteAppByAdmin, updateAppByAdmin } from '@/api/appController'
+import { listAppVoByPageByAdmin, deleteApp, updateAppByAdmin } from '@/api/appController'
 import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
 import { formatTime } from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'
@@ -466,7 +466,7 @@ const deleteApp = async (id: number | undefined) => {
   if (!id) return
 
   try {
-    const res = await deleteAppByAdmin({ id })
+    const res = await deleteApp({ id })
     if (res.data.code === 0) {
       message.success('删除成功')
       fetchData()

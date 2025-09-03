@@ -10,7 +10,7 @@
           <template #icon>
             <InfoCircleOutlined />
           </template>
-          应用详情
+          查看/定义 应用信息
         </a-button>
         <a-button v-if="previewUrl" type="default" @click="openInNewTab " :loading="deploying"
                   :disabled="isGenerating"
@@ -154,8 +154,9 @@
             <a-spin size="large" :tip="generatingTip" />
             <!-- 已用时间显示 -->
             <div class="generating-time">
-              <p>已思考时间: {{ generatingTime }}秒</p>
-              <p class="wait-tip">为了生成美观完善的页面，请耐心等待...</p>
+              <p class="wait-tip">请勿刷新或退出本页面，否则将断开链接。</p>
+              <p class="wait-tip2">已思考时间: {{ generatingTime }}秒</p>
+              <p class="wait-tip2">为了生成美观完善的页面，请耐心等待...</p>
             </div>
           </div>
           <iframe
@@ -745,8 +746,14 @@ onUnmounted(() => {
 
 .wait-tip {
   font-style: italic;
+  color: #ff9c9c;
+  font-size: 16px;
+}
+
+.wait-tip2 {
+  font-style: italic;
   color: #888;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 /* 顶部栏 */
