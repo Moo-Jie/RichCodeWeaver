@@ -100,13 +100,19 @@
             </div>
 
             <a-empty
-              v-else-if="!appHistory.length"
+              v-else-if="!allAppHistory.length"
               description="暂无对话记录"
               class="empty-container"
             />
 
             <div v-else class="conversation-container">
-              <div v-for="(history, index) in appHistory" :key="history.id"
+              <!-- 分页提示 -->
+              <div class="pagination-info" v-if="allAppHistory.length > 0">
+                第 {{ currentPage }} 条 / 共 {{ totalPages }} 条
+              </div>
+
+              <!-- 对话内容区域 -->
+              <div v-for="(history, index) in pagedHistory" :key="history.id"
                    class="conversation-item">
                 <div v-if="history.messageType === 'ai'" class="ai-message">
                   <div class="message-avatar">
@@ -114,7 +120,17 @@
                     <span class="ai-label">AI</span>
                   </div>
                   <div class="message-content">
-                    <markdown-renderer v-if="history.message" :content="history.message" />
+                    <div class="message-content-inner" :class="{ 'collapsed': history.collapsed }">
+                      <markdown-renderer v-if="history.message" :content="history.message" />
+                    </div>
+                    <a-button
+                      v-if="history.message && history.message.length > 300"
+                      type="link"
+                      class="toggle-content-btn"
+                      @click="toggleContent(history)"
+                    >
+                      {{ history.collapsed ? '展开全部' : '收起' }}
+                    </a-button>
                   </div>
                   <a-button class="delete-icon" @click="deleteMessage(history.id)">
                     <DeleteOutlined />
@@ -126,9 +142,19 @@
                     <DeleteOutlined />
                   </a-button>
                   <div class="message-content">
-                    <div class="user-bubble">
-                      {{ history.message }}
+                    <div class="message-content-inner" :class="{ 'collapsed': history.collapsed }">
+                      <div class="user-bubble">
+                        {{ history.message }}
+                      </div>
                     </div>
+                    <a-button
+                      v-if="history.message && history.message.length > 300"
+                      type="link"
+                      class="toggle-content-btn"
+                      @click="toggleContent(history)"
+                    >
+                      {{ history.collapsed ? '展开全部' : '收起' }}
+                    </a-button>
                   </div>
                   <div class="message-avatar">
                     <a-avatar :src="loginUserStore.loginUser.userAvatar" size="default" />
@@ -138,13 +164,13 @@
               </div>
             </div>
 
-            <div v-if="appHistory.length" class="pagination-container">
+            <div v-if="allAppHistory.length" class="pagination-container">
               <a-pagination
                 v-model:current="currentPage"
-                :total="historyTotal"
-                :page-size="pageSize"
+                :total="allAppHistory.length"
+                :page-size="1"
                 show-less-items
-                @change="loadHistory"
+                @change="handlePageChange"
               />
             </div>
           </div>
@@ -168,7 +194,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser'
 import {
@@ -203,6 +229,7 @@ const deleteMessage = async (messageId: number) => {
     })
     if (res.data.code === 0) {
       message.success('删除成功')
+      // 重新加载当前页数据
       await loadHistory()
     } else {
       message.error('删除失败: ' + res.data.message)
@@ -220,11 +247,10 @@ const selectedApp = ref<any>(null)
 const loadingApps = ref(true)
 
 // 对话历史相关状态
-const appHistory = ref<any[]>([])
+const allAppHistory = ref<any[]>([]) // 存储所有历史记录
 const loadingHistory = ref(true)
 const currentPage = ref(1)
-const pageSize = ref(10)
-const historyTotal = ref(0)
+const contentLengthLimit = ref(5000) // 每页内容长度限制（字符数）
 
 // 获取应用列表
 const loadApps = async () => {
@@ -252,6 +278,7 @@ const loadApps = async () => {
 // 选择应用
 const selectApp = async (app: any) => {
   selectedApp.value = app
+  currentPage.value = 1 // 重置到第一页
   await loadHistory()
 }
 
@@ -261,24 +288,111 @@ const loadHistory = async () => {
 
   try {
     loadingHistory.value = true
+    // 请求所有历史记录，不进行分页
     const params = {
       appId: selectedApp.value.id,
-      current: currentPage.value,
-      pageSize: pageSize.value,
+      current: 1,
+      pageSize: 1000, // 设置较大的pageSize获取所有记录
       sortField: 'createTime',
       sortOrder: 'ascend'
     }
 
     const res = await listHistoryAdmin(params)
     if (res.data.code === 0 && res.data.data) {
-      appHistory.value = res.data.data.records || []
-      historyTotal.value = res.data.data.total || 0
+      // 初始化折叠状态和分页数据
+      allAppHistory.value = (res.data.data.records || []).map(item => ({
+        ...item,
+        collapsed: item.message && item.message.length > 300 // 长内容默认折叠
+      }))
     }
   } catch (error) {
     console.error('加载对话失败:', error)
     message.error('加载对话失败')
   } finally {
     loadingHistory.value = false
+  }
+}
+
+// 切换内容展开/折叠状态
+const toggleContent = (history: any) => {
+  history.collapsed = !history.collapsed
+}
+
+// 计算分页后的历史记录
+const pagedHistory = computed(() => {
+  if (allAppHistory.value.length === 0) return []
+
+  let currentLength = 0
+  const result = []
+  let startIndex = 0
+
+  // 计算当前页应该从哪个索引开始
+  if (currentPage.value > 1) {
+    let pageCount = 1
+    let tempLength = 0
+
+    for (let i = 0; i < allAppHistory.value.length; i++) {
+      const history = allAppHistory.value[i]
+      const messageLength = history.message ? history.message.length : 0
+
+      if (tempLength + messageLength > contentLengthLimit.value) {
+        pageCount++
+        tempLength = messageLength
+        if (pageCount === currentPage.value) {
+          startIndex = i
+          break
+        }
+      } else {
+        tempLength += messageLength
+      }
+    }
+  }
+
+  // 从startIndex开始添加消息，直到达到内容长度限制
+  for (let i = startIndex; i < allAppHistory.value.length; i++) {
+    const history = allAppHistory.value[i]
+    const messageLength = history.message ? history.message.length : 0
+
+    // 如果添加当前消息会超过限制，且当前页已有内容，则停止添加
+    if (currentLength + messageLength > contentLengthLimit.value && result.length > 0) {
+      break
+    }
+
+    result.push(history)
+    currentLength += messageLength
+  }
+
+  return result
+})
+
+// 计算总页数
+const totalPages = computed(() => {
+  if (allAppHistory.value.length === 0) return 0
+
+  let totalLength = 0
+  let pageCount = 1
+
+  for (const history of allAppHistory.value) {
+    const messageLength = history.message ? history.message.length : 0
+
+    if (totalLength + messageLength > contentLengthLimit.value) {
+      pageCount++
+      totalLength = messageLength
+    } else {
+      totalLength += messageLength
+    }
+  }
+
+  return pageCount
+})
+
+// 处理页面变化
+const handlePageChange = (page: number) => {
+  currentPage.value = page
+  // 滚动到顶部
+  const container = document.querySelector('.conversation-container')
+  if (container) {
+    container.scrollTop = 0
   }
 }
 
@@ -303,6 +417,11 @@ const filteredAppList = computed(() => {
   )
 })
 
+// 监听当前页变化，更新显示的数据
+watch(currentPage, (newPage) => {
+  // 这里不需要做额外处理，因为pagedHistory是计算属性，会自动更新
+})
+
 // 生命周期钩子
 onMounted(() => {
   loadApps()
@@ -312,11 +431,24 @@ onMounted(() => {
 <style scoped>
 .history-management {
   padding: 24px;
-  background: linear-gradient(135deg, #fdfcf9 0%, #f7f5f2 100%);
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
   min-height: calc(100vh - 48px);
   position: relative;
-  font-family: 'Source Sans Pro', sans-serif;
-  overflow: hidden;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #333333;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><rect x="40" y="10" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="10" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="70" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="40" y="70" width="20" height="20" fill="%23666" rx="4" ry="4"/></svg>');
+    background-size: 200px;
+    pointer-events: none;
+    z-index: 0;
+  }
 }
 
 .history-management::before {
@@ -336,45 +468,54 @@ onMounted(() => {
   text-align: center;
   margin-bottom: 30px;
   padding: 10px 0;
-}
 
-.page-header h1 {
-  font-size: 2.8rem;
-  font-weight: 600;
-  color: #5c4a48;
-  margin-bottom: 8px;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-}
+  h1 {
+    font-family: 'Comic Neue', cursive;
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  }
 
-.page-header p {
-  font-size: 1.2rem;
-  color: #7a787c;
-  max-width: 600px;
-  margin: 0 auto;
+  p {
+    font-size: 1.2rem;
+    color: #7f8c8d;
+    font-weight: 400;
+    font-family: 'Comic Neue', cursive;
+    max-width: 600px;
+    margin: 0 auto;
+  }
 }
 
 .search-panel {
-  background: rgba(255, 253, 248, 0.92);
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(155, 140, 125, 0.1);
-  border: 1px solid rgba(198, 180, 165, 0.15);
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   margin-bottom: 25px;
   padding: 20px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px);
+  }
 }
 
-.search-panel .ant-input-search {
-  width: 100%;
-}
-
-.app-section,
-.conversation-section {
-  background: rgba(255, 253, 248, 0.92);
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(155, 140, 125, 0.1);
+.app-section, .conversation-section {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(198, 180, 165, 0.15);
   overflow: hidden;
   position: relative;
   z-index: 1;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px);
+  }
 }
 
 .main-content {
@@ -411,14 +552,13 @@ onMounted(() => {
 }
 
 .section-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Comic Neue', cursive;
   font-size: 22px;
   font-weight: 700;
-  color: #5c4a48;
+  color: #2c3e50;
   text-align: center;
   padding: 0 20px;
   letter-spacing: -0.5px;
-  position: relative;
 }
 
 .loading-container,
@@ -445,6 +585,17 @@ onMounted(() => {
   transition: all 0.3s;
   cursor: pointer;
   border: 1px solid rgba(220, 220, 220, 0.3);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    border-color: rgba(114, 46, 209, 0.2);
+  }
+
+  &.active {
+    border-color: #722ed1;
+    background-color: rgba(114, 46, 209, 0.05);
+  }
 }
 
 .app-item:hover {
@@ -471,7 +622,7 @@ onMounted(() => {
 .app-name {
   font-size: 16px;
   font-weight: 600;
-  color: #5c4a48;
+  color: #2c3e50;
   margin-bottom: 5px;
 }
 
@@ -491,6 +642,7 @@ onMounted(() => {
 .app-card {
   margin-bottom: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
 }
 
 .app-header {
@@ -612,6 +764,10 @@ onMounted(() => {
   background-color: rgba(255, 255, 255, 0.8);
   border: none;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .delete-icon:hover {
@@ -623,6 +779,8 @@ onMounted(() => {
 .pagination-container {
   padding: 15px;
   border-top: 1px solid rgba(235, 235, 235, 0.8);
+  display: flex;
+  justify-content: center;
 }
 
 .detail-empty {
@@ -691,6 +849,40 @@ onMounted(() => {
   }
 }
 
+/* 新增样式 */
+.pagination-info {
+  text-align: center;
+  margin-bottom: 15px;
+  padding: 8px;
+  background-color: #f0f5ff;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.content-length-info {
+  font-size: 12px;
+  color: #999;
+}
+
+.message-content-inner {
+  max-height: none;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.message-content-inner.collapsed {
+  max-height: 200px;
+  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
+.toggle-content-btn {
+  margin-top: 8px;
+  font-size: 12px;
+  padding: 0;
+  height: auto;
+}
+
 @media (max-width: 1200px) {
   .main-content {
     flex-direction: column;
@@ -729,6 +921,14 @@ onMounted(() => {
     width: 100%;
     margin-top: 15px;
     justify-content: space-between;
+  }
+
+  .ai-message, .user-message {
+    margin: 0 10px;
+  }
+
+  .message-content {
+    max-width: 85%;
   }
 }
 </style>

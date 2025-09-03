@@ -12,6 +12,104 @@
         </div>
       </div>
     </section>
+
+    <!-- 核心价值部分 -->
+    <section class="values-section">
+      <div class="section-header fade-in-up" v-intersect>
+        <h2>核心价值</h2>
+        <p>我们致力于为创作者提供最强大的工具和最友好的体验</p>
+      </div>
+
+      <div class="values-grid">
+        <div class="value-card fade-in-up" v-intersect>
+          <div class="value-icon">🚀</div>
+          <h3>创意加速</h3>
+          <p>将创意实现时间从数周缩短到几分钟，让灵感不再等待</p>
+        </div>
+
+        <div class="value-card fade-in-up" v-intersect>
+          <div class="value-icon">🧠</div>
+          <h3>智能生成</h3>
+          <p>基于最先进的AI模型，理解自然语言需求生成高质量代码</p>
+        </div>
+
+        <div class="value-card fade-in-up" v-intersect>
+          <div class="value-icon">🔄</div>
+          <h3>无缝迭代</h3>
+          <p>支持实时编辑和持续优化，让创作过程流畅自然</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 技术架构部分 -->
+    <section class="tech-section">
+      <div class="section-header fade-in-up" v-intersect>
+        <h2>技术架构</h2>
+        <p>融合前沿AI技术与工程实践，打造强大创作引擎</p>
+      </div>
+
+      <div class="tech-diagram fade-in-up" v-intersect>
+        <div class="tech-layer">
+          <div class="layer-icon">💬</div>
+          <h3>自然语言理解</h3>
+          <p>深度解析用户需求，提取关键创作要素</p>
+        </div>
+
+        <div class="tech-arrow">↓</div>
+
+        <div class="tech-layer">
+          <div class="layer-icon">🧩</div>
+          <h3>组件化设计</h3>
+          <p>智能匹配最佳UI组件与交互模式</p>
+        </div>
+
+        <div class="tech-arrow">↓</div>
+
+        <div class="tech-layer">
+          <div class="layer-icon">⚙️</div>
+          <h3>代码生成引擎</h3>
+          <p>生成高质量、可维护的项目工程化代码</p>
+        </div>
+
+        <div class="tech-arrow">↓</div>
+
+        <div class="tech-layer">
+          <div class="layer-icon">🚀</div>
+          <h3>一键部署</h3>
+          <p>自动化测试与云端部署流程</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 团队介绍部分 -->
+    <section class="team-section">
+      <div class="section-header fade-in-up" v-intersect>
+        <h2>作者</h2>
+      </div>
+
+      <div class="team-grid">
+        <div class="team-card fade-in-up" v-intersect>
+          <div class="avatar" style="background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);">Z</div>
+          <h3>MO-JIE</h3>
+          <p class="role">Java 开发</p>
+          <p class="bio">GitHub：https://github.com/Moo-Jie</p>
+        </div>
+
+<!--        <div class="team-card fade-in-up" v-intersect>-->
+<!--          <div class="avatar" style="background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);">L</div>-->
+<!--          <h3>李四</h3>-->
+<!--          <p class="role">产品设计总监</p>-->
+<!--          <p class="bio">前腾讯高级产品设计师，用户体验专家</p>-->
+<!--        </div>-->
+
+<!--        <div class="team-card fade-in-up" v-intersect>-->
+<!--          <div class="avatar" style="background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);">W</div>-->
+<!--          <h3>王五</h3>-->
+<!--          <p class="role">工程负责人</p>-->
+<!--          <p class="bio">前阿里云高级工程师，全栈开发专家</p>-->
+<!--        </div>-->
+      </div>
+    </section>
   </div>
 </template>
 
@@ -41,8 +139,23 @@ const vIntersect = {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
+  position: relative;
+  z-index: 2;
+}
+
+/* 背景效果 */
+.about-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
+  z-index: -1;
+  pointer-events: none;
 }
 
 /* 公司介绍部分 */
@@ -53,48 +166,300 @@ const vIntersect = {
 }
 
 .hero-title {
+  font-family: 'Comic Neue', cursive;
   font-size: 3.5rem;
-  color: #5c4a48;
-  margin-bottom: 40px;
-  font-weight: 400;
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-weight: 700;
+  letter-spacing: -1px;
 }
 
 .hero-subtitle {
   font-size: 1.5rem;
-  color: #5c4a48;
-  margin-bottom: 40px;
+  color: #7f8c8d;
+  margin-bottom: 60px;
   font-weight: 400;
+  font-family: 'Comic Neue', cursive;
 }
 
 .mission-card {
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, #fff 60%, #f5f6fa 100%);
-  border: 1.5px solid #e5eaf0;
+  justify-content: center;
+  background: #ffffff;
   border-radius: 32px;
-  padding: 40px;
+  padding: 50px;
   box-shadow: 0 12px 48px 0 rgba(0, 113, 227, 0.10);
   max-width: 800px;
   margin: 0 auto;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .mission-card:hover {
   box-shadow: 0 24px 56px 0 rgba(0, 113, 227, 0.18);
-  background: linear-gradient(90deg, #fafdff 60%, #e3f0ff 100%);
   transform: translateY(-5px);
 }
 
+.mission-content {
+  text-align: center;
+}
+
 .mission-content h2 {
-  font-size: 2rem;
-  margin-bottom: 15px;
-  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem;
+  margin-bottom: 25px;
+  font-family: 'Comic Neue', cursive;
+  color: #2c3e50;
 }
 
 .mission-content p {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   line-height: 1.8;
   color: #5c4a48;
+  max-width: 700px;
+}
+
+/* 通用部分标题 */
+.section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.section-header h2 {
+  font-size: 2.5rem;
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-family: 'Comic Neue', cursive;
+}
+
+.section-header p {
+  font-size: 1.2rem;
+  color: #7f8c8d;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* 核心价值部分 */
+.values-section {
+  margin-bottom: 80px;
+}
+
+.values-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.value-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 35px 30px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.value-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+}
+
+.value-icon {
+  font-size: 3.5rem;
+  margin-bottom: 20px;
+}
+
+.value-card h3 {
+  font-size: 1.6rem;
+  margin-bottom: 15px;
+  color: #2c3e50;
+  font-family: 'Comic Neue', cursive;
+}
+
+.value-card p {
+  font-size: 1.1rem;
+  color: #5c4a48;
+  line-height: 1.6;
+}
+
+/* 技术架构部分 */
+.tech-section {
+  margin-bottom: 80px;
+}
+
+.tech-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.tech-layer {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 30px;
+  text-align: center;
+  width: 100%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.tech-layer:hover {
+  transform: scale(1.03);
+}
+
+.layer-icon {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.tech-layer h3 {
+  font-size: 1.6rem;
+  margin-bottom: 10px;
+  color: #2c3e50;
+  font-family: 'Comic Neue', cursive;
+}
+
+.tech-layer p {
+  font-size: 1.1rem;
+  color: #5c4a48;
+}
+
+.tech-arrow {
+  font-size: 2.5rem;
+  margin: 10px 0;
+  color: #5c4a48;
+  opacity: 0.7;
+}
+
+/* 团队介绍部分 */
+.team-section {
+  margin-bottom: 80px;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.team-card {
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 35px 30px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.team-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin: 0 auto 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  font-weight: bold;
+  color: white;
+}
+
+.team-card h3 {
+  font-size: 1.8rem;
+  margin-bottom: 10px;
+  color: #2c3e50;
+  font-family: 'Comic Neue', cursive;
+}
+
+.role {
+  font-size: 1.2rem;
+  color: #1890ff;
+  margin-bottom: 15px;
+  font-weight: 600;
+}
+
+.bio {
+  font-size: 1.1rem;
+  color: #5c4a48;
+  line-height: 1.6;
+}
+
+/* 联系部分 */
+.contact-section {
+  margin-bottom: 60px;
+}
+
+.contact-card {
+  background: #ffffff;
+  border-radius: 32px;
+  padding: 60px 40px;
+  text-align: center;
+  box-shadow: 0 12px 48px rgba(0, 113, 227, 0.15);
+  max-width: 800px;
+  margin: 0 auto;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.contact-card:hover {
+  box-shadow: 0 24px 56px rgba(0, 113, 227, 0.2);
+  transform: translateY(-5px);
+}
+
+.contact-card h2 {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-family: 'Comic Neue', cursive;
+}
+
+.contact-card p {
+  font-size: 1.2rem;
+  color: #5c4a48;
+  margin-bottom: 40px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.contact-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.contact-button {
+  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 16px rgba(116, 235, 213, 0.3);
+}
+
+.contact-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(116, 235, 213, 0.4);
 }
 
 /* 动画效果 */
@@ -121,9 +486,47 @@ const vIntersect = {
   }
 
   .mission-card {
-    flex-direction: column;
-    text-align: center;
     padding: 30px 20px;
+  }
+
+  .mission-content h2 {
+    font-size: 1.8rem;
+  }
+
+  .mission-content p {
+    font-size: 1rem;
+  }
+
+  .section-header h2 {
+    font-size: 2rem;
+  }
+
+  .section-header p {
+    font-size: 1rem;
+  }
+
+  .value-card, .tech-layer, .team-card {
+    padding: 25px 20px;
+  }
+
+  .contact-card {
+    padding: 40px 20px;
+  }
+
+  .contact-button {
+    width: 100%;
+    max-width: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .values-grid, .team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tech-arrow {
+    transform: rotate(90deg);
+    margin: 15px 0;
   }
 }
 </style>

@@ -64,7 +64,7 @@
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button type="default" html-type="submit">搜索</a-button>
+          <a-button html-type="submit">搜索</a-button>
           &nbsp;
           <a-button @click="resetSearch">重置</a-button>
         </a-form-item>
@@ -483,9 +483,11 @@ const deleteApp = async (id: number | undefined) => {
 <style scoped lang="less">
 #appManagePage {
   padding: 24px;
-  background: linear-gradient(135deg, #fdfcf9 0%, #f7f5f2 100%);
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
   min-height: calc(100vh - 48px);
   position: relative;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #333333;
 
   &::before {
     content: '';
@@ -507,39 +509,50 @@ const deleteApp = async (id: number | undefined) => {
   padding: 10px 0;
 
   h1 {
+    font-family: 'Comic Neue', cursive;
     font-size: 2.8rem;
-    font-weight: 600;
-    color: #5c4a48;
+    font-weight: 700;
+    color: #2c3e50;
     margin-bottom: 8px;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   p {
     font-size: 1.2rem;
-    color: #7a787c;
+    color: #7f8c8d;
+    font-weight: 400;
+    font-family: 'Comic Neue', cursive;
     max-width: 600px;
     margin: 0 auto;
   }
 }
 
 .search-panel, .app-table {
-  background: rgba(255, 253, 248, 0.92);
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(155, 140, 125, 0.1);
-  border: 1px solid rgba(198, 180, 165, 0.15);
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   margin-bottom: 30px;
   overflow: hidden;
   position: relative;
   z-index: 1;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px);
+  }
 
   h2 {
     font-size: 1.4rem;
-    color: #5c4a48;
+    color: #2c3e50;
     margin-bottom: 15px;
     padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 2px solid #f0f0f0;
+    font-family: 'Comic Neue', cursive;
+    font-weight: 600;
   }
 }
+
 
 .search-panel {
   padding: 25px;
@@ -565,10 +578,39 @@ const deleteApp = async (id: number | undefined) => {
     .ant-btn {
       height: 40px;
       padding: 0 18px;
-      border-radius: 8px;
+      border-radius: 12px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border: none;
+
+      &:first-child {
+        background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+        color: #2c3e50;
+
+        &:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 16px rgba(168, 230, 207, 0.4);
+        }
+      }
+
+      &:last-child {
+        background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+        color: white;
+
+        &:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
+        }
+      }
     }
   }
 }
+
 
 .app-table {
   padding: 25px;
@@ -682,9 +724,10 @@ const deleteApp = async (id: number | undefined) => {
 }
 
 :deep(.ant-table-thead > tr > th) {
-  background: #f8f6f2;
+  background: #fafafa;
   font-weight: 600;
-  color: #5c4a48;
+  color: #2c3e50;
+  font-family: 'Comic Neue', cursive;
 }
 
 :deep(.ant-table-tbody > tr > td) {
@@ -693,7 +736,7 @@ const deleteApp = async (id: number | undefined) => {
 }
 
 :deep(.ant-table-row:hover td) {
-  background: rgba(198, 180, 165, 0.07) !important;
+  background: rgba(168, 230, 207, 0.1) !important;
 }
 
 :deep(.ant-pagination) {
@@ -701,9 +744,10 @@ const deleteApp = async (id: number | undefined) => {
   justify-content: center;
   margin-top: 25px;
   padding: 10px 0;
-  background: #f9f7f4;
-  border-radius: 8px;
+  background: #f8f9fa;
+  border-radius: 12px;
 }
+
 
 @media (max-width: 992px) {
   .search-panel {

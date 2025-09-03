@@ -71,33 +71,6 @@
         </section>
 
         <section class="policy-section">
-          <h2>信息共享与披露</h2>
-          <div class="disclosure-card">
-            <div class="disclosure-item">
-              <div class="disclosure-badge">1</div>
-              <div class="disclosure-content">
-                <h3>服务提供商</h3>
-                <p>与协助我们运营服务的受信任第三方（如云服务提供商）共享必要信息</p>
-              </div>
-            </div>
-            <div class="disclosure-item">
-              <div class="disclosure-badge">2</div>
-              <div class="disclosure-content">
-                <h3>法律要求</h3>
-                <p>响应法律程序或政府要求</p>
-              </div>
-            </div>
-            <div class="disclosure-item">
-              <div class="disclosure-badge">3</div>
-              <div class="disclosure-content">
-                <h3>业务转移</h3>
-                <p>在公司合并、收购或资产出售等情况下</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="policy-section">
           <h2>您的权利</h2>
           <div class="rights-grid">
             <div class="right-card">
