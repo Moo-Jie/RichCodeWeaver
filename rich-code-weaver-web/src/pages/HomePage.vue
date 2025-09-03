@@ -193,90 +193,6 @@ const viewWork = (app: API.AppVO) => {
 onMounted(() => {
   loadMyApps()
   loadFeaturedApps()
-
-  // 艺术动效
-  const canvas = document.createElement('canvas')
-  canvas.width = window.innerWidth
-  canvas.height = window.innerHeight
-  canvas.style.position = 'fixed'
-  canvas.style.top = '0'
-  canvas.style.left = '0'
-  canvas.style.zIndex = '1'
-  canvas.style.pointerEvents = 'none'
-  document.body.appendChild(canvas)
-
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-
-  let particles: any[] = []
-
-  class Particle {
-    x: number
-    y: number
-    size: number
-    speedX: number
-    speedY: number
-    color: string
-
-    constructor() {
-      this.x = Math.random() * canvas.width
-      this.y = Math.random() * canvas.height
-      this.size = Math.random() * 3 + 1
-      this.speedX = Math.random() * 1 - 0.5
-      this.speedY = Math.random() * 1 - 0.5
-      this.color = `hsl(${Math.random() * 360}, 70%, 60%)`
-    }
-
-    update() {
-      this.x += this.speedX
-      this.y += this.speedY
-
-      if (this.x < 0 || this.x > canvas.width) this.speedX = -this.speedX
-      if (this.y < 0 || this.y > canvas.height) this.speedY = -this.speedY
-    }
-
-    draw() {
-      ctx!.fillStyle = this.color
-      ctx!.beginPath()
-      ctx!.arc(this.x, this.y, this.size, 0, Math.PI * 2)
-      ctx!.fill()
-    }
-  }
-
-  const createParticles = () => {
-    for (let i = 0; i < 10; i++) {
-      particles.push(new Particle())
-    }
-  }
-
-  const animateParticles = () => {
-    ctx!.clearRect(0, 0, canvas.width, canvas.height)
-
-    for (let i = 0; i < 5; i++) {
-      particles[i].update()
-      particles[i].draw()
-
-      for (let j = i; j < 5; j++) {
-        const dx = particles[i].x - particles[j].x
-        const dy = particles[i].y - particles[j].y
-        const distance = Math.sqrt(dx * dx + dy * dy)
-
-        if (distance < 100) {
-          ctx!.beginPath()
-          ctx!.strokeStyle = `hsla(${(i * j) % 360}, 70%, 60%, 0.1)`
-          ctx!.lineWidth = 0.3
-          ctx!.moveTo(particles[i].x, particles[i].y)
-          ctx!.lineTo(particles[j].x, particles[j].y)
-          ctx!.stroke()
-        }
-      }
-    }
-
-    requestAnimationFrame(animateParticles)
-  }
-
-  createParticles()
-  animateParticles()
 })
 </script>
 
@@ -286,7 +202,7 @@ onMounted(() => {
       <!-- 网站标题和描述 -->
       <div class="hero-section">
         <h1 class="hero-title">RichCodeWeaver - 织码睿奇</h1>
-        <p class="hero-description">< 只需一句话，将创意灵感转化为应用 ></p>
+        <p class="hero-description">< 只需一句话，让创意触手可及 ></p>
       </div>
 
       <!-- 用户提示词输入框 -->
@@ -313,6 +229,20 @@ onMounted(() => {
             快速入门
           </a-button>
 
+          <!-- 自动填入提示词按钮 -->
+          <a-button
+            size="large"
+            class="action-button rich-select-button"
+            @click="showPromptDropdown = !showPromptDropdown"
+          >
+            <template #icon>
+              <AppstoreOutlined />
+            </template>
+            热门提示词
+          </a-button>
+
+
+
           <!-- 创建作品按钮 -->
           <a-button
             size="large"
@@ -324,19 +254,7 @@ onMounted(() => {
             <template #icon>
               <RocketOutlined />
             </template>
-            创建作品
-          </a-button>
-
-          <!-- 自动填入提示词按钮 -->
-          <a-button
-            size="large"
-            class="action-button rich-select-button"
-            @click="showPromptDropdown = !showPromptDropdown"
-          >
-            <template #icon>
-              <AppstoreOutlined />
-            </template>
-            热门提示词
+            开始生成
           </a-button>
         </div>
 
@@ -382,9 +300,6 @@ onMounted(() => {
               <span class="tab-icon">⭐</span>
               <span class="tab-text">星选灵感工坊</span>
             </div>
-          </div>
-          <div class="header-actions">
-            <a-button type="link" size="small">查看全部</a-button>
           </div>
         </div>
 
@@ -531,8 +446,8 @@ onMounted(() => {
 }
 
 .prompt-input:focus {
-  border-color: #ffcc00;
-  box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.2);
+  border-color: #f2fdac;
+  box-shadow: 0 0 0 3px rgb(255, 255, 255);
   outline: none;
 }
 
@@ -574,6 +489,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
   border: none;
   color: white;
+  margin-left: auto;
 }
 
 .create-button:hover {

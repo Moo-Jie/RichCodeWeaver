@@ -2,10 +2,9 @@ package com.rich.richcodeweaver.service.impl;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.xuyanwu.spring.file.storage.FileInfo;
-import cn.xuyanwu.spring.file.storage.FileStorageService;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.exception.ThrowUtils;
+import com.rich.richcodeweaver.service.FileService;
 import com.rich.richcodeweaver.service.ScreenshotService;
 import com.rich.richcodeweaver.utils.WebScreenshotUtils;
 import jakarta.annotation.Resource;
@@ -15,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+
+import static com.rich.richcodeweaver.utils.MultipartFileUtil.getMultipartFile;
 
 
 /**
@@ -26,12 +27,8 @@ import java.time.format.DateTimeFormatter;
 @Service
 @Slf4j
 public class ScreenshotServiceImpl implements ScreenshotService {
-
-    /**
-     * X-File-Storage 文件存储服务实例
-     */
     @Resource
-    private FileStorageService fileStorageService;
+    private FileService fileService;
 
     /**
      * 生成并上传网页截图到 OSS
@@ -83,15 +80,13 @@ public class ScreenshotServiceImpl implements ScreenshotService {
             return null;
         }
 
-        // 使用 X-File-Storage 上传文件到 OSS
-        FileInfo fileInfo = fileStorageService.of(screenshotFile)
-                // 设置存储路径
-                .setPath(setOSSStoragePath(screenshotFile.getName()))
-                // 执行上传操作
-                .upload();
+        // 文件上传至 OSS
+        String fileUrl = fileService.upload(getMultipartFile(screenshotFile));
 
-        // 返回上传结果：成功返回文件URL，失败返回错误信息
-        return fileInfo == null ? "上传失败,请检查 OSS 配置！" : fileInfo.getUrl();
+        ThrowUtils.throwIf(StrUtil.isBlank(fileUrl), ErrorCode.OPERATION_ERROR, "截图上传对象存储失败");
+
+        // 返回上传 Url
+        return fileUrl;
     }
 
     /**

@@ -3,7 +3,7 @@
     <!-- 顶部栏 -->
     <div class="header-bar">
       <div class="header-left">
-        <h1 class="app-name">{{ appInfo?.appName?.substring(0, 20)+'...' || '网站生成器' }}</h1>
+        <h1 class="app-name">{{ appInfo?.appName?.substring(0, 20) + '...' || '网站生成器' }}</h1>
       </div>
       <div class="header-right">
         <a-button type="default" class="detail-btn" @click="showAppDetail">
@@ -12,12 +12,20 @@
           </template>
           应用详情
         </a-button>
-        <a-button type="default" class="deploy-btn" @click="deployApp" :loading="deploying"
+        <a-button v-if="previewUrl" type="default" @click="openInNewTab " :loading="deploying"
+                  :disabled="isGenerating"
+                  class="detail-btn">
+          <template #icon>
+            <ExportOutlined />
+          </template>
+          全屏查看预览
+        </a-button>
+        <a-button type="default" class="detail-btn" @click="deployApp" :loading="deploying"
                   :disabled="isGenerating">
           <template #icon>
             <CloudUploadOutlined />
           </template>
-          部署网站
+          部署为可访问网站
         </a-button>
       </div>
     </div>
@@ -127,15 +135,6 @@
             <h2 class="section-title">网页预览</h2>
             <div class="decorative-line"></div>
           </div>
-          <div class="preview-actions">
-            <a-button v-if="previewUrl" type="default" ghost @click="openInNewTab"
-                      class="preview-action-btn">
-              <template #icon>
-                <ExportOutlined />
-              </template>
-              全屏查看
-            </a-button>
-          </div>
         </div>
         <div class="preview-content">
           <div v-if="!previewUrl && !isGenerating"
@@ -165,36 +164,54 @@
             class="preview-iframe"
             frameborder="0"
             @load="onIframeLoad"
+            ref="previewIframe"
           ></iframe>
         </div>
         <div v-if="previewUrl" class="preview-footer">
-          <a-alert
-            type="info"
-            message="预览提示"
-            description="预览为静态页面效果，部署后可体验完整功能"
-            show-icon
-            class="preview-alert"
-          />
+          <div class="tips-toggle" @click="showTips = !showTips">
+            <span>点击查看重点提示</span>
+            <span :class="['toggle-icon', { 'expanded': showTips }]">
+        ▼
+      </span>
+          </div>
+          <transition name="slide-down">
+            <a-alert
+              v-if="showTips"
+              type="info"
+              message="重点提示："
+              show-icon
+              class="preview-alert"
+            >
+              <template #description>
+                <div>
+                  <p>1.预览为静态页面效果，部署后可体验完整功能;</p>
+                  <p>2.应用封面将在部署后自动生成（本应用首页），请在部署后静待 1-5s 即可;</p>
+                  <p>3.若未生成预览页面请刷新页面;</p>
+                  <p>4.请勿频繁部署，若违反则系统自动封号处理。</p>
+                </div>
+              </template>
+            </a-alert>
+          </transition>
         </div>
       </div>
     </div>
-
-    <!-- 应用详情弹窗 -->
-    <AppInfo
-      v-model:open="appDetailVisible"
-      :app="appInfo"
-      :show-actions="isOwner || isAdmin"
-      @edit="editApp"
-      @delete="deleteApp"
-    />
-
-    <!-- 部署成功弹窗 -->
-    <DeploySuccessModal
-      v-model:open="deployModalVisible"
-      :deploy-url="deployUrl"
-      @open-site="openDeployedSite"
-    />
   </div>
+
+  <!-- 应用详情弹窗 -->
+  <AppInfo
+    v-model:open="appDetailVisible"
+    :app="appInfo"
+    :show-actions="isOwner || isAdmin"
+    @edit="editApp"
+    @delete="deleteApp"
+  />
+
+  <!-- 部署成功弹窗 -->
+  <DeploySuccessModal
+    v-model:open="deployModalVisible"
+    :deploy-url="deployUrl"
+    @open-site="openDeployedSite"
+  />
 </template>
 
 <script setup lang="ts">
@@ -230,7 +247,6 @@ const loginUserStore = useLoginUserStore()
 // 添加计时器相关变量
 const generatingTime = ref(0)
 const timer = ref(null)
-
 
 
 // 应用信息
@@ -272,6 +288,7 @@ const hasInitialConversation = ref(false)
 // 预览相关
 const previewUrl = ref('')
 const previewReady = ref(false)
+const previewIframe = ref<HTMLIFrameElement>()
 
 // 部署相关
 const deploying = ref(false)
@@ -518,6 +535,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       setTimeout(async () => {
         await fetchAppInfo()
         updatePreview()
+        // 强制刷新预览iframe
+        if (previewIframe.value) {
+          previewIframe.value.src = previewIframe.value.src
+        }
       }, 1000)
     })
 
@@ -533,6 +554,11 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
         setTimeout(async () => {
           await fetchAppInfo()
           updatePreview()
+          // 强制刷新预览
+          const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement
+          if (iframe) {
+            iframe.src = iframe.src
+          }
         }, 1000)
       } else {
         handleError(new Error('SSE连接错误'), aiMessageIndex)
@@ -563,15 +589,25 @@ const updatePreview = () => {
   if (appId.value) {
     // 默认使用 HTML 类型
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
-    if(codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
+    if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
       previewUrl.value = getWebProjectStaticPreviewUrl(codeGenType, appId.value)
     } else {
       previewUrl.value = getStaticPreviewUrl(codeGenType, appId.value)
     }
 
     previewReady.value = true
+
+    // 如果iframe已存在，强制刷新
+    setTimeout(() => {
+      if (previewIframe.value) {
+        previewIframe.value.src = previewUrl.value
+      }
+    }, 500) // 短暂延迟确保DOM已更新
   }
 }
+
+// 重点提示
+const showTips = ref(false)
 
 // 滚动到底部
 const scrollToBottom = () => {
@@ -667,23 +703,22 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@300;400;600&family=Caveat:wght@700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Nunito:wght@300;400;600;700&display=swap');
 
 #appChatPage.creative-chat {
   height: 100vh;
   display: flex;
   flex-direction: column;
   padding: 20px 30px;
-  background: #fcf9f2;
-  background-image: radial-gradient(circle at 5% 10%, rgba(255, 230, 204, 0.3) 0%, transparent 25%),
-  radial-gradient(circle at 95% 90%, rgba(204, 230, 255, 0.3) 0%, transparent 25%),
-  linear-gradient(125deg, transparent 60%, rgba(255, 245, 230, 0.5) 100%);
+  background: #f8f9fa;
+  background-image: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
   position: relative;
   overflow: hidden;
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #333333;
 }
 
-/* 水彩纹理背景 */
+/* 背景纹理 */
 #appChatPage.creative-chat::before {
   content: '';
   position: absolute;
@@ -693,7 +728,7 @@ onUnmounted(() => {
   height: 100%;
   background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path fill="none" stroke="rgba(180,170,255,0.1)" stroke-width="1" d="M20,20 Q40,5 60,20 T100,20 M20,40 Q30,30 40,40 T80,40 M10,70 Q35,55 60,70 T90,70"/></svg>');
   background-size: 300px;
-  opacity: 0.3;
+  opacity: 0.2;
   pointer-events: none;
   z-index: 0;
 }
@@ -717,16 +752,17 @@ onUnmounted(() => {
 /* 顶部栏 */
 .header-bar {
   display: flex;
+  min-width: 1200px;
   justify-content: space-between;
   align-items: center;
   padding: 15px 25px;
-  background: rgba(255, 252, 248, 0.95);
-  border-radius: 20px;
-  box-shadow: 0 5px 20px rgba(155, 140, 125, 0.1);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   z-index: 10;
   position: relative;
-  margin-bottom: 25px;
-  border: 1px solid rgba(198, 160, 138, 0.15);
+  margin: 0 auto 15px;
+  border: 2px solid #e8e8e8;
 }
 
 .header-left {
@@ -737,12 +773,12 @@ onUnmounted(() => {
 
 .app-name {
   margin: 0;
-  font-family: 'Playfair Display', serif;
+  font-family: 'Comic Neue', cursive;
   font-size: 26px;
   font-weight: 700;
-  color: #5c4a48;
+  color: #2c3e50;
   letter-spacing: -0.5px;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.05);
+  line-height: 1.1;
 }
 
 .header-right {
@@ -751,35 +787,26 @@ onUnmounted(() => {
 }
 
 .detail-btn {
-  border-radius: 50px;
+  border-radius: 12px;
   font-weight: 600;
   padding: 0 20px;
   height: 40px;
   transition: all 0.3s;
+  font-family: 'Nunito', sans-serif;
+  border: none;
+  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+  color: #2c3e50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .detail-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.deploy-btn {
-  border-radius: 50px;
-  font-weight: 600;
-  padding: 0 25px;
-  height: 40px;
-  background: linear-gradient(to right, #e3f0ff, #d8dcdd);
-  border: none;
-  transition: all 0.3s;
-}
-
-.deploy-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(168, 230, 207, 0.4);
 }
 
 /* 主要内容区域 */
 .main-content {
+  flex-direction: row;
   flex: 1;
   display: flex;
   gap: 30px;
@@ -792,12 +819,19 @@ onUnmounted(() => {
 .chat-section {
   flex: 1;
   display: flex;
+  min-height: 400px;
   flex-direction: column;
-  background: rgba(255, 252, 248, 0.95);
-  border-radius: 24px;
-  box-shadow: 0 10px 30px rgba(155, 140, 125, 0.12);
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  border: 1px solid rgba(198, 160, 138, 0.15);
+  border: 2px solid #e8e8e8;
+  transition: all 0.3s ease;
+}
+
+.chat-section:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
 }
 
 .section-header {
@@ -811,14 +845,14 @@ onUnmounted(() => {
 .decorative-line {
   flex: 1;
   height: 2px;
-  background: linear-gradient(to right, transparent, rgba(198, 160, 138, 0.4), transparent);
+  background: linear-gradient(to right, transparent, #f0f0f0, transparent);
 }
 
 .section-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Comic Neue', cursive;
   font-size: 22px;
   font-weight: 700;
-  color: #5c4a48;
+  color: #2c3e50;
   text-align: center;
   padding: 0 20px;
   letter-spacing: -0.5px;
@@ -865,22 +899,24 @@ onUnmounted(() => {
 .creative-bubble {
   max-width: 75%;
   padding: 18px 22px;
-  border-radius: 18px;
+  border-radius: 16px;
   line-height: 1.6;
   word-wrap: break-word;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  font-family: 'Nunito', sans-serif;
 }
 
 .user-message .creative-bubble {
-  background: linear-gradient(135deg, #1890ff, #096dd9);
-  color: white;
+  background: linear-gradient(135deg, #bddeff 0%, #7b94ff 100%);
+  color: #2c3e50;
   border-bottom-right-radius: 5px;
+  font-weight: 600;
 }
 
 .ai-message .creative-bubble {
-  background: linear-gradient(135deg, #f5f5f5, #e8e8e8);
-  color: #1a1a1a;
+  background: linear-gradient(135deg, #d8ffef 0%, #eac6ff 100%);
+  color: #2c3e50;
   border-bottom-left-radius: 5px;
 }
 
@@ -936,7 +972,7 @@ onUnmounted(() => {
 .input-container {
   padding: 25px;
   background: rgba(255, 255, 255, 0.7);
-  border-top: 1px solid rgba(200, 180, 170, 0.2);
+  border-top: 2px solid #f0f0f0;
 }
 
 .input-wrapper {
@@ -945,20 +981,21 @@ onUnmounted(() => {
 }
 
 .creative-textarea {
-  padding: 18px;
+  padding: 20px;
   font-size: 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(198, 160, 138, 0.3);
-  background: rgba(255, 251, 245, 0.9);
+  border-radius: 16px;
+  border: 2px solid #e8e8e8;
+  background: #ffffff;
   resize: none;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  font-family: 'Nunito', sans-serif;
 }
 
 .creative-textarea:focus {
-  border-color: rgba(24, 144, 255, 0.7);
-  box-shadow: inset 0 2px 8px rgba(24, 144, 255, 0.1), 0 0 0 2px rgba(24, 144, 255, 0.2);
-  background: white;
+  border-color: #ffcc00;
+  box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.2);
+  outline: none;
 }
 
 .input-actions {
@@ -968,15 +1005,16 @@ onUnmounted(() => {
 }
 
 .send-btn {
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  background: linear-gradient(135deg, #98d0ff, #e9ccff);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
   border: none;
   transition: all 0.3s ease;
+  color: white;
 }
 
 .send-btn:hover {
-  transform: scale(1.1) rotate(8deg);
-  box-shadow: 0 8px 20px rgb(255, 255, 255);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
 }
 
 .input-tip {
@@ -994,30 +1032,26 @@ onUnmounted(() => {
 
 /* 右侧预览区域 */
 .preview-section {
-  flex: 1.5;
+  flex: 2;
   display: flex;
   flex-direction: column;
-  background: rgba(255, 252, 248, 0.95);
-  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(155, 140, 125, 0.12);
-  border: 1px solid rgba(198, 160, 138, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e8e8e8;
+  transition: all 0.3s ease;
+  height: 85vh;
+}
+
+.preview-section:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
 }
 
 .preview-header {
   padding: 20px 30px 15px;
-}
-
-.preview-action-btn {
-  border-radius: 50px;
-  font-weight: 600;
-  padding: 0 20px;
-  height: 36px;
-  transition: all 0.3s;
-}
-
-.preview-action-btn:hover {
-  background: rgba(24, 144, 255, 0.1);
+  background: white;
 }
 
 .preview-content {
@@ -1027,6 +1061,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: white;
 }
 
 .creative-preview-placeholder {
@@ -1132,8 +1167,8 @@ onUnmounted(() => {
 
 .preview-alert {
   border-radius: 12px;
-  background: rgba(24, 144, 255, 0.05);
-  border: 1px solid rgba(24, 144, 255, 0.1);
+  background: rgba(255, 0, 0, 0.05);
+  border: 1px solid rgba(255, 0, 0, 0.1);
 }
 
 /* 响应式设计 */
@@ -1200,5 +1235,62 @@ onUnmounted(() => {
 
 .load-more-btn:hover {
   color: #096dd9;
+}
+
+.tips-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  background: rgba(24, 144, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 10px;
+  border: 1px solid rgba(24, 144, 255, 0.2);
+}
+
+.tips-toggle:hover {
+  background: rgba(24, 144, 255, 0.15);
+}
+
+.tips-toggle span:first-child {
+  font-weight: 600;
+  color: #1890ff;
+  margin-right: 8px;
+}
+
+.toggle-icon {
+  transition: transform 0.3s ease;
+  font-size: 12px;
+  color: #1890ff;
+}
+
+.toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.preview-footer {
+  padding: 15px 30px;
+  border-top: 1px solid rgba(200, 180, 170, 0.2);
+}
+
+.preview-alert {
+  border-radius: 12px;
+  background: rgba(255, 0, 0, 0.05);
+  border: 1px solid rgba(255, 0, 0, 0.1);
 }
 </style>

@@ -28,7 +28,7 @@
       <!-- 版权声明 -->
       <div class="copyright-container">
         <p class="copyright">
-          © {{ currentYear }} RichCodeWeaver - 织码睿奇 | 让创意触手可及 |
+          © {{ currentYear }} RichCodeWeaver - 织码睿奇 | 只需一句话，让创意触手可及 |
           <a href="https://github.com/Moo-Jie"
              target="_blank"
              rel="noopener noreferrer"
