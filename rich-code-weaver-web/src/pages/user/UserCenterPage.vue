@@ -14,7 +14,7 @@
             <UserOutlined />
             个人信息
           </h2>
-          <a-button type="default" @click="showEditModal">
+          <a-button type="default" class="gradient-button" @click="showEditModal">
             <template #icon>
               <EditOutlined />
             </template>
@@ -34,7 +34,7 @@
               :show-upload-list="false"
               class="avatar-uploader"
             >
-              <a-button class="upload-btn">
+              <a-button class="upload-btn gradient-button">
                 <UploadOutlined />
                 更换头像
               </a-button>
@@ -84,7 +84,7 @@
               <h3>登录密码</h3>
               <p>定期更改密码可提升账户安全</p>
             </div>
-            <a-button type="default"  @click="showPasswordModal">
+            <a-button class="gradient-button" @click="showPasswordModal">
               修改密码
             </a-button>
           </div>
@@ -95,7 +95,7 @@
               <p>{{ userInfo.phone ? `已绑定手机: ${maskPhone(userInfo.phone)}` : '未绑定手机号'
                 }}</p>
             </div>
-            <a-button @click="handleMobile">
+            <a-button class="gradient-button" @click="handleMobile">
               {{ userInfo.phone ? '更换手机' : '绑定手机' }}
             </a-button>
           </div>
@@ -106,14 +106,19 @@
               <p>{{ userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
                 }}</p>
             </div>
-            <a-button @click="handleEmail">
+            <a-button class="gradient-button" @click="handleEmail">
               {{ userInfo.email ? '更换邮箱' : '绑定邮箱' }}
             </a-button>
           </div>
         </div>
 
         <div class="logout-section">
-          <a-button danger icon="退出登录" @click="handleLogout" />
+          <a-button danger class="logout-button" @click="handleLogout">
+            <template #icon>
+              <LogoutOutlined />
+            </template>
+            退出登录
+          </a-button>
         </div>
       </a-card>
     </div>
@@ -127,6 +132,7 @@
       :cancel-text="'取消'"
       :keyboard="false"
       :mask-closable="false"
+      class="custom-modal"
     >
       <br>
       <a-form :model="editForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
@@ -149,6 +155,7 @@
       v-model:visible="passwordVisible"
       title="修改登录密码"
       @ok="handlePasswordSubmit"
+      class="custom-modal"
     >
       <br>
       <a-form :model="passwordForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
@@ -345,44 +352,52 @@ onMounted(() => {
 </script>
 
 <style scoped lang="less">
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Nunito:wght@300;400;600;700&display=swap');
+
 #userCenterPage {
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 24px;
-  background: linear-gradient(135deg, #fdfcf9 0%, #f7f5f2 100%);
   min-height: calc(100vh - 48px);
   position: relative;
+  overflow: hidden;
+  color: #333333;
+}
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><circle cx="25" cy="25" r="6" fill="%23666"/><circle cx="75" cy="75" r="6" fill="%23666"/><circle cx="25" cy="75" r="6" fill="%23666"/><circle cx="75" cy="25" r="6" fill="%23666"/></svg>');
-    background-size: 200px;
-    pointer-events: none;
-    z-index: 0;
-  }
+/* 美团风格背景 */
+#userCenterPage::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .page-header {
   text-align: center;
   margin-bottom: 30px;
   padding: 10px 0;
+  position: relative;
+  z-index: 2;
 
   h1 {
-    font-size: 2.5rem;
-    font-weight: 600;
-    color: #5c4a48;
-    margin-bottom: 8px;
+    font-family: 'Comic Neue', cursive;
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 12px;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   p {
-    font-size: 1.2rem;
-    color: #7a787c;
+    font-size: 1.3rem;
+    color: #7f8c8d;
     max-width: 600px;
     margin: 0 auto;
+    font-family: 'Comic Neue', cursive;
   }
 }
 
@@ -390,6 +405,8 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 25px;
+  position: relative;
+  z-index: 2;
 
   @media (max-width: 992px) {
     grid-template-columns: 1fr;
@@ -397,26 +414,31 @@ onMounted(() => {
 }
 
 .info-card, .security-card {
-  background: rgba(255, 253, 248, 0.92);
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(155, 140, 125, 0.1);
-  border: 1px solid rgba(198, 180, 165, 0.15);
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border: none;
   overflow: hidden;
-  position: relative;
-  z-index: 1;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px);
+  }
 
   h2 {
-    font-size: 1.4rem;
-    color: #5c4a48;
+    font-family: 'Comic Neue', cursive;
+    font-size: 1.6rem;
+    color: #2c3e50;
     margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #f0f0f0;
     display: flex;
     align-items: center;
     gap: 10px;
 
     .anticon {
-      color: #c6a08a;
+      color: #1890ff;
     }
   }
 }
@@ -455,17 +477,17 @@ onMounted(() => {
     gap: 15px;
 
     .user-avatar {
-      border: 4px solid #f0e6d9;
-      background: #f9f5f0;
+      border: 4px solid #e6f7ff;
+      background: #f9f9f9;
       box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 
       .ant-avatar-icon {
-        color: #c6a08a;
+        color: #1890ff;
       }
     }
 
     .upload-btn {
-      border-radius: 20px;
+      border-radius: 12px;
       font-size: 0.9rem;
       padding: 0 15px;
       height: 36px;
@@ -480,7 +502,7 @@ onMounted(() => {
 
     .detail-row {
       display: flex;
-      padding: 12px 0;
+      padding: 14px 0;
       border-bottom: 1px dashed #eee;
 
       &:last-child {
@@ -489,19 +511,21 @@ onMounted(() => {
 
       label {
         width: 100px;
-        color: #8a7d6d;
-        font-weight: 500;
+        color: #7f8c8d;
+        font-weight: 600;
         text-align: right;
         padding-right: 15px;
+        font-family: 'Nunito', sans-serif;
       }
 
       span {
         flex: 1;
-        color: #5c4a48;
+        color: #2c3e50;
+        font-family: 'Nunito', sans-serif;
 
         .anticon {
           margin-right: 8px;
-          color: #c6a08a;
+          color: #1890ff;
         }
       }
     }
@@ -528,19 +552,21 @@ onMounted(() => {
       h3 {
         margin: 0;
         font-size: 1.1rem;
-        color: #5c4a48;
+        color: #2c3e50;
         font-weight: 600;
+        font-family: 'Nunito', sans-serif;
       }
 
       p {
         margin: 6px 0 0;
         font-size: 0.95rem;
-        color: #7a787c;
+        color: #7f8c8d;
+        font-family: 'Nunito', sans-serif;
       }
 
       button {
         min-width: 120px;
-        border-radius: 8px;
+        border-radius: 12px;
       }
     }
   }
@@ -548,14 +574,15 @@ onMounted(() => {
   .logout-section {
     margin-top: 20px;
     padding-top: 25px;
-    border-top: 1px solid #f0e6d9;
+    border-top: 1px solid #f0f0f0;
     text-align: center;
 
-    button {
+    .logout-button {
       width: 50%;
-      border-radius: 8px;
+      border-radius: 12px;
       height: 42px;
       font-weight: 500;
+      font-family: 'Nunito', sans-serif;
 
       .anticon {
         margin-right: 8px;
@@ -564,30 +591,44 @@ onMounted(() => {
   }
 }
 
-// 编辑信息模态框优化样式
-:deep (.edit-modal) {
+.gradient-button {
+  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  border: none;
+  color: white;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
+  }
+}
+
+// 模态框样式优化
+:deep(.custom-modal) {
   .ant-modal {
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 15px 40px rgba(92, 74, 72, 0.2);
   }
 
   .ant-modal-content {
-    background: linear-gradient(135deg, #fffaf0 0%, #fdf6e3 100%);
-    border: 1px solid rgba(198, 180, 165, 0.4);
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
   }
 
   .ant-modal-header {
-    background: transparent;
-    border-bottom: 1px solid #f0e6d9;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e6f7ff 100%);
+    border-bottom: 1px solid #f0f0f0;
     padding: 22px 24px;
     border-radius: 20px 20px 0 0;
 
     .ant-modal-title {
-      color: #5c4a48;
+      color: #2c3e50;
       font-size: 1.4rem;
       font-weight: 600;
       text-align: center;
+      font-family: 'Comic Neue', cursive;
     }
   }
 
@@ -596,37 +637,36 @@ onMounted(() => {
   }
 
   .ant-modal-footer {
-    border-top: 1px solid #f0e6d9;
+    border-top: 1px solid #f0f0f0;
     padding: 18px 24px;
     text-align: center;
 
     .ant-btn {
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 0 22px;
       height: 38px;
       font-weight: 500;
       transition: all 0.2s ease;
+      font-family: 'Nunito', sans-serif;
 
       &.ant-btn-default {
         border-color: #d9d9d9;
-        color: #5c4a48;
+        color: #2c3e50;
 
         &:hover {
-          border-color: #c6a08a;
-          color: #c6a08a;
+          border-color: #74ebd5;
+          color: #74ebd5;
         }
       }
 
       &.ant-btn-primary {
-        background: #c6a08a;
-        border-color: #c6a08a;
+        background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+        border: none;
         color: white;
 
         &:hover {
-          background: #b8917a;
-          border-color: #b8917a;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(198, 160, 138, 0.3);
+          box-shadow: 0 4px 12px rgba(116, 235, 213, 0.3);
         }
       }
     }
@@ -638,22 +678,24 @@ onMounted(() => {
 
       .ant-form-item-label {
         label {
-          color: #5c4a48;
+          color: #2c3e50;
           font-weight: 600;
           font-size: 0.95rem;
+          font-family: 'Nunito', sans-serif;
         }
       }
 
       .ant-input, .ant-input-textarea {
-        border-radius: 10px;
+        border-radius: 12px;
         border: 1px solid #d9d9d9;
         padding: 10px 14px;
         font-size: 0.95rem;
         transition: all 0.2s ease;
+        font-family: 'Nunito', sans-serif;
 
         &:focus {
-          border-color: #c6a08a;
-          box-shadow: 0 0 0 2px rgba(198, 160, 138, 0.2);
+          border-color: #74ebd5;
+          box-shadow: 0 0 0 2px rgba(116, 235, 213, 0.2);
         }
 
         &::placeholder {
@@ -666,6 +708,27 @@ onMounted(() => {
         resize: vertical;
       }
     }
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .page-header {
+    h1 {
+      font-size: 2.2rem;
+    }
+
+    p {
+      font-size: 1.1rem;
+    }
+  }
+
+  .info-card, .security-card {
+    padding: 20px;
+  }
+
+  .security-card .logout-section .logout-button {
+    width: 100%;
   }
 }
 </style>

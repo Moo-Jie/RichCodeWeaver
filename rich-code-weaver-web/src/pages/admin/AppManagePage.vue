@@ -405,7 +405,7 @@ const pagination = computed(() => {
     pageSize: searchParams.pageSize ?? 10,
     total: total.value,
     showSizeChanger: true,
-    pageSizeOptions: ['10', '20', '30', '50'],
+    pageSizeOptions: ['5', '10', '20'],
     showTotal: (total: number) => `共 ${total} 条记录`
   }
 })

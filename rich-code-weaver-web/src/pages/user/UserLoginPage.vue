@@ -143,14 +143,14 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+Pro:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Nunito:wght@300;400;600;700&display=swap');
 
 #userLoginPage {
   min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(45deg, #fcf9f2 0%, #f0f6ff 100%);
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
   background-image: v-bind('backgroundImage'),
   radial-gradient(circle at 5% 90%, rgba(255, 230, 204, 0.3) 0%, transparent 25%),
   radial-gradient(circle at 95% 10%, rgba(204, 230, 255, 0.3) 0%, transparent 25%);
@@ -159,6 +159,7 @@ const handleSubmit = async () => {
   padding: 20px;
   position: relative;
   overflow: hidden;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 #userLoginPage::before {
@@ -198,25 +199,21 @@ const handleSubmit = async () => {
 .feature-content {
   width: 100%;
   padding: 40px;
-  background: rgba(255, 251, 245, 0.75);
-  backdrop-filter: blur(12px);
-  border-radius: 16px;
-  box-shadow: 0 12px 24px rgba(155, 140, 125, 0.1),
-  0 6px 16px rgba(155, 140, 125, 0.05),
-  inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 }
 
 .feature-content:hover {
-  box-shadow: 0 16px 32px rgba(155, 140, 125, 0.15),
-  inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
 }
 
 .feature-title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Comic Neue', cursive;
   font-size: 2.5rem;
   font-weight: 700;
-  color: #5c4a48;
+  color: #2c3e50;
   text-align: center;
   margin-bottom: 40px;
   position: relative;
@@ -229,7 +226,7 @@ const handleSubmit = async () => {
   left: 35%;
   width: 30%;
   height: 2px;
-  background: linear-gradient(to right, transparent, #c6a08a, transparent);
+  background: linear-gradient(to right, transparent, #74ebd5, transparent);
 }
 
 .feature-item {
@@ -242,26 +239,26 @@ const handleSubmit = async () => {
 }
 
 .feature-item:hover {
-  background: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 8px 16px rgba(155, 140, 125, 0.1);
+  background: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .feature-icon {
   margin-right: 20px;
-  color: #c6a08a;
+  color: #74ebd5;
 }
 
 .feature-item h3 {
-  font-family: 'Source Sans Pro', sans-serif;
-  font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
   font-size: 1.4rem;
-  color: #5c4a48;
+  color: #2c3e50;
   margin: 0 0 8px 0;
 }
 
 .feature-item p {
-  font-family: 'Source Sans Pro', sans-serif;
-  color: #6d6b80;
+  font-family: 'Nunito', sans-serif;
+  color: #7f8c8d;
   line-height: 1.5;
   margin: 0;
 }
@@ -287,7 +284,7 @@ const handleSubmit = async () => {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: #c6a08a;
+  background: #74ebd5;
   width: 40%;
   animation: slider-animation 3s infinite ease-in-out;
 }
@@ -301,20 +298,16 @@ const handleSubmit = async () => {
 .glass-container {
   width: 100%;
   max-width: 520px;
-  background: rgba(255, 251, 245, 0.82);
-  backdrop-filter: blur(12px);
-  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
   padding: 40px;
-  box-shadow: 0 12px 24px rgba(155, 140, 125, 0.1),
-  0 6px 16px rgba(155, 140, 125, 0.05),
-  inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
   z-index: 2;
   transition: all 0.3s ease;
 }
 
 .glass-container:hover {
-  box-shadow: 0 16px 32px rgba(155, 140, 125, 0.15),
-  inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15);
 }
 
 .header {
@@ -323,47 +316,47 @@ const handleSubmit = async () => {
 }
 
 .title {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Comic Neue', cursive;
   font-size: 2.8rem;
   font-weight: 700;
   margin: 0 0 12px;
-  color: #5c4a48;
+  color: #2c3e50;
   text-shadow: 2px 2px 0px rgba(200, 180, 170, 0.2);
   letter-spacing: -0.5px;
 }
 
 .desc {
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 1.1rem;
   margin: 0;
-  color: #6d6b80;
+  color: #7f8c8d;
 }
 
 .input-field {
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 12px 16px;
   font-size: 16px;
-  border: 1px solid #e4d7c1;
-  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid #e8e8e8;
+  background: rgba(255, 255, 255, 0.8);
   transition: all 0.3s ease;
 }
 
 .input-field:hover, .input-field:focus-within {
-  border-color: #c6a08a;
+  border-color: #74ebd5;
   background: white;
-  box-shadow: 0 5px 15px rgba(155, 140, 125, 0.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .tips {
   text-align: right;
   margin: -10px 0 20px;
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 14px;
-  color: #8a7f6f;
+  color: #7f8c8d;
 }
 
 .link {
-  color: #c6a08a;
+  color: #74ebd5;
   font-weight: 600;
   transition: all 0.2s ease;
   position: relative;
@@ -377,12 +370,12 @@ const handleSubmit = async () => {
   left: 0;
   width: 0;
   height: 1px;
-  background: #c6a08a;
+  background: #74ebd5;
   transition: width 0.3s ease;
 }
 
 .link:hover {
-  color: #b38e77;
+  color: #5adbc8;
 }
 
 .link:hover::after {
@@ -393,24 +386,25 @@ const handleSubmit = async () => {
   width: 100%;
   height: 46px;
   border-radius: 12px;
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: 'Nunito', sans-serif;
   font-size: 16px;
   font-weight: 600;
-  background: #c6a08a;
+  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
   border: none;
   transition: all 0.3s ease;
-  box-shadow: 0 8px 16px rgba(155, 110, 90, 0.25);
+  box-shadow: 0 8px 16px rgba(116, 235, 213, 0.25);
+  color: white;
 }
 
 .submit-btn:hover {
-  background: #b38e77;
+  background: linear-gradient(135deg, #5adbc8 0%, #8b9de6 100%);
   transform: translateY(-3px);
-  box-shadow: 0 12px 20px rgba(155, 110, 90, 0.35);
+  box-shadow: 0 12px 20px rgba(116, 235, 213, 0.35);
 }
 
 .submit-btn:active {
   transform: translateY(0);
-  box-shadow: 0 4px 8px rgba(155, 110, 90, 0.3);
+  box-shadow: 0 4px 8px rgba(116, 235, 213, 0.3);
 }
 
 @media (max-width: 992px) {

@@ -12,7 +12,7 @@
         <div class="card-header">
           <h2>应用信息</h2>
           <a-button type="link" class="view-chat" @click="goToChat">
-            <message-outlined />
+            <MessageOutlined />
             <span>进入对话</span>
           </a-button>
         </div>
@@ -32,7 +32,7 @@
               allow-clear
             >
               <template #prefix>
-                <tag-outlined />
+                <TagOutlined />
               </template>
               <template #suffix>
                 <span class="max-length">{{ formData.appName.length }}/50</span>
@@ -57,7 +57,7 @@
                 allow-clear
               >
                 <template #prefix>
-                  <picture-outlined />
+                  <PictureOutlined />
                 </template>
               </a-input>
 
@@ -78,37 +78,38 @@
                 </a-button>
               </div>
             </a-form-item>
-
-            <a-form-item
-              label="应用优先级"
-              name="priority"
-              class="form-item"
-              extra="设置为99可标记为星选应用"
-            >
-              <a-tooltip
-                title="星选应用会展示在首页供所有用户查看"
-                placement="right"
+            <template v-if="isAdmin">
+              <a-form-item
+                label="应用优先级"
+                name="priority"
+                class="form-item"
+                extra="设置为99可标记为星选应用"
               >
-                <a-input-number
-                  v-model:value="formData.priority"
-                  :min="0"
-                  :max="99"
-                  style="width: 100%"
+                <a-tooltip
+                  title="星选应用会展示在首页供所有用户查看"
+                  placement="right"
                 >
-                  <template #prefix>
-                    <star-outlined />
-                  </template>
-                  <template #addonBefore>
-                    <span style="color: #5c4a48">星选等级：</span>
-                  </template>
-                  <template #addonAfter>
+                  <a-input-number
+                    v-model:value="formData.priority"
+                    :min="0"
+                    :max="99"
+                    style="width: 100%"
+                  >
+                    <template #prefix>
+                      <StarOutlined />
+                    </template>
+                    <template #addonBefore>
+                      <span style="color: #2c3e50">星选等级：</span>
+                    </template>
+                    <template #addonAfter>
                     <span v-if="formData.priority === 99" style="color: #d48806">
                       (星选应用)
                     </span>
-                  </template>
-                </a-input-number>
-              </a-tooltip>
-            </a-form-item>
+                    </template>
+                  </a-input-number>
+                </a-tooltip>
+              </a-form-item>
+            </template>
           </template>
 
           <!-- 不可编辑字段 -->
@@ -126,8 +127,13 @@
           </a-form-item>
 
           <a-form-item label="生成类型" name="codeGenType" class="form-item">
-            <a-tag class="gen-type-tag" :color="getTypeColor(formData.codeGenType)">
-              {{ formatCodeGenType(formData.codeGenType) }}
+            <a-tag :color="getTypeColor(appInfo?.codeGenType)">
+              {{
+                appInfo?.codeGenType === 'single_html' ? '单文件结构' :
+                  appInfo?.codeGenType === 'multi_file' ? '多文件结构' :
+                    appInfo?.codeGenType === 'vue_project' ? 'VUE 项目工程' :
+                      formatCodeGenType(appInfo?.codeGenType)
+              }}
             </a-tag>
             <div class="form-tip">
               生成类型决定了应用的框架和技术栈，创建后不可变更
@@ -153,22 +159,25 @@
                 html-type="submit"
                 :loading="submitting"
                 size="large"
+                class="submit-btn"
               >
-                <save-outlined />
+                <SaveOutlined />
                 <span>保存修改</span>
               </a-button>
-              <a-button @click="resetForm" size="large">
-                <undo-outlined />
+              <a-button @click="resetForm" size="large" class="reset-btn">
+                <UndoOutlined />
                 <span>重置表单</span>
               </a-button>
               <a-button
-                type="dashed"
-                @click="openPreview"
-                :disabled="!formData.deployKey"
+                v-if="isDeployed"
+                type="default"
+                class="detail-btn"
+                target="_blank"
+                :href="deployedSiteUrl"
                 size="large"
               >
-                <eye-outlined />
-                <span>预览应用</span>
+                <ExportOutlined />
+                <span>访问已部署网站</span>
               </a-button>
             </a-space>
           </a-form-item>
@@ -188,28 +197,28 @@
         <a-descriptions :column="1" class="meta-grid">
           <a-descriptions-item label="创建者">
             <div class="meta-item">
-              <user-outlined />
+              <UserOutlined />
               <UserInfo :user="appInfo?.user" size="small" />
             </div>
           </a-descriptions-item>
 
           <a-descriptions-item label="创建时间">
             <div class="meta-item">
-              <calendar-outlined />
+              <CalendarOutlined />
               <span>{{ formatTime(appInfo?.createTime) || '--' }}</span>
             </div>
           </a-descriptions-item>
 
           <a-descriptions-item label="更新时间">
             <div class="meta-item">
-              <sync-outlined />
+              <SyncOutlined />
               <span>{{ formatTime(appInfo?.updateTime) || '--' }}</span>
             </div>
           </a-descriptions-item>
 
           <a-descriptions-item label="部署状态">
             <div class="meta-item">
-              <cloud-server-outlined />
+              <CloudServerOutlined />
               <template v-if="appInfo?.deployKey">
                 <a-tag color="green">已部署</a-tag>
               </template>
@@ -219,11 +228,11 @@
 
           <a-descriptions-item label="部署时间">
             <div class="meta-item">
-              <cloud-server-outlined />
+              <CloudServerOutlined />
               <template v-if="appInfo?.deployKey">
                 <span class="time">{{ formatTime(appInfo.deployedTime) }}</span>
               </template>
-              <a-tag v-else color="red"> —— </a-tag>
+              <a-tag v-else color="red"> ——</a-tag>
             </div>
           </a-descriptions-item>
         </a-descriptions>
@@ -233,29 +242,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import type { FormInstance } from 'ant-design-vue'
 import { message } from 'ant-design-vue'
 import {
-  SaveOutlined,
-  UndoOutlined,
-  EyeOutlined,
-  TagOutlined,
-  PictureOutlined,
-  StarOutlined,
-  MessageOutlined,
-  UserOutlined,
   CalendarOutlined,
+  CloudServerOutlined,
+  ExportOutlined,
+  MessageOutlined,
+  PictureOutlined,
+  SaveOutlined,
+  StarOutlined,
   SyncOutlined,
-  CloudServerOutlined
+  TagOutlined,
+  UndoOutlined,
+  UserOutlined
 } from '@ant-design/icons-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
+import { DEPLOY_DOMAIN } from '@/config/env'
 import { getAppVoById, updateApp, updateAppByAdmin } from '@/api/appController'
 import { formatCodeGenType } from '@/enums/codeGenTypes.ts'
 import { formatTime } from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'
-import { getStaticPreviewUrl } from '@/config/env'
-import type { FormInstance } from 'ant-design-vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -283,6 +292,19 @@ const fallbackImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/200
 // 是否为管理员
 const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
+})
+
+// 判断应用是否已部署
+const isDeployed = computed(() => {
+  return !!appInfo.value?.deployKey
+})
+
+// 获取部署后的访问URL
+const deployedSiteUrl = computed(() => {
+  if (appInfo.value?.deployKey) {
+    return `${DEPLOY_DOMAIN}/${appInfo.value.deployKey}`
+  }
+  return ''
 })
 
 // 表单验证规则
@@ -386,6 +408,7 @@ const handleSubmit = async () => {
   } catch (error) {
     console.error('修改失败:', error)
     message.error('提交过程中出现错误')
+    console.error('Error details:', error)
   } finally {
     submitting.value = false
   }
@@ -408,16 +431,6 @@ const goToChat = () => {
   }
 }
 
-// 打开预览
-const openPreview = () => {
-  if (appInfo.value?.codeGenType && appInfo.value?.id) {
-    const url = getStaticPreviewUrl(appInfo.value.codeGenType, String(appInfo.value.id))
-    window.open(url, '_blank')
-  } else {
-    message.warning('该应用尚未部署')
-  }
-}
-
 // 页面加载时获取应用信息
 onMounted(() => {
   fetchAppInfo()
@@ -427,9 +440,10 @@ onMounted(() => {
 <style scoped lang="less">
 #appEditPage {
   padding: 24px;
-  background: linear-gradient(135deg, #fdfcf9 0%, #f7f5f2 100%);
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
   min-height: calc(100vh - 48px);
   position: relative;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   &::before {
     content: '';
@@ -438,8 +452,9 @@ onMounted(() => {
     left: 0;
     width: 100%;
     height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><circle cx="30" cy="30" r="15" fill="%23666"/><circle cx="70" cy="70" r="15" fill="%23666"/><circle cx="30" cy="70" r="15" fill="%23666"/><circle cx="70" cy="30" r="15" fill="%23666"/></svg>');
-    background-size: 200px;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><path fill="none" stroke="rgba(180,200,220,0.05)" stroke-width="1" d="M0,400 Q200,300 400,400 M0,0 Q200,100 400,0"/></svg>');
+    background-size: 400px;
+    opacity: 0.3;
     pointer-events: none;
     z-index: 0;
   }
@@ -450,16 +465,18 @@ onMounted(() => {
   margin-bottom: 40px;
 
   h1 {
+    font-family: 'Comic Neue', cursive;
     font-size: 2.6rem;
-    font-weight: 600;
-    color: #5c4a48;
+    font-weight: 700;
+    color: #2c3e50;
     margin-bottom: 8px;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   p {
+    font-family: 'Nunito', sans-serif;
     font-size: 1.1rem;
-    color: #7a787c;
+    color: #7f8c8d;
     max-width: 600px;
     margin: 0 auto;
   }
@@ -477,13 +494,23 @@ onMounted(() => {
 }
 
 .info-card, .meta-card {
-  background: rgba(255, 253, 248, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(155, 140, 125, 0.12);
-  border: 1px solid rgba(198, 180, 165, 0.15);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(204, 230, 255, 0.2);
   overflow: hidden;
   position: relative;
   z-index: 1;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.info-card {
+  flex: 1;
+  padding: 30px;
 
   .card-header {
     display: flex;
@@ -494,14 +521,15 @@ onMounted(() => {
     margin-bottom: 25px;
 
     h2 {
+      font-family: 'Comic Neue', cursive;
       font-size: 1.3rem;
-      color: #5c4a48;
+      color: #2c3e50;
       margin: 0;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .app-id {
-      color: #7a787c;
+      color: #7f8c8d;
       font-size: 0.95rem;
 
       .ant-tag {
@@ -514,35 +542,31 @@ onMounted(() => {
       align-items: center;
       gap: 6px;
       font-size: 0.95rem;
-      color: #5c4a48;
+      color: #2c3e50;
+      transition: all 0.2s ease;
 
       &:hover {
-        color: #c6a08a;
+        color: #74ebd5;
       }
     }
   }
-}
-
-.info-card {
-  flex: 1;
-  padding: 30px;
 
   .form-item {
     margin-bottom: 25px;
 
     :deep(.ant-form-item-label) {
-      font-weight: 500;
-      color: #5c4a48;
+      font-weight: 600;
+      color: #2c3e50;
       padding-bottom: 5px;
     }
 
     .ant-input-prefix, .ant-input-suffix {
-      color: #c6a08a;
+      color: #74ebd5;
     }
 
     .max-length {
       font-size: 0.85rem;
-      color: #999;
+      color: #7f8c8d;
       padding-right: 8px;
     }
 
@@ -553,8 +577,9 @@ onMounted(() => {
   }
 
   .form-tip {
+    font-family: 'Nunito', sans-serif;
     font-size: 0.85rem;
-    color: #888;
+    color: #7f8c8d;
     margin-top: 8px;
     padding: 0 3px;
   }
@@ -570,7 +595,8 @@ onMounted(() => {
       gap: 8px;
       height: 45px;
       padding: 0 25px;
-      font-weight: 500;
+      font-weight: 600;
+      transition: all 0.3s ease;
     }
   }
 }
@@ -578,13 +604,13 @@ onMounted(() => {
 .cover-preview {
   margin-top: 15px;
   padding: 15px;
-  background: #faf9f7;
+  background: #f8f9fa;
   border-radius: 12px;
   border: 1px dashed #e6e1da;
 
   .preview-title {
     font-size: 0.95rem;
-    color: #888;
+    color: #7f8c8d;
     margin-bottom: 10px;
   }
 
@@ -598,11 +624,12 @@ onMounted(() => {
     display: block;
     margin-top: 10px;
     text-align: center;
-    color: #c6a08a;
+    color: #74ebd5;
     font-size: 0.95rem;
+    transition: all 0.2s ease;
 
     &:hover {
-      color: #b38e77;
+      color: #5adbc8;
     }
   }
 }
@@ -615,22 +642,39 @@ onMounted(() => {
     width: 100%;
   }
 
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 25px;
+
+    h2 {
+      font-family: 'Comic Neue', cursive;
+      font-size: 1.3rem;
+      color: #2c3e50;
+      margin: 0;
+      font-weight: 700;
+    }
+  }
+
   .meta-grid {
     :deep(.ant-descriptions-item) {
       padding-bottom: 18px;
-      border-bottom: 1px solid #f6f3ee;
+      border-bottom: 1px solid #f0f0f0;
     }
 
     :deep(.ant-descriptions-item-label) {
-      font-weight: 500;
-      color: #7a787c;
+      font-weight: 600;
+      color: #7f8c8d;
       width: 100px;
       padding-right: 20px;
     }
 
     :deep(.ant-descriptions-item-content) {
       font-weight: 500;
-      color: #5c4a48;
+      color: #2c3e50;
     }
   }
 
@@ -642,14 +686,55 @@ onMounted(() => {
 
     .anticon {
       font-size: 1.1rem;
-      color: #c6a08a;
+      color: #74ebd5;
     }
 
     .time {
       margin-left: 10px;
       font-size: 0.95rem;
-      color: #7a787c;
+      color: #7f8c8d;
     }
+  }
+}
+
+/* 按钮样式 */
+.submit-btn {
+  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 8px 16px rgba(116, 235, 213, 0.25);
+
+  &:hover {
+    background: linear-gradient(135deg, #5adbc8 0%, #8b9de6 100%);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 20px rgba(116, 235, 213, 0.35);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(116, 235, 213, 0.3);
+  }
+}
+
+.reset-btn {
+  background: #f0f2f5;
+  border-color: #d9d9d9;
+
+  &:hover {
+    background: #e6f7ff;
+    border-color: #74ebd5;
+    color: #74ebd5;
+  }
+}
+
+.detail-btn {
+  background: #f0f2f5;
+  border-color: #d9d9d9;
+
+  &:hover {
+    background: #e6f7ff;
+    border-color: #74ebd5;
+    color: #74ebd5;
   }
 }
 </style>

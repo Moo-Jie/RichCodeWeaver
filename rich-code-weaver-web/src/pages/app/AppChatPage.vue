@@ -5,13 +5,33 @@
       <div class="header-left">
         <h1 class="app-name">{{ appInfo?.appName?.substring(0, 20) + '...' || '网站生成器' }}</h1>
       </div>
+      <template v-if="appInfo">
+        <div class="header-left">
+          <a-tag :color="getTypeColor(appInfo?.codeGenType)">
+            {{
+              appInfo.codeGenType === 'single_html' ? '单文件结构' : appInfo.codeGenType === 'multi_file' ? '多文件结构' : appInfo.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(appInfo.codeGenType)
+            }}
+          </a-tag>
+        </div>
+      </template>
+      <!-- 星选应用  -->
+      <template v-if="appInfo">
+        <a-tag v-if="appInfo.priority === 99" color="gold">
+          <star-filled />
+          星选应用
+        </a-tag>
+        <span v-else class="app-tag">普通应用</span>
+      </template>
+      <!-- 功能按钮  -->
       <div class="header-right">
+        <!-- 查看/编辑 应用信息  -->
         <a-button type="default" class="detail-btn" @click="showAppDetail">
           <template #icon>
             <InfoCircleOutlined />
           </template>
-          查看/定义 应用信息
+          查看/编辑 应用信息
         </a-button>
+        <!-- 全屏查看预览  -->
         <a-button v-if="previewUrl" type="default" @click="openInNewTab " :loading="deploying"
                   :disabled="isGenerating"
                   class="detail-btn">
@@ -20,7 +40,26 @@
           </template>
           全屏查看预览
         </a-button>
-        <a-button type="default" class="detail-btn" @click="deployApp" :loading="deploying"
+        <!-- 已部署状态下的 重复部署 按钮 -->
+        <template v-if="isDeployed">
+          <!-- 重复部署 按钮 -->
+          <a-button type="default" class="detail-btn" @click="confirmReDeploy" :loading="deploying"
+                    :disabled="isGenerating">
+            <template #icon>
+              <CloudUploadOutlined />
+            </template>
+            我的代码已更新，重复部署
+          </a-button>
+          <!-- 访问已部署网站 按钮 -->
+          <a-button type="default" class="detail-btn" target="_blank" :href="deployedSiteUrl">
+            <template #icon>
+              <ExportOutlined />
+            </template>
+            访问已部署网站
+          </a-button>
+        </template>
+        <!-- 未部署状态下的 部署为可访问网站 按钮 -->
+        <a-button v-else type="default" class="detail-btn" @click="deployApp" :loading="deploying"
                   :disabled="isGenerating">
           <template #icon>
             <CloudUploadOutlined />
@@ -225,20 +264,25 @@ import {
   deployApp as deployAppApi,
   getAppVoById
 } from '@/api/appController'
-import { CodeGenTypeEnum } from '@/enums/codeGenTypes.ts'
+import { CodeGenTypeEnum, formatCodeGenType } from '@/enums/codeGenTypes.ts'
 import request from '@/request'
 import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
-import { API_BASE_URL, getStaticPreviewUrl, getWebProjectStaticPreviewUrl } from '@/config/env'
+import {
+  API_BASE_URL,
+  getStaticPreviewUrl,
+  getWebProjectStaticPreviewUrl,
+  DEPLOY_DOMAIN
+} from '@/config/env'
 
 import {
   CloudUploadOutlined,
   ExportOutlined,
   InfoCircleOutlined,
-  SendOutlined
+  SendOutlined, StarFilled
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -265,6 +309,20 @@ const handleDeployClick = () => {
     return
   }
   deployApp()
+}
+
+// 根据生成类型获取标签颜色
+const getTypeColor = (type: string) => {
+  const colors: Record<string, string> = {
+    'react': '#61dafb',
+    'vue': '#42b883',
+    'angular': '#dd0031',
+    'html': '#e34c26',
+    'nodejs': '#68a063',
+    'flutter': '#04599C',
+    'swift': '#ff2d55'
+  }
+  return colors[type] || 'blue'
 }
 
 // 对话相关
@@ -295,6 +353,7 @@ const previewIframe = ref<HTMLIFrameElement>()
 const deploying = ref(false)
 const deployModalVisible = ref(false)
 const deployUrl = ref('')
+const showReDeployWarning = ref(false)
 
 // 权限相关
 const isOwner = computed(() => {
@@ -312,6 +371,19 @@ const appDetailVisible = ref(false)
 const showAppDetail = () => {
   appDetailVisible.value = true
 }
+
+// 判断应用是否已部署
+const isDeployed = computed(() => {
+  return !!appInfo.value?.deployKey
+})
+
+// 获取部署后的访问URL
+const deployedSiteUrl = computed(() => {
+  if (appInfo.value?.deployKey) {
+    return `${DEPLOY_DOMAIN}/${appInfo.value.deployKey}`
+  }
+  return ''
+})
 
 // 获取应用信息
 const fetchAppInfo = async () => {
@@ -343,13 +415,10 @@ const fetchAppInfo = async () => {
         updatePreview()
       }
     } else {
-      message.error('获取应用信息失败')
-      await router.push('/')
+      message.error('获取应用信息失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (error) {
     console.error('获取应用信息失败：', error)
-    message.error('获取应用信息失败')
-    await router.push('/')
   }
 }
 
@@ -396,9 +465,6 @@ const fetchChatHistory = async (loadMore = false) => {
       // 加载历史消息后更新预览
       updatePreview()
     }
-  } catch (error) {
-    console.error('获取对话历史失败：', error)
-    message.error('获取对话历史失败')
   } finally {
     loadingHistory.value = false
   }
@@ -536,11 +602,11 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       setTimeout(async () => {
         await fetchAppInfo()
         updatePreview()
-        // 强制刷新预览iframe
+        // 强制刷新预览 iframe
         if (previewIframe.value) {
           previewIframe.value.src = previewIframe.value.src
         }
-      }, 1000)
+      }, 5000) // 5秒延迟
     })
 
     // 处理错误
@@ -624,6 +690,12 @@ const deployApp = async () => {
     return
   }
 
+  // 如果已经部署，显示警告而不是直接部署
+  if (isDeployed.value) {
+    showReDeployWarning.value = true
+    return
+  }
+
   deploying.value = true
   try {
     const res = await deployAppApi({
@@ -634,6 +706,8 @@ const deployApp = async () => {
       deployUrl.value = res.data.data
       deployModalVisible.value = true
       message.success('部署成功')
+      // 刷新应用信息以获取最新的部署状态
+      await fetchAppInfo()
     } else {
       message.error('部署失败：' + res.data.message)
     }
@@ -643,6 +717,45 @@ const deployApp = async () => {
   } finally {
     deploying.value = false
   }
+}
+
+// 确认重复部署
+const confirmReDeploy = async () => {
+  Modal.confirm({
+    title: '重复部署警告',
+    content: '请勿频繁部署，若违反则系统自动封号处理！确定要继续部署吗？',
+    okText: '确定部署',
+    cancelText: '取消',
+    onOk: async () => {
+      deploying.value = true
+      try {
+        const res = await deployAppApi({
+          appId: appId.value as unknown as number
+        })
+
+        if (res.data.code === 0 && res.data.data) {
+          deployUrl.value = res.data.data
+          deployModalVisible.value = true
+          message.success('重新部署成功')
+          // 刷新应用信息以获取最新的部署状态
+          await fetchAppInfo()
+        } else {
+          message.error('重新部署失败：' + res.data.message)
+        }
+      } catch (error) {
+        console.error('重新部署失败：', error)
+        message.error('重新部署失败，请重试')
+      } finally {
+        deploying.value = false
+        showReDeployWarning.value = false
+      }
+    }
+  })
+}
+
+// 取消重复部署
+const cancelReDeploy = () => {
+  showReDeployWarning.value = false
 }
 
 // 在新窗口打开预览
@@ -759,7 +872,7 @@ onUnmounted(() => {
 /* 顶部栏 */
 .header-bar {
   display: flex;
-  min-width: 1200px;
+  min-width: 1500px;
   justify-content: space-between;
   align-items: center;
   padding: 15px 25px;
@@ -1299,5 +1412,36 @@ onUnmounted(() => {
   border-radius: 12px;
   background: rgba(255, 0, 0, 0.05);
   border: 1px solid rgba(255, 0, 0, 0.1);
+}
+
+.detail-btn[target="_blank"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.detail-btn[target="_blank"] .ant-btn-loading-icon,
+.detail-btn[target="_blank"] .anticon {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.detail-btn[target="_blank"] span {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+.app-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: #f0f0f0;
+  color: #666;
+  font-weight: 500;
+  font-size: 14px;
+  border: 1px solid #d9d9d9;
 }
 </style>
