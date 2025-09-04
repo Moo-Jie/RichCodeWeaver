@@ -155,6 +155,10 @@ declare namespace API {
     id?: number
   }
 
+  type downloadCodeZipFileParams = {
+    appId: number
+  }
+
   type getAppVOByIdByAdminParams = {
     id: number
   }

@@ -40,6 +40,14 @@
           </template>
           全屏查看预览
         </a-button>
+        <!-- 下载代码 -->
+        <a-button type="default" class="detail-btn" @click="downloadCode" :loading="downloading"
+                  :disabled="isGenerating">
+          <template #icon>
+            <DownloadOutlined />
+          </template>
+          下载代码
+        </a-button>
         <!-- 已部署状态下的 重复部署 按钮 -->
         <template v-if="isDeployed">
           <!-- 重复部署 按钮 -->
@@ -280,6 +288,7 @@ import {
 
 import {
   CloudUploadOutlined,
+  DownloadOutlined,
   ExportOutlined,
   InfoCircleOutlined,
   SendOutlined, StarFilled
@@ -351,6 +360,7 @@ const previewIframe = ref<HTMLIFrameElement>()
 
 // 部署相关
 const deploying = ref(false)
+const downloading = ref(false)
 const deployModalVisible = ref(false)
 const deployUrl = ref('')
 const showReDeployWarning = ref(false)
@@ -419,6 +429,48 @@ const fetchAppInfo = async () => {
     }
   } catch (error) {
     console.error('获取应用信息失败：', error)
+  }
+}
+
+// 下载代码
+const downloadCode = async () => {
+  if (!appId.value) {
+    message.error('应用ID不存在')
+    return
+  }
+  downloading.value = true
+  try {
+    const res = await request.get(`/download/code/zip/${appId.value}`, {
+      responseType: 'blob'
+    })
+
+    const blob = new Blob([res.data], { type: 'application/zip' })
+
+    const contentDisposition = res.headers['content-disposition']
+
+    // 处理文件名编码
+    let filename = `${appInfo.value?.appName ?? 'code'}.zip`
+    if (contentDisposition) {
+      const filenameRegex = /filename="([^"]+)"/
+      const match = contentDisposition.match(filenameRegex)
+      if (match && match[1]) {
+        // 解码文件名
+        filename = decodeURIComponent(match[1])
+      }
+    }
+
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+
+    document.body.removeChild(link)
+    URL.revokeObjectURL(link.href)
+  } catch (e: any) {
+    message.error('下载失败，' + e.message)
+  } finally {
+    downloading.value = false
   }
 }
 
