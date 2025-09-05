@@ -469,15 +469,24 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         File outputDir = appService.getOutputDir(oldApp);
         // 拼接部署目录路径
         File deployDir = appService.getDeployDir(oldApp.getDeployKey());
-        // 校验目录
-        ThrowUtils.throwIf(!outputDir.exists() || !outputDir.isDirectory(), ErrorCode.OPERATION_ERROR, "输出目录错误");
-        ThrowUtils.throwIf(!deployDir.exists() || !deployDir.isDirectory(), ErrorCode.OPERATION_ERROR, "部署目录错误");
-        // 删除目录
-        boolean outputDirDeleted = FileUtils.deleteQuietly(outputDir);
-        boolean deployDirDeleted = FileUtils.deleteQuietly(deployDir);
-        // 校验目录删除结果
-        ThrowUtils.throwIf(!outputDirDeleted || !deployDirDeleted, ErrorCode.OPERATION_ERROR, "目录删除失败");
-
+        // 校验输出目录
+        if (!outputDir.exists() || !outputDir.isDirectory()) {
+            log.info("当前应用仍未生成代码");
+        } else {
+            // 删除输出目录
+            boolean outputDirDeleted = FileUtils.deleteQuietly(outputDir);
+            // 校验输出目录删除结果
+            ThrowUtils.throwIf(!outputDirDeleted, ErrorCode.OPERATION_ERROR, "输出目录删除失败");
+        }
+        // 校验部署目录
+        if (!deployDir.exists() || !deployDir.isDirectory()) {
+            log.info("当前应用未部署");
+        } else {
+            // 删除部署目录
+            boolean deployDirDeleted = FileUtils.deleteQuietly(deployDir);
+            // 校验部署目录删除结果
+            ThrowUtils.throwIf(!deployDirDeleted, ErrorCode.OPERATION_ERROR, "部署目录删除失败");
+        }
         // 删除应用
         return appService.removeById(id);
     }
