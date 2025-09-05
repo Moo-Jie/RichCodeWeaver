@@ -127,13 +127,6 @@
             <artifactId>httpmime</artifactId>
             <version>4.5.8</version>
         </dependency>
-        <!-- 测试依赖 -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-test</artifactId>
-            <version>5.3.10</version>
-            <scope>compile</scope>
-        </dependency>
 
         <dependency>
             <groupId>io.github.bonigarcia</groupId>
@@ -154,7 +147,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
