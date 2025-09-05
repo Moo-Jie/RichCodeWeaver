@@ -25,10 +25,7 @@ import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
-import com.rich.richcodeweaver.service.AppService;
-import com.rich.richcodeweaver.service.ChatHistoryService;
-import com.rich.richcodeweaver.service.ScreenshotService;
-import com.rich.richcodeweaver.service.UserService;
+import com.rich.richcodeweaver.service.*;
 import com.rich.richcodeweaver.utils.aiUtils.AIGenerateCodeAndSaveToFileUtils;
 import com.rich.richcodeweaver.utils.aiUtils.streamHandle.StreamHandlerExecutor;
 import jakarta.annotation.Resource;
@@ -84,6 +81,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private ScreenshotService screenshotService;
+
+    @Resource
+    private AiCodeGeneratorTypeStrategyService aiCodeGeneratorTypeStrategyService;
 
     /**
      * 管理员执行 AI 对话并并生成代码(流式)
@@ -423,8 +423,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 生成 AI 应用名称（截取提示前 30 字符）
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 30)));
         // 设置默认生成策略
-        // TODO 从请求参数获取
-        app.setCodeGenType(CodeGeneratorTypeEnum.VUE_PROJECT.getValue());
+        CodeGeneratorTypeEnum codeGeneratorTypeEnum = aiCodeGeneratorTypeStrategyService.getCodeGenStrategy(initPrompt);
+        app.setCodeGenType(codeGeneratorTypeEnum.getValue());
         // 设置默认封面
         app.setCover(AppConstant.APP_COVER);
 
