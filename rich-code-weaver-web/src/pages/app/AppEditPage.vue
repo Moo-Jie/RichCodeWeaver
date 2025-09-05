@@ -155,7 +155,7 @@
           <a-form-item class="form-actions">
             <a-space>
               <a-button
-                type="default"
+                type="primary"
                 html-type="submit"
                 :loading="submitting"
                 size="large"
@@ -170,7 +170,7 @@
               </a-button>
               <a-button
                 v-if="isDeployed"
-                type="default"
+                type="primary"
                 class="detail-btn"
                 target="_blank"
                 :href="deployedSiteUrl"
@@ -546,7 +546,7 @@ onMounted(() => {
       transition: all 0.2s ease;
 
       &:hover {
-        color: #74ebd5;
+        color: #00c4ff;
       }
     }
   }
@@ -561,7 +561,7 @@ onMounted(() => {
     }
 
     .ant-input-prefix, .ant-input-suffix {
-      color: #74ebd5;
+      color: #00c4ff;
     }
 
     .max-length {
@@ -624,7 +624,7 @@ onMounted(() => {
     display: block;
     margin-top: 10px;
     text-align: center;
-    color: #74ebd5;
+    color: #00c4ff;
     font-size: 0.95rem;
     transition: all 0.2s ease;
 
@@ -686,7 +686,7 @@ onMounted(() => {
 
     .anticon {
       font-size: 1.1rem;
-      color: #74ebd5;
+      color: #00c4ff;
     }
 
     .time {
@@ -699,7 +699,7 @@ onMounted(() => {
 
 /* 按钮样式 */
 .submit-btn {
-  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
   border: none;
   color: white;
   box-shadow: 0 8px 16px rgba(116, 235, 213, 0.25);
@@ -722,8 +722,8 @@ onMounted(() => {
 
   &:hover {
     background: #e6f7ff;
-    border-color: #74ebd5;
-    color: #74ebd5;
+    border-color: #00c4ff;
+    color: #00c4ff;
   }
 }
 
@@ -733,8 +733,8 @@ onMounted(() => {
 
   &:hover {
     background: #e6f7ff;
-    border-color: #74ebd5;
-    color: #74ebd5;
+    border-color: #00c4ff;
+    color: #00c4ff;
   }
 }
 </style>

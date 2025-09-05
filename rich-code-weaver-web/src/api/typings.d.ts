@@ -1,6 +1,7 @@
 declare namespace API {
   type AppAddRequest = {
     initPrompt?: string
+    generatorType?: 'AI_STRATEGY' | 'HTML' | 'MULTI_FILE' | 'VUE_PROJECT'
   }
 
   type AppAdminUpdateRequest = {

@@ -14,7 +14,7 @@
             <UserOutlined />
             个人信息
           </h2>
-          <a-button type="default" class="gradient-button" @click="showEditModal">
+          <a-button type="primary" class="gradient-button" @click="showEditModal">
             <template #icon>
               <EditOutlined />
             </template>
@@ -84,7 +84,7 @@
               <h3>登录密码</h3>
               <p>定期更改密码可提升账户安全</p>
             </div>
-            <a-button class="gradient-button" @click="showPasswordModal">
+            <a-button class="gradient-button" type="primary" @click="showPasswordModal">
               修改密码
             </a-button>
           </div>
@@ -95,7 +95,7 @@
               <p>{{ userInfo.phone ? `已绑定手机: ${maskPhone(userInfo.phone)}` : '未绑定手机号'
                 }}</p>
             </div>
-            <a-button class="gradient-button" @click="handleMobile">
+            <a-button class="gradient-button" @click="handleMobile" type="primary">
               {{ userInfo.phone ? '更换手机' : '绑定手机' }}
             </a-button>
           </div>
@@ -106,7 +106,7 @@
               <p>{{ userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
                 }}</p>
             </div>
-            <a-button class="gradient-button" @click="handleEmail">
+            <a-button class="gradient-button" @click="handleEmail" type="primary">
               {{ userInfo.email ? '更换邮箱' : '绑定邮箱' }}
             </a-button>
           </div>
@@ -592,7 +592,7 @@ onMounted(() => {
 }
 
 .gradient-button {
-  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
   border: none;
   color: white;
   border-radius: 12px;
@@ -654,13 +654,13 @@ onMounted(() => {
         color: #2c3e50;
 
         &:hover {
-          border-color: #74ebd5;
-          color: #74ebd5;
+          border-color: #00c4ff;
+          color: #00c4ff;
         }
       }
 
       &.ant-btn-primary {
-        background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+        background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
         border: none;
         color: white;
 
@@ -694,7 +694,7 @@ onMounted(() => {
         font-family: 'Nunito', sans-serif;
 
         &:focus {
-          border-color: #74ebd5;
+          border-color: #00c4ff;
           box-shadow: 0 0 0 2px rgba(116, 235, 213, 0.2);
         }
 

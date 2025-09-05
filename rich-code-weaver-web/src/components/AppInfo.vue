@@ -112,7 +112,7 @@
       <div v-if="showActions" class="app-actions">
         <a-space>
           <a-button
-            type="default"
+            type="primary"
             class="edit-btn"
             @click="handleEdit"
           >
@@ -292,7 +292,7 @@ const handleDelete = () => {
 
   .anticon {
     font-size: 16px;
-    color: #74ebd5;
+    color: #00c4ff;
     flex-shrink: 0;
   }
 }
@@ -318,7 +318,7 @@ const handleDelete = () => {
 }
 
 .edit-btn {
-  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
   border: none;
   color: white;
   border-radius: 12px;

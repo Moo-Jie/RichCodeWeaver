@@ -1,5 +1,6 @@
 package com.rich.richcodeweaver.model.dto.app;
 
+import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -14,6 +15,11 @@ public class AppAddRequest implements Serializable {
      * 应用初始化的用户 prompt
      */
     private String initPrompt;
+
+    /**
+     * 应用生成类型
+     */
+    private CodeGeneratorTypeEnum generatorType;
 
     private static final long serialVersionUID = 1L;
 } 

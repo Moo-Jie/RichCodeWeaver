@@ -19,26 +19,26 @@ const tourSteps = ref<TourProps['steps']>([
     title: '创意输入',
     description: '在这里输入您的应用创意描述，系统会根据描述生成完整应用',
     target: () => document.querySelector('.prompt-input') as HTMLElement,
-    placement: 'bottom',
+    placement: 'bottom'
   },
   {
     title: '热门提示词',
     description: '点击这里可以选择热门应用的提示词模板，快速开始创作',
     target: () => document.querySelector('.rich-select-button') as HTMLElement,
-    placement: 'bottom',
+    placement: 'bottom'
   },
   {
     title: '创建作品',
     description: '输入创意后点击这里创建您的应用作品',
     target: () => document.querySelector('.create-button') as HTMLElement,
-    placement: 'bottom',
+    placement: 'bottom'
   },
   {
     title: '我的创作空间',
     description: '这里展示您已创建的所有应用作品，可以随时查看和编辑',
     target: () => document.querySelector('.my-workspace') as HTMLElement,
-    placement: 'top',
-  },
+    placement: 'top'
+  }
 ])
 
 // 开始引导
@@ -60,7 +60,13 @@ import {
   AppstoreOutlined,
   PlayCircleOutlined,
   PlusOutlined,
-  RocketOutlined
+  RocketOutlined,
+  QuestionCircleOutlined,
+  CheckCircleFilled,
+  RobotOutlined,
+  CodeOutlined,
+  FolderOutlined,
+  FileOutlined
 } from '@ant-design/icons-vue'
 import { promptOptions } from '@/constants/prompts.ts'
 
@@ -75,6 +81,15 @@ const handlePromptSelect = (value: string) => {
 // 用户提示词
 const userPrompt = ref('')
 const creating = ref(false)
+
+// 生成器类型
+const generatorType = ref<API.AppAddRequest['generatorType']>('AI_STRATEGY')
+const generatorOptions = ref([
+  { label: 'AI 自主规划模式', value: 'AI_STRATEGY' },
+  { label: 'Vue 工程项目模式', value: 'VUE_PROJECT' },
+  { label: '多文件模式', value: 'MULTI_FILE' },
+  { label: '单文件模式', value: 'HTML' }
+])
 
 // 我的应用数据
 const myApps = ref<API.AppVO[]>([])
@@ -113,7 +128,8 @@ const createApp = async () => {
   creating.value = true
   try {
     const res = await addApp({
-      initPrompt: userPrompt.value.trim()
+      initPrompt: userPrompt.value.trim(),
+      generatorType: generatorType.value
     })
 
     if (res.data.code === 0 && res.data.data) {
@@ -215,13 +231,14 @@ onMounted(() => {
           class="prompt-input"
         />
 
-        <!-- 按钮组 - 优化布局 -->
+        <!-- 按钮组 -->
         <div class="action-buttons">
           <!-- 快速入门按钮 -->
           <a-button
             size="large"
             class="action-button tour-button"
             @click="startTour"
+            type="primary"
           >
             <template #icon>
               <PlayCircleOutlined />
@@ -234,13 +251,13 @@ onMounted(() => {
             size="large"
             class="action-button rich-select-button"
             @click="showPromptDropdown = !showPromptDropdown"
+            type="primary"
           >
             <template #icon>
               <AppstoreOutlined />
             </template>
             热门提示词
           </a-button>
-
 
 
           <!-- 创建作品按钮 -->
@@ -256,6 +273,52 @@ onMounted(() => {
             </template>
             开始生成
           </a-button>
+        </div>
+
+        <!-- 代码生成模式选择器  -->
+        <div class="generator-selector">
+          <div class="selector-title">
+            <span class="title-icon">⚙️</span>
+            <span>选择生成模式</span>
+            <a-tooltip placement="top">
+              <template #title>
+                <div style="max-width: 300px">
+                  选择代码生成模式，不同模式适合不同的应用场景，生成速度、部署成本也不同。
+                </div>
+              </template>
+              <question-circle-outlined class="help-icon" />
+            </a-tooltip>
+          </div>
+
+          <div class="mode-cards">
+            <div
+              v-for="option in generatorOptions"
+              :key="option.value"
+              class="mode-card"
+              :class="{ active: generatorType === option.value }"
+              @click="generatorType = option.value"
+            >
+              <div class="card-icon">
+                <robot-outlined v-if="option.value === 'AI_STRATEGY'" />
+                <code-outlined v-else-if="option.value === 'VUE_PROJECT'" />
+                <folder-outlined v-else-if="option.value === 'MULTI_FILE'" />
+                <file-outlined v-else />
+              </div>
+              <div class="card-content">
+                <div class="card-title">{{ option.label }}</div>
+                <div class="card-desc">
+                  <span v-if="option.value === 'AI_STRATEGY'">AI 自主规划模式会智能分析您的需求并生成完整应用</span>
+                  <span
+                    v-else-if="option.value === 'VUE_PROJECT'">Vue 工程项目模式会生成完整的基于Vue 3框架的项目，适合复杂的应用，但生成时间更长</span>
+                  <span v-else-if="option.value === 'MULTI_FILE'">多文件模式会生成多个文件的应用结构</span>
+                  <span v-else>单文件模式会生成单个 HTML 文件，适合简单应用，极速生成</span>
+                </div>
+              </div>
+              <div class="card-check">
+                <check-circle-filled v-if="generatorType === option.value" />
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-if="showPromptDropdown" class="prompt-dropdown">
@@ -451,6 +514,168 @@ onMounted(() => {
   outline: none;
 }
 
+.generator-selector {
+  margin-top: 25px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 20px;
+  border: 2px solid #e8f4fd;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.generator-selector:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.selector-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-family: 'Comic Neue', cursive;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.title-icon {
+  font-size: 1.4rem;
+  animation: bounce 2s infinite;
+}
+
+.help-icon {
+  color: #1890ff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 16px;
+}
+
+.help-icon:hover {
+  color: #40a9ff;
+  transform: scale(1.1);
+}
+
+.mode-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.mode-card {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: white;
+  border: 2px solid #f0f0f0;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(24, 144, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.mode-card:hover::before {
+  left: 100%;
+}
+
+.mode-card:hover {
+  border-color: #1890ff;
+  box-shadow: 0 8px 24px rgba(24, 144, 255, 0.15);
+  transform: translateY(-3px);
+}
+
+.mode-card.active {
+  border-color: #1890ff;
+  background: linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%);
+  box-shadow: 0 8px 24px rgba(24, 144, 255, 0.2);
+}
+
+.card-icon {
+  font-size: 2rem;
+  margin-right: 16px;
+  min-width: 50px;
+  text-align: center;
+  animation: pulse 2s infinite;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #2c3e50;
+  margin-bottom: 4px;
+  font-family: 'Nunito', sans-serif;
+}
+
+.card-desc {
+  font-size: 0.85rem;
+  color: #7f8c8d;
+  line-height: 1.4;
+}
+
+.card-check {
+  color: #52c41a;
+  font-size: 1.2rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mode-card.active .card-check {
+  opacity: 1;
+  animation: scaleIn 0.3s ease;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-5px);
+  }
+  60% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* 按钮组样式 */
 .action-buttons {
   display: flex;
@@ -475,9 +700,9 @@ onMounted(() => {
 }
 
 .tour-button {
-  background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
+  background: linear-gradient(135deg, #00d9ff 0%, #ccd3ff 100%);
   border: none;
-  color: #2c3e50;
+  color: #ffffff;
 }
 
 .tour-button:hover {
@@ -498,7 +723,7 @@ onMounted(() => {
 }
 
 .rich-select-button {
-  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
   border: none;
   color: white;
 }
@@ -754,6 +979,50 @@ onMounted(() => {
     width: 90%;
     left: 5%;
     transform: translateX(0);
+  }
+
+  .generator-selector {
+    padding: 16px;
+    margin-top: 20px;
+  }
+
+  .selector-title {
+    font-size: 1.1rem;
+  }
+
+  .mode-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mode-card {
+    padding: 16px;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .card-icon {
+    margin-right: 0;
+    margin-bottom: 12px;
+    font-size: 1.8rem;
+  }
+
+  .card-content {
+    text-align: center;
+  }
+
+  .card-title {
+    font-size: 0.95rem;
+  }
+
+  .card-desc {
+    font-size: 0.8rem;
+  }
+
+  .card-check {
+    position: absolute;
+    top: 12px;
+    right: 12px;
   }
 }
 </style>

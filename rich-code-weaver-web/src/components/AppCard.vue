@@ -7,8 +7,8 @@
       </div>
       <div class="app-overlay">
         <a-space>
-          <a-button type="default" @click="handleViewChat">查看对话</a-button>
-          <a-button v-if="app.deployKey" type="default" @click="handleViewWork">查看作品</a-button>
+          <a-button type="primary" @click="handleViewChat">查看对话</a-button>
+          <a-button v-if="app.deployKey" type="primary" @click="handleViewWork">查看作品</a-button>
         </a-space>
       </div>
     </div>

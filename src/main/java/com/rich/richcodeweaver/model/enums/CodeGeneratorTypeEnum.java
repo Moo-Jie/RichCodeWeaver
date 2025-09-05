@@ -12,6 +12,7 @@ import lombok.Getter;
 @Getter
 public enum CodeGeneratorTypeEnum {
 
+    AI_STRATEGY("AI 规划", "ai_strategy"),
     HTML("单 HTML 页面模式", "single_html"),
     MULTI_FILE("多文件结构模式", "multi_file"),
     VUE_PROJECT("Vue 项目工程模式", "vue_project");

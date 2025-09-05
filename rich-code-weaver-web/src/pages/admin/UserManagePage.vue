@@ -41,7 +41,7 @@
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button type="default" html-type="submit">
+          <a-button type="primary" html-type="submit">
             <template #icon>
               <SearchOutlined />
             </template>
@@ -565,7 +565,7 @@ onMounted(() => {
       }
 
       &:last-child {
-        background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+        background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
         color: white;
 
         &:hover {

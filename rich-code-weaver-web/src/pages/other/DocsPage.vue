@@ -107,7 +107,7 @@
               <li><strong>设计风格要求</strong> - 指定UI/UX偏好</li>
               <li><strong>特殊技术要求</strong> - 如需要AR、区块链等</li>
             </ul>
-            <a-button type="default" @click="showPromptExamples" class="example-btn">
+            <a-button type="primary" @click="showPromptExamples" class="example-btn">
               查看提示词示例
             </a-button>
           </div>

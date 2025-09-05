@@ -2,41 +2,51 @@
   <div id="appChatPage" class="creative-chat">
     <!-- 顶部栏 -->
     <div class="header-bar">
-      <div class="header-left">
-        <h1 class="app-name">{{ appInfo?.appName?.substring(0, 15) + '...' || '网站生成器' }}</h1>
-      </div>
       <div class="header-bar-info">
         <template v-if="appInfo">
-          <div class="header-left">
-            生成模式：
+          <div >
+            名称：
             <a-tag :color="getTypeColor(appInfo?.codeGenType)">
+              {{
+                appInfo?.appName?.substring(0, 15) + '...' || '待命名应用'
+              }}
+            </a-tag>
+          </div>
+        </template>
+        &nbsp;
+        <template v-if="appInfo">
+          <div >
+            生成模式：
+            <a-tag :color="getTypeColor(appInfo?.codeGenType)" class="app-tag2">
               {{
                 appInfo.codeGenType === 'single_html' ? '单文件结构' : appInfo.codeGenType === 'multi_file' ? '多文件结构' : appInfo.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(appInfo.codeGenType)
               }}
             </a-tag>
           </div>
         </template>
+        &nbsp;
         <!-- 星选应用  -->
         <template v-if="appInfo">
           推广级别：
-          <a-tag v-if="appInfo.priority === 99" color="gold">
+          <a-tag v-if="appInfo.priority === 99" color="gold" class="app-tag2">
             <star-filled />
             星选应用
           </a-tag>
           <span v-else class="app-tag">普通应用</span>
         </template>
       </div>
+      &nbsp;&nbsp;
       <!-- 功能按钮  -->
       <div class="header-right">
         <!-- 查看/编辑 应用信息  -->
-        <a-button type="default" class="detail-btn" @click="showAppDetail">
+        <a-button type="primary" class="detail-btn" @click="showAppDetail">
           <template #icon>
             <InfoCircleOutlined />
           </template>
           查看/编辑 应用信息
         </a-button>
         <!-- 全屏查看预览  -->
-        <a-button v-if="previewUrl" type="default" @click="openInNewTab " :loading="deploying"
+        <a-button v-if="previewUrl" type="primary" @click="openInNewTab " :loading="deploying"
                   :disabled="isGenerating"
                   class="detail-btn">
           <template #icon>
@@ -45,7 +55,7 @@
           全屏查看预览
         </a-button>
         <!-- 下载代码 -->
-        <a-button type="default" class="detail-btn" @click="downloadCode" :loading="downloading"
+        <a-button type="primary" class="detail-btn" @click="downloadCode" :loading="downloading"
                   :disabled="isGenerating">
           <template #icon>
             <DownloadOutlined />
@@ -55,7 +65,7 @@
         <!-- 已部署状态下的 重复部署 按钮 -->
         <template v-if="isDeployed">
           <!-- 重复部署 按钮 -->
-          <a-button type="default" class="detail-btn" @click="confirmReDeploy" :loading="deploying"
+          <a-button type="primary" class="detail-btn" @click="confirmReDeploy" :loading="deploying"
                     :disabled="isGenerating">
             <template #icon>
               <CloudUploadOutlined />
@@ -63,7 +73,7 @@
             我的代码已更新，重复部署
           </a-button>
           <!-- 访问已部署网站 按钮 -->
-          <a-button type="default" class="detail-btn" target="_blank" :href="deployedSiteUrl">
+          <a-button type="primary" class="detail-btn" target="_blank" :href="deployedSiteUrl">
             <template #icon>
               <ExportOutlined />
             </template>
@@ -71,7 +81,7 @@
           </a-button>
         </template>
         <!-- 未部署状态下的 部署为可访问网站 按钮 -->
-        <a-button v-else type="default" class="detail-btn" @click="deployApp" :loading="deploying"
+        <a-button v-else type="primary" class="detail-btn" @click="deployApp" :loading="deploying"
                   :disabled="isGenerating">
           <template #icon>
             <CloudUploadOutlined />
@@ -149,7 +159,7 @@
             <div class="input-actions">
               <a-tooltip v-if="!isOwner" title="请创建自己的作品来与AI对话" placement="top">
                 <a-button
-                  type="default"
+                  type="primary"
                   shape="circle"
                   size="large"
                   :disabled="!isOwner"
@@ -162,7 +172,7 @@
               </a-tooltip>
               <a-button
                 v-else
-                type="default"
+                type="primary"
                 shape="circle"
                 size="large"
                 @click="sendMessage"
@@ -1190,7 +1200,7 @@ onUnmounted(() => {
 
 .send-btn {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
   border: none;
   transition: all 0.3s ease;
   color: white;
@@ -1507,5 +1517,14 @@ onUnmounted(() => {
   font-weight: 500;
   font-size: 14px;
   border: 1px solid #d9d9d9;
+}
+
+.app-tag2 {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
 }
 </style>

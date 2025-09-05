@@ -422,8 +422,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setUserId(loginUser.getId());
         // 生成 AI 应用名称（截取提示前 30 字符）
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 30)));
-        // 设置默认生成策略
-        CodeGeneratorTypeEnum codeGeneratorTypeEnum = aiCodeGeneratorTypeStrategyService.getCodeGenStrategy(initPrompt);
+        // 设置生成策略
+        CodeGeneratorTypeEnum codeGeneratorTypeEnum = appAddRequest.getGeneratorType();
+        // 是否 AI 自主规划生成策略
+        if (CodeGeneratorTypeEnum.AI_STRATEGY.equals(codeGeneratorTypeEnum)) {
+            // 自动规划生成策略
+            codeGeneratorTypeEnum = aiCodeGeneratorTypeStrategyService.getCodeGenStrategy(initPrompt);
+        }
+
         app.setCodeGenType(codeGeneratorTypeEnum.getValue());
         // 设置默认封面
         app.setCover(AppConstant.APP_COVER);

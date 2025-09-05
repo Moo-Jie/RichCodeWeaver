@@ -16,7 +16,7 @@
         </a-input>
       </div>
       <div class="deploy-actions">
-        <a-button type="default" @click="handleOpenSite">访问网站</a-button>
+        <a-button type="primary" @click="handleOpenSite">访问网站</a-button>
         <a-button @click="handleClose">关闭</a-button>
       </div>
     </div>

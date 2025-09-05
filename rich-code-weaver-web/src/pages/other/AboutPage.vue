@@ -103,7 +103,7 @@
 <!--        </div>-->
 
 <!--        <div class="team-card fade-in-up" v-intersect>-->
-<!--          <div class="avatar" style="background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);">W</div>-->
+<!--          <div class="avatar" style="background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);">W</div>-->
 <!--          <h3>王五</h3>-->
 <!--          <p class="role">工程负责人</p>-->
 <!--          <p class="bio">前阿里云高级工程师，全栈开发专家</p>-->
@@ -445,7 +445,7 @@ const vIntersect = {
 }
 
 .contact-button {
-  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
   border: none;
   border-radius: 16px;
   padding: 15px 30px;

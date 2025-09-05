@@ -599,7 +599,7 @@ const doDeleteApp = async (id: number | undefined) => {
       }
 
       &:last-child {
-        background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+        background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
         color: white;
 
         &:hover {

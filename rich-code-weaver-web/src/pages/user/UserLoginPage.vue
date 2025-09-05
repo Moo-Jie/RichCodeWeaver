@@ -91,7 +91,7 @@
           </div>
 
           <a-form-item>
-            <a-button type="default" html-type="submit" class="submit-btn" :loading="submitting">
+            <a-button type="primary" html-type="submit" class="submit-btn" :loading="submitting">
               登录
             </a-button>
           </a-form-item>
@@ -226,7 +226,7 @@ const handleSubmit = async () => {
   left: 35%;
   width: 30%;
   height: 2px;
-  background: linear-gradient(to right, transparent, #74ebd5, transparent);
+  background: linear-gradient(to right, transparent, #00c4ff, transparent);
 }
 
 .feature-item {
@@ -245,7 +245,7 @@ const handleSubmit = async () => {
 
 .feature-icon {
   margin-right: 20px;
-  color: #74ebd5;
+  color: #00c4ff;
 }
 
 .feature-item h3 {
@@ -284,7 +284,7 @@ const handleSubmit = async () => {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: #74ebd5;
+  background: #00c4ff;
   width: 40%;
   animation: slider-animation 3s infinite ease-in-out;
 }
@@ -342,7 +342,7 @@ const handleSubmit = async () => {
 }
 
 .input-field:hover, .input-field:focus-within {
-  border-color: #74ebd5;
+  border-color: #00c4ff;
   background: white;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
@@ -356,7 +356,7 @@ const handleSubmit = async () => {
 }
 
 .link {
-  color: #74ebd5;
+  color: #00c4ff;
   font-weight: 600;
   transition: all 0.2s ease;
   position: relative;
@@ -370,7 +370,7 @@ const handleSubmit = async () => {
   left: 0;
   width: 0;
   height: 1px;
-  background: #74ebd5;
+  background: #00c4ff;
   transition: width 0.3s ease;
 }
 
@@ -389,7 +389,7 @@ const handleSubmit = async () => {
   font-family: 'Nunito', sans-serif;
   font-size: 16px;
   font-weight: 600;
-  background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
   border: none;
   transition: all 0.3s ease;
   box-shadow: 0 8px 16px rgba(116, 235, 213, 0.25);
