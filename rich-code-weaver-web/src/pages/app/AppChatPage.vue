@@ -3,25 +3,29 @@
     <!-- 顶部栏 -->
     <div class="header-bar">
       <div class="header-left">
-        <h1 class="app-name">{{ appInfo?.appName?.substring(0, 20) + '...' || '网站生成器' }}</h1>
+        <h1 class="app-name">{{ appInfo?.appName?.substring(0, 15) + '...' || '网站生成器' }}</h1>
       </div>
-      <template v-if="appInfo">
-        <div class="header-left">
-          <a-tag :color="getTypeColor(appInfo?.codeGenType)">
-            {{
-              appInfo.codeGenType === 'single_html' ? '单文件结构' : appInfo.codeGenType === 'multi_file' ? '多文件结构' : appInfo.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(appInfo.codeGenType)
-            }}
+      <div class="header-bar-info">
+        <template v-if="appInfo">
+          <div class="header-left">
+            生成模式：
+            <a-tag :color="getTypeColor(appInfo?.codeGenType)">
+              {{
+                appInfo.codeGenType === 'single_html' ? '单文件结构' : appInfo.codeGenType === 'multi_file' ? '多文件结构' : appInfo.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(appInfo.codeGenType)
+              }}
+            </a-tag>
+          </div>
+        </template>
+        <!-- 星选应用  -->
+        <template v-if="appInfo">
+          推广级别：
+          <a-tag v-if="appInfo.priority === 99" color="gold">
+            <star-filled />
+            星选应用
           </a-tag>
-        </div>
-      </template>
-      <!-- 星选应用  -->
-      <template v-if="appInfo">
-        <a-tag v-if="appInfo.priority === 99" color="gold">
-          <star-filled />
-          星选应用
-        </a-tag>
-        <span v-else class="app-tag">普通应用</span>
-      </template>
+          <span v-else class="app-tag">普通应用</span>
+        </template>
+      </div>
       <!-- 功能按钮  -->
       <div class="header-right">
         <!-- 查看/编辑 应用信息  -->
@@ -127,7 +131,7 @@
 
         <!-- 用户消息输入框 -->
         <div class="input-container">
-          <div class="input-wrapper">
+          <div>
             <div v-if="!isOwner" class="creator-tip">
               <a-alert message="这是别人的创作作品" description="如需对话请创建您自己的项目"
                        type="info" show-icon />
@@ -937,6 +941,19 @@ onUnmounted(() => {
   border: 2px solid #e8e8e8;
 }
 
+.header-bar-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  position: relative;
+  margin: 0 auto;
+  border: 2px solid #e8e8e8;
+}
+
 .header-left {
   display: flex;
   align-items: center;
@@ -1145,11 +1162,6 @@ onUnmounted(() => {
   padding: 25px;
   background: rgba(255, 255, 255, 0.7);
   border-top: 2px solid #f0f0f0;
-}
-
-.input-wrapper {
-  position: relative;
-  padding-bottom: 35px;
 }
 
 .creative-textarea {

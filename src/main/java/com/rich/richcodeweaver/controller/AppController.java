@@ -108,7 +108,7 @@ public class AppController {
     }
 
     /**
-     * 删除 AI 应用（管理员或 AI 应用创建者可删除）
+     * 删除 AI 应用
      */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteApp(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {

@@ -216,7 +216,7 @@
 
               <a-popconfirm
                 title="确定要删除这个应用吗？此操作不可恢复"
-                @confirm="deleteApp(record.id)"
+                @confirm="doDeleteApp(record.id)"
               >
                 <a-button danger size="small">删除</a-button>
               </a-popconfirm>
@@ -462,14 +462,14 @@ const toggleFeatured = async (app: API.AppVO) => {
 }
 
 // 删除应用
-const deleteApp = async (id: number | undefined) => {
+const doDeleteApp = async (id: number | undefined) => {
   if (!id) return
 
   try {
     const res = await deleteApp({ id })
     if (res.data.code === 0) {
       message.success('删除成功')
-      fetchData()
+      await fetchData()
     } else {
       message.error('删除失败：' + res.data.message)
     }

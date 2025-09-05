@@ -145,4 +145,20 @@ public interface AppService extends IService<App> {
      * @return 部署后的应用访问url
      */
     String deployApp(Long appId, User loginUser);
+
+    /**
+     * 构建代码输出文件夹
+     *
+     * @param app   应用
+     * @return java.io.File
+     **/
+    public File getOutputDir(App app) ;
+
+    /**
+     * 构建代码部署文件夹
+     *
+     * @param deployKey 部署密钥
+     * @return java.io.File
+     **/
+    public File getDeployDir(String deployKey) ;
 }

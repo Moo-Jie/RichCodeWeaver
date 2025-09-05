@@ -34,6 +34,7 @@ import com.rich.richcodeweaver.utils.aiUtils.streamHandle.StreamHandlerExecutor;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
@@ -52,6 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.rich.richcodeweaver.constant.AppConstant.CODE_DEPLOY_ROOT_DIR;
 import static com.rich.richcodeweaver.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
 
 /**
@@ -224,7 +226,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         try {
             // 执行覆盖
             // 构建代码输出文件夹
-            File outputDir = getOutputDir(appId, app);
+            File outputDir = getOutputDir(app);
             // 构建代码部署文件夹
             File deployDir = getDeployDir(deployKey);
             // 复制目录（执行覆盖）
@@ -272,14 +274,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     /**
      * 构建代码输出文件夹
      *
-     * @param appId 应用 ID
-     * @param app   应用
+     * @param app 应用
      * @return java.io.File
      **/
-    private static File getOutputDir(Long appId, App app) {
+    @Override
+    public File getOutputDir(App app) {
         String codeGenType = app.getCodeGenType();
+        Long appId = app.getId();
         // 通过代码生成类型、应用 ID 构建生成目录名称
-        String outputDirName = codeGenType + "_" + appId;
+        String outputDirName = codeGenType + "_" + app.getId();
         if (codeGenType.equals(CodeGeneratorTypeEnum.VUE_PROJECT.getValue())) {
             outputDirName += File.separator + "dist";
         }
@@ -297,8 +300,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param deployKey 部署密钥
      * @return java.io.File
      **/
-    private static File getDeployDir(String deployKey) {
-        return new File(AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey);
+    @Override
+    public File getDeployDir(String deployKey) {
+        return new File(CODE_DEPLOY_ROOT_DIR + File.separator + deployKey);
     }
 
     /**
@@ -459,9 +463,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
 
         // 删除关联历史对话消息记录
-        ThrowUtils.throwIf(chatHistoryService.deleteByAppId(id), ErrorCode.OPERATION_ERROR);
+        ThrowUtils.throwIf(!chatHistoryService.deleteByAppId(id), ErrorCode.OPERATION_ERROR, "删除关联对话记录失败");
 
-        // 执行物理删除
+        // 拼接输出目录路径
+        File outputDir = appService.getOutputDir(oldApp);
+        // 拼接部署目录路径
+        File deployDir = appService.getDeployDir(oldApp.getDeployKey());
+        // 校验目录
+        ThrowUtils.throwIf(!outputDir.exists() || !outputDir.isDirectory(), ErrorCode.OPERATION_ERROR, "输出目录错误");
+        ThrowUtils.throwIf(!deployDir.exists() || !deployDir.isDirectory(), ErrorCode.OPERATION_ERROR, "部署目录错误");
+        // 删除目录
+        boolean outputDirDeleted = FileUtils.deleteQuietly(outputDir);
+        boolean deployDirDeleted = FileUtils.deleteQuietly(deployDir);
+        // 校验目录删除结果
+        ThrowUtils.throwIf(!outputDirDeleted || !deployDirDeleted, ErrorCode.OPERATION_ERROR, "目录删除失败");
+
+        // 删除应用
         return appService.removeById(id);
     }
 
