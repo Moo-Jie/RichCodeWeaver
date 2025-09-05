@@ -259,6 +259,27 @@ onMounted(() => {
             热门提示词
           </a-button>
 
+          <!-- 热门提示词下拉列表 -->
+          <div v-if="showPromptDropdown" class="prompt-dropdown">
+            <a-list :bordered="false" class="prompt-list">
+              <a-list-item
+                v-for="option in promptOptions"
+                :key="option.value"
+                class="prompt-item"
+                @click="handlePromptSelect(option.value)"
+              >
+                <div class="option-content">
+                  <span class="option-icon" :style="{backgroundColor: option.color}">
+                    <component :is="option.icon" />
+                  </span>
+                  <div class="option-text">
+                    <span class="option-title">{{ option.label }}</span>
+                    <span class="option-desc">{{ option.desc }}</span>
+                  </div>
+                </div>
+              </a-list-item>
+            </a-list>
+          </div>
 
           <!-- 创建作品按钮 -->
           <a-button
@@ -319,27 +340,6 @@ onMounted(() => {
               </div>
             </div>
           </div>
-        </div>
-
-        <div v-if="showPromptDropdown" class="prompt-dropdown">
-          <a-list :bordered="false" class="prompt-list">
-            <a-list-item
-              v-for="option in promptOptions"
-              :key="option.value"
-              class="prompt-item"
-              @click="handlePromptSelect(option.value)"
-            >
-              <div class="option-content">
-                <span class="option-icon" :style="{backgroundColor: option.color}">
-                  <component :is="option.icon" />
-                </span>
-                <div class="option-text">
-                  <span class="option-title">{{ option.label }}</span>
-                  <span class="option-desc">{{ option.desc }}</span>
-                </div>
-              </div>
-            </a-list-item>
-          </a-list>
         </div>
       </div>
 
@@ -683,6 +683,7 @@ onMounted(() => {
   gap: 15px;
   margin-top: 20px;
   flex-wrap: wrap;
+  position: relative;
 }
 
 .action-button {
@@ -736,8 +737,7 @@ onMounted(() => {
 .prompt-dropdown {
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 400px;
   background: white;
   border-radius: 16px;

@@ -227,6 +227,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             // 执行覆盖
             // 构建代码输出文件夹
             File outputDir = getOutputDir(app);
+            // 校验代码输出文件夹是否存在
+            if (!outputDir.exists() || !outputDir.isDirectory()) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "未检测到源码，无法部署，请先生成源码");
+            }
             // 构建代码部署文件夹
             File deployDir = getDeployDir(deployKey);
             // 复制目录（执行覆盖）
@@ -287,11 +291,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             outputDirName += File.separator + "dist";
         }
         // 拼接到绝对路径
-        File outputDir = new File(AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
-        if (!outputDir.exists() || !outputDir.isDirectory()) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "未检测到源码，无法部署，请先生成源码");
-        }
-        return outputDir;
+        return new File(AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
     }
 
     /**
@@ -469,7 +469,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
 
         // 删除关联历史对话消息记录
-        ThrowUtils.throwIf(!chatHistoryService.deleteByAppId(id), ErrorCode.OPERATION_ERROR, "删除关联对话记录失败");
+        chatHistoryService.deleteByAppId(id);
 
         // 拼接输出目录路径
         File outputDir = appService.getOutputDir(oldApp);

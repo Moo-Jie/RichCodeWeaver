@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, nextTick, onMounted, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 
@@ -66,15 +66,21 @@ onMounted(() => {
 
 watch(() => props.content, () => {
   // 使用nextTick确保DOM更新后再执行高亮
-  setTimeout(highlightCode, 100)
+  nextTick(() => {
+    highlightCode()
+  })
 })
 
 const highlightCode = () => {
-  setTimeout(() => {
+  // 使用requestAnimationFrame确保在浏览器重绘前执行
+  requestAnimationFrame(() => {
     document.querySelectorAll('.markdown-content pre code').forEach((block) => {
-      hljs.highlightElement(block as HTMLElement)
+      // 检查是否已经高亮过，避免重复处理
+      if (!block.classList.contains('hljs')) {
+        hljs.highlightElement(block as HTMLElement)
+      }
     })
-  }, 0)
+  })
 }
 </script>
 
@@ -205,7 +211,7 @@ const highlightCode = () => {
   margin: 1.5em 0;
 }
 
-/* 代码高亮样式优化 */
+/* 代码高亮样式优化 - 确保样式稳定 */
 .markdown-content :deep(.hljs) {
   background-color: #f8f8f8 !important;
   border-radius: 6px;
@@ -214,6 +220,11 @@ const highlightCode = () => {
   line-height: 1.4;
   padding: 1em;
   overflow-x: auto;
+  /* 防止字体闪烁 */
+  font-size-adjust: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* 特定语言的代码块样式 */

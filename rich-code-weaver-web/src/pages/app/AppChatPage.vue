@@ -938,7 +938,7 @@ onUnmounted(() => {
 /* 顶部栏 */
 .header-bar {
   display: flex;
-  min-width: 1500px;
+  min-width: 1600px;
   justify-content: space-between;
   align-items: center;
   padding: 15px 25px;
@@ -1101,7 +1101,7 @@ onUnmounted(() => {
   border-radius: 16px;
   line-height: 1.6;
   word-wrap: break-word;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   font-family: 'Nunito', sans-serif;
 }
