@@ -3,6 +3,7 @@ package com.rich.richcodeweaver.config;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.richcodeweaver.aiTools.CreatAndWriteAiTool;
+import com.rich.richcodeweaver.aiTools.ToolsManager;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
@@ -47,6 +48,9 @@ public class AiCodeGeneratorServiceFactory {
      **/
     @Resource
     private StreamingChatModel reasoningStreamingChatModel;
+
+    @Resource
+    private ToolsManager toolsManager;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -137,8 +141,8 @@ public class AiCodeGeneratorServiceFactory {
                         .streamingChatModel(reasoningStreamingChatModel)
                         // 当前模式使用了 memoryId ,强制要求指定 chatMemoryProvider
                         .chatMemoryProvider(id -> chatMemory)
-                        // 指定供 AI 调用的自定义工具
-                        .tools(new CreatAndWriteAiTool()) // 创建并写入文件
+                        // 指定供 AI 调用的自定义工具包
+                        .tools((Object) toolsManager.getAllTools())
                         // 当幻觉调用工具名称时，使用自定义策略
                         // 参考 ：https://blog.csdn.net/qq_52155674/article/details/147238250
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(

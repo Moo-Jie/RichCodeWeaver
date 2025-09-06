@@ -4,6 +4,8 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.rich.richcodeweaver.aiTools.BaseTool;
+import com.rich.richcodeweaver.aiTools.ToolsManager;
 import com.rich.richcodeweaver.constant.AppConstant;
 import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamAiChatMsgResponse;
@@ -16,8 +18,6 @@ import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.info.BuildProperties;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -42,6 +42,9 @@ public class JsonStreamHandler {
 
     @Resource
     private BuildWebProjectExecutor buildWebProjectExecutor;
+
+    @Resource
+    private ToolsManager toolsManager;
 
     /**
      * 处理 AI JSON 输出的流
@@ -147,8 +150,9 @@ public class JsonStreamHandler {
                     // 记录工具 ID，防止重复输出开始调用的消息
                     seenToolIds.add(toolId);
                     // 构建输出结果
-                    String data = "\n\n[工具调用] 正在写入文件\n\n";
-                    // 将 AI 回复内容加入到对话历史
+                    BaseTool tool = toolsManager.getToolByName(streamToolInvocMsgResponse.getName());
+                    String data = tool.getResponseMsg();
+                    // 加入到对话历史
                     aiResponseBuilder.append(data);
                     return data;
                 } else {
@@ -160,26 +164,12 @@ public class JsonStreamHandler {
             case TOOL_EXECUTED -> {
                 // 转为用于 【工具执行结果信息】 的响应结果类
                 StreamToolExecutedMsgResponse streamToolExecutedMsgResponse = JSONUtil.toBean(chunk, StreamToolExecutedMsgResponse.class);
-
+                // 获取工具
+                BaseTool tool = toolsManager.getToolByName(streamToolExecutedMsgResponse.getName());
                 // 解析 Arguments 属性为 JSON 对象
                 JSONObject argumentsJson = JSONUtil.parseObj(streamToolExecutedMsgResponse.getArguments());
-                // 解析出调用工具 CreatAndWriteAiTool 时传入的参数:
-                // 相对路径
-                String relativeFilePath = argumentsJson.getStr("relativeFilePath");
-                // 写入内容
-                String content = argumentsJson.getStr("content");
-
-                // 构建输出结果
-                String resStr = String.format("""
-                                [工具调用完成] 已成功写入文件 %s
-                                    ```%s
-                                    %s
-                                    ```
-                                """,
-                        relativeFilePath,
-                        FileUtil.getSuffix(relativeFilePath),
-                        content);
-                String data = String.format("\n\n%s\n\n", resStr);
+                // 获取工具执行结果
+                String data = String.format( "\n\n%s\n\n",tool.getResultMsg(argumentsJson));
                 // 将 AI 回复内容加入到对话历史
                 aiResponseBuilder.append(data);
                 return data;
