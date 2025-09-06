@@ -1,5 +1,17 @@
 <template>
-  <div id="appChatPage" class="creative-chat">
+  <div id="appChatPage" class="creative-chat" :class="{ 'edit-mode-active': isEditMode }">
+    <!-- 编辑模式全局覆盖层 -->
+    <div v-if="isEditMode" class="edit-mode-overlay"></div>
+    <!-- 编辑模式顶部提示条 -->
+    <div v-if="isEditMode" class="edit-mode-top-bar">
+      <div class="top-bar-content">
+        <EditOutlined style="color: #fff; margin-right: 8px;" />
+        <span style="color: #fff; font-weight: 600;">可视化编辑模式已启用</span>
+        <span style="color: rgba(255, 255, 255, 0.8); margin-left: 12px; font-size: 13px;">
+         （ 点击页面元素进行选择和编辑）
+        </span>
+      </div>
+    </div>
     <!-- 顶部栏 -->
     <div class="header-bar">
       <div class="header-bar-info">
@@ -8,7 +20,7 @@
             名称：
             <a-tag :color="getTypeColor(appInfo?.codeGenType)">
               {{
-                appInfo?.appName?.substring(0, 15) + '...' || '待命名应用'
+                appInfo?.appName?.substring(0, 10) + '...' || '待命名应用'
               }}
             </a-tag>
           </div>
@@ -140,7 +152,31 @@
         </div>
 
         <!-- 用户消息输入框 -->
-        <div class="input-container">
+          <div class="input-container">
+            <a-alert
+              v-if="selectedElement"
+              :message="`已选择元素：${selectedElement.tagName.toLowerCase()}`"
+              type="success"
+              show-icon
+              closable
+              @close="clearSelection"
+              class="selected-element-alert"
+              style="border-radius: 12px; border: 1px solid #d9f7be; background: linear-gradient(135deg, rgba(246, 255, 237, 0.95) 0%, rgba(230, 255, 250, 0.95) 100%);"
+            >
+              <template #description>
+                <div class="element-details">
+                  <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
+                    <strong>ID:</strong> {{ selectedElement.id || '无' }}
+                  </p>
+                  <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
+                    <strong>Class:</strong> {{ selectedElement.className || '无' }}
+                  </p>
+                  <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
+                    <strong>选择器:</strong> {{ selectedElement.selector }}
+                  </p>
+                </div>
+              </template>
+            </a-alert>
           <div>
             <div v-if="!isOwner" class="creator-tip">
               <a-alert message="这是别人的创作作品" description="如需对话请创建您自己的项目"
@@ -157,12 +193,29 @@
               class="creative-textarea"
             />
             <div class="input-actions">
+              <a-tooltip :title="isEditMode ? '退出编辑模式' : '进入可视化编辑模式'" placement="top">
+                <a-button
+                  shape="circle"
+                  size="large"
+                  @click="toggleEditMode"
+                  :type="isEditMode ? 'danger' : 'primary'"
+                  class="edit-btn"
+                  :class="{ 'edit-mode-active': isEditMode }"
+                  style="border-radius: 20px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);"
+                >
+                  <template #icon>
+                    <EditOutlined />
+                  </template>
+                  {{ isEditMode ? '退出编辑' : '可视化编辑' }}
+                </a-button>
+              </a-tooltip>
               <a-tooltip v-if="!isOwner" title="请创建自己的作品来与AI对话" placement="top">
                 <a-button
                   type="primary"
                   shape="circle"
                   size="large"
-                  :disabled="!isOwner"
+                  @click="sendMessage"
+                  :loading="isGenerating"
                   class="send-btn"
                 >
                   <template #icon>
@@ -305,8 +358,9 @@ import {
   DownloadOutlined,
   ExportOutlined,
   InfoCircleOutlined,
-  SendOutlined, StarFilled
+  SendOutlined, StarFilled, EditOutlined
 } from '@ant-design/icons-vue'
+import { visualEditorUtil, type ElementInfo } from '@/utils/visualEditorUtil'
 
 const route = useRoute()
 const router = useRouter()
@@ -391,6 +445,12 @@ const isAdmin = computed(() => {
 // 应用详情相关
 const appDetailVisible = ref(false)
 
+// 可视化编辑相关
+const visualEditor = ref<visualEditorUtil | null>(null)
+const isEditMode = ref(false)
+const selectedElement = ref<ElementInfo | null>(null)
+
+
 // 显示应用详情
 const showAppDetail = () => {
   appDetailVisible.value = true
@@ -445,6 +505,47 @@ const fetchAppInfo = async () => {
     console.error('获取应用信息失败：', error)
   }
 }
+
+// 可视化编辑相关
+onMounted(() => {
+  // 初始化 visualEditor
+  visualEditor.value = new visualEditorUtil({
+    onElementSelected: (elementInfo) => {
+      selectedElement.value = elementInfo
+    }
+  })
+
+  // 监听来自 iframe 的消息
+  window.addEventListener('message', handleIframeMessage)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('message', handleIframeMessage)
+  visualEditor.value?.disableEditMode()
+})
+
+// 处理来自 iframe 的消息
+const handleIframeMessage = (event: MessageEvent) => {
+  visualEditor.value?.handleIframeMessage(event)
+}
+
+// 切换编辑模式
+const toggleEditMode = () => {
+  if (visualEditor.value) {
+    isEditMode.value = visualEditor.value.toggleEditMode()
+    if (!isEditMode.value) {
+      // 退出编辑模式时，清除选中
+      clearSelection()
+    }
+  }
+}
+
+// 清除选中
+const clearSelection = () => {
+  selectedElement.value = null
+  visualEditor.value?.clearSelection()
+}
+
 
 // 下载代码
 const downloadCode = async () => {
@@ -576,10 +677,17 @@ const sendMessage = async () => {
   const message = userInput.value.trim()
   userInput.value = ''
 
+  // 构建带上下文的提示
+  let prompt = message
+  if (selectedElement.value?.selector) {
+    prompt = `我选中了页面元素（selector: \`${selectedElement.value.selector}\`），请帮我修改它。我的具体需求是：${message}`
+  }
+
+
   // 添加用户消息
   messages.value.push({
     type: 'user',
-    content: message
+    content: prompt
   })
 
   // 添加AI消息占位符
@@ -593,9 +701,18 @@ const sendMessage = async () => {
   await nextTick()
   scrollToBottom()
 
+  // 发送后清除选中并退出编辑模式
+  if (selectedElement.value) {
+    clearSelection()
+  }
+  if (isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+  }
+
   // 开始生成
   isGenerating.value = true
-  await generateCode(message, aiMessageIndex)
+  await generateCode(prompt, aiMessageIndex)
 }
 
 // 生成代码 - 使用 EventSource 处理流式响应
@@ -841,6 +958,10 @@ const openDeployedSite = () => {
 // iframe加载完成
 const onIframeLoad = () => {
   previewReady.value = true
+  if (previewIframe.value) {
+    visualEditor.value?.init(previewIframe.value)
+    visualEditor.value?.onIframeLoad()
+  }
 }
 
 // 编辑应用
@@ -1209,6 +1330,129 @@ onUnmounted(() => {
 .send-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
+}
+
+/* 编辑按钮样式 */
+.edit-btn {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.edit-btn.edit-mode-active {
+  background: linear-gradient(135deg, #ff4d4f 0%, #ffb1b4 100%) !important;
+  box-shadow: 0 6px 20px rgba(245, 34, 45, 0.4);
+  animation: editPulse 2s infinite;
+}
+
+.edit-btn:not(.edit-mode-active):hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(24, 144, 255, 0.3);
+}
+
+@keyframes editPulse {
+  0%, 100% {
+    box-shadow: 0 6px 20px rgba(245, 34, 45, 0.4);
+  }
+  50% {
+    box-shadow: 0 8px 25px rgba(245, 34, 45, 0.6), 0 0 15px rgba(255, 77, 79, 0.5);
+  }
+}
+
+/* 编辑模式状态指示器 */
+ .edit-mode-indicator {
+   margin-right: 15px;
+   animation: indicatorPulse 1.5s infinite;
+   position: relative;
+   z-index: 1000;
+ }
+
+.edit-mode-tag {
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(245, 34, 45, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+@keyframes indicatorPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+/* 编辑模式全局样式 */
+ .creative-chat.edit-mode-active {
+   position: relative;
+   animation: editModeBorderPulse 2s infinite;
+   border-radius: 12px;
+ }
+
+ @keyframes editModeBorderPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(245, 34, 45, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(245, 34, 45, 0.6), 0 0 20px rgba(255, 77, 79, 0.4);
+  }
+}
+
+/* 编辑模式顶部提示条 */
+.edit-mode-top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(90deg, #ff4d4f 0%, #f5222d 100%);
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: topBarSlideDown 0.5s ease-out;
+  box-shadow: 0 2px 8px rgba(245, 34, 45, 0.4);
+}
+
+.top-bar-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes topBarSlideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.edit-mode-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255, 77, 79, 0.03) 0%, rgba(255, 169, 0, 0.03) 100%);
+  pointer-events: none;
+  z-index: 999;
+  animation: overlayPulse 3s infinite;
+}
+
+@keyframes overlayPulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .input-tip {
