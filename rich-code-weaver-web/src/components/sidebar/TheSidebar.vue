@@ -212,6 +212,7 @@ const baseNavItems = [
 const aboutNavItems = [
   { path: '/other/about', label: '关于', icon: FileTextOutlined },
   { path: '/other/privacy', label: '隐私政策', icon: SecurityScanOutlined },
+  { path: '/other/ai-generated-content', label: 'AI生成声明', icon: AuditOutlined },
   { path: '/other/terms', label: '用户协议', icon: SafetyOutlined }
 ]
 

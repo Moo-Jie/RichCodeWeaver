@@ -89,6 +89,19 @@
           @remove-material="removeMaterial"
           @clear-materials="clearMaterials"
         />
+        <div class="home-meta">
+          <div class="home-meta-inner">
+            <span class="home-meta-item home-meta-filing">
+              <img alt="备案标识" class="home-meta-icon" src="@/assets/ICPFiling.png" />
+              <span>鲁ICP备2024125764号-2</span>
+            </span>
+            <span class="home-meta-divider">|</span>
+            <span class="home-meta-item">版权所有 © MOJIE TEAM</span>
+            <span class="home-meta-divider">|</span>
+            <span class="home-meta-item">作品内容由AI生成，详情请查看</span>
+            <router-link class="home-meta-link" to="/other/ai-generated-content">《AI 生成内容服务使用规范与权利义务声明》</router-link>
+          </div>
+        </div>
         </div>
         <CustomerServicePanel />
       </div>
@@ -1967,9 +1980,77 @@ const handleIframeMessage = (event: MessageEvent) => {
   color: #1a1a1a;
 }
 
+.home-meta {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 6px;
+}
+
+.home-meta-inner {
+  width: 100%;
+  max-width: 1120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 10px 8px;
+}
+
+.home-meta-item,
+.home-meta-link,
+.home-meta-divider {
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.home-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8c8c8c;
+}
+
+.home-meta-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.home-meta-divider {
+  color: #d0d0d0;
+}
+
+.home-meta-link {
+  color: #666;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.home-meta-link:hover {
+  color: #1a1a1a;
+}
+
 @media (max-width: 900px) {
   .quick-send-grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-meta {
+    padding-top: 10px;
+  }
+
+  .home-meta-inner {
+    max-width: 100%;
+    padding: 12px 0;
+  }
+
+  .home-meta-link,
+  .home-meta-item {
+    white-space: normal;
+    text-align: center;
   }
 }
 

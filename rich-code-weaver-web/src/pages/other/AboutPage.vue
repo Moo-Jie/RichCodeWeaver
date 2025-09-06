@@ -114,6 +114,16 @@
       </section>
 
       <section class="section">
+        <h2 class="section-title">相关说明</h2>
+        <div class="policy-links">
+          <router-link class="policy-link-card" to="/other/ai-generated-content">
+            <span class="policy-link-title">AI 生成内容声明</span>
+            <span class="policy-link-desc">查看平台关于 AI 生成内容的使用边界、免责说明、数字产物归属与数据处理说明。</span>
+          </router-link>
+        </div>
+      </section>
+
+      <section class="section">
         <h2 class="section-title">关于作者</h2>
         <div class="author-card">
           <div class="author-avatar">M</div>
@@ -323,6 +333,43 @@ import MicroserviceHealthPanel from '@/components/admin/MicroserviceHealthPanel.
 .info-value {
   font-size: 13px;
   color: #666;
+}
+
+.policy-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.policy-link-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: all 0.18s ease;
+}
+
+.policy-link-card:hover {
+  background: #fff;
+  border-color: #dcdcdc;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.policy-link-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.policy-link-desc {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.6;
 }
 
 .author-card {

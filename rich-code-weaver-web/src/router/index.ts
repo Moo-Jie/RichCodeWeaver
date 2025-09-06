@@ -25,6 +25,7 @@ import DocsPage from '@/pages/other/DocsPage.vue'
 import AboutPage from '@/pages/other/AboutPage.vue'
 import PrivacyPage from '@/pages/other/PrivacyPage.vue'
 import TermsPage from '@/pages/other/TermsPage.vue'
+import AiGeneratedContentPage from '@/pages/other/AiGeneratedContentPage.vue'
 
 /**
  * 路由配置
@@ -152,6 +153,11 @@ const router = createRouter({
           path: 'other/privacy',
           name: '用户隐私协议',
           component: PrivacyPage
+        },
+        {
+          path: 'other/ai-generated-content',
+          name: 'AI生成内容声明',
+          component: AiGeneratedContentPage
         },
         {
           path: 'other/terms',
