@@ -5,18 +5,23 @@
     <!-- 编辑模式顶部提示条 -->
     <div v-if="isEditMode" class="edit-mode-top-bar">
       <div class="top-bar-content">
-        <EditOutlined style="color: #fff; margin-right: 8px;" />
-        <span style="color: #fff; font-weight: 600;">可视化编辑模式已启用</span>
-        <span style="color: rgba(255, 255, 255, 0.8); margin-left: 12px; font-size: 13px;">
-         （ 点击页面元素进行选择和编辑）
+        <EditOutlined style="color: #595959; margin-right: 8px;" />
+        <span style="color: #595959; font-weight: 800;">可视化编辑模式已启用</span>
+        <span style="color: #595959; margin-left: 12px; font-size: 20px;">
+         （ 点击想要修改的页面元素并输入你的需求）
         </span>
+      </div>
+      <div class="top-bar-actions">
+        <button class="exit-edit-btn" @click="toggleEditMode">
+          退出编辑模式
+        </button>
       </div>
     </div>
     <!-- 顶部栏 -->
     <div class="header-bar">
       <div class="header-bar-info">
         <template v-if="appInfo">
-          <div >
+          <div>
             名称：
             <a-tag :color="getTypeColor(appInfo?.codeGenType)">
               {{
@@ -27,7 +32,7 @@
         </template>
         &nbsp;
         <template v-if="appInfo">
-          <div >
+          <div>
             生成模式：
             <a-tag :color="getTypeColor(appInfo?.codeGenType)" class="app-tag2">
               {{
@@ -152,31 +157,28 @@
         </div>
 
         <!-- 用户消息输入框 -->
-          <div class="input-container">
-            <a-alert
-              v-if="selectedElement"
-              :message="`已选择元素：${selectedElement.tagName.toLowerCase()}`"
-              type="success"
-              show-icon
-              closable
-              @close="clearSelection"
-              class="selected-element-alert"
-              style="border-radius: 12px; border: 1px solid #d9f7be; background: linear-gradient(135deg, rgba(246, 255, 237, 0.95) 0%, rgba(230, 255, 250, 0.95) 100%);"
-            >
-              <template #description>
-                <div class="element-details">
-                  <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
-                    <strong>ID:</strong> {{ selectedElement.id || '无' }}
-                  </p>
-                  <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
-                    <strong>Class:</strong> {{ selectedElement.className || '无' }}
-                  </p>
-                  <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
-                    <strong>选择器:</strong> {{ selectedElement.selector }}
-                  </p>
-                </div>
-              </template>
-            </a-alert>
+        <div class="input-container">
+          <a-alert
+            v-if="selectedElement"
+            :message="`已选择“${selectedElement.tagName}”标签元素`"
+            type="success"
+            show-icon
+            closable
+            @close="clearSelection"
+            class="selected-element-alert"
+            style="border-radius: 12px; border: 1px solid #d9f7be; background: linear-gradient(135deg, rgba(246, 255, 237, 0.95) 0%, rgba(230, 255, 250, 0.95) 100%);"
+          >
+            <template #description>
+              <div class="element-details">
+                <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
+                  <strong>选择器类型:</strong> {{ selectedElement.className || '无' }}
+                </p>
+                <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
+                  <strong>代码块:</strong> {{ selectedElement.selector.substring(0, 100) }}
+                </p>
+              </div>
+            </template>
+          </a-alert>
           <div>
             <div v-if="!isOwner" class="creator-tip">
               <a-alert message="这是别人的创作作品" description="如需对话请创建您自己的项目"
@@ -185,15 +187,34 @@
             <a-textarea
               v-else
               v-model:value="userInput"
-              placeholder="✨ 请用丰富语言描述您的网站愿景 —— 描述越详尽，创作越精彩 ✨"
+              placeholder="✨ 描述越详尽，创作越符合您的预期 ✨"
               :rows="4"
               :maxlength="1000"
               @keydown.enter.prevent="sendMessage"
               :disabled="isGenerating"
               class="creative-textarea"
             />
+            <br>
             <div class="input-actions">
-              <a-tooltip :title="isEditMode ? '退出编辑模式' : '进入可视化编辑模式'" placement="top">
+              <!-- 新手指引按钮 -->
+              <a-tooltip title="新手指引" placement="top">
+                <a-button
+                  shape="circle"
+                  size="large"
+                  @click="startTour"
+                  type="primary"
+                  class="tour-button"
+                  style="border-radius: 20px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);"
+                >
+                  <template #icon>
+                    <PlayCircleOutlined />
+                  </template>
+                </a-button>
+              </a-tooltip>
+
+              <!-- 编辑按钮 -->
+              <a-tooltip :title="isEditMode ? '退出编辑模式' : '进入可视化编辑模式'"
+                         placement="top">
                 <a-button
                   shape="circle"
                   size="large"
@@ -206,9 +227,10 @@
                   <template #icon>
                     <EditOutlined />
                   </template>
-                  {{ isEditMode ? '退出编辑' : '可视化编辑' }}
                 </a-button>
               </a-tooltip>
+
+              <!-- 发送按钮 -->
               <a-tooltip v-if="!isOwner" title="请创建自己的作品来与AI对话" placement="top">
                 <a-button
                   type="primary"
@@ -223,19 +245,21 @@
                   </template>
                 </a-button>
               </a-tooltip>
-              <a-button
-                v-else
-                type="primary"
-                shape="circle"
-                size="large"
-                @click="sendMessage"
-                :loading="isGenerating"
-                class="send-btn"
-              >
-                <template #icon>
-                  <SendOutlined />
-                </template>
-              </a-button>
+
+              <a-tooltip v-else title="开始对话" placement="top">
+                <a-button
+                  type="primary"
+                  shape="circle"
+                  size="large"
+                  @click="sendMessage"
+                  :loading="isGenerating"
+                  class="send-btn"
+                >
+                  <template #icon>
+                    <SendOutlined />
+                  </template>
+                </a-button>
+              </a-tooltip>
             </div>
           </div>
         </div>
@@ -327,12 +351,21 @@
     :deploy-url="deployUrl"
     @open-site="openDeployedSite"
   />
+
+  <!-- 新手指引组件 -->
+  <Tour
+    v-model:open="tourOpen"
+    v-model:current="tourCurrent"
+    :steps="tourSteps"
+    @close="handleTourClose"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message, Modal } from 'ant-design-vue'
+import { message, Modal, Tour } from 'ant-design-vue'
+import type { TourProps } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import {
   deleteApp as deleteAppApi,
@@ -348,23 +381,79 @@ import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 import {
   API_BASE_URL,
+  DEPLOY_DOMAIN,
   getStaticPreviewUrl,
-  getWebProjectStaticPreviewUrl,
-  DEPLOY_DOMAIN
+  getWebProjectStaticPreviewUrl
 } from '@/config/env'
 
 import {
   CloudUploadOutlined,
   DownloadOutlined,
+  EditOutlined,
   ExportOutlined,
   InfoCircleOutlined,
-  SendOutlined, StarFilled, EditOutlined
+  PlayCircleOutlined,
+  SendOutlined,
+  StarFilled
 } from '@ant-design/icons-vue'
-import { visualEditorUtil, type ElementInfo } from '@/utils/visualEditorUtil'
+import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 
 const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+
+// 新手指引相关
+const tourOpen = ref(false)
+const tourCurrent = ref(0)
+const tourSteps = ref<TourProps['steps']>([
+  {
+    title: 'AI 应用生成页面',
+    description: '在这里您可以进行代码生成、应用预览、可视化编辑、部署应用等操作',
+    target: () => document.querySelector('.main-content') as HTMLElement,
+    placement: 'top'
+  },
+  {
+    title: '对话输入',
+    description: '在这里输入您的需求，AI会根据您的描述生成代码',
+    target: () => document.querySelector('.creative-textarea') as HTMLElement,
+    placement: 'top'
+  },
+  {
+    title: '发送消息',
+    description: '输入需求后点击这里发送给AI，开始生成代码',
+    target: () => document.querySelector('.send-btn') as HTMLElement,
+    placement: 'top'
+  },
+  {
+    title: '预览区域',
+    description: '这里实时显示生成的网页效果，可以随时查看和测试',
+    target: () => document.querySelector('.preview-section') as HTMLElement,
+    placement: 'left'
+  },
+  {
+    title: '可视化编辑',
+    description: '点击这里可以进入可视化编辑模式，直接修改网页元素',
+    target: () => document.querySelector('.edit-btn') as HTMLElement,
+    placement: 'top'
+  },
+  {
+    title: '部署应用',
+    description: '生成完成后点击这里将应用部署到线上，获得可访问的网址',
+    target: () => document.querySelector('.detail-btn') as HTMLElement,
+    placement: 'top'
+  }
+])
+
+// 开始新手指引
+const startTour = () => {
+  tourOpen.value = true
+  tourCurrent.value = 0
+}
+
+// 关闭新手指引
+const handleTourClose = () => {
+  tourOpen.value = false
+}
 
 // 添加计时器相关变量
 const generatingTime = ref(0)
@@ -517,6 +606,14 @@ onMounted(() => {
 
   // 监听来自 iframe 的消息
   window.addEventListener('message', handleIframeMessage)
+
+  // 如果是新用户且没有对话记录，自动显示新手指引
+  if (messages.value.length === 0 && isOwner.value) {
+    // 延迟显示，确保DOM已渲染完成
+    setTimeout(() => {
+      startTour()
+    }, 1000)
+  }
 })
 
 onUnmounted(() => {
@@ -680,7 +777,7 @@ const sendMessage = async () => {
   // 构建带上下文的提示
   let prompt = message
   if (selectedElement.value?.selector) {
-    prompt = `我选中了页面元素（selector: \`${selectedElement.value.selector}\`），请帮我修改它。我的具体需求是：${message}`
+    prompt = `我选中了页面元素\n（selector: \`${selectedElement.value.selector}\`）\n 请帮我修改选中模块。\n我的具体需求是：${message}`
   }
 
 
@@ -1308,13 +1405,13 @@ onUnmounted(() => {
 }
 
 .creative-textarea:focus {
-  border-color: #ffcc00;
-  box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.2);
+  box-shadow: 0 0 0 3px rgb(204, 247, 255);
   outline: none;
 }
 
 .input-actions {
-  position: absolute;
+  display: flex;
+  justify-content: flex-end;
   bottom: 8px;
   right: 8px;
 }
@@ -1337,12 +1434,13 @@ onUnmounted(() => {
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
 }
 
 .edit-btn.edit-mode-active {
-  background: linear-gradient(135deg, #ff4d4f 0%, #ffb1b4 100%) !important;
-  box-shadow: 0 6px 20px rgba(245, 34, 45, 0.4);
-  animation: editPulse 2s infinite;
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .edit-btn:not(.edit-mode-active):hover {
@@ -1360,12 +1458,12 @@ onUnmounted(() => {
 }
 
 /* 编辑模式状态指示器 */
- .edit-mode-indicator {
-   margin-right: 15px;
-   animation: indicatorPulse 1.5s infinite;
-   position: relative;
-   z-index: 1000;
- }
+.edit-mode-indicator {
+  margin-right: 15px;
+  animation: indicatorPulse 1.5s infinite;
+  position: relative;
+  z-index: 1000;
+}
 
 .edit-mode-tag {
   font-weight: 600;
@@ -1388,13 +1486,14 @@ onUnmounted(() => {
 }
 
 /* 编辑模式全局样式 */
- .creative-chat.edit-mode-active {
-   position: relative;
-   animation: editModeBorderPulse 2s infinite;
-   border-radius: 12px;
- }
+.creative-chat.edit-mode-active {
+  position: relative;
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+  transition: box-shadow 0.3s ease;
+}
 
- @keyframes editModeBorderPulse {
+@keyframes editModeBorderPulse {
   0%, 100% {
     box-shadow: 0 0 0 3px rgba(245, 34, 45, 0.3);
   }
@@ -1406,24 +1505,54 @@ onUnmounted(() => {
 /* 编辑模式顶部提示条 */
 .edit-mode-top-bar {
   position: fixed;
+  font-size: 30px;
   top: 0;
   left: 0;
   right: 0;
-  height: 40px;
-  background: linear-gradient(90deg, #ff4d4f 0%, #f5222d 100%);
+  height: 85px;
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
   z-index: 1001;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  padding: 0 30px;
   animation: topBarSlideDown 0.5s ease-out;
-  box-shadow: 0 2px 8px rgba(245, 34, 45, 0.4);
+
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .top-bar-content {
   display: flex;
   align-items: center;
-  justify-content: center;
+  font-weight: 600;
 }
+
+.top-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.exit-edit-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.exit-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
 
 @keyframes topBarSlideDown {
   from {
@@ -1480,11 +1609,104 @@ onUnmounted(() => {
   border: 2px solid #e8e8e8;
   transition: all 0.3s ease;
   height: 85vh;
+  position: relative;
 }
 
 .preview-section:hover {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
   transform: translateY(-3px);
+}
+
+/* 编辑模式下预览内容高亮效果 */
+.edit-mode-active .preview-content {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.8),
+  0 0 25px rgba(24, 144, 255, 0.6),
+  inset 0 0 20px rgba(24, 144, 255, 0.4);
+  animation: previewHighlight 1.2s ease-in-out infinite alternate;
+  transform: scale(1.01);
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+@keyframes previewHighlight {
+  0% {
+    box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.8),
+    0 0 25px rgba(24, 144, 255, 0.6),
+    inset 0 0 20px rgba(24, 144, 255, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 6px rgba(24, 144, 255, 1),
+    0 0 35px rgba(24, 144, 255, 0.8),
+    inset 0 0 30px rgba(24, 144, 255, 0.6);
+    transform: scale(1.015);
+  }
+}
+
+.edit-mode-active .preview-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(24, 144, 255, 0.15) 0%,
+    rgba(24, 144, 255, 0.25) 100%
+  );
+  pointer-events: none;
+  z-index: 10;
+  animation: overlayPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes overlayPulse {
+  0% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0.9;
+  }
+}
+
+.edit-mode-active .preview-content::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 11;
+  animation: borderPulse 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes borderPulse {
+  0% {
+    opacity: 0.4;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes strong-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 6px rgba(24, 144, 255, 0.2),
+    0 0 40px rgba(24, 144, 255, 0.6),
+    inset 0 0 30px rgba(24, 144, 255, 0.15);
+    border-width: 5px;
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(24, 144, 255, 0.25),
+    0 0 50px rgba(24, 144, 255, 0.8),
+    inset 0 0 35px rgba(24, 144, 255, 0.2);
+    border-width: 6px;
+  }
 }
 
 .preview-header {
@@ -1770,5 +1992,24 @@ onUnmounted(() => {
   border-radius: 6px;
   font-weight: 500;
   font-size: 14px;
+}
+
+/* 编辑按钮样式 */
+.tour-button {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+}
+
+.tour-button.edit-mode-active {
+  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.tour-button:not(.edit-mode-active):hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(24, 144, 255, 0.3);
 }
 </style>

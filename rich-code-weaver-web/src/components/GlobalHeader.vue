@@ -321,10 +321,10 @@ const doLogout = async () => {
 
 .user-login-status {
   display: flex;
-  align-items: flex-end; /* 按钮布局偏下 */
+  align-items: flex-end;
   height: 100%;
   padding-left: 15px;
-  padding-bottom: 8px; /* 底部间距增加 */
+  padding-bottom: 6px;
 }
 
 .ant-space {
