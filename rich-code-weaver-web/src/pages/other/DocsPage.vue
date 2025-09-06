@@ -93,23 +93,24 @@
 
           <!-- 动态内容渲染 -->
           <div v-if="activeSection.id === 'getting-started'">
-            <p>1. 在首页输入应用描述，例如"创建一个电商网站"</p>
-            <p>2. 点击"创建作品"按钮</p>
-            <p>3. 系统会自动生成应用框架并跳转到编辑页面</p>
-            <p>4. 使用可视化工具完善应用功能和界面</p>
+            <p>1. 在首页输入应用描述，或者选择"热门提示词"。</p>
+            <p>2. 选择应用生成模式，点击"创建作品"按钮生成应用。</p>
+            <p>3. 系统自动进入应用生成页面，生成应用代码。</p>
+            <p>4. 可在应用生成页面对应用进行实时预览、AI 局部优化、AI 全局重构、部署上线、编辑应用信息等操作。</p>
           </div>
 
           <div v-if="activeSection.id === 'prompt-guide'">
-            <p>有效的提示词应包含：</p>
-            <ul>
-              <li><strong>明确的功能需求</strong> - 描述应用的核心功能</li>
-              <li><strong>目标用户群体</strong> - 说明应用的服务对象</li>
-              <li><strong>设计风格要求</strong> - 指定UI/UX偏好</li>
-              <li><strong>特殊技术要求</strong> - 如需要AR、区块链等</li>
-            </ul>
-            <a-button type="primary" @click="showPromptExamples" class="example-btn">
-              查看提示词示例
-            </a-button>
+            <p>1. 应用基础信息：应用名称、应用类型与核心功能、目标用户等。</p>
+            <p>2. 技术栈与项目规范： 项目结构（Vue项目/ React项目/ 纯静态项目）、UI框架/组件库等。</p>
+            <p>3. 详细功能需求：功能列表、交互流程、数据持久化等。</p>
+            <p>4. UI/UX与布局设计：布局描述、风格描述、附加元素等。</p>
+            <p>5. 数据与API：应用需要动态数据，必须详细说明。</p>
+          </div>
+
+          <div v-if="activeSection.id === 'deploy-app'">
+            <p>1. 登录应用平台，进入应用详情页。</p>
+            <p>2. 点击"部署为可访问网站"按钮，即可部署应用。</p>
+            <p>3. 后续点击"访问已部署网站"即可访问应用。</p>
           </div>
         </div>
 
@@ -119,23 +120,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 提示词示例弹窗 -->
-    <a-modal
-      v-model:visible="showExamples"
-      title="提示词示例"
-      width="800px"
-      :footer="null"
-    >
-      <a-collapse accordion>
-        <a-collapse-panel v-for="example in promptExamples" :key="example.title">
-          <template #header>
-            <div class="example-header">{{ example.title }}</div>
-          </template>
-          <p class="example-prompt">{{ example.content }}</p>
-        </a-collapse-panel>
-      </a-collapse>
-    </a-modal>
   </div>
 </template>
 
@@ -173,19 +157,6 @@ const bestPracticeItems = reactive([
 // 当前活动文档区域
 const activeSection = ref<{id: string; title: string} | null>(null);
 
-// 提示词示例弹窗
-const showExamples = ref(false);
-const promptExamples = ref([
-  {
-    title: "电商平台",
-    content: "设计一个多供应商电商平台，包含：商品分类系统、购物车功能、多支付方式集成（信用卡、数字货币）、供应商管理后台、用户评价系统、个性化推荐引擎。采用现代化设计，主色调为蓝色和白色。"
-  },
-  {
-    title: "教育平台",
-    content: "创建一个在线学习管理系统，功能包括：课程目录、视频课程播放器、进度跟踪、测验系统、证书生成、教师-学生互动论坛。要求界面简洁友好，支持深色模式。"
-  }
-]);
-
 // 处理文档项点击
 const handleItemClick = (id: string) => {
   // 查找对应的文档项
@@ -203,11 +174,6 @@ const handleItemClick = (id: string) => {
       }
     }, 100);
   }
-};
-
-// 显示提示词示例
-const showPromptExamples = () => {
-  showExamples.value = true;
 };
 </script>
 
