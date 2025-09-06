@@ -407,12 +407,6 @@ const tourOpen = ref(false)
 const tourCurrent = ref(0)
 const tourSteps = ref<TourProps['steps']>([
   {
-    title: 'AI 应用生成页面',
-    description: '在这里您可以进行代码生成、应用预览、可视化编辑、部署应用等操作',
-    target: () => document.querySelector('.main-content') as HTMLElement,
-    placement: 'top'
-  },
-  {
     title: '对话输入',
     description: '在这里输入您的需求，AI会根据您的描述生成代码',
     target: () => document.querySelector('.creative-textarea') as HTMLElement,
@@ -1108,8 +1102,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   padding: 20px 30px;
-  background: #f8f9fa;
-  background-image: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
+  background: #f8f9fa linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
   position: relative;
   overflow: hidden;
   font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1621,11 +1614,10 @@ onUnmounted(() => {
 .edit-mode-active .preview-content {
   position: relative;
   overflow: hidden;
-  border-radius: 4px;
-  box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.8),
-  0 0 25px rgba(24, 144, 255, 0.6),
+  border-radius: 12px;
+  box-shadow: 0 0 0 15px rgb(147, 203, 255),
+  0 0 25px rgb(89, 167, 255),
   inset 0 0 20px rgba(24, 144, 255, 0.4);
-  animation: previewHighlight 1.2s ease-in-out infinite alternate;
   transform: scale(1.01);
   transition: all 0.3s ease;
   z-index: 100;
@@ -1633,12 +1625,12 @@ onUnmounted(() => {
 
 @keyframes previewHighlight {
   0% {
-    box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.8),
+    box-shadow: 0 0 0 5px rgba(24, 144, 255, 0.8),
     0 0 25px rgba(24, 144, 255, 0.6),
     inset 0 0 20px rgba(24, 144, 255, 0.4);
   }
   100% {
-    box-shadow: 0 0 0 6px rgba(24, 144, 255, 1),
+    box-shadow: 0 0 0 7px rgba(24, 144, 255, 1),
     0 0 35px rgba(24, 144, 255, 0.8),
     inset 0 0 30px rgba(24, 144, 255, 0.6);
     transform: scale(1.015);
@@ -1652,11 +1644,6 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(24, 144, 255, 0.15) 0%,
-    rgba(24, 144, 255, 0.25) 100%
-  );
   pointer-events: none;
   z-index: 10;
   animation: overlayPulse 1.5s ease-in-out infinite alternate;
