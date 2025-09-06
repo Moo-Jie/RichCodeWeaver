@@ -26,7 +26,7 @@ public class FileModifyTool extends BaseTool {
 
     @Override
     public String getToolName() {
-        return "FileModifyTool";
+        return "modifyFile";
     }
 
     @Override
@@ -35,13 +35,14 @@ public class FileModifyTool extends BaseTool {
     }
 
     @Override
-    public String getResultArguments(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
         String oldContent = arguments.getStr("oldContent");
         String newContent = arguments.getStr("newContent");
+        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "" : "\n[\n" + relativeFilePath + "\n]\n";
         // 显示对比内容
         return String.format("""
-                [工具调用] 修改了： %s （%s）
+                [工具调用结束] %s %s
                 
                 替换前内容：
                 ```
@@ -52,10 +53,10 @@ public class FileModifyTool extends BaseTool {
                 ```
                 %s
                 ```
-                """, getToolDisplayName(), relativeFilePath, oldContent, newContent);
+                """, "成功替换以下文件目录", relativeFilePath, oldContent, newContent);
     }
 
-    @Tool("修改文件内容，用新内容替换指定的旧内容，必须是具体到标点的内容，否则会导致修改失败")
+    @Tool("修改文件内容，用新内容替换指定的旧内容")
     public String modifyFile(
             @P("文件的相对路径")
             String relativeFilePath,

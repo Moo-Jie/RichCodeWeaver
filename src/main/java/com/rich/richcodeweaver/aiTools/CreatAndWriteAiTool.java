@@ -16,7 +16,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 /**
- * 文件创建并写入工具（供 AI 使用）
+ * 文件创建并写入工具，支持 AI 通过工具调用的创建并写入文件
  *
  * @author DuRuiChi
  * @create 2025/8/24
@@ -26,7 +26,7 @@ import java.nio.file.StandardOpenOption;
 public class CreatAndWriteAiTool extends BaseTool {
     @Override
     public String getToolName() {
-        return "CreatAndWriteAiTool";
+        return "creatAndWrite";
     }
 
     @Override
@@ -35,16 +35,17 @@ public class CreatAndWriteAiTool extends BaseTool {
     }
 
     @Override
-    public String getResultArguments(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
         String suffix = FileUtil.getSuffix(relativeFilePath);
         String content = arguments.getStr("content");
+        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "" : "\n[\n" + relativeFilePath + "\n]\n";
         return String.format("""
-                [工具调用] 写入了： %s （%s）
+                [工具调用结束]  %s %s
                 ```%s
                 %s
                 ```
-                """, getToolDisplayName(), relativeFilePath, suffix, content);
+                """, "成功创建并写入以下文件", relativeFilePath, suffix, content);
     }
 
 

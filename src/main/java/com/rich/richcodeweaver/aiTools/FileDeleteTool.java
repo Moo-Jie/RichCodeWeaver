@@ -24,7 +24,7 @@ import java.nio.file.Paths;
 public class FileDeleteTool extends BaseTool {
     @Override
     public String getToolName() {
-        return "FileDeleteTool";
+        return "deleteFile";
     }
 
     @Override
@@ -33,9 +33,10 @@ public class FileDeleteTool extends BaseTool {
     }
 
     @Override
-    public String getResultArguments(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
-        return String.format("[工具调用] 删除了： %s （%s）", getToolDisplayName(), relativeFilePath);
+        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "" : "\n[\n" + relativeFilePath + "\n]\n";
+        return String.format("[工具调用结束] %s %s", "成功删除以下文件", relativeFilePath);
     }
 
     @Tool("删除指定路径的文件")

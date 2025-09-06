@@ -3,19 +3,19 @@ package com.rich.richcodeweaver.aiTools;
 import cn.hutool.json.JSONObject;
 
 /**
- * AI 工具基类，供 AI 调用工具的通用接口
+ * 供 AI 调用工具的基类，供 AI 调用工具的通用接口
  *
  * @author DuRuiChi
  * @create 2025/9/6
  **/
 public abstract class BaseTool {
     /**
-     * 生成响应给用户的信息
+     * 获取工具执行开始时的提示信息
      *
      * @return 工具请求显示内容
      */
     public String getResponseMsg() {
-        return String.format("\n\n[调用系统工具] %s\n\n", getToolDisplayName());
+        return String.format("\n\n[开始调用系统工具] %s\n\n", getToolDisplayName());
     }
 
     /**
@@ -33,10 +33,10 @@ public abstract class BaseTool {
     public abstract String getToolDisplayName();
 
     /**
-     * 获取工具执行结果参数
+     * 获取工具执行结束后的结果
      *
      * @param arguments 工具执行参数
      * @return 格式化的工具执行结果
      */
-    public abstract String getResultArguments(JSONObject arguments);
+    public abstract String getResultMsg(JSONObject arguments);
 }

@@ -26,7 +26,7 @@ import java.util.Set;
 public class FileDirReadTool extends BaseTool {
     @Override
     public String getToolName() {
-        return "FileDirReadTool";
+        return "readDir";
     }
 
     @Override
@@ -35,9 +35,10 @@ public class FileDirReadTool extends BaseTool {
     }
 
     @Override
-    public String getResultArguments(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments) {
         String relativeDirPath = arguments.getStr("relativeDirPath");
-        return String.format("[工具调用] 读取了： %s （%s）", getToolDisplayName(), relativeDirPath);
+        relativeDirPath = relativeDirPath == null || relativeDirPath.isEmpty()  ? "" : "\n[\n" + relativeDirPath + "\n]\n";
+        return String.format("[工具调用结束] %s %s", "成功读取目录下的所有文件和子目录信息", relativeDirPath);
     }
 
     /**

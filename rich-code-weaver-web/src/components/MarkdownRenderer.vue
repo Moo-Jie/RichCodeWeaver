@@ -6,8 +6,6 @@
 import { computed, nextTick, onMounted, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
-
-// 引入代码高亮样式
 import 'highlight.js/styles/github.css'
 
 interface Props {
@@ -16,7 +14,6 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// 配置 markdown-it 实例
 const md: MarkdownIt = new MarkdownIt({
   html: true,
   linkify: true,
@@ -38,44 +35,58 @@ const md: MarkdownIt = new MarkdownIt({
   },
 })
 
-// 预处理Markdown内容，修复AI输出中的代码块格式
+// 预处理Markdown内容，识别并包裹工具调用信息
 const preprocessMarkdown = (content: string): string => {
   if (!content) return ''
 
-  // 修复代码块格式：移除每行代码前的4个空格缩进
-  let processedContent = content.replace(/( {4}```[\s\S]*? {4}```)/g, (match) => {
+  // 识别并包裹工具调用开始标记
+  content = content.replace(
+    /\[开始调用系统工具\]/g,
+    '<div class="tool-call-start">[开始调用系统工具]</div>'
+  )
+
+  // 识别并包裹工具调用结束标记
+  content = content.replace(
+    /\[工具调用结束\]/g,
+    '<div class="tool-call-end">[工具调用结束]</div>'
+  )
+
+  // 包裹工具调用之间的内容
+  content = content.replace(
+    /<div class="tool-call-start">[^<]*<\/div>([\s\S]*?)<div class="tool-call-end">[^<]*<\/div>/g,
+    (_, toolContent) =>
+      `<div class="tool-call">${toolContent}</div>`
+  )
+
+  // 修复代码块格式
+  content = content.replace(/( {4}```[\s\S]*? {4}```)/g, (match) => {
     return match.replace(/^ {4}/gm, '')
   })
 
   // 确保代码块有正确的换行
-  processedContent = processedContent.replace(/```(\w+)\s*\n([\s\S]*?)```/g, '```$1\n$2```')
+  content = content.replace(/```(\w+)\s*\n([\s\S]*?)```/g, '```$1\n$2```')
 
-  return processedContent
+  return content
 }
 
-// 计算渲染后的 Markdown
 const renderedMarkdown = computed(() => {
   const processedContent = preprocessMarkdown(props.content)
   return md.render(processedContent)
 })
 
-// 确保代码高亮在内容更新后执行
 onMounted(() => {
   highlightCode()
 })
 
 watch(() => props.content, () => {
-  // 使用nextTick确保DOM更新后再执行高亮
   nextTick(() => {
     highlightCode()
   })
 })
 
 const highlightCode = () => {
-  // 使用requestAnimationFrame确保在浏览器重绘前执行
   requestAnimationFrame(() => {
     document.querySelectorAll('.markdown-content pre code').forEach((block) => {
-      // 检查是否已经高亮过，避免重复处理
       if (!block.classList.contains('hljs')) {
         hljs.highlightElement(block as HTMLElement)
       }
@@ -91,7 +102,7 @@ const highlightCode = () => {
   word-wrap: break-word;
 }
 
-/* 全局样式，影响 v-html 内容 */
+/* 全局样式 */
 .markdown-content :deep(h1),
 .markdown-content :deep(h2),
 .markdown-content :deep(h3),
@@ -211,7 +222,7 @@ const highlightCode = () => {
   margin: 1.5em 0;
 }
 
-/* 代码高亮样式优化 - 确保样式稳定 */
+/* 代码高亮样式优化 */
 .markdown-content :deep(.hljs) {
   background-color: #f8f8f8 !important;
   border-radius: 6px;
@@ -220,14 +231,12 @@ const highlightCode = () => {
   line-height: 1.4;
   padding: 1em;
   overflow-x: auto;
-  /* 防止字体闪烁 */
   font-size-adjust: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 特定语言的代码块样式 */
 .markdown-content :deep(.hljs-keyword) {
   color: #d73a49;
   font-weight: 600;
@@ -264,21 +273,56 @@ const highlightCode = () => {
 }
 
 /* 工具调用样式 */
-.markdown-content :deep(.tool-call) {
-  background-color: #f0f7ff;
-  border-left: 4px solid #1890ff;
-  padding: 0.5em 1em;
-  margin: 1em 0;
-  border-radius: 0 4px 4px 0;
+.markdown-content :deep(.tool-call-start) {
+  display: inline-block;
+  background-color: #e6f7ff;
+  color: #1890ff;
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  margin: 0.5em 0;
+  font-weight: bold;
   font-family: monospace;
 }
 
-.markdown-content :deep(.tool-call-complete) {
-  background-color: #f0fff4;
-  border-left: 4px solid #52c41a;
-  padding: 0.5em 1em;
-  margin: 1em 0;
-  border-radius: 0 4px 4px 0;
+.markdown-content :deep(.tool-call-end) {
+  display: inline-block;
+  background-color: #f6ffed;
+  color: #52c41a;
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  margin: 0.5em 0;
+  font-weight: bold;
   font-family: monospace;
+}
+
+.markdown-content :deep(.tool-call) {
+  background-color: #f0f7ff;
+  border-left: 4px solid #1890ff;
+  padding: 0.8em 1.2em;
+  margin: 1.2em 0;
+  border-radius: 0 6px 6px 0;
+  font-family: monospace;
+  position: relative;
+}
+
+.markdown-content :deep(.tool-call:before) {
+  content: "< 工具调用 >";
+  position: absolute;
+  top: -0.8em;
+  left: 0;
+  background: #1890ff;
+  color: white;
+  font-size: 0.8em;
+  padding: 0.2em 0.8em;
+  border-radius: 4px 4px 0 0;
+}
+
+.markdown-content :deep(.tool-call pre) {
+  background-color: #e6f7ff;
+  border: 1px solid #91d5ff;
+}
+
+.markdown-content :deep(.tool-call code) {
+  background-color: transparent;
 }
 </style>
