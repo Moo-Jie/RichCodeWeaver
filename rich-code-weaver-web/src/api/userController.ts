@@ -157,16 +157,13 @@ export async function updateUserAdmin(
 }
 
 /** 此处后端没有提供注释 POST /user/update/avatar */
-export async function updateUserAvatar(file: File, options?: { [key: string]: any }) {
-  const formData = new FormData()
-  formData.append('file', file)
-
+export async function updateUserAvatar(body: {}, options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/user/update/avatar', {
     method: 'POST',
     headers: {
-      'Content-Type': 'multipart/form-data',
+      'Content-Type': 'application/json',
     },
-    data: formData,
+    data: body,
     ...(options || {}),
   })
 }

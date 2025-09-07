@@ -49,17 +49,31 @@
               label="应用封面"
               name="cover"
               class="form-item"
-              extra="支持外部图片链接，建议尺寸：400x300"
+              extra="支持外部图片链接或上传本地图片，建议尺寸：400x300"
             >
-              <a-input
-                v-model:value="formData.cover"
-                placeholder="输入封面图片URL链接"
-                allow-clear
-              >
-                <template #prefix>
-                  <PictureOutlined />
-                </template>
-              </a-input>
+              <div class="cover-input-group">
+                <a-input
+                  v-model:value="formData.cover"
+                  placeholder="输入封面图片URL链接"
+                  allow-clear
+                  class="cover-input"
+                >
+                  <template #prefix>
+                    <PictureOutlined />
+                  </template>
+                </a-input>
+                <a-upload
+                  :before-upload="beforeUpload"
+                  :custom-request="({ file }) => handleCoverUpload(file as File)"
+                  :show-upload-list="false"
+                  accept="image/jpeg,image/png"
+                >
+                  <a-button type="primary" class="upload-btn">
+                    <UploadOutlined />
+                    上传图片
+                  </a-button>
+                </a-upload>
+              </div>
 
               <div v-if="formData.cover" class="cover-preview">
                 <div class="preview-title">封面预览</div>
@@ -257,11 +271,12 @@ import {
   SyncOutlined,
   TagOutlined,
   UndoOutlined,
+  UploadOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { DEPLOY_DOMAIN } from '@/config/env'
-import { getAppVoById, updateApp, updateAppByAdmin } from '@/api/appController'
+import { getAppVoById, updateApp, updateAppByAdmin, uploadAppCover } from '@/api/appController'
 import { formatCodeGenType } from '@/enums/codeGenTypes.ts'
 import { formatTime } from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'
@@ -376,6 +391,45 @@ const fetchAppInfo = async () => {
 // 清除封面
 const clearCover = () => {
   formData.cover = ''
+}
+
+// 上传封面图片
+const handleCoverUpload = async (file: File) => {
+  try {
+    const uploadFormData = new FormData()
+    uploadFormData.append('file', file)
+
+    // 直接使用fetch API上传文件，因为自动生成的API方法使用了JSON格式
+    const res = await fetch(`/api/app/upload/cover?appId=${appInfo.value?.id}`, {
+      method: 'POST',
+      body: uploadFormData
+    })
+
+    const result = await res.json()
+
+    if (result.code === 0) {
+      formData.cover = result.data + '?t=' + Date.now() // 添加时间戳强制刷新图片
+      message.success('封面图片上传成功')
+    } else {
+      message.error('上传失败: ' + result.message)
+    }
+  } catch (error) {
+    console.error('上传失败:', error)
+    message.error('上传过程中出现错误')
+  }
+}
+
+// 图片上传前检查
+const beforeUpload = (file: File) => {
+  const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
+  if (!isJpgOrPng) {
+    message.error('只能上传 JPG/PNG 格式的图片!')
+  }
+  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isLt2M) {
+    message.error('图片大小不能超过 2MB!')
+  }
+  return isJpgOrPng && isLt2M
 }
 
 // 提交表单
@@ -597,6 +651,33 @@ onMounted(() => {
       padding: 0 25px;
       font-weight: 600;
       transition: all 0.3s ease;
+    }
+  }
+}
+
+.cover-input-group {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+
+  .cover-input {
+    flex: 1;
+  }
+
+  .upload-btn {
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+    border: none;
+    color: white;
+
+    &:hover {
+      background: linear-gradient(135deg, #5adbc8 0%, #8b9de6 100%);
+      transform: translateY(-1px);
     }
   }
 }

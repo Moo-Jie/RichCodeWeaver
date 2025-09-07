@@ -14,6 +14,7 @@ import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.service.AppService;
+import com.rich.richcodeweaver.service.FileService;
 import com.rich.richcodeweaver.service.UserService;
 import com.rich.richcodeweaver.utils.ResultUtils;
 import jakarta.annotation.Resource;
@@ -23,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
@@ -42,6 +44,9 @@ public class AppController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private FileService fileService;
 
 
     /**
@@ -248,4 +253,30 @@ public class AppController {
         return appService.aiChatAndGenerateCode(appId, userId, message);
     }
 
+    /**
+     * 上传应用封面
+     *
+     * @param file    封面图片
+     * @param appId   应用 ID
+     * @param request 用户信息
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.String>
+     **/
+    @PostMapping("/upload/cover")
+    public BaseResponse<String> uploadAppCover(@RequestParam("file") MultipartFile file, @RequestParam("appId") Long appId, HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(file == null, ErrorCode.PARAMS_ERROR, "参数错误");
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_FOUND_ERROR, "参数错误");
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "参数错误");
+        // 权限校验
+        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "您无权更换他人应用封面");
+        // 上传文件
+        String url = fileService.upload(file);
+        // 更新应用封面
+        app.setCover(url);
+        appService.updateById(app);
+        // 返回图片URL
+        return ResultUtils.success(url);
+    }
 }

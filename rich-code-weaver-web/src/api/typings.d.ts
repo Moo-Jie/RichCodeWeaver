@@ -226,6 +226,10 @@ declare namespace API {
 
   type ServerSentEventString = true
 
+  type uploadAppCoverParams = {
+    appId: number
+  }
+
   type User = {
     id?: number
     userAccount?: string

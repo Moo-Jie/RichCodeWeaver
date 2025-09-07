@@ -216,6 +216,7 @@
               <a-tooltip :title="isEditMode ? '退出编辑模式' : '进入可视化编辑模式'"
                          placement="top">
                 <a-button
+                  v-if="!isGenerating"
                   shape="circle"
                   size="large"
                   @click="toggleEditMode"
