@@ -287,6 +287,7 @@ onMounted(() => {
             type="primary"
             class="action-button create-button"
             @click="createApp"
+            target="_blank"
             :loading="creating"
           >
             <template #icon>

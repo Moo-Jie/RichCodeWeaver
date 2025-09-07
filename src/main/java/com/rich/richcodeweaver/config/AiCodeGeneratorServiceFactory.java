@@ -142,7 +142,7 @@ public class AiCodeGeneratorServiceFactory {
                         // 当前模式使用了 memoryId ,强制要求指定 chatMemoryProvider
                         .chatMemoryProvider(id -> chatMemory)
                         // 指定供 AI 调用的自定义工具包
-                        .tools((Object) toolsManager.getAllTools())
+                        .tools(toolsManager.getAllTools())
                         // 当幻觉调用工具名称时，使用自定义策略
                         // 参考 ：https://blog.csdn.net/qq_52155674/article/details/147238250
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(

@@ -33,6 +33,8 @@
               name="avatar"
               :show-upload-list="false"
               class="avatar-uploader"
+              :before-upload="handleAvatarUpload"
+              :custom-request="({ file }) => handleAvatarUpload(file as File)"
             >
               <a-button class="upload-btn gradient-button">
                 <UploadOutlined />
@@ -175,22 +177,26 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref, onMounted } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
-  UserOutlined,
-  LockOutlined,
-  EditOutlined,
   CalendarOutlined,
+  EditOutlined,
+  LockOutlined,
+  LogoutOutlined,
   UploadOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  LogoutOutlined
+  UserOutlined
 } from '@ant-design/icons-vue'
-import { getLoginUser, updateUser, updateUserPassword, userLogout } from '@/api/userController'
+import {
+  getLoginUser,
+  updateUser,
+  updateUserAvatar,
+  updateUserPassword,
+  userLogout
+} from '@/api/userController'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -316,6 +322,24 @@ const handleMobile = () => {
 // TODO 处理邮箱操作
 const handleEmail = () => {
   message.info('邮箱绑定功能即将上线')
+}
+
+// 处理头像上传
+const handleAvatarUpload = async (file: File) => {
+  try {
+    const res = await updateUserAvatar(file)
+    if (res.data.code === 0) {
+      message.success('头像上传成功')
+      // 重新获取用户信息以更新头像
+      await fetchUserInfo()
+    } else {
+      message.error('头像上传失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('头像上传失败：', error)
+    message.error('头像上传失败')
+  }
+  return false // 阻止默认上传行为
 }
 
 // 退出登录

@@ -112,6 +112,85 @@
             <p>2. 点击"部署为可访问网站"按钮，即可部署应用。</p>
             <p>3. 后续点击"访问已部署网站"即可访问应用。</p>
           </div>
+
+          <div v-if="activeSection.id === 'vue-optimization'">
+            <h3>Vue项目优化指南</h3>
+            <p><strong>1. 代码分割与懒加载</strong></p>
+            <p>• 使用路由懒加载：const Home = () => import('./views/Home.vue')</p>
+            <p>• 组件懒加载：使用 defineAsyncComponent 异步加载大型组件</p>
+
+            <p><strong>2. 性能优化</strong></p>
+            <p>• 使用 v-once 处理静态内容</p>
+            <p>• 合理使用 computed 和 watch，避免不必要的重新渲染</p>
+            <p>• 使用 keep-alive 缓存组件状态</p>
+
+            <p><strong>3. 构建优化</strong></p>
+            <p>• 配置 externals 减少打包体积</p>
+            <p>• 使用 Tree Shaking 移除未使用代码</p>
+            <p>• 启用 gzip 压缩</p>
+          </div>
+
+          <div v-if="activeSection.id === 'code-refactor'">
+            <h3>代码重构技巧</h3>
+            <p><strong>1. 组件化重构</strong></p>
+            <p>• 将大型组件拆分为多个小型可复用组件</p>
+            <p>• 使用 Composition API 提取可复用逻辑</p>
+            <p>• 创建通用的基础组件和业务组件</p>
+
+            <p><strong>2. 代码质量提升</strong></p>
+            <p>• 添加 TypeScript 类型定义</p>
+            <p>• 使用 ESLint 和 Prettier 统一代码风格</p>
+            <p>• 编写单元测试和组件测试</p>
+
+            <p><strong>3. 性能优化重构</strong></p>
+            <p>• 优化不必要的重新渲染</p>
+            <p>• 减少不必要的计算和监听</p>
+            <p>• 优化图片和静态资源加载</p>
+          </div>
+
+          <div v-if="activeSection.id === 'performance-optimization'">
+            <h3>性能优化方法</h3>
+            <p><strong>1. 加载性能</strong></p>
+            <p>• 使用 CDN 加速静态资源</p>
+            <p>• 配置合适的缓存策略</p>
+            <p>• 优化首屏加载时间</p>
+
+            <p><strong>2. 运行时性能</strong></p>
+            <p>• 避免不必要的组件重新渲染</p>
+            <p>• 使用虚拟滚动处理大数据列表</p>
+            <p>• 优化事件处理函数</p>
+
+            <p><strong>3. 构建优化</strong></p>
+            <p>• 分析打包体积，移除未使用代码</p>
+            <p>• 使用代码分割和懒加载</p>
+            <p>• 压缩和优化生产环境代码</p>
+          </div>
+
+          <div v-if="activeSection.id === 'prompt-best-practice'">
+            <h3>提示词最佳实践</h3>
+            <p><strong>1. 明确项目需求</strong></p>
+            <p>• 清晰描述应用的核心功能和目标用户</p>
+            <p>• 指定技术栈偏好（Vue 3 + TypeScript + Vite）</p>
+            <p>• 定义项目结构和代码规范</p>
+
+            <p><strong>2. 详细功能描述</strong></p>
+            <p>• 列出所有需要的页面和组件</p>
+            <p>• 描述用户交互流程和数据流</p>
+            <p>• 指定 UI/UX 设计要求</p>
+
+            <p><strong>3. 技术约束</strong></p>
+            <p>• 指定使用的第三方库和版本</p>
+            <p>• 定义代码风格和命名规范</p>
+            <p>• 设置性能和安全要求</p>
+
+            <p><strong>4. 示例模板</strong></p>
+            <p>创建一个电商网站，使用 Vue 3 + TypeScript，包含：</p>
+            <p>• 商品列表页（分页、搜索、筛选）</p>
+            <p>• 商品详情页（图片轮播、规格选择）</p>
+            <p>• 购物车功能（本地存储）</p>
+            <p>• 用户登录/注册（JWT认证）</p>
+            <p>• 响应式设计，支持移动端</p>
+          </div>
         </div>
 
         <div v-else class="placeholder-section">
@@ -143,15 +222,13 @@ const quickStartItems = reactive([
 ]);
 
 const optimizationItems = reactive([
-  { id: 'api-overview', title: '代码优化' },
-  { id: 'auth-api', title: '数据本地化' },
-  { id: 'app-api', title: '部署优化' }
+  { id: 'vue-optimization', title: 'Vue项目优化指南' },
+  { id: 'code-refactor', title: '代码重构技巧' },
+  { id: 'performance-optimization', title: '性能优化方法' }
 ]);
 
 const bestPracticeItems = reactive([
-  { id: 'ecommerce-case', title: '电商应用案例' },
-  { id: 'education-case', title: '教育应用案例' },
-  { id: 'performance-opt', title: '性能优化指南' }
+  { id: 'prompt-best-practice', title: '提示词最佳实践' },
 ]);
 
 // 当前活动文档区域

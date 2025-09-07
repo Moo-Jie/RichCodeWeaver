@@ -7,8 +7,8 @@
 
       <div class="mission-card fade-in-up" v-intersect>
         <div class="mission-content">
-          <h2>我们的使命</h2>
-          <p>通过AI技术降低软件开发门槛，让每个人都能轻松将创意转化为功能完备的数字产品，赋能开发者、设计师和创业者实现技术梦想。</p>
+          <h2>我的愿想</h2>
+          <p>通过AI技术降低软件开发门槛，让每个人都能轻松将创意转化为功能完备的数字产品，赋能开发者、设计师和创业者实现自己的 IDEA。</p>
         </div>
       </div>
     </section>
@@ -16,8 +16,8 @@
     <!-- 核心价值部分 -->
     <section class="values-section">
       <div class="section-header fade-in-up" v-intersect>
-        <h2>核心价值</h2>
-        <p>我们致力于为创作者提供最强大的工具和最友好的体验</p>
+        <h2>一些特点</h2>
+        <p>基于 AI，提供智能应用生成服务</p>
       </div>
 
       <div class="values-grid">
@@ -28,7 +28,7 @@
         </div>
 
         <div class="value-card fade-in-up" v-intersect>
-          <div class="value-icon">🧠</div>
+          <div class="value-icon">💬</div>
           <h3>智能生成</h3>
           <p>基于最先进的AI模型，理解自然语言需求生成高质量代码</p>
         </div>
@@ -41,16 +41,16 @@
       </div>
     </section>
 
-    <!-- 技术架构部分 -->
+    <!-- 架构设计部分 -->
     <section class="tech-section">
       <div class="section-header fade-in-up" v-intersect>
-        <h2>技术架构</h2>
+        <h2>架构设计</h2>
         <p>融合前沿AI技术与工程实践，打造强大创作引擎</p>
       </div>
 
       <div class="tech-diagram fade-in-up" v-intersect>
         <div class="tech-layer">
-          <div class="layer-icon">💬</div>
+          <div class="layer-icon">🧠</div>
           <h3>自然语言理解</h3>
           <p>深度解析用户需求，提取关键创作要素</p>
         </div>
@@ -84,15 +84,17 @@
     <!-- 团队介绍部分 -->
     <section class="team-section">
       <div class="section-header fade-in-up" v-intersect>
-        <h2>作者</h2>
+        <h2>关于作者</h2>
       </div>
 
       <div class="team-grid">
         <div class="team-card fade-in-up" v-intersect>
           <div class="avatar" style="background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);">Z</div>
           <h3>MO-JIE</h3>
-          <p class="role">Java 开发</p>
-          <p class="bio">GitHub：https://github.com/Moo-Jie</p>
+          <p>Java 后端开发</p>
+          <p class="bio">
+            <a href="https://github.com/Moo-Jie" target="_blank">GitHub : https://github.com/Moo-Jie</a>
+          </p>
         </div>
 
 <!--        <div class="team-card fade-in-up" v-intersect>-->

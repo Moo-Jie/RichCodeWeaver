@@ -8,21 +8,21 @@
            class="social-link">
           <GithubOutlined />
         </a>
-        <a href="#" class="social-link">
+        <a href="#" class="social-link" target="_blank">
           <WeiboOutlined />
         </a>
-        <a href="#" class="social-link">
+        <a href="#" class="social-link" target="_blank">
           <WechatOutlined />
         </a>
       </div>
 
       <!-- 导航链接 -->
       <nav class="footer-nav">
-        <a href="/other/about" class="nav-link">关于我们</a>
-        <a href="/other/docs" class="nav-link">文档中心</a>
-        <a href="/other/privacy" class="nav-link">隐私政策</a>
-        <a href="/other/terms" class="nav-link">服务条款</a>
-        <a href="/other/contact" class="nav-link">联系我们</a>
+        <a href="/other/about" class="nav-link" target="_blank">关于我们</a>
+        <a href="/other/docs" class="nav-link" target="_blank">文档中心</a>
+        <a href="/other/privacy" class="nav-link" target="_blank">隐私政策</a>
+        <a href="/other/terms" class="nav-link" target="_blank">服务条款</a>
+        <a href="/other/contact" class="nav-link" target="_blank">联系我们</a>
       </nav>
 
       <!-- 版权声明 -->

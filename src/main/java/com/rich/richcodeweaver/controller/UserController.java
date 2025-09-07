@@ -5,6 +5,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.rich.richcodeweaver.annotation.AuthCheck;
 import com.rich.richcodeweaver.model.common.BaseResponse;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
+import com.rich.richcodeweaver.service.FileService;
 import com.rich.richcodeweaver.utils.ResultUtils;
 import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.BusinessException;
@@ -15,14 +16,12 @@ import com.rich.richcodeweaver.model.vo.LoginUserVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.service.UserService;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -37,6 +36,9 @@ public class UserController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private FileService fileService;
 
     /**
      * 用户注册
@@ -146,7 +148,6 @@ public class UserController {
      * 更新用户
      */
     @PostMapping("/update")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -155,6 +156,41 @@ public class UserController {
         BeanUtil.copyProperties(userUpdateRequest, user);
         boolean result = userService.updateById(user);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 更新用户（管理员）
+     */
+    @PostMapping("/update/admin")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> updateUserAdmin(@RequestBody UserUpdateRequest userUpdateRequest) {
+        if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User user = new User();
+        BeanUtil.copyProperties(userUpdateRequest, user);
+        boolean result = userService.updateById(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 更新头像
+     *
+     * @param file
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean>
+     * @author DuRuiChi
+     * @create 2025/9/7
+     **/
+    @PostMapping("/update/avatar")
+    public BaseResponse<Boolean> updateUserAvatar(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+        ThrowUtils.throwIf(file == null || file.isEmpty(), ErrorCode.PARAMS_ERROR);
+        String url = fileService.upload(file);
+        User loginUser = userService.getLoginUser(request);
+        loginUser.setUserAvatar(url);
+        boolean result = userService.updateById(loginUser);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "更新头像失败");
         return ResultUtils.success(true);
     }
 
@@ -182,7 +218,7 @@ public class UserController {
      * 更新用户密码
      *
      * @param userUpdatePasswordRequest 更新密码请求参数
-     * @return  更新密码是否成功
+     * @return 更新密码是否成功
      */
     @PostMapping("/update/password")
     public BaseResponse<Boolean> updateUserPassword(@RequestBody UserUpdatePasswordRequest userUpdatePasswordRequest) {
