@@ -1,12 +1,25 @@
-<script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+<script lang="ts" setup>
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import type { TourProps } from 'ant-design-vue'
 import { message, Tour } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { addApp, listMyAppVoByPage, listStarAppVoByPage } from '@/api/appController'
 import { getDeployUrl } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
-import type { TourProps } from 'ant-design-vue'
+// 导入图标
+import {
+  AppstoreOutlined,
+  CheckCircleFilled,
+  CodeOutlined,
+  FileOutlined,
+  FolderOutlined,
+  PlayCircleOutlined,
+  QuestionCircleOutlined,
+  RobotOutlined,
+  RocketOutlined
+} from '@ant-design/icons-vue'
+import { promptOptions } from '@/constants/prompts.ts'
 
 // 当前激活的选项卡状态
 const activeTab = ref('my')
@@ -54,21 +67,6 @@ const handleTourClose = () => {
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
-
-// 导入图标
-import {
-  AppstoreOutlined,
-  PlayCircleOutlined,
-  PlusOutlined,
-  RocketOutlined,
-  QuestionCircleOutlined,
-  CheckCircleFilled,
-  RobotOutlined,
-  CodeOutlined,
-  FolderOutlined,
-  FileOutlined
-} from '@ant-design/icons-vue'
-import { promptOptions } from '@/constants/prompts.ts'
 
 // 控制下拉框可见性
 const showPromptDropdown = ref(false)
@@ -225,20 +223,20 @@ onMounted(() => {
       <div class="input-section">
         <a-textarea
           v-model:value="userPrompt"
-          placeholder="描述您想要创建的创意作品..."
-          :rows="4"
           :maxlength="1000"
+          :rows="4"
           class="prompt-input"
+          placeholder="描述您想要创建的创意作品..."
         />
 
         <!-- 按钮组 -->
         <div class="action-buttons">
           <!-- 快速入门按钮 -->
           <a-button
-            size="large"
             class="action-button tour-button"
-            @click="startTour"
+            size="large"
             type="primary"
+            @click="startTour"
           >
             <template #icon>
               <PlayCircleOutlined />
@@ -248,10 +246,10 @@ onMounted(() => {
 
           <!-- 自动填入提示词按钮 -->
           <a-button
-            size="large"
             class="action-button rich-select-button"
-            @click="showPromptDropdown = !showPromptDropdown"
+            size="large"
             type="primary"
+            @click="showPromptDropdown = !showPromptDropdown"
           >
             <template #icon>
               <AppstoreOutlined />
@@ -269,7 +267,7 @@ onMounted(() => {
                 @click="handlePromptSelect(option.value)"
               >
                 <div class="option-content">
-                  <span class="option-icon" :style="{backgroundColor: option.color}">
+                  <span :style="{backgroundColor: option.color}" class="option-icon">
                     <component :is="option.icon" />
                   </span>
                   <div class="option-text">
@@ -283,12 +281,12 @@ onMounted(() => {
 
           <!-- 创建作品按钮 -->
           <a-button
-            size="large"
-            type="primary"
-            class="action-button create-button"
-            @click="createApp"
-            target="_blank"
             :loading="creating"
+            class="action-button create-button"
+            size="large"
+            target="_blank"
+            type="primary"
+            @click="createApp"
           >
             <template #icon>
               <RocketOutlined />
@@ -316,8 +314,8 @@ onMounted(() => {
             <div
               v-for="option in generatorOptions"
               :key="option.value"
-              class="mode-card"
               :class="{ active: generatorType === option.value }"
+              class="mode-card"
               @click="generatorType = option.value"
             >
               <div class="card-icon">
@@ -329,10 +327,12 @@ onMounted(() => {
               <div class="card-content">
                 <div class="card-title">{{ option.label }}</div>
                 <div class="card-desc">
-                  <span v-if="option.value === 'AI_STRATEGY'">AI 自主规划模式会智能分析您的需求并生成完整应用</span>
+                  <span
+                    v-if="option.value === 'AI_STRATEGY'">AI 自主规划模式会智能分析您的需求并生成完整应用</span>
                   <span
                     v-else-if="option.value === 'VUE_PROJECT'">Vue 工程项目模式会生成完整的基于Vue 3框架的项目，适合复杂的应用，但生成时间更长</span>
-                  <span v-else-if="option.value === 'MULTI_FILE'">多文件模式会生成多个文件的应用结构</span>
+                  <span
+                    v-else-if="option.value === 'MULTI_FILE'">多文件模式会生成多个文件的应用结构</span>
                   <span v-else>单文件模式会生成单个 HTML 文件，适合简单应用，极速生成</span>
                 </div>
               </div>
@@ -349,16 +349,16 @@ onMounted(() => {
         <div class="card-header">
           <div class="header-tabs">
             <div
-              class="tab"
               :class="{ active: activeTab === 'my' }"
+              class="tab"
               @click="activeTab = 'my'"
             >
               <span class="tab-icon">🎨</span>
               <span class="tab-text">我的创作空间</span>
             </div>
             <div
-              class="tab"
               :class="{ active: activeTab === 'featured' }"
+              class="tab"
               @click="activeTab = 'featured'"
             >
               <span class="tab-icon">⭐</span>
@@ -371,7 +371,7 @@ onMounted(() => {
           <!-- 我的作品区域 -->
           <div v-show="activeTab === 'my'" class="workspace-section my-workspace">
             <div class="app-grid-wrapper">
-              <transition-group name="fade" appear>
+              <transition-group appear name="fade">
                 <AppCard
                   v-for="app in myApps"
                   :key="app.id"
@@ -385,9 +385,9 @@ onMounted(() => {
               <a-pagination
                 v-model:current="myAppsPage.current"
                 v-model:page-size="myAppsPage.pageSize"
-                :total="myAppsPage.total"
                 :show-size-changer="false"
                 :show-total="(total: number) => `共 ${total} 个项目`"
+                :total="myAppsPage.total"
                 @change="loadMyApps"
               />
             </div>
@@ -396,7 +396,7 @@ onMounted(() => {
           <!-- 星选案例区域 -->
           <div v-show="activeTab === 'featured'" class="workspace-section featured-workspace">
             <div class="app-grid-wrapper">
-              <transition-group name="fade" appear>
+              <transition-group appear name="fade">
                 <AppCard
                   v-for="app in featuredApps"
                   :key="app.id"
@@ -411,9 +411,9 @@ onMounted(() => {
               <a-pagination
                 v-model:current="featuredAppsPage.current"
                 v-model:page-size="featuredAppsPage.pageSize"
-                :total="featuredAppsPage.total"
                 :show-size-changer="false"
                 :show-total="(total: number) => `共 ${total} 个作品`"
+                :total="featuredAppsPage.total"
                 @change="loadFeaturedApps"
               />
             </div>
@@ -424,8 +424,8 @@ onMounted(() => {
 
     <!--  Tour 组件 -->
     <Tour
-      v-model:open="tourOpen"
       v-model:current="tourCurrent"
+      v-model:open="tourOpen"
       :steps="tourSteps"
       @close="handleTourClose"
     />

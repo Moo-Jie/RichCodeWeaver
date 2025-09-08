@@ -130,13 +130,13 @@
 <script setup lang="ts">
 import {
   ArrowLeftOutlined,
-  CodeOutlined,
-  EditOutlined,
   CloudServerOutlined,
+  CodeOutlined,
+  CustomerServiceOutlined,
+  EditOutlined,
   ShareAltOutlined,
-  WarningOutlined,
-  CustomerServiceOutlined
-} from '@ant-design/icons-vue';
+  WarningOutlined
+} from '@ant-design/icons-vue'
 </script>
 
 <style scoped>

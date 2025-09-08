@@ -203,13 +203,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { reactive, ref } from 'vue'
 import {
-  RocketOutlined,
+  ArrowLeftOutlined,
   CodeOutlined,
   ExperimentOutlined,
-  ArrowLeftOutlined
-} from '@ant-design/icons-vue';
+  RocketOutlined
+} from '@ant-design/icons-vue'
 
 // 折叠面板状态管理
 const activeKeys = ref<string[]>(['1']);

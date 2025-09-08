@@ -240,19 +240,19 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
-  PictureOutlined,
-  EllipsisOutlined,
-  StarFilled,
-  StarOutlined,
+  ArrowRightOutlined,
   CalendarOutlined,
   ClockCircleOutlined,
-  UserOutlined,
+  EllipsisOutlined,
+  EyeInvisibleOutlined,
   EyeOutlined,
   InfoCircleOutlined,
-  ArrowRightOutlined,
-  EyeInvisibleOutlined
+  PictureOutlined,
+  StarFilled,
+  StarOutlined,
+  UserOutlined
 } from '@ant-design/icons-vue'
-import { listAppVoByPageByAdmin, deleteApp, updateAppByAdmin } from '@/api/appController'
+import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
 import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
 import { formatTime } from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'

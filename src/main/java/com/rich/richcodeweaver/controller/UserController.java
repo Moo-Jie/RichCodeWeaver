@@ -3,25 +3,24 @@ package com.rich.richcodeweaver.controller;
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.rich.richcodeweaver.annotation.AuthCheck;
-import com.rich.richcodeweaver.model.common.BaseResponse;
-import com.rich.richcodeweaver.model.common.DeleteRequest;
-import com.rich.richcodeweaver.service.FileService;
-import com.rich.richcodeweaver.utils.ResultUtils;
 import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.exception.ThrowUtils;
+import com.rich.richcodeweaver.model.common.BaseResponse;
+import com.rich.richcodeweaver.model.common.DeleteRequest;
 import com.rich.richcodeweaver.model.dto.user.*;
+import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.vo.LoginUserVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
+import com.rich.richcodeweaver.service.FileService;
+import com.rich.richcodeweaver.service.UserService;
+import com.rich.richcodeweaver.utils.ResultUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
-import com.rich.richcodeweaver.model.entity.User;
-import com.rich.richcodeweaver.service.UserService;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.util.List;
 
 /**

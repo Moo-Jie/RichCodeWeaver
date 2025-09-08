@@ -284,12 +284,26 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Override
     public File getOutputDir(App app) {
         String codeGenType = app.getCodeGenType();
-        Long appId = app.getId();
         // 通过代码生成类型、应用 ID 构建生成目录名称
         String outputDirName = codeGenType + "_" + app.getId();
         if (codeGenType.equals(CodeGeneratorTypeEnum.VUE_PROJECT.getValue())) {
             outputDirName += File.separator + "dist";
         }
+        // 拼接到绝对路径
+        return new File(AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
+    }
+
+    /**
+     * 构建用于删除的代码输出文件夹（没有 dist 直接删除整个目录）
+     *
+     * @param app 应用
+     * @return java.io.File
+     **/
+    @Override
+    public File getDelOutputDir(App app) {
+        String codeGenType = app.getCodeGenType();
+        // 通过代码生成类型、应用 ID 构建生成目录名称
+        String outputDirName = codeGenType + "_" + app.getId();
         // 拼接到绝对路径
         return new File(AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
     }
@@ -472,7 +486,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         chatHistoryService.deleteByAppId(id);
 
         // 拼接输出目录路径
-        File outputDir = appService.getOutputDir(oldApp);
+        File outputDir = appService.getDelOutputDir(oldApp);
         // 拼接部署目录路径
         File deployDir = appService.getDeployDir(oldApp.getDeployKey());
         // 校验输出目录

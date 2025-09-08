@@ -276,7 +276,7 @@ import {
 } from '@ant-design/icons-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { DEPLOY_DOMAIN } from '@/config/env'
-import { getAppVoById, updateApp, updateAppByAdmin, uploadAppCover } from '@/api/appController'
+import { getAppVoById, updateApp, updateAppByAdmin } from '@/api/appController'
 import { formatCodeGenType } from '@/enums/codeGenTypes.ts'
 import { formatTime } from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'

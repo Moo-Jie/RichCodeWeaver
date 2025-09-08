@@ -114,12 +114,12 @@
 <script setup lang="ts">
 import {
   ArrowLeftOutlined,
-  RocketOutlined,
   ExperimentOutlined,
-  SecurityScanOutlined,
+  MailOutlined,
   MessageOutlined,
-  MailOutlined
-} from '@ant-design/icons-vue';
+  RocketOutlined,
+  SecurityScanOutlined
+} from '@ant-design/icons-vue'
 </script>
 
 <style scoped>

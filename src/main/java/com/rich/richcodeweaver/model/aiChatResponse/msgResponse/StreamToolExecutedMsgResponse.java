@@ -1,7 +1,6 @@
 package com.rich.richcodeweaver.model.aiChatResponse.msgResponse;
 
 import com.rich.richcodeweaver.model.enums.ReasoningStreamMsgTypeEnum;
-import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.service.tool.ToolExecution;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

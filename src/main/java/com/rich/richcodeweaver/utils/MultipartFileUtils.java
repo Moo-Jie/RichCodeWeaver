@@ -1,11 +1,11 @@
 package com.rich.richcodeweaver.utils;
- 
+
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import org.apache.http.entity.ContentType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
- 
+
 import java.io.*;
  
 /**

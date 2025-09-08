@@ -215,22 +215,16 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
+  CalendarOutlined,
   DeleteOutlined,
   EditOutlined,
-  UserOutlined,
-  CalendarOutlined,
   EllipsisOutlined,
-  SearchOutlined,
+  LockOutlined,
   ReloadOutlined,
-  LockOutlined
+  SearchOutlined,
+  UserOutlined
 } from '@ant-design/icons-vue'
-import {
-  deleteUser,
-  listUserVoByPage,
-  resetUserPassword,
-  updateUser,
-  updateUserPassword
-} from '@/api/userController'
+import { deleteUser, listUserVoByPage, resetUserPassword, updateUser } from '@/api/userController'
 import dayjs from 'dayjs'
 
 const router = useRouter()

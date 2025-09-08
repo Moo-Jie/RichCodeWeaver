@@ -143,22 +143,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import {
-  EditOutlined,
-  DeleteOutlined,
-  UserOutlined,
-  CalendarOutlined,
-  SyncOutlined,
-  CloudServerOutlined,
   AppstoreOutlined,
-  PictureOutlined,
-  MessageOutlined,
+  CalendarOutlined,
+  CloudServerOutlined,
+  DeleteOutlined,
+  EditOutlined,
   FlagOutlined,
-  IdcardOutlined
+  IdcardOutlined,
+  MessageOutlined,
+  PictureOutlined,
+  SyncOutlined,
+  UserOutlined
 } from '@ant-design/icons-vue'
 import UserInfo from './UserInfo.vue'
-import AppVO = API.AppVO
 import { formatTime } from '../utils/timeUtil.ts'
 import { formatCodeGenType } from '../enums/codeGenTypes.ts'
+import AppVO = API.AppVO
 
 interface Props {
   open: boolean

@@ -4,11 +4,13 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
-import com.rich.richcodeweaver.model.dto.app.*;
+import com.rich.richcodeweaver.model.dto.app.AppAddRequest;
+import com.rich.richcodeweaver.model.dto.app.AppAdminUpdateRequest;
+import com.rich.richcodeweaver.model.dto.app.AppQueryRequest;
+import com.rich.richcodeweaver.model.dto.app.AppUpdateRequest;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.entity.User;
 import com.rich.richcodeweaver.model.vo.AppVO;
-import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
@@ -161,4 +163,12 @@ public interface AppService extends IService<App> {
      * @return java.io.File
      **/
     public File getDeployDir(String deployKey) ;
+
+    /**
+     * 构建用于删除的代码输出文件夹（没有 dist 直接删除整个目录）
+     *
+     * @param app 应用
+     * @return java.io.File
+     **/
+    public File getDelOutputDir(App app);
 }

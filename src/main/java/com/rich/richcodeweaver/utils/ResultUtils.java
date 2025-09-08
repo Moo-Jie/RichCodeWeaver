@@ -1,7 +1,7 @@
 package com.rich.richcodeweaver.utils;
 
-import com.rich.richcodeweaver.model.common.BaseResponse;
 import com.rich.richcodeweaver.exception.ErrorCode;
+import com.rich.richcodeweaver.model.common.BaseResponse;
 
 /**
  * 响应构建工具类

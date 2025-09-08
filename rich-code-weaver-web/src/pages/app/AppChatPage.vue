@@ -211,7 +211,7 @@
                   </template>
                 </a-button>
               </a-tooltip>
-
+              &nbsp;&nbsp;&nbsp;
               <!-- 编辑按钮 -->
               <a-tooltip :title="isEditMode ? '退出编辑模式' : '进入可视化编辑模式'"
                          placement="top">
@@ -230,7 +230,7 @@
                   </template>
                 </a-button>
               </a-tooltip>
-
+              &nbsp;&nbsp;&nbsp;
               <!-- 发送按钮 -->
               <a-tooltip v-if="!isOwner" title="请创建自己的作品来与AI对话" placement="top">
                 <a-button
@@ -246,7 +246,7 @@
                   </template>
                 </a-button>
               </a-tooltip>
-
+              &nbsp;&nbsp;&nbsp;
               <a-tooltip v-else title="开始对话" placement="top">
                 <a-button
                   type="primary"
@@ -365,8 +365,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message, Modal, Tour } from 'ant-design-vue'
 import type { TourProps } from 'ant-design-vue'
+import { message, Modal, Tour } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import {
   deleteApp as deleteAppApi,
@@ -944,7 +944,7 @@ const updatePreview = () => {
       if (previewIframe.value) {
         previewIframe.value.src = previewUrl.value
       }
-    }, 500) // 短暂延迟确保DOM已更新
+    }, 1000) // 短暂延迟确保DOM已更新
   }
 }
 

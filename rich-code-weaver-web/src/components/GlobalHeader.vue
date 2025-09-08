@@ -72,11 +72,11 @@ import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
 import {
-  BorderlessTableOutlined,
   AuditOutlined,
-  UserOutlined,
+  BorderlessTableOutlined,
+  HomeOutlined,
   LogoutOutlined,
-  HomeOutlined
+  UserOutlined
 } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()

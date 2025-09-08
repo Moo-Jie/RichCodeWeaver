@@ -67,7 +67,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons-vue'
+import { LockOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons-vue'
 import { userRegister } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 

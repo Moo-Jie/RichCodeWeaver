@@ -116,7 +116,6 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
 
 // 苹果风格的交互动效指令
 const vIntersect = {
