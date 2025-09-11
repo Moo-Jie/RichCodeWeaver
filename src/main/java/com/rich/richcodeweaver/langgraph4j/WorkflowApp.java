@@ -52,13 +52,13 @@ public class WorkflowApp {
         // 初始化工作流上下文，用于存储工作流的状态信息
         WorkflowContext initialContext = WorkflowContext.builder()
                 // 初始提示词
-                .originalPrompt("创建一个鱼皮的个人博客网站")
+                .originalPrompt("此处为用户输入")
                 // 当前状态
-                .currentStep("初始化")
+                .currentStep("初始化完成")
                 .build();
 
         log.info("初始输入: {}", initialContext.getOriginalPrompt());
-        log.info("开始执行工作流");
+        log.info("开始执行工作流。");
 
         // 创建一个可视化工作流图
         GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);

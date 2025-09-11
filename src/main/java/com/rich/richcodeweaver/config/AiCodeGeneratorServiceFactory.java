@@ -2,7 +2,7 @@ package com.rich.richcodeweaver.config;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.rich.richcodeweaver.aiTools.ToolsManager;
+import com.rich.richcodeweaver.aiTools.base.ToolsManager;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.AiCodeGeneratorService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
