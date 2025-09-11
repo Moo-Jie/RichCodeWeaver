@@ -2,7 +2,7 @@
   <div class="markdown-content" v-html="renderedMarkdown"></div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, nextTick, onMounted, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
@@ -18,7 +18,7 @@ const md: MarkdownIt = new MarkdownIt({
   html: true,
   linkify: true,
   typographer: true,
-  highlight: function (str: string, lang: string): string {
+  highlight: function(str: string, lang: string): string {
     if (lang && hljs.getLanguage(lang)) {
       try {
         return (
@@ -32,7 +32,7 @@ const md: MarkdownIt = new MarkdownIt({
     }
 
     return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
-  },
+  }
 })
 
 // 预处理Markdown内容，识别并包裹工具调用信息

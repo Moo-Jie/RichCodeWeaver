@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 /**
  * Represents a token stream from the model to which you can subscribe and receive updates
  * when a new partial response (usually a single token) is available,
- *  when the model finishes streaming, or when an error occurs during streaming.
+ * when the model finishes streaming, or when an error occurs during streaming.
  * It is intended to be used as a return type in AI Service.
  */
 public interface TokenStream {

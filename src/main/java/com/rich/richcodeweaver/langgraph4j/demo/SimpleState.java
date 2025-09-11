@@ -24,6 +24,6 @@ class SimpleState extends AgentState {
 
     public List<String> messages() {
         return this.<List<String>>value("messages")
-                .orElse( List.of() );
+                .orElse(List.of());
     }
 }

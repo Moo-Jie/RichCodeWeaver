@@ -18,21 +18,18 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class ImageResource implements Serializable {
 
+    @Serial
+    private static final long serialVersionUID = 1L;
     /**
      * 图片类别
      */
     private ImageCategoryEnum category;
-
     /**
      * 图片描述
      */
     private String description;
-
     /**
      * 图片地址
      */
     private String url;
-
-    @Serial
-    private static final long serialVersionUID = 1L;
 }

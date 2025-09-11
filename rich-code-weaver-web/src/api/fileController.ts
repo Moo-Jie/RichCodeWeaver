@@ -7,9 +7,9 @@ export async function upload(body: {}, options?: { [key: string]: any }) {
   return request<API.BaseResponseString>('/file/upload', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }

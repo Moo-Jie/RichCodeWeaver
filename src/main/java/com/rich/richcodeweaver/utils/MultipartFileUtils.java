@@ -7,12 +7,12 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
- 
+
 /**
  * MultipartFile和File互转工具类
  */
 public class MultipartFileUtils {
- 
+
     /**
      * 输入流转MultipartFile
      *
@@ -30,7 +30,7 @@ public class MultipartFileUtils {
         }
         return multipartFile;
     }
- 
+
     /**
      * 读取网络文件
      *
@@ -43,7 +43,7 @@ public class MultipartFileUtils {
         InputStream inputStream = response.bodyStream();
         return MultipartFileUtils.getMultipartFile(fileName, inputStream);
     }
- 
+
     /**
      * File 转 MultipartFile
      *
@@ -62,7 +62,7 @@ public class MultipartFileUtils {
         }
         return multipartFile;
     }
- 
+
     /**
      * MultipartFileUtils 转File
      *

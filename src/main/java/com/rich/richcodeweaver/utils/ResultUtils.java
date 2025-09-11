@@ -38,7 +38,7 @@ public class ResultUtils {
     /**
      * 失败响应(错误码、信息)
      *
-     * @param code 错误码
+     * @param code    错误码
      * @param message 信息
      * @return com.rich.richcodeweaver.common.response.BaseResponse<?>
      * @author DuRuiChi
@@ -52,7 +52,7 @@ public class ResultUtils {
      * 失败响应(错误枚举、信息)
      *
      * @param errorCode 错误枚举
-     * @param message 信息
+     * @param message   信息
      * @return com.rich.richcodeweaver.common.response.BaseResponse<?>
      * @author DuRuiChi
      * @create 2025/8/4

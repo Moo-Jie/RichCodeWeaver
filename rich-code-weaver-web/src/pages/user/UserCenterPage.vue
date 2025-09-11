@@ -14,7 +14,7 @@
             <UserOutlined />
             个人信息
           </h2>
-          <a-button type="primary" class="gradient-button" @click="showEditModal">
+          <a-button class="gradient-button" type="primary" @click="showEditModal">
             <template #icon>
               <EditOutlined />
             </template>
@@ -30,11 +30,11 @@
               </template>
             </a-avatar>
             <a-upload
-              name="avatar"
-              :show-upload-list="false"
-              class="avatar-uploader"
               :before-upload="handleAvatarUpload"
               :custom-request="({ file }) => handleAvatarUpload(file as File)"
+              :show-upload-list="false"
+              class="avatar-uploader"
+              name="avatar"
             >
               <a-button class="upload-btn gradient-button">
                 <UploadOutlined />
@@ -97,7 +97,7 @@
               <p>{{ userInfo.phone ? `已绑定手机: ${maskPhone(userInfo.phone)}` : '未绑定手机号'
                 }}</p>
             </div>
-            <a-button class="gradient-button" @click="handleMobile" type="primary">
+            <a-button class="gradient-button" type="primary" @click="handleMobile">
               {{ userInfo.phone ? '更换手机' : '绑定手机' }}
             </a-button>
           </div>
@@ -108,14 +108,14 @@
               <p>{{ userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
                 }}</p>
             </div>
-            <a-button class="gradient-button" @click="handleEmail" type="primary">
+            <a-button class="gradient-button" type="primary" @click="handleEmail">
               {{ userInfo.email ? '更换邮箱' : '绑定邮箱' }}
             </a-button>
           </div>
         </div>
 
         <div class="logout-section">
-          <a-button danger class="logout-button" @click="handleLogout">
+          <a-button class="logout-button" danger @click="handleLogout">
             <template #icon>
               <LogoutOutlined />
             </template>
@@ -128,25 +128,25 @@
     <!-- 编辑信息模态框 -->
     <a-modal
       v-model:visible="editVisible"
-      title="编辑个人信息"
-      @ok="handleEditSubmit"
-      :ok-text="'提交'"
       :cancel-text="'取消'"
       :keyboard="false"
       :mask-closable="false"
+      :ok-text="'提交'"
       class="custom-modal"
+      title="编辑个人信息"
+      @ok="handleEditSubmit"
     >
       <br>
-      <a-form :model="editForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form :label-col="{ span: 6 }" :model="editForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户昵称">
           <a-input v-model:value="editForm.userName" placeholder="请输入新昵称" />
         </a-form-item>
         <a-form-item label="个人简介">
           <a-textarea
             v-model:value="editForm.userProfile"
-            placeholder="介绍一下你自己..."
-            :rows="4"
             :maxlength="200"
+            :rows="4"
+            placeholder="介绍一下你自己..."
           />
         </a-form-item>
       </a-form>
@@ -155,12 +155,12 @@
     <!-- 修改密码模态框 -->
     <a-modal
       v-model:visible="passwordVisible"
+      class="custom-modal"
       title="修改登录密码"
       @ok="handlePasswordSubmit"
-      class="custom-modal"
     >
       <br>
-      <a-form :model="passwordForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form :label-col="{ span: 6 }" :model="passwordForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="原密码">
           <a-input-password v-model:value="passwordForm.oldPassword" placeholder="请输入当前密码" />
         </a-form-item>
@@ -375,7 +375,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="less">
+<style lang="less" scoped>
 @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Nunito:wght@300;400;600;700&display=swap');
 
 #userCenterPage {

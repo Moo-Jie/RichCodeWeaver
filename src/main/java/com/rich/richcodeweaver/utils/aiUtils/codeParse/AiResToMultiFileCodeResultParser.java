@@ -38,6 +38,21 @@ public class AiResToMultiFileCodeResultParser implements CodeParser<MultiFileCod
     );
 
     /**
+     * 通用代码提取方法
+     *
+     * @param content 原始文本内容
+     * @param pattern 匹配用的正则模式
+     * @return 提取到的代码内容，未找到时返回null
+     * <p>
+     * 该方法使用预定义的正则表达式模式进行代码块匹配，
+     * 适用于各种类型的代码块提取。
+     */
+    private static String extractCodeByPattern(String content, Pattern pattern) {
+        Matcher matcher = pattern.matcher(content);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    /**
      * 解析多文件模式下的代码内容
      *
      * @param codeContent 包含多种代码类型的原始文本
@@ -72,20 +87,5 @@ public class AiResToMultiFileCodeResultParser implements CodeParser<MultiFileCod
         }
 
         return result;
-    }
-
-    /**
-     * 通用代码提取方法
-     *
-     * @param content 原始文本内容
-     * @param pattern 匹配用的正则模式
-     * @return 提取到的代码内容，未找到时返回null
-     * <p>
-     * 该方法使用预定义的正则表达式模式进行代码块匹配，
-     * 适用于各种类型的代码块提取。
-     */
-    private static String extractCodeByPattern(String content, Pattern pattern) {
-        Matcher matcher = pattern.matcher(content);
-        return matcher.find() ? matcher.group(1) : null;
     }
 }

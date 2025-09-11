@@ -22,69 +22,69 @@ const router = createRouter({
     {
       path: '/',
       name: '主页',
-      component: HomePage,
+      component: HomePage
     },
     {
       path: '/user/login',
       name: '用户登录',
-      component: UserLoginPage,
+      component: UserLoginPage
     },
     {
       path: '/user/register',
       name: '用户注册',
-      component: UserRegisterPage,
+      component: UserRegisterPage
     },
     {
       path: '/user/userCenter',
       name: '个人中心',
-      component: UserCenterPage,
+      component: UserCenterPage
     },
     {
       path: '/admin/userManage',
       name: '用户管理',
-      component: UserManagePage,
+      component: UserManagePage
     },
     {
       path: '/admin/appManage',
       name: '应用管理',
-      component: AppManagePage,
+      component: AppManagePage
     },
     {
       path: '/admin/chatHistory',
       name: '对话历史管理',
-      component: ChatHistoryManagePage,
+      component: ChatHistoryManagePage
     },
     {
       path: '/app/chat/:id',
       name: '应用对话',
-      component: AppChatPage,
+      component: AppChatPage
     },
     {
       path: '/app/edit/:id',
       name: '编辑应用',
-      component: AppEditPage,
+      component: AppEditPage
     },
     {
       path: '/other/docs',
       name: '文档',
-      component: DocsPage,
+      component: DocsPage
     },
     {
       path: '/other/about',
       name: '关于',
-      component: AboutPage,
+      component: AboutPage
     },
     {
       path: '/other/privacy',
       name: '用户隐私协议',
-      component: PrivacyPage,
+      component: PrivacyPage
     },
     {
       path: '/other/terms',
       name: '服务条款',
-      component: TermsPage,
-    },
-  ],
+      component: TermsPage
+    }
+  ]
 })
 
 export default router

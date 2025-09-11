@@ -85,28 +85,6 @@ public class WebScreenshotUtils {
         return driver;
     }
 
-
-    /**
-     * 销毁方法，在Spring容器关闭时自动调用
-     * 关闭浏览器释放资源
-     */
-    @PreDestroy
-    public void destroy() {
-        // 清理所有WebDriver实例
-        synchronized (allDrivers) {
-            for (WebDriver driver : allDrivers) {
-                try {
-                    driver.quit();
-                } catch (Exception e) {
-                    log.error("关闭 WebDriver 实例失败", e);
-                }
-            }
-            allDrivers.clear();
-        }
-        // 清理当前线程的ThreadLocal
-        driverThreadLocal.remove();
-    }
-
     /**
      * 生成网页截图并保存到本地
      *
@@ -283,5 +261,26 @@ public class WebScreenshotUtils {
             // 记录异常但不中断执行，继续尝试截图
             log.error("等待页面加载时出现异常，继续执行截图", e);
         }
+    }
+
+    /**
+     * 销毁方法，在Spring容器关闭时自动调用
+     * 关闭浏览器释放资源
+     */
+    @PreDestroy
+    public void destroy() {
+        // 清理所有WebDriver实例
+        synchronized (allDrivers) {
+            for (WebDriver driver : allDrivers) {
+                try {
+                    driver.quit();
+                } catch (Exception e) {
+                    log.error("关闭 WebDriver 实例失败", e);
+                }
+            }
+            allDrivers.clear();
+        }
+        // 清理当前线程的ThreadLocal
+        driverThreadLocal.remove();
     }
 }

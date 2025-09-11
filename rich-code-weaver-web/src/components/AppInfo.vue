@@ -1,10 +1,10 @@
 <template>
   <a-modal
     v-model:open="visible"
-    title="应用详情"
     :footer="null"
-    width="600px"
     class="app-detail-modal"
+    title="应用详情"
+    width="600px"
   >
     <div class="app-detail-content">
       <!-- 基础信息 -->
@@ -112,8 +112,8 @@
       <div v-if="showActions" class="app-actions">
         <a-space>
           <a-button
-            type="primary"
             class="edit-btn"
+            type="primary"
             @click="handleEdit"
           >
             <template #icon>
@@ -122,12 +122,12 @@
             前往完善应用信息
           </a-button>
           <a-popconfirm
+            cancel-text="取消"
+            ok-text="确定"
             title="警告：确定要删除这个应用吗？（删除后将无法恢复）"
             @confirm="handleDelete"
-            ok-text="确定"
-            cancel-text="取消"
           >
-            <a-button danger class="delete-btn">
+            <a-button class="delete-btn" danger>
               <template #icon>
                 <DeleteOutlined />
               </template>
@@ -140,7 +140,7 @@
   </a-modal>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed } from 'vue'
 import {
   AppstoreOutlined,
@@ -168,7 +168,9 @@ interface Props {
 
 interface Emits {
   (e: 'update:open', value: boolean): void
+
   (e: 'edit'): void
+
   (e: 'delete'): void
 }
 
@@ -222,7 +224,7 @@ const handleDelete = () => {
 }
 </script>
 
-<style scoped lang="less">
+<style lang="less" scoped>
 .app-detail-modal {
   :deep(.ant-modal-content) {
     background: linear-gradient(135deg, rgba(255, 248, 206, 0.95) 0%, rgba(147, 203, 255, 0.95) 100%);

@@ -4,13 +4,14 @@
       <!-- 左侧特色展示区域 -->
       <div class="feature-panel">
         <div class="feature-content">
-          <img src="@/assets/logo.png" alt="织码睿奇" class="logo">
+          <img alt="织码睿奇" class="logo" src="@/assets/logo.png">
           <h2 class="feature-title">赋能创意，无限可能</h2>
 
           <div class="feature-item">
             <div class="feature-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M7,2H17V13H7V2M7,15V21H17V15H7M4,11V13H2V11H4M22,11V13H20V11H22M5,4V6H6V4H5M5,7V9H6V7H5M5,10V12H6V10H5M18,4V6H19V4H18M18,7V9H19V7H18M18,10V12H19V10H18Z"/>
+              <svg height="32" viewBox="0 0 24 24" width="32">
+                <path d="M7,2H17V13H7V2M7,15V21H17V15H7M4,11V13H2V11H4M22,11V13H20V11H22M5,4V6H6V4H5M5,7V9H6V7H5M5,10V12H6V10H5M18,4V6H19V4H18M18,7V9H19V7H18M18,10V12H19V10H18Z"
+                      fill="currentColor" />
               </svg>
             </div>
             <div>
@@ -21,8 +22,9 @@
 
           <div class="feature-item">
             <div class="feature-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M21,16V14H13V16H21M21,11V9H13V11H21M21,6V4H13V6H21M8.5,12A2.5,2.5 0 0,0 6,9.5A2.5,2.5 0 0,0 3.5,12A2.5,2.5 0 0,0 6,14.5A2.5,2.5 0 0,0 8.5,12M11,20V19.5A5.5,5.5 0 0,0 5.5,14A5.5,5.5 0 0,0 0,19.5V20H11Z"/>
+              <svg height="32" viewBox="0 0 24 24" width="32">
+                <path d="M21,16V14H13V16H21M21,11V9H13V11H21M21,6V4H13V6H21M8.5,12A2.5,2.5 0 0,0 6,9.5A2.5,2.5 0 0,0 3.5,12A2.5,2.5 0 0,0 6,14.5A2.5,2.5 0 0,0 8.5,12M11,20V19.5A5.5,5.5 0 0,0 5.5,14A5.5,5.5 0 0,0 0,19.5V20H11Z"
+                      fill="currentColor" />
               </svg>
             </div>
             <div>
@@ -33,8 +35,9 @@
 
           <div class="feature-item">
             <div class="feature-icon">
-              <svg width="32" height="32" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M17,18V19H15V18H17M13,19V18H7V19H13M18,13V15H19V17H17V15H13V13H17V11H19V13H18M6,11V13H11V15H6V17H11V19H6V21H4V19H5V15H4V13H5V11H4V9H6V11M7,11V13H8V11H7M7,4V6H17V4H7M7,8V10H15V8H7Z"/>
+              <svg height="32" viewBox="0 0 24 24" width="32">
+                <path d="M17,18V19H15V18H17M13,19V18H7V19H13M18,13V15H19V17H17V15H13V13H17V11H19V13H18M6,11V13H11V15H6V17H11V19H6V21H4V19H5V15H4V13H5V11H4V9H6V11M7,11V13H8V11H7M7,4V6H17V4H7M7,8V10H15V8H7Z"
+                      fill="currentColor" />
               </svg>
             </div>
             <div>
@@ -56,9 +59,10 @@
           <h1 class="title">织码睿奇 -登录</h1>
           <p class="desc">不写一行代码，生成完整应用</p>
         </div>
-        <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
-          <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
-            <a-input v-model:value="formState.userAccount" placeholder="请输入账号" class="input-field">
+        <a-form :model="formState" autocomplete="off" name="basic" @finish="handleSubmit">
+          <a-form-item :rules="[{ required: true, message: '请输入账号' }]" name="userAccount">
+            <a-input v-model:value="formState.userAccount" class="input-field"
+                     placeholder="请输入账号">
               <template #prefix>
                 <UserOutlined />
               </template>
@@ -66,13 +70,14 @@
           </a-form-item>
 
           <a-form-item
-            name="userPassword"
             :rules="[
               { required: true, message: '请输入密码' },
               { min: 8, message: '密码长度不能小于 8 位' },
             ]"
+            name="userPassword"
           >
-            <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码" class="input-field">
+            <a-input-password v-model:value="formState.userPassword" class="input-field"
+                              placeholder="请输入密码">
               <template #prefix>
                 <LockOutlined />
               </template>
@@ -81,17 +86,17 @@
 
           <div class="tips">
             没有账号
-            <RouterLink to="/user/register" class="link">去注册</RouterLink>
+            <RouterLink class="link" to="/user/register">去注册</RouterLink>
           </div>
 
           <div class="tips">
-            <RouterLink to="/other/privacy" class="tips">隐私政策</RouterLink>
+            <RouterLink class="tips" to="/other/privacy">隐私政策</RouterLink>
             &nbsp;&nbsp; <span class="tips">|</span>&nbsp;&nbsp;
-            <RouterLink to="/other/terms" class="tips">服务条款</RouterLink>
+            <RouterLink class="tips" to="/other/terms">服务条款</RouterLink>
           </div>
 
           <a-form-item>
-            <a-button type="primary" html-type="submit" class="submit-btn" :loading="submitting">
+            <a-button :loading="submitting" class="submit-btn" html-type="submit" type="primary">
               登录
             </a-button>
           </a-form-item>
@@ -111,12 +116,12 @@ import { message } from 'ant-design-vue'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
-const backgroundImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 100 100'%3E%3Cpath fill='none' stroke='rgba(204,230,255,0.1)' stroke-width='1' d='M80,80 Q20,60 20,20 M50,100 Q50,0 100,50'/%3E%3C/svg%3E"
+const backgroundImage = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'400\' viewBox=\'0 0 100 100\'%3E%3Cpath fill=\'none\' stroke=\'rgba(204,230,255,0.1)\' stroke-width=\'1\' d=\'M80,80 Q20,60 20,20 M50,100 Q50,0 100,50\'/%3E%3C/svg%3E'
 const submitting = ref(false)
 
 const formState = reactive({
   userAccount: router.currentRoute.value.query.username || '',
-  userPassword: '',
+  userPassword: ''
 })
 
 const handleSubmit = async () => {
@@ -290,9 +295,18 @@ const handleSubmit = async () => {
 }
 
 @keyframes slider-animation {
-  0% { left: 0%; width: 40% }
-  50% { left: 60%; width: 10% }
-  100% { left: 0%; width: 40% }
+  0% {
+    left: 0%;
+    width: 40%
+  }
+  50% {
+    left: 60%;
+    width: 10%
+  }
+  100% {
+    left: 0%;
+    width: 40%
+  }
 }
 
 .glass-container {

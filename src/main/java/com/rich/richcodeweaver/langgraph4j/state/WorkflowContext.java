@@ -29,55 +29,44 @@ public class WorkflowContext implements Serializable {
      * WorkflowContext 在 MessagesState 中的存储 key
      */
     public static final String WORKFLOW_CONTEXT_KEY = "workflowContext";
-
+    @Serial
+    private static final long serialVersionUID = 1L;
     /**
      * 当前执行步骤
      */
     private String currentStep;
-
     /**
      * 用户原始输入的提示词
      */
     private String originalPrompt;
-
     /**
      * 图片资源字符串
      */
     private String imageListStr;
-
     /**
      * 图片资源列表
      */
     private List<ImageResource> imageList;
-
     /**
      * 增强后的提示词
      */
     private String enhancedPrompt;
-
     /**
      * 代码生成类型
      */
     private CodeGeneratorTypeEnum generationType;
-
     /**
      * 生成的代码目录
      */
     private String generatedCodeDir;
-
     /**
      * 构建成功的目录
      */
     private String buildResultDir;
-
     /**
      * 错误信息
      */
     private String errorMessage;
-
-    @Serial
-    private static final long serialVersionUID = 1L;
-
 
     /**
      * 从 MessagesState 中获取 WorkflowContext

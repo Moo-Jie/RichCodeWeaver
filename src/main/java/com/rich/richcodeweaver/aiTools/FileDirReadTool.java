@@ -24,6 +24,20 @@ import java.util.Set;
 @Slf4j
 @Component
 public class FileDirReadTool extends BaseTool {
+    /**
+     * 需要忽略的文件和目录
+     */
+    private static final Set<String> IGNORED_NAMES = Set.of(
+            "node_modules", ".git", "dist", "build", ".DS_Store",
+            ".env", "target", ".mvn", ".idea", ".vscode", "coverage"
+    );
+    /**
+     * 需要忽略的文件扩展名
+     */
+    private static final Set<String> IGNORED_EXTENSIONS = Set.of(
+            ".log", ".tmp", ".cache", ".lock"
+    );
+
     @Override
     public String getToolName() {
         return "readDir";
@@ -37,24 +51,9 @@ public class FileDirReadTool extends BaseTool {
     @Override
     public String getResultMsg(JSONObject arguments) {
         String relativeDirPath = arguments.getStr("relativeDirPath");
-        relativeDirPath = relativeDirPath == null || relativeDirPath.isEmpty()  ? "" : "\n[\n" + relativeDirPath + "\n]\n";
+        relativeDirPath = relativeDirPath == null || relativeDirPath.isEmpty() ? "" : "\n[\n" + relativeDirPath + "\n]\n";
         return String.format("[工具调用结束] %s %s", "成功读取目录下的所有文件和子目录信息", relativeDirPath);
     }
-
-    /**
-     * 需要忽略的文件和目录
-     */
-    private static final Set<String> IGNORED_NAMES = Set.of(
-            "node_modules", ".git", "dist", "build", ".DS_Store",
-            ".env", "target", ".mvn", ".idea", ".vscode", "coverage"
-    );
-
-    /**
-     * 需要忽略的文件扩展名
-     */
-    private static final Set<String> IGNORED_EXTENSIONS = Set.of(
-            ".log", ".tmp", ".cache", ".lock"
-    );
 
     @Tool("读取目录结构，获取指定目录下的所有文件和子目录信息")
     public String readDir(

@@ -1,13 +1,13 @@
 <template>
   <div class="user-info">
-    <a-avatar :src="user?.userAvatar" :size="size">
+    <a-avatar :size="size" :src="user?.userAvatar">
       {{ user?.userName?.charAt(0) || 'U' }}
     </a-avatar>
     <span v-if="showName" class="user-name">{{ user?.userName || '未知用户' }}</span>
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 interface Props {
   user?: API.UserVO
   size?: number | 'small' | 'default' | 'large'
@@ -16,7 +16,7 @@ interface Props {
 
 withDefaults(defineProps<Props>(), {
   size: 'default',
-  showName: true,
+  showName: true
 })
 </script>
 

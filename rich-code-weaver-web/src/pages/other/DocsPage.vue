@@ -2,8 +2,9 @@
   <div class="docs-page">
     <!-- 顶部导航 -->
     <div class="header-nav">
-      <router-link to="/" class="nav-link">
-        <arrow-left-outlined /> 返回首页
+      <router-link class="nav-link" to="/">
+        <arrow-left-outlined />
+        返回首页
       </router-link>
     </div>
 
@@ -14,10 +15,10 @@
       <!-- 使用 Collapse 折叠面板重构文档内容 -->
       <a-collapse
         v-model:activeKey="activeKeys"
-        accordion
-        ghost
-        class="custom-collapse"
         :expand-icon-position="'right'"
+        accordion
+        class="custom-collapse"
+        ghost
       >
         <!-- 快速入门区域 -->
         <a-collapse-panel key="1" :show-arrow="false">
@@ -28,7 +29,7 @@
             </div>
           </template>
 
-          <a-list item-layout="horizontal" :data-source="quickStartItems">
+          <a-list :data-source="quickStartItems" item-layout="horizontal">
             <template #renderItem="{ item }">
               <a-list-item class="doc-list-item" @click="handleItemClick(item.id)">
                 <a-list-item-meta>
@@ -50,7 +51,7 @@
             </div>
           </template>
 
-          <a-list item-layout="horizontal" :data-source="optimizationItems">
+          <a-list :data-source="optimizationItems" item-layout="horizontal">
             <template #renderItem="{ item }">
               <a-list-item class="doc-list-item" @click="handleItemClick(item.id)">
                 <a-list-item-meta>
@@ -72,7 +73,7 @@
             </div>
           </template>
 
-          <a-list item-layout="horizontal" :data-source="bestPracticeItems">
+          <a-list :data-source="bestPracticeItems" item-layout="horizontal">
             <template #renderItem="{ item }">
               <a-list-item class="doc-list-item" @click="handleItemClick(item.id)">
                 <a-list-item-meta>
@@ -96,7 +97,8 @@
             <p>1. 在首页输入应用描述，或者选择"热门提示词"。</p>
             <p>2. 选择应用生成模式，点击"创建作品"按钮生成应用。</p>
             <p>3. 系统自动进入应用生成页面，生成应用代码。</p>
-            <p>4. 可在应用生成页面对应用进行实时预览、AI 局部优化、AI 全局重构、部署上线、编辑应用信息等操作。</p>
+            <p>4. 可在应用生成页面对应用进行实时预览、AI 局部优化、AI
+              全局重构、部署上线、编辑应用信息等操作。</p>
           </div>
 
           <div v-if="activeSection.id === 'prompt-guide'">
@@ -202,7 +204,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { reactive, ref } from 'vue'
 import {
   ArrowLeftOutlined,
@@ -212,46 +214,46 @@ import {
 } from '@ant-design/icons-vue'
 
 // 折叠面板状态管理
-const activeKeys = ref<string[]>(['1']);
+const activeKeys = ref<string[]>(['1'])
 
 // 文档项数据
 const quickStartItems = reactive([
   { id: 'getting-started', title: '创建第一个应用' },
   { id: 'prompt-guide', title: '提示词编写指南' },
   { id: 'deploy-app', title: '应用部署流程' }
-]);
+])
 
 const optimizationItems = reactive([
   { id: 'vue-optimization', title: 'Vue项目优化指南' },
   { id: 'code-refactor', title: '代码重构技巧' },
   { id: 'performance-optimization', title: '性能优化方法' }
-]);
+])
 
 const bestPracticeItems = reactive([
-  { id: 'prompt-best-practice', title: '提示词最佳实践' },
-]);
+  { id: 'prompt-best-practice', title: '提示词最佳实践' }
+])
 
 // 当前活动文档区域
-const activeSection = ref<{id: string; title: string} | null>(null);
+const activeSection = ref<{ id: string; title: string } | null>(null)
 
 // 处理文档项点击
 const handleItemClick = (id: string) => {
   // 查找对应的文档项
-  const allItems = [...quickStartItems, ...optimizationItems, ...bestPracticeItems];
-  const item = allItems.find(i => i.id === id);
+  const allItems = [...quickStartItems, ...optimizationItems, ...bestPracticeItems]
+  const item = allItems.find(i => i.id === id)
 
   if (item) {
-    activeSection.value = { id: item.id, title: item.title };
+    activeSection.value = { id: item.id, title: item.title }
 
     // 滚动到文档区域
     setTimeout(() => {
-      const element = document.querySelector('.docs-content');
+      const element = document.querySelector('.docs-content')
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
       }
-    }, 100);
+    }, 100)
   }
-};
+}
 </script>
 
 <style scoped>
@@ -398,8 +400,14 @@ const handleItemClick = (id: string) => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .section-heading {

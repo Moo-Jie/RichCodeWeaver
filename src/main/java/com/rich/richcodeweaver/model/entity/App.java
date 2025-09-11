@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 
 /**
  * 应用 实体类。
- *
  */
 @Data
 @Builder

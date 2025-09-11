@@ -9,26 +9,26 @@
     <!-- 搜索面板 -->
     <a-card class="search-panel">
       <h2>筛选用户</h2>
-      <a-form layout="inline" :model="searchParams" @finish="doSearch">
-        <a-form-item label="账号" class="search-item">
+      <a-form :model="searchParams" layout="inline" @finish="doSearch">
+        <a-form-item class="search-item" label="账号">
           <a-input
             v-model:value="searchParams.userAccount"
+            allow-clear
             placeholder="输入用户账号"
             suffix-icon="search"
-            allow-clear
           />
         </a-form-item>
 
-        <a-form-item label="用户名" class="search-item">
+        <a-form-item class="search-item" label="用户名">
           <a-input
             v-model:value="searchParams.userName"
+            allow-clear
             placeholder="输入用户名"
             suffix-icon="user"
-            allow-clear
           />
         </a-form-item>
 
-        <a-form-item label="用户角色" class="search-item">
+        <a-form-item class="search-item" label="用户角色">
           <a-select
             v-model:value="searchParams.userRole"
             placeholder="全部角色"
@@ -41,7 +41,7 @@
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button type="primary" html-type="submit">
+          <a-button html-type="submit" type="primary">
             <template #icon>
               <SearchOutlined />
             </template>
@@ -72,18 +72,18 @@
         :columns="columns"
         :data-source="data"
         :pagination="pagination"
-        @change="doTableChange"
         :scroll="{ x: 1500 }"
         rowKey="id"
+        @change="doTableChange"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'userAvatar'">
             <a-image
               v-if="record.userAvatar"
+              :fallback="fallbackImage"
+              :height="60"
               :src="record.userAvatar"
               :width="60"
-              :height="60"
-              :fallback="fallbackImage"
               class="avatar-img"
             />
             <div v-else class="no-avatar">
@@ -117,8 +117,8 @@
           <template v-else-if="column.key === 'action'">
             <a-space class="action-buttons">
               <a-button
-                type="default"
                 size="small"
+                type="default"
                 @click="showEditModal(record)"
               >
                 <template #icon>
@@ -128,10 +128,10 @@
               </a-button>
 
               <a-button
-                type="default"
-                size="small"
-                @click="showResetPasswordModal(record)"
                 class="reset-btn"
+                size="small"
+                type="default"
+                @click="showResetPasswordModal(record)"
               >
                 <template #icon>
                   <LockOutlined />
@@ -159,15 +159,15 @@
     <!-- 编辑用户模态框 -->
     <a-modal
       v-model:visible="editVisible"
-      title="编辑用户信息"
-      @ok="handleEditSubmit"
-      :ok-text="'提交'"
       :cancel-text="'取消'"
       :keyboard="false"
       :mask-closable="false"
+      :ok-text="'提交'"
       class="edit-modal"
+      title="编辑用户信息"
+      @ok="handleEditSubmit"
     >
-      <a-form :model="editForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form :label-col="{ span: 6 }" :model="editForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户账号">
           <a-input v-model:value="editForm.userAccount" disabled />
         </a-form-item>
@@ -183,9 +183,9 @@
         <a-form-item label="个人简介">
           <a-textarea
             v-model:value="editForm.userProfile"
-            placeholder="请输入用户简介..."
-            :rows="4"
             :maxlength="200"
+            :rows="4"
+            placeholder="请输入用户简介..."
           />
         </a-form-item>
       </a-form>
@@ -194,15 +194,15 @@
     <!-- 重置密码模态框 -->
     <a-modal
       v-model:visible="passwordVisible"
+      class="password-modal"
       title="重置用户密码"
-      @ok="handlePasswordSubmit"
-      class="password-modal">
+      @ok="handlePasswordSubmit">
       <br><br>
       <a-alert
         message="重置后密码将更改为:  zmrq@[账户]"
-        type="info"
         show-icon
         style="margin-bottom: 20px;"
+        type="info"
       />
       <br>
       <p>确定要重置用户 <strong>{{ passwordForm.userName }}</strong> 的密码吗？</p>
@@ -305,7 +305,7 @@ const editForm = reactive({
 
 // 密码表单
 const passwordForm = reactive({
-  id: '',
+  id: ''
 })
 
 // 获取数据
@@ -441,7 +441,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="less">
+<style lang="less" scoped>
 #userManagePage {
   padding: 24px;
   background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);

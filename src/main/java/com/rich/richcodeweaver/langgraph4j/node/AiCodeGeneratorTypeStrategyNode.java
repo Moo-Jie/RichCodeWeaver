@@ -15,7 +15,7 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
  * @create 2025/9/11
  **/
 @Slf4j
-public class RouterNode {
+public class AiCodeGeneratorTypeStrategyNode {
     public static AsyncNodeAction<MessagesState<String>> create() {
         return node_async(state -> {
             WorkflowContext context = WorkflowContext.getContext(state);

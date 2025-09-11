@@ -31,33 +31,6 @@ import java.time.Duration;
 public class AiCodeGeneratorServiceFactory {
 
     /**
-     * 基础模型
-     **/
-    @Resource
-    private ChatModel chatModel;
-
-    /**
-     * 基础流式模型，用于生成多文件代码
-     **/
-    @Resource
-    private StreamingChatModel openAiStreamingChatModel;
-
-    /**
-     * 自定义流式推理模型，用于生成复杂的项目工程代码
-     **/
-    @Resource
-    private StreamingChatModel reasoningStreamingChatModel;
-
-    @Resource
-    private ToolsManager toolsManager;
-
-    @Resource
-    private RedisChatMemoryStore redisChatMemoryStore;
-
-    @Resource
-    private ChatHistoryService chatHistoryService;
-
-    /**
      * 创建 Caffeine 缓存服务，用于存储 AI 服务实例
      *
      * @param appId 应用 id
@@ -78,6 +51,27 @@ public class AiCodeGeneratorServiceFactory {
                 log.debug("【AI 服务实例缓存】已移除，appId: {}, 原因: {}", key, cause);
             })
             .build();
+    /**
+     * 基础模型
+     **/
+    @Resource
+    private ChatModel chatModel;
+    /**
+     * 基础流式模型，用于生成多文件代码
+     **/
+    @Resource
+    private StreamingChatModel openAiStreamingChatModel;
+    /**
+     * 自定义流式推理模型，用于生成复杂的项目工程代码
+     **/
+    @Resource
+    private StreamingChatModel reasoningStreamingChatModel;
+    @Resource
+    private ToolsManager toolsManager;
+    @Resource
+    private RedisChatMemoryStore redisChatMemoryStore;
+    @Resource
+    private ChatHistoryService chatHistoryService;
 
     /**
      * 在 Caffeine 缓存中创建 AI 服务实例

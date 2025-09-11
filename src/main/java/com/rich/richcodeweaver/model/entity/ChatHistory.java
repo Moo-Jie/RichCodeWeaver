@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 
 /**
  * 对话历史 实体类。
- *
  **/
 @Data
 @Builder

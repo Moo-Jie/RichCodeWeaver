@@ -1,5 +1,5 @@
 <template>
-  <div id="appChatPage" class="creative-chat" :class="{ 'edit-mode-active': isEditMode }">
+  <div id="appChatPage" :class="{ 'edit-mode-active': isEditMode }" class="creative-chat">
     <!-- 编辑模式全局覆盖层 -->
     <div v-if="isEditMode" class="edit-mode-overlay"></div>
     <!-- 编辑模式顶部提示条 -->
@@ -45,7 +45,7 @@
         <!-- 星选应用  -->
         <template v-if="appInfo">
           推广级别：
-          <a-tag v-if="appInfo.priority === 99" color="gold" class="app-tag2">
+          <a-tag v-if="appInfo.priority === 99" class="app-tag2" color="gold">
             <star-filled />
             星选应用
           </a-tag>
@@ -56,24 +56,24 @@
       <!-- 功能按钮  -->
       <div class="header-right">
         <!-- 查看/编辑 应用信息  -->
-        <a-button type="primary" class="detail-btn" @click="showAppDetail">
+        <a-button class="detail-btn" type="primary" @click="showAppDetail">
           <template #icon>
             <InfoCircleOutlined />
           </template>
           查看/编辑 应用信息
         </a-button>
         <!-- 全屏查看预览  -->
-        <a-button v-if="previewUrl" type="primary" @click="openInNewTab " :loading="deploying"
-                  :disabled="isGenerating"
-                  class="detail-btn">
+        <a-button v-if="previewUrl" :disabled="isGenerating" :loading="deploying" class="detail-btn"
+                  type="primary"
+                  @click="openInNewTab ">
           <template #icon>
             <ExportOutlined />
           </template>
           全屏查看预览
         </a-button>
         <!-- 下载代码 -->
-        <a-button type="primary" class="detail-btn" @click="downloadCode" :loading="downloading"
-                  :disabled="isGenerating">
+        <a-button :disabled="isGenerating" :loading="downloading" class="detail-btn" type="primary"
+                  @click="downloadCode">
           <template #icon>
             <DownloadOutlined />
           </template>
@@ -82,15 +82,15 @@
         <!-- 已部署状态下的 重复部署 按钮 -->
         <template v-if="isDeployed">
           <!-- 重复部署 按钮 -->
-          <a-button type="primary" class="detail-btn" @click="confirmReDeploy" :loading="deploying"
-                    :disabled="isGenerating">
+          <a-button :disabled="isGenerating" :loading="deploying" class="detail-btn" type="primary"
+                    @click="confirmReDeploy">
             <template #icon>
               <CloudUploadOutlined />
             </template>
             我的代码已更新，重复部署
           </a-button>
           <!-- 访问已部署网站 按钮 -->
-          <a-button type="primary" class="detail-btn" target="_blank" :href="deployedSiteUrl">
+          <a-button :href="deployedSiteUrl" class="detail-btn" target="_blank" type="primary">
             <template #icon>
               <ExportOutlined />
             </template>
@@ -98,8 +98,8 @@
           </a-button>
         </template>
         <!-- 未部署状态下的 部署为可访问网站 按钮 -->
-        <a-button v-else type="primary" class="detail-btn" @click="deployApp" :loading="deploying"
-                  :disabled="isGenerating">
+        <a-button v-else :disabled="isGenerating" :loading="deploying" class="detail-btn" type="primary"
+                  @click="deployApp">
           <template #icon>
             <CloudUploadOutlined />
           </template>
@@ -122,9 +122,9 @@
         <div v-if="hasMore.value || loadingHistory.value" class="load-more-container">
           <a-button
             v-if="hasMore.value && !loadingHistory.value"
+            class="load-more-btn"
             type="text"
             @click="loadMoreHistory"
-            class="load-more-btn"
           >
             加载更多历史消息
           </a-button>
@@ -133,7 +133,7 @@
 
 
         <!-- 消息区域 -->
-        <div class="messages-container" ref="messagesContainer">
+        <div ref="messagesContainer" class="messages-container">
           <div v-for="(message, index) in messages" :key="index" class="message-item">
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content creative-bubble">{{ message.content }}</div>
@@ -161,12 +161,12 @@
           <a-alert
             v-if="selectedElement"
             :message="`已选择“${selectedElement.tagName}”标签元素`"
-            type="success"
-            show-icon
-            closable
-            @close="clearSelection"
             class="selected-element-alert"
+            closable
+            show-icon
             style="border-radius: 12px; border: 1px solid #d9f7be; background: linear-gradient(135deg, rgba(246, 255, 237, 0.95) 0%, rgba(230, 255, 250, 0.95) 100%);"
+            type="success"
+            @close="clearSelection"
           >
             <template #description>
               <div class="element-details">
@@ -181,30 +181,30 @@
           </a-alert>
           <div>
             <div v-if="!isOwner" class="creator-tip">
-              <a-alert message="这是别人的创作作品" description="如需对话请创建您自己的项目"
-                       type="info" show-icon />
+              <a-alert description="如需对话请创建您自己的项目" message="这是别人的创作作品"
+                       show-icon type="info" />
             </div>
             <a-textarea
               v-else
               v-model:value="userInput"
-              placeholder="✨ 描述越详尽，创作越符合您的预期 ✨"
-              :rows="4"
-              :maxlength="1000"
-              @keydown.enter.prevent="sendMessage"
               :disabled="isGenerating"
+              :maxlength="1000"
+              :rows="4"
               class="creative-textarea"
+              placeholder="✨ 描述越详尽，创作越符合您的预期 ✨"
+              @keydown.enter.prevent="sendMessage"
             />
             <br>
             <div class="input-actions">
               <!-- 新手指引按钮 -->
-              <a-tooltip title="新手指引" placement="top">
+              <a-tooltip placement="top" title="新手指引">
                 <a-button
+                  class="tour-button"
                   shape="circle"
                   size="large"
-                  @click="startTour"
-                  type="primary"
-                  class="tour-button"
                   style="border-radius: 20px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);"
+                  type="primary"
+                  @click="startTour"
                 >
                   <template #icon>
                     <PlayCircleOutlined />
@@ -217,13 +217,13 @@
                          placement="top">
                 <a-button
                   v-if="!isGenerating"
-                  shape="circle"
-                  size="large"
-                  @click="toggleEditMode"
+                  :class="{ 'edit-mode-active': isEditMode }"
                   :type="isEditMode ? 'danger' : 'primary'"
                   class="edit-btn"
-                  :class="{ 'edit-mode-active': isEditMode }"
+                  shape="circle"
+                  size="large"
                   style="border-radius: 20px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);"
+                  @click="toggleEditMode"
                 >
                   <template #icon>
                     <EditOutlined />
@@ -232,14 +232,14 @@
               </a-tooltip>
               &nbsp;&nbsp;&nbsp;
               <!-- 发送按钮 -->
-              <a-tooltip v-if="!isOwner" title="请创建自己的作品来与AI对话" placement="top">
+              <a-tooltip v-if="!isOwner" placement="top" title="请创建自己的作品来与AI对话">
                 <a-button
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  @click="sendMessage"
                   :loading="isGenerating"
                   class="send-btn"
+                  shape="circle"
+                  size="large"
+                  type="primary"
+                  @click="sendMessage"
                 >
                   <template #icon>
                     <SendOutlined />
@@ -247,14 +247,14 @@
                 </a-button>
               </a-tooltip>
               &nbsp;&nbsp;&nbsp;
-              <a-tooltip v-else title="开始对话" placement="top">
+              <a-tooltip v-else placement="top" title="开始对话">
                 <a-button
-                  type="primary"
-                  shape="circle"
-                  size="large"
-                  @click="sendMessage"
                   :loading="isGenerating"
                   class="send-btn"
+                  shape="circle"
+                  size="large"
+                  type="primary"
+                  @click="sendMessage"
                 >
                   <template #icon>
                     <SendOutlined />
@@ -290,7 +290,7 @@
             <p class="placeholder-subtext">描述您的创意，AI将为您编织网站</p>
           </div>
           <div v-else-if="isGenerating" class="preview-loading">
-            <a-spin size="large" :tip="generatingTip" />
+            <a-spin :tip="generatingTip" size="large" />
             <!-- 已用时间显示 -->
             <div class="generating-time">
               <p class="wait-tip">请勿刷新或退出本页面，否则将断开链接。</p>
@@ -300,11 +300,11 @@
           </div>
           <iframe
             v-else
+            ref="previewIframe"
             :src="previewUrl"
             class="preview-iframe"
             frameborder="0"
             @load="onIframeLoad"
-            ref="previewIframe"
           ></iframe>
         </div>
         <div v-if="previewUrl" class="preview-footer">
@@ -317,10 +317,10 @@
           <transition name="slide-down">
             <a-alert
               v-if="showTips"
-              type="info"
+              class="preview-alert"
               message="重点提示："
               show-icon
-              class="preview-alert"
+              type="info"
             >
               <template #description>
                 <div>
@@ -342,8 +342,8 @@
     v-model:open="appDetailVisible"
     :app="appInfo"
     :show-actions="isOwner || isAdmin"
-    @edit="editApp"
     @delete="deleteApp"
+    @edit="editApp"
   />
 
   <!-- 部署成功弹窗 -->
@@ -355,14 +355,14 @@
 
   <!-- 新手指引组件 -->
   <Tour
-    v-model:open="tourOpen"
     v-model:current="tourCurrent"
+    v-model:open="tourOpen"
     :steps="tourSteps"
     @close="handleTourClose"
   />
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { TourProps } from 'ant-design-vue'

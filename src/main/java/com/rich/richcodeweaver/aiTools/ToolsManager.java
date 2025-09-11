@@ -18,15 +18,14 @@ import java.util.Map;
 @Slf4j
 public class ToolsManager {
     /**
+     * 工具名与工具的映射
+     */
+    private final Map<String, BaseTool> toolsMap = new HashMap<>();
+    /**
      * 初始化工具包
      */
     @Resource
     private BaseTool[] baseTools;
-
-    /**
-     * 工具名与工具的映射
-     */
-    private final Map<String, BaseTool> toolsMap = new HashMap<>();
 
     /**
      * 初始化工具包

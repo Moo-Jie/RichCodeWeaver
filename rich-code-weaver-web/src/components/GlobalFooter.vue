@@ -3,36 +3,36 @@
     <div class="footer-container">
       <!-- 社交链接 -->
       <div class="social-links">
-        <a href="https://github.com/Moo-Jie"
-           target="_blank"
-           class="social-link">
+        <a class="social-link"
+           href="https://github.com/Moo-Jie"
+           target="_blank">
           <GithubOutlined />
         </a>
-        <a href="#" class="social-link" target="_blank">
+        <a class="social-link" href="#" target="_blank">
           <WeiboOutlined />
         </a>
-        <a href="#" class="social-link" target="_blank">
+        <a class="social-link" href="#" target="_blank">
           <WechatOutlined />
         </a>
       </div>
 
       <!-- 导航链接 -->
       <nav class="footer-nav">
-        <a href="/other/about" class="nav-link" target="_blank">关于我们</a>
-        <a href="/other/docs" class="nav-link" target="_blank">文档中心</a>
-        <a href="/other/privacy" class="nav-link" target="_blank">隐私政策</a>
-        <a href="/other/terms" class="nav-link" target="_blank">服务条款</a>
-        <a href="/other/contact" class="nav-link" target="_blank">联系我们</a>
+        <a class="nav-link" href="/other/about" target="_blank">关于我们</a>
+        <a class="nav-link" href="/other/docs" target="_blank">文档中心</a>
+        <a class="nav-link" href="/other/privacy" target="_blank">隐私政策</a>
+        <a class="nav-link" href="/other/terms" target="_blank">服务条款</a>
+        <a class="nav-link" href="/other/contact" target="_blank">联系我们</a>
       </nav>
 
       <!-- 版权声明 -->
       <div class="copyright-container">
         <p class="copyright">
           © {{ currentYear }} RichCodeWeaver - 织码睿奇 | 只需一句话，让创意触手可及 |
-          <a href="https://github.com/Moo-Jie"
-             target="_blank"
+          <a class="author-link"
+             href="https://github.com/Moo-Jie"
              rel="noopener noreferrer"
-             class="author-link">
+             target="_blank">
             莫桀
           </a>
         </p>
@@ -41,11 +41,11 @@
   </a-layout-footer>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed } from 'vue'
 import { GithubOutlined, WechatOutlined, WeiboOutlined } from '@ant-design/icons-vue'
 
-const currentYear = computed(() => new Date().getFullYear());
+const currentYear = computed(() => new Date().getFullYear())
 </script>
 
 <style scoped>

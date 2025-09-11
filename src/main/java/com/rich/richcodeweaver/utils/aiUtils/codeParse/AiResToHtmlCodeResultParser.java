@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 /**
  * Html 文件解析策略的具体逻辑实现
  * (基于策略模式，不同的代码类型有不同的解析模式)
+ *
  * @author DuRuiChi
  * @create 2025/8/7
  **/
@@ -19,6 +20,17 @@ public class AiResToHtmlCodeResultParser implements CodeParser<HtmlCodeResponse>
             "```html\\s*\n([\\s\\S]*?)```",
             Pattern.CASE_INSENSITIVE
     );
+
+    /**
+     * 提取HTML代码内容
+     *
+     * @param content 原始文本内容
+     * @return 提取到的HTML代码，未找到时返回null
+     */
+    private static String extractHtmlCode(String content) {
+        Matcher matcher = HTML_CODE_PATTERN.matcher(content);
+        return matcher.find() ? matcher.group(1) : null;
+    }
 
     /**
      * 解析单文件模式下的HTML内容
@@ -45,16 +57,5 @@ public class AiResToHtmlCodeResultParser implements CodeParser<HtmlCodeResponse>
             result.setHtmlCode(codeContent.trim());
         }
         return result;
-    }
-
-    /**
-     * 提取HTML代码内容
-     *
-     * @param content 原始文本内容
-     * @return 提取到的HTML代码，未找到时返回null
-     */
-    private static String extractHtmlCode(String content) {
-        Matcher matcher = HTML_CODE_PATTERN.matcher(content);
-        return matcher.find() ? matcher.group(1) : null;
     }
 }

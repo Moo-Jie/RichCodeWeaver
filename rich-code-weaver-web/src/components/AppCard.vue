@@ -1,25 +1,28 @@
 <template>
-  <div class="app-card" :class="{ 'app-card--featured': featured }">
+  <div :class="{ 'app-card--featured': featured }" class="app-card">
     <div class="app-preview">
-      <img v-if="app.cover" :src="app.cover" :alt="app.appName" />
+      <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
       <div v-else class="app-placeholder">
-        <img src="@/assets/logo.png" style="width: 100%; opacity: 0.8; margin: 0 auto; display: block;" alt="应用封面" />
+        <img alt="应用封面"
+             src="@/assets/logo.png" style="width: 100%; opacity: 0.8; margin: 0 auto; display: block;" />
       </div>
       <div class="app-overlay">
         <a-space>
           <a-button type="primary" @click="handleViewChat">查看对话</a-button>
-          <a-button v-if="app.deployKey" type="default" @click="handleViewWork" target="_blank">查看作品</a-button>
+          <a-button v-if="app.deployKey" target="_blank" type="default" @click="handleViewWork">
+            查看作品
+          </a-button>
         </a-space>
       </div>
     </div>
     <div class="app-info">
       <div class="app-info-left">
-        <a-avatar :src="app.user?.userAvatar" :size="40">
+        <a-avatar :size="40" :src="app.user?.userAvatar">
           {{ app.user?.userName?.charAt(0) || 'U' }}
         </a-avatar>
       </div>
       <div class="app-info-right">
-        <h3 class="app-title">{{ app.appName?.substring(0, 10)+'...' || '未命名应用' }}</h3>
+        <h3 class="app-title">{{ app.appName?.substring(0, 10) + '...' || '未命名应用' }}</h3>
         <p class="app-author">
           {{ app.user?.userName || (featured ? '官方' : '未知用户') }}
         </p>
@@ -28,7 +31,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 interface Props {
   app: API.AppVO
   featured?: boolean

@@ -1,11 +1,11 @@
 <template>
   <a-layout-header class="header">
-    <a-row :wrap="true" :gutter="[8, 8]">
+    <a-row :gutter="[8, 8]" :wrap="true">
       <!-- 左侧：Logo和标题 -->
-      <a-col :xs="8" :sm="10" :md="6" :lg="4" :xl="4">
+      <a-col :lg="4" :md="6" :sm="10" :xl="4" :xs="8">
         <RouterLink to="/">
           <div class="header-left">
-            <img class="logo" src="@/assets/logo.png" alt="Logo" />
+            <img alt="Logo" class="logo" src="@/assets/logo.png" />
             <h1 class="site-title">织码睿奇</h1>
           </div>
         </RouterLink>
@@ -14,10 +14,10 @@
       <a-col flex="auto" style="justify-content: center;">
         <a-menu
           v-model:selectedKeys="selectedKeys"
-          mode="horizontal"
           :items="menuItems"
-          @click="handleMenuClick"
+          mode="horizontal"
           style="font-size: 16px;"
+          @click="handleMenuClick"
         />
       </a-col>
       <!-- 右侧：用户操作区域 -->
@@ -65,7 +65,7 @@
   </a-layout-header>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { type MenuProps, message } from 'ant-design-vue'

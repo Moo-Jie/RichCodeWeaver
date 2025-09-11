@@ -28,17 +28,22 @@ public class WorkflowApp {
         // 创建工作流图，存储了工作流的节点和边
         // MessagesState：消息状态，用于存储工作流的状态信息
         CompiledGraph<MessagesState<String>> workflow = new MessagesStateGraph<String>()
-                // 添加节点 - 使用真实的工作节点
+                // 添加节点
+                // 图片采集节点
                 .addNode("image_collector", ImageCollectorNode.create())
+                // 提示词增强节点
                 .addNode("prompt_enhancer", PromptEnhancerNode.create())
-                .addNode("router", RouterNode.create())
+                // AI 自主选择代码类型节点
+                .addNode("ai_code_generator_type_strategy", AiCodeGeneratorTypeStrategyNode.create())
+                // 代码生成节点
                 .addNode("code_generator", CodeGeneratorNode.create())
+                // 项目构建节点
                 .addNode("project_builder", ProjectBuilderNode.create())
-                // 添加边（单列）
+                // 添加边,链接节点
                 .addEdge(START, "image_collector")
                 .addEdge("image_collector", "prompt_enhancer")
-                .addEdge("prompt_enhancer", "router")
-                .addEdge("router", "code_generator")
+                .addEdge("prompt_enhancer", "ai_code_generator_type_strategy")
+                .addEdge("ai_code_generator_type_strategy", "code_generator")
                 .addEdge("code_generator", "project_builder")
                 .addEdge("project_builder", END)
                 // 编译工作流

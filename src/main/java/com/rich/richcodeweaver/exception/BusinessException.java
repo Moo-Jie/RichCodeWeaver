@@ -9,7 +9,7 @@ import lombok.Getter;
  * @create 2025/8/4
  **/
 @Getter
-public class BusinessException extends RuntimeException{
+public class BusinessException extends RuntimeException {
 
     /**
      * 错误码

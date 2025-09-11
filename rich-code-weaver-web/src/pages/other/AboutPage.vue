@@ -5,35 +5,36 @@
       <h1 class="hero-title">关于 RichCodeWeaver</h1>
       <p class="hero-subtitle">将创意灵感转化为数字现实的创新平台</p>
 
-      <div class="mission-card fade-in-up" v-intersect>
+      <div v-intersect class="mission-card fade-in-up">
         <div class="mission-content">
           <h2>我的愿想</h2>
-          <p>通过AI技术降低软件开发门槛，让每个人都能轻松将创意转化为功能完备的数字产品，赋能开发者、设计师和创业者实现自己的 IDEA。</p>
+          <p>通过AI技术降低软件开发门槛，让每个人都能轻松将创意转化为功能完备的数字产品，赋能开发者、设计师和创业者实现自己的
+            IDEA。</p>
         </div>
       </div>
     </section>
 
     <!-- 核心价值部分 -->
     <section class="values-section">
-      <div class="section-header fade-in-up" v-intersect>
+      <div v-intersect class="section-header fade-in-up">
         <h2>一些特点</h2>
         <p>基于 AI，提供智能应用生成服务</p>
       </div>
 
       <div class="values-grid">
-        <div class="value-card fade-in-up" v-intersect>
+        <div v-intersect class="value-card fade-in-up">
           <div class="value-icon">🚀</div>
           <h3>创意加速</h3>
           <p>将创意实现时间从数周缩短到几分钟，让灵感不再等待</p>
         </div>
 
-        <div class="value-card fade-in-up" v-intersect>
+        <div v-intersect class="value-card fade-in-up">
           <div class="value-icon">💬</div>
           <h3>智能生成</h3>
           <p>基于最先进的AI模型，理解自然语言需求生成高质量代码</p>
         </div>
 
-        <div class="value-card fade-in-up" v-intersect>
+        <div v-intersect class="value-card fade-in-up">
           <div class="value-icon">🔄</div>
           <h3>无缝迭代</h3>
           <p>支持实时编辑和持续优化，让创作过程流畅自然</p>
@@ -43,12 +44,12 @@
 
     <!-- 架构设计部分 -->
     <section class="tech-section">
-      <div class="section-header fade-in-up" v-intersect>
+      <div v-intersect class="section-header fade-in-up">
         <h2>架构设计</h2>
         <p>融合前沿AI技术与工程实践，打造强大创作引擎</p>
       </div>
 
-      <div class="tech-diagram fade-in-up" v-intersect>
+      <div v-intersect class="tech-diagram fade-in-up">
         <div class="tech-layer">
           <div class="layer-icon">🧠</div>
           <h3>自然语言理解</h3>
@@ -83,39 +84,42 @@
 
     <!-- 团队介绍部分 -->
     <section class="team-section">
-      <div class="section-header fade-in-up" v-intersect>
+      <div v-intersect class="section-header fade-in-up">
         <h2>关于作者</h2>
       </div>
 
       <div class="team-grid">
-        <div class="team-card fade-in-up" v-intersect>
-          <div class="avatar" style="background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);">Z</div>
+        <div v-intersect class="team-card fade-in-up">
+          <div class="avatar"
+               style="background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);">Z
+          </div>
           <h3>MO-JIE</h3>
           <p>Java 后端开发</p>
           <p class="bio">
-            <a href="https://github.com/Moo-Jie" target="_blank">GitHub : https://github.com/Moo-Jie</a>
+            <a href="https://github.com/Moo-Jie" target="_blank">GitHub :
+              https://github.com/Moo-Jie</a>
           </p>
         </div>
 
-<!--        <div class="team-card fade-in-up" v-intersect>-->
-<!--          <div class="avatar" style="background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);">L</div>-->
-<!--          <h3>李四</h3>-->
-<!--          <p class="role">产品设计总监</p>-->
-<!--          <p class="bio">前腾讯高级产品设计师，用户体验专家</p>-->
-<!--        </div>-->
+        <!--        <div class="team-card fade-in-up" v-intersect>-->
+        <!--          <div class="avatar" style="background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);">L</div>-->
+        <!--          <h3>李四</h3>-->
+        <!--          <p class="role">产品设计总监</p>-->
+        <!--          <p class="bio">前腾讯高级产品设计师，用户体验专家</p>-->
+        <!--        </div>-->
 
-<!--        <div class="team-card fade-in-up" v-intersect>-->
-<!--          <div class="avatar" style="background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);">W</div>-->
-<!--          <h3>王五</h3>-->
-<!--          <p class="role">工程负责人</p>-->
-<!--          <p class="bio">前阿里云高级工程师，全栈开发专家</p>-->
-<!--        </div>-->
+        <!--        <div class="team-card fade-in-up" v-intersect>-->
+        <!--          <div class="avatar" style="background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);">W</div>-->
+        <!--          <h3>王五</h3>-->
+        <!--          <p class="role">工程负责人</p>-->
+        <!--          <p class="bio">前阿里云高级工程师，全栈开发专家</p>-->
+        <!--        </div>-->
       </div>
     </section>
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 
 // 苹果风格的交互动效指令
 const vIntersect = {
@@ -123,15 +127,15 @@ const vIntersect = {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          el.classList.add('is-visible');
-          observer.disconnect();
+          el.classList.add('is-visible')
+          observer.disconnect()
         }
       },
       { threshold: 0.15 }
-    );
-    observer.observe(el);
+    )
+    observer.observe(el)
   }
-};
+}
 </script>
 
 <style scoped>

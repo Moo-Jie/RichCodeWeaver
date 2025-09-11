@@ -21,9 +21,7 @@ import java.io.File;
 import java.util.List;
 
 /**
- *  AI 应用 服务层。
- *
- *
+ * AI 应用 服务层。
  */
 public interface AppService extends IService<App> {
 
@@ -54,16 +52,16 @@ public interface AppService extends IService<App> {
     /**
      * 添加 AI 应用
      *
-     * @param appAddRequest  AI 应用添加请求
+     * @param appAddRequest AI 应用添加请求
      * @param request       请求
-     * @return   AI 应用id
+     * @return AI 应用id
      */
     Long addApp(AppAddRequest appAddRequest, HttpServletRequest request);
 
     /**
      * 更新 AI 应用
      *
-     * @param appUpdateRequest  AI 应用更新请求
+     * @param appUpdateRequest AI 应用更新请求
      * @return 是否更新成功
      */
     Boolean updateApp(AppUpdateRequest appUpdateRequest, HttpServletRequest request);
@@ -80,24 +78,24 @@ public interface AppService extends IService<App> {
     /**
      * 分页获取我的 AI 应用列表
      *
-     * @param appQueryRequest  AI 应用查询请求
+     * @param appQueryRequest AI 应用查询请求
      * @param request         请求
-     * @return  AI 应用视图对象分页
+     * @return AI 应用视图对象分页
      */
     Page<AppVO> listMyAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request);
 
     /**
      * 分页获取星标 AI 应用列表
      *
-     * @param appQueryRequest  AI 应用查询请求
-     * @return  AI 应用视图对象分页
+     * @param appQueryRequest AI 应用查询请求
+     * @return AI 应用视图对象分页
      */
     Page<AppVO> listStarAppVOByPage(AppQueryRequest appQueryRequest);
 
     /**
      * 管理员更新 AI 应用
      *
-     * @param appAdminUpdateRequest  AI 应用管理员更新请求
+     * @param appAdminUpdateRequest AI 应用管理员更新请求
      * @return 是否更新成功
      */
     Boolean updateAppByAdmin(AppAdminUpdateRequest appAdminUpdateRequest);
@@ -105,8 +103,8 @@ public interface AppService extends IService<App> {
     /**
      * 管理员分页获取 AI 应用列表
      *
-     * @param appQueryRequest  AI 应用查询请求
-     * @return  AI 应用视图对象分页
+     * @param appQueryRequest AI 应用查询请求
+     * @return AI 应用视图对象分页
      */
     Page<AppVO> listAppVOByPageByAdmin(AppQueryRequest appQueryRequest);
 
@@ -114,9 +112,9 @@ public interface AppService extends IService<App> {
      * 执行 AI 对话并并生成代码(流式)
      *
      * @param appId   AI 应用id
-     * @param userId 用户id
-     * @param message  对话消息
-     * @return  代码流
+     * @param userId  用户id
+     * @param message 对话消息
+     * @return 代码流
      */
     Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message);
 
@@ -124,17 +122,17 @@ public interface AppService extends IService<App> {
      * 执行 AI 对话并并生成代码(非流式)
      *
      * @param appId   AI 应用id
-     * @param userId 用户id
-     * @param message  对话消息
-     * @return  代码文件
+     * @param userId  用户id
+     * @param message 对话消息
+     * @return 代码文件
      */
     File aiChatAndGenerateCode(Long appId, Long userId, String message);
 
     /**
      * 预览指定应用
      *
-     * @param appId 应用 ID
-     * @param request   请求对象
+     * @param appId   应用 ID
+     * @param request 请求对象
      * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
      */
     ResponseEntity<FileSystemResource> serverStaticResource(Long appId, HttpServletRequest request);
@@ -142,7 +140,7 @@ public interface AppService extends IService<App> {
     /**
      * 部署应用
      *
-     * @param appId 应用id
+     * @param appId     应用id
      * @param loginUser 登录用户
      * @return 部署后的应用访问url
      */
@@ -151,10 +149,10 @@ public interface AppService extends IService<App> {
     /**
      * 构建代码输出文件夹
      *
-     * @param app   应用
+     * @param app 应用
      * @return java.io.File
      **/
-    public File getOutputDir(App app) ;
+    public File getOutputDir(App app);
 
     /**
      * 构建代码部署文件夹
@@ -162,7 +160,7 @@ public interface AppService extends IService<App> {
      * @param deployKey 部署密钥
      * @return java.io.File
      **/
-    public File getDeployDir(String deployKey) ;
+    public File getDeployDir(String deployKey);
 
     /**
      * 构建用于删除的代码输出文件夹（没有 dist 直接删除整个目录）

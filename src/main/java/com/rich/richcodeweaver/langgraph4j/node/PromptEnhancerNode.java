@@ -21,7 +21,7 @@ public class PromptEnhancerNode {
             log.info("\n 正在执行节点: 提示词增强。\n");
 
             // TODO 实现逻辑
-            
+
             // TODO 模拟工作流上下文状态内容的更新
             String enhancedPrompt = "增强后的提示词:......（省略）";
             context.setCurrentStep("提示词增强已完成");

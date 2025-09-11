@@ -31,7 +31,7 @@ public abstract class CodeResultSaveToFileTemplate<T> {
             throw new IllegalArgumentException("代码封装参数不能为空。");
         }
         // 生成唯一目录
-        String baseDirPath = buildUniqueDir(getCodeGeneratorTypeEnumValue(),appId);
+        String baseDirPath = buildUniqueDir(getCodeGeneratorTypeEnumValue(), appId);
         // 保存文件
         doSaveCodeResult(result, baseDirPath);
         // 返沪文件
@@ -59,7 +59,7 @@ public abstract class CodeResultSaveToFileTemplate<T> {
      * @param bizType 代码类型标识（用于目录名前缀）
      * @return 完整目录路径
      */
-    protected String buildUniqueDir(String bizType,Long appId) {
+    protected String buildUniqueDir(String bizType, Long appId) {
         if (StrUtil.isBlank(bizType)) {
             throw new IllegalArgumentException("业务类型不能为空或空白");
         }

@@ -100,55 +100,6 @@ public class OpenAiStreamingChatModel implements StreamingChatModel {
         this.listeners = copy(builder.listeners);
     }
 
-    @Override
-    public OpenAiChatRequestParameters defaultRequestParameters() {
-        return defaultRequestParameters;
-    }
-
-    @Override
-    public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-
-        OpenAiChatRequestParameters parameters = (OpenAiChatRequestParameters) chatRequest.parameters();
-        validate(parameters);
-
-        ChatCompletionRequest openAiRequest =
-                toOpenAiChatRequest(chatRequest, parameters, strictTools, strictJsonSchema)
-                        .stream(true)
-                        .streamOptions(StreamOptions.builder()
-                                .includeUsage(true)
-                                .build())
-                        .build();
-
-        OpenAiStreamingResponseBuilder openAiResponseBuilder = new OpenAiStreamingResponseBuilder();
-        ToolExecutionRequestBuilder toolBuilder = new ToolExecutionRequestBuilder();
-
-        client.chatCompletion(openAiRequest)
-                .onPartialResponse(partialResponse -> {
-                    openAiResponseBuilder.append(partialResponse);
-                    handle(partialResponse, toolBuilder, handler);
-                })
-                .onComplete(() -> {
-                    if (toolBuilder.hasToolExecutionRequests()) {
-                        try {
-                            handler.onCompleteToolExecutionRequest(toolBuilder.index(), toolBuilder.build());
-                        } catch (Exception e) {
-                            withLoggingExceptions(() -> handler.onError(e));
-                        }
-                    }
-                    ChatResponse chatResponse = openAiResponseBuilder.build();
-                    try {
-                        handler.onCompleteResponse(chatResponse);
-                    } catch (Exception e) {
-                        withLoggingExceptions(() -> handler.onError(e));
-                    }
-                })
-                .onError(throwable -> {
-                    RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(throwable);
-                    withLoggingExceptions(() -> handler.onError(mappedException));
-                })
-                .execute();
-    }
-
     private static void handle(ChatCompletionResponse partialResponse,
                                ToolExecutionRequestBuilder toolBuilder,
                                StreamingChatResponseHandler handler) {
@@ -215,6 +166,62 @@ public class OpenAiStreamingChatModel implements StreamingChatModel {
         }
     }
 
+    public static OpenAiStreamingChatModelBuilder builder() {
+        for (OpenAiStreamingChatModelBuilderFactory factory : loadFactories(OpenAiStreamingChatModelBuilderFactory.class)) {
+            return factory.get();
+        }
+        return new OpenAiStreamingChatModelBuilder();
+    }
+
+    @Override
+    public OpenAiChatRequestParameters defaultRequestParameters() {
+        return defaultRequestParameters;
+    }
+
+    @Override
+    public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
+
+        OpenAiChatRequestParameters parameters = (OpenAiChatRequestParameters) chatRequest.parameters();
+        validate(parameters);
+
+        ChatCompletionRequest openAiRequest =
+                toOpenAiChatRequest(chatRequest, parameters, strictTools, strictJsonSchema)
+                        .stream(true)
+                        .streamOptions(StreamOptions.builder()
+                                .includeUsage(true)
+                                .build())
+                        .build();
+
+        OpenAiStreamingResponseBuilder openAiResponseBuilder = new OpenAiStreamingResponseBuilder();
+        ToolExecutionRequestBuilder toolBuilder = new ToolExecutionRequestBuilder();
+
+        client.chatCompletion(openAiRequest)
+                .onPartialResponse(partialResponse -> {
+                    openAiResponseBuilder.append(partialResponse);
+                    handle(partialResponse, toolBuilder, handler);
+                })
+                .onComplete(() -> {
+                    if (toolBuilder.hasToolExecutionRequests()) {
+                        try {
+                            handler.onCompleteToolExecutionRequest(toolBuilder.index(), toolBuilder.build());
+                        } catch (Exception e) {
+                            withLoggingExceptions(() -> handler.onError(e));
+                        }
+                    }
+                    ChatResponse chatResponse = openAiResponseBuilder.build();
+                    try {
+                        handler.onCompleteResponse(chatResponse);
+                    } catch (Exception e) {
+                        withLoggingExceptions(() -> handler.onError(e));
+                    }
+                })
+                .onError(throwable -> {
+                    RuntimeException mappedException = ExceptionMapper.DEFAULT.mapException(throwable);
+                    withLoggingExceptions(() -> handler.onError(mappedException));
+                })
+                .execute();
+    }
+
     @Override
     public List<ChatModelListener> listeners() {
         return listeners;
@@ -223,13 +230,6 @@ public class OpenAiStreamingChatModel implements StreamingChatModel {
     @Override
     public ModelProvider provider() {
         return OPEN_AI;
-    }
-
-    public static OpenAiStreamingChatModelBuilder builder() {
-        for (OpenAiStreamingChatModelBuilderFactory factory : loadFactories(OpenAiStreamingChatModelBuilderFactory.class)) {
-            return factory.get();
-        }
-        return new OpenAiStreamingChatModelBuilder();
     }
 
     public static class OpenAiStreamingChatModelBuilder {

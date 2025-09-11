@@ -26,7 +26,8 @@ public interface StreamingChatResponseHandler {
      * TODO can be called multiple times
      * TODO can be called for multiple tool executions,
      * TODO give example of how this and other callback can be called
-     * @param index TODO
+     *
+     * @param index                       TODO
      * @param partialToolExecutionRequest TODO
      */
     default void onPartialToolExecutionRequest(int index, ToolExecutionRequest partialToolExecutionRequest) {
@@ -36,7 +37,8 @@ public interface StreamingChatResponseHandler {
      * TODO
      * TODO this callback is called as soon as a single tool execution request is complete
      * TODO can be called multiple times
-     * @param index TODO
+     *
+     * @param index                        TODO
      * @param completeToolExecutionRequest TODO
      */
     default void onCompleteToolExecutionRequest(int index, ToolExecutionRequest completeToolExecutionRequest) {

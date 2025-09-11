@@ -1,5 +1,5 @@
 <template>
-  <a-modal v-model:open="visible" title="部署成功" :footer="null" width="600px">
+  <a-modal v-model:open="visible" :footer="null" title="部署成功" width="600px">
     <div class="deploy-success">
       <div class="success-icon">
         <CheckCircleOutlined style="color: #52c41a; font-size: 48px" />
@@ -23,7 +23,7 @@
   </a-modal>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { CheckCircleOutlined, CopyOutlined } from '@ant-design/icons-vue'
@@ -35,6 +35,7 @@ interface Props {
 
 interface Emits {
   (e: 'update:open', value: boolean): void
+
   (e: 'open-site'): void
 }
 
@@ -43,7 +44,7 @@ const emit = defineEmits<Emits>()
 
 const visible = computed({
   get: () => props.open,
-  set: (value) => emit('update:open', value),
+  set: (value) => emit('update:open', value)
 })
 
 const handleCopyUrl = async () => {

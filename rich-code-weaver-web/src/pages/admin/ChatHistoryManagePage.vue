@@ -16,10 +16,10 @@
         <a-card class="search-panel">
           <a-input-search
             v-model:value="appSearch"
-            placeholder="搜索应用..."
             allow-clear
-            @search="handleSearch"
             class="search-input"
+            placeholder="搜索应用..."
+            @search="handleSearch"
           />
         </a-card>
 
@@ -29,8 +29,8 @@
 
         <a-empty
           v-else-if="!appList.length"
-          description="暂无应用数据"
           class="empty-container"
+          description="暂无应用数据"
         >
           <template #image>
             <div class="magic-pattern">
@@ -46,8 +46,8 @@
           <div
             v-for="app in filteredAppList"
             :key="app.id"
-            class="app-item"
             :class="{ active: selectedApp?.id === app.id }"
+            class="app-item"
             @click="selectApp(app)"
           >
             <div class="app-info">
@@ -69,7 +69,7 @@
             <div class="decorative-line"></div>
           </div>
 
-          <a-card class="app-card" :bordered="false">
+          <a-card :bordered="false" class="app-card">
             <div class="app-header">
               <a-avatar :src="selectedApp.cover" size="large" />
               <div class="app-info">
@@ -101,13 +101,13 @@
 
             <a-empty
               v-else-if="!allAppHistory.length"
-              description="暂无对话记录"
               class="empty-container"
+              description="暂无对话记录"
             />
 
             <div v-else class="conversation-container">
               <!-- 分页提示 -->
-              <div class="pagination-info" v-if="allAppHistory.length > 0">
+              <div v-if="allAppHistory.length > 0" class="pagination-info">
                 第 {{ currentPage }} 条 / 共 {{ totalPages }} 条
               </div>
 
@@ -120,13 +120,13 @@
                     <span class="ai-label">AI</span>
                   </div>
                   <div class="message-content">
-                    <div class="message-content-inner" :class="{ 'collapsed': history.collapsed }">
+                    <div :class="{ 'collapsed': history.collapsed }" class="message-content-inner">
                       <markdown-renderer v-if="history.message" :content="history.message" />
                     </div>
                     <a-button
                       v-if="history.message && history.message.length > 300"
-                      type="link"
                       class="toggle-content-btn"
+                      type="link"
                       @click="toggleContent(history)"
                     >
                       {{ history.collapsed ? '展开全部' : '收起' }}
@@ -142,15 +142,15 @@
                     <DeleteOutlined />
                   </a-button>
                   <div class="message-content">
-                    <div class="message-content-inner" :class="{ 'collapsed': history.collapsed }">
+                    <div :class="{ 'collapsed': history.collapsed }" class="message-content-inner">
                       <div class="user-bubble">
                         {{ history.message }}
                       </div>
                     </div>
                     <a-button
                       v-if="history.message && history.message.length > 300"
-                      type="link"
                       class="toggle-content-btn"
+                      type="link"
                       @click="toggleContent(history)"
                     >
                       {{ history.collapsed ? '展开全部' : '收起' }}
@@ -167,8 +167,8 @@
             <div v-if="allAppHistory.length" class="pagination-container">
               <a-pagination
                 v-model:current="currentPage"
-                :total="allAppHistory.length"
                 :page-size="1"
+                :total="allAppHistory.length"
                 show-less-items
                 @change="handlePageChange"
               />
@@ -177,7 +177,7 @@
         </div>
 
         <div v-else class="detail-empty">
-          <a-empty description="请从左侧选择一个应用" class="empty-container">
+          <a-empty class="empty-container" description="请从左侧选择一个应用">
             <template #image>
               <div class="magic-pattern">
                 <div class="pattern-element pattern-1"></div>
@@ -193,7 +193,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser'

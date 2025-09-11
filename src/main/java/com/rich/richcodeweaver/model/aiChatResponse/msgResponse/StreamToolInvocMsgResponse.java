@@ -34,7 +34,7 @@ public class StreamToolInvocMsgResponse extends StreamMsgResponse {
     /**
      * 指定为工具请求信息类型
      *
-     * @param toolExecutionRequest  工具执行请求
+     * @param toolExecutionRequest 工具执行请求
      **/
     public StreamToolInvocMsgResponse(ToolExecutionRequest toolExecutionRequest) {
         super(ReasoningStreamMsgTypeEnum.TOOL_REQUEST.getValue());

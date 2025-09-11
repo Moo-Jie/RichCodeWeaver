@@ -9,35 +9,35 @@
     <!-- 搜索面板 -->
     <a-card class="search-panel">
       <h2>筛选应用</h2>
-      <a-form layout="inline" :model="searchParams" @finish="doSearch">
-        <a-form-item label="应用名称" class="search-item">
+      <a-form :model="searchParams" layout="inline" @finish="doSearch">
+        <a-form-item class="search-item" label="应用名称">
           <a-input
             v-model:value="searchParams.appName"
+            allow-clear
             placeholder="输入应用名称关键词"
             suffix-icon="search"
-            allow-clear
           />
         </a-form-item>
 
-        <a-form-item label="提示关键词" class="search-item">
+        <a-form-item class="search-item" label="提示关键词">
           <a-input
             v-model:value="searchParams.initPrompt"
+            allow-clear
             placeholder="输入提示关键词"
             suffix-icon="search"
-            allow-clear
           />
         </a-form-item>
 
-        <a-form-item label="创建者" class="search-item">
+        <a-form-item class="search-item" label="创建者">
           <a-input
             v-model:value="searchParams.userId"
+            allow-clear
             placeholder="输入用户ID"
             suffix-icon="user"
-            allow-clear
           />
         </a-form-item>
 
-        <a-form-item label="生成类型" class="search-item">
+        <a-form-item class="search-item" label="生成类型">
           <a-select
             v-model:value="searchParams.codeGenType"
             placeholder="全部生成类型"
@@ -57,9 +57,9 @@
         <a-form-item label="部署密钥">
           <a-input
             v-model:value="searchParams.initPrompt"
+            allow-clear
             placeholder="输入部署密钥"
             suffix-icon="deployKey"
-            allow-clear
           />
         </a-form-item>
 
@@ -77,7 +77,7 @@
         <h2>应用列表</h2>
         <span class="table-tips">
           共 {{ pagination.total }} 个应用 |
-          <a-tag color="gold" class="featured-tag">金色星标为星选应用</a-tag>
+          <a-tag class="featured-tag" color="gold">金色星标为星选应用</a-tag>
         </span>
       </div>
 
@@ -85,18 +85,18 @@
         :columns="columns"
         :data-source="data"
         :pagination="pagination"
-        @change="doTableChange"
         :scroll="{ x: 1200 }"
         rowKey="id"
+        @change="doTableChange"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'cover'">
             <a-image
               v-if="record.cover"
+              :fallback="fallbackImage"
+              :height="60"
               :src="record.cover"
               :width="80"
-              :height="60"
-              :fallback="fallbackImage"
               class="app-cover"
             />
             <div v-else class="no-cover">
@@ -122,13 +122,13 @@
           </template>
 
           <template v-else-if="column.dataIndex === 'deployKey'">
-            <div @click="toggleDeployKey(record.id)" class="deploy-key-cell">
+            <div class="deploy-key-cell" @click="toggleDeployKey(record.id)">
               <span v-if="showDeployKey[record.id]">{{ record.deployKey }}</span>
               <span v-else>*******</span>
               <component
                 :is="showDeployKey[record.id] ? EyeOutlined : EyeInvisibleOutlined"
-                class="eye-icon"
                 :style="{ marginLeft: '5px', cursor: 'pointer' }"
+                class="eye-icon"
               />
             </div>
           </template>
@@ -170,8 +170,8 @@
             <a-space class="action-buttons">
               <!-- 进入应用按钮 -->
               <a-button
-                type="default"
                 size="small"
+                type="default"
                 @click="enterApp(record)"
               >
                 <template #icon>
@@ -180,16 +180,16 @@
                 进入
               </a-button>
               <a-button
-                type="default"
                 size="small"
+                type="default"
                 @click="editApp(record)"
               >
                 编辑
               </a-button>
               <!-- 信息卡片按钮 -->
               <a-button
-                type="default"
                 size="small"
+                type="default"
                 @click="showAppDetail(record)"
               >
                 <template #icon>
@@ -199,10 +199,10 @@
               </a-button>
 
               <a-button
-                type="default"
-                size="small"
-                @click="toggleFeatured(record)"
                 :class="{ 'featured-btn': record.priority === 99 }"
+                size="small"
+                type="default"
+                @click="toggleFeatured(record)"
               >
                 <template v-if="record.priority === 99">
                   <star-filled />
@@ -480,7 +480,7 @@ const doDeleteApp = async (id: number | undefined) => {
 }
 </script>
 
-<style scoped lang="less">
+<style lang="less" scoped>
 #appManagePage {
   padding: 24px;
   background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);

@@ -2,8 +2,9 @@
   <div class="privacy-container">
     <!-- 顶部导航 -->
     <div class="header-nav">
-      <router-link to="/" class="nav-link">
-        <arrow-left-outlined /> 返回首页
+      <router-link class="nav-link" to="/">
+        <arrow-left-outlined />
+        返回首页
       </router-link>
     </div>
 
@@ -15,7 +16,8 @@
       <div class="policy-card">
         <section class="policy-section">
           <h2>引言</h2>
-          <p>欢迎使用 RichCodeWeaver（以下简称"本平台"）。我们深知个人信息对您的重要性，并致力于保护您的隐私权。本隐私政策旨在说明我们如何收集、使用、存储和共享您的个人信息，以及您如何行使您的隐私权利。</p>
+          <p>欢迎使用
+            RichCodeWeaver（以下简称"本平台"）。我们深知个人信息对您的重要性，并致力于保护您的隐私权。本隐私政策旨在说明我们如何收集、使用、存储和共享您的个人信息，以及您如何行使您的隐私权利。</p>
         </section>
 
         <section class="policy-section">
@@ -111,7 +113,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import {
   ArrowLeftOutlined,
   ExperimentOutlined,

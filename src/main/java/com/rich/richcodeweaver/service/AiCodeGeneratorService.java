@@ -37,7 +37,7 @@ public interface AiCodeGeneratorService {
      * AI 流式推理生成 Vue 项目工程代码
      *
      * @param userMessage 用户提示词
-     * @param appId 应用 ID 作为 MemoryId ,用于让 AI 主动唯一标识正在生成的应用
+     * @param appId       应用 ID 作为 MemoryId ,用于让 AI 主动唯一标识正在生成的应用
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/vue-project-system-prompt.txt")
@@ -65,7 +65,7 @@ public interface AiCodeGeneratorService {
      * AI 生成 Vue 项目工程代码
      *
      * @param userMessage 用户提示词
-     * @param appId 应用 ID 作为 MemoryId ,用于让 AI 主动唯一标识正在生成的应用
+     * @param appId       应用 ID 作为 MemoryId ,用于让 AI 主动唯一标识正在生成的应用
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/vue-project-system-prompt.txt")

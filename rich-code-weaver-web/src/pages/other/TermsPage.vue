@@ -2,8 +2,9 @@
   <div class="terms-container">
     <!-- 顶部导航 -->
     <div class="header-nav">
-      <router-link to="/" class="nav-link">
-        <arrow-left-outlined /> 返回首页
+      <router-link class="nav-link" to="/">
+        <arrow-left-outlined />
+        返回首页
       </router-link>
     </div>
 
@@ -15,7 +16,8 @@
       <div class="terms-card">
         <section class="terms-section">
           <h2>接受条款</h2>
-          <p>通过访问或使用 RichCodeWeaver（以下简称"本平台"）提供的服务，即表示您同意遵守本服务条款（以下简称"条款"）。这些条款构成您与 RichCodeWeaver 之间的法律协议。</p>
+          <p>通过访问或使用 RichCodeWeaver（以下简称"本平台"）提供的服务，即表示您同意遵守本服务条款（以下简称"条款"）。这些条款构成您与
+            RichCodeWeaver 之间的法律协议。</p>
         </section>
 
         <section class="terms-section">
@@ -75,11 +77,13 @@
           <div class="ip-grid">
             <div class="ip-card">
               <h3>平台知识产权</h3>
-              <p>RichCodeWeaver 保留所有平台内容、功能、源代码、设计元素和技术的所有权。未经明确书面许可，不得复制、修改或创建衍生作品。</p>
+              <p>RichCodeWeaver
+                保留所有平台内容、功能、源代码、设计元素和技术的所有权。未经明确书面许可，不得复制、修改或创建衍生作品。</p>
             </div>
             <div class="ip-card">
               <h3>用户生成内容</h3>
-              <p>您保留在平台上创建内容的所有权。通过上传内容，您授予 RichCodeWeaver 全球性、非独占、免版税的许可，用于运营、改进和推广服务。</p>
+              <p>您保留在平台上创建内容的所有权。通过上传内容，您授予 RichCodeWeaver
+                全球性、非独占、免版税的许可，用于运营、改进和推广服务。</p>
             </div>
           </div>
         </section>
@@ -127,7 +131,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import {
   ArrowLeftOutlined,
   CloudServerOutlined,

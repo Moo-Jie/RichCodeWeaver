@@ -18,14 +18,14 @@ public class SimpleGraphApp {
         ResponderNode responderNode = new ResponderNode();
 
         // Define the graph structure
-       var stateGraph = new StateGraph<>(SimpleState.SCHEMA, initData -> new SimpleState(initData))
-            .addNode("greeter", node_async(greeterNode))
-            .addNode("responder", node_async(responderNode))
-            // Define edges
-            .addEdge(START, "greeter") // Start with the greeter node
-            .addEdge("greeter", "responder")
-            .addEdge("responder", END)   // End after the responder node
-             ;
+        var stateGraph = new StateGraph<>(SimpleState.SCHEMA, initData -> new SimpleState(initData))
+                .addNode("greeter", node_async(greeterNode))
+                .addNode("responder", node_async(responderNode))
+                // Define edges
+                .addEdge(START, "greeter") // Start with the greeter node
+                .addEdge("greeter", "responder")
+                .addEdge("responder", END)   // End after the responder node
+                ;
         // Compile the graph
         var compiledGraph = stateGraph.compile();
 
@@ -37,8 +37,8 @@ public class SimpleGraphApp {
         // For simplicity, we'll collect results. In a real app, you might process them as they arrive.
         // Here, the final state after execution is the item of interest.
 
-        for (var item : compiledGraph.stream( Map.of( SimpleState.MESSAGES_KEY, "Let's, begin!" ) ) ) {
-            System.out.println( item );
+        for (var item : compiledGraph.stream(Map.of(SimpleState.MESSAGES_KEY, "Let's, begin!"))) {
+            System.out.println(item);
         }
 
     }

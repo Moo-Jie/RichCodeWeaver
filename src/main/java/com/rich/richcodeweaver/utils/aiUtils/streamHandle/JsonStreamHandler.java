@@ -168,7 +168,7 @@ public class JsonStreamHandler {
                 // 解析 Arguments 属性为 JSON 对象
                 JSONObject argumentsJson = JSONUtil.parseObj(streamToolExecutedMsgResponse.getArguments());
                 // 获取工具执行结果
-                String data = String.format( "\n\n%s\n\n",tool.getResultMsg(argumentsJson));
+                String data = String.format("\n\n%s\n\n", tool.getResultMsg(argumentsJson));
                 // 将 AI 回复内容加入到对话历史
                 aiResponseBuilder.append(data);
                 return data;

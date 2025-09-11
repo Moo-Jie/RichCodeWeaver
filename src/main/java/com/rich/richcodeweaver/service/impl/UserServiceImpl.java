@@ -279,7 +279,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 更新密码
      *
      * @param userUpdatePasswordRequest 用户更新密码请求对象
-     * @return  是否更新成功
+     * @return 是否更新成功
      */
     @Override
     public Boolean updatePassword(UserUpdatePasswordRequest userUpdatePasswordRequest) {
@@ -319,7 +319,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = this.getById(userId);
         ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         // 重置密码
-        String resetPassword = getEncryptPassword("zmrq@"+user.getUserAccount());
+        String resetPassword = getEncryptPassword("zmrq@" + user.getUserAccount());
         user.setUserPassword(resetPassword);
         return this.updateById(user);
     }

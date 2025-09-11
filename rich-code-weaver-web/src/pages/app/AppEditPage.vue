@@ -8,28 +8,28 @@
 
     <!-- 编辑面板 -->
     <div class="edit-panel">
-      <a-card class="info-card" :loading="loading">
+      <a-card :loading="loading" class="info-card">
         <div class="card-header">
           <h2>应用信息</h2>
-          <a-button type="link" class="view-chat" @click="goToChat">
+          <a-button class="view-chat" type="link" @click="goToChat">
             <MessageOutlined />
             <span>进入对话</span>
           </a-button>
         </div>
 
         <a-form
+          ref="formRef"
           :model="formData"
           :rules="rules"
           layout="vertical"
           @finish="handleSubmit"
-          ref="formRef"
         >
-          <a-form-item label="应用名称" name="appName" class="form-item">
+          <a-form-item class="form-item" label="应用名称" name="appName">
             <a-input
               v-model:value="formData.appName"
-              placeholder="为您的应用输入一个有意义的名称"
               :maxlength="50"
               allow-clear
+              placeholder="为您的应用输入一个有意义的名称"
             >
               <template #prefix>
                 <TagOutlined />
@@ -46,17 +46,17 @@
           <!-- 管理员专属字段 -->
           <template v-if="isAdmin">
             <a-form-item
-              label="应用封面"
-              name="cover"
               class="form-item"
               extra="支持外部图片链接或上传本地图片，建议尺寸：400x300"
+              label="应用封面"
+              name="cover"
             >
               <div class="cover-input-group">
                 <a-input
                   v-model:value="formData.cover"
-                  placeholder="输入封面图片URL链接"
                   allow-clear
                   class="cover-input"
+                  placeholder="输入封面图片URL链接"
                 >
                   <template #prefix>
                     <PictureOutlined />
@@ -68,7 +68,7 @@
                   :show-upload-list="false"
                   accept="image/jpeg,image/png"
                 >
-                  <a-button type="primary" class="upload-btn">
+                  <a-button class="upload-btn" type="primary">
                     <UploadOutlined />
                     上传图片
                   </a-button>
@@ -78,15 +78,15 @@
               <div v-if="formData.cover" class="cover-preview">
                 <div class="preview-title">封面预览</div>
                 <a-image
+                  :fallback="fallbackImage"
+                  :height="150"
                   :src="formData.cover"
                   :width="200"
-                  :height="150"
-                  :fallback="fallbackImage"
                 />
                 <a-button
+                  class="clear-btn"
                   type="link"
                   @click="clearCover"
-                  class="clear-btn"
                 >
                   清除封面
                 </a-button>
@@ -94,19 +94,19 @@
             </a-form-item>
             <template v-if="isAdmin">
               <a-form-item
-                label="应用优先级"
-                name="priority"
                 class="form-item"
                 extra="设置为99可标记为星选应用"
+                label="应用优先级"
+                name="priority"
               >
                 <a-tooltip
-                  title="星选应用会展示在首页供所有用户查看"
                   placement="right"
+                  title="星选应用会展示在首页供所有用户查看"
                 >
                   <a-input-number
                     v-model:value="formData.priority"
-                    :min="0"
                     :max="99"
+                    :min="0"
                     style="width: 100%"
                   >
                     <template #prefix>
@@ -127,20 +127,20 @@
           </template>
 
           <!-- 不可编辑字段 -->
-          <a-form-item label="初始提示词" name="initPrompt" class="form-item">
+          <a-form-item class="form-item" label="初始提示词" name="initPrompt">
             <a-textarea
               v-model:value="formData.initPrompt"
-              placeholder="应用的初始生成提示词"
-              :rows="5"
               :maxlength="1000"
+              :rows="5"
               disabled
+              placeholder="应用的初始生成提示词"
             />
             <div class="form-tip">
               此字段为应用的初始生成指令，创建后不可修改
             </div>
           </a-form-item>
 
-          <a-form-item label="生成类型" name="codeGenType" class="form-item">
+          <a-form-item class="form-item" label="生成类型" name="codeGenType">
             <a-tag :color="getTypeColor(appInfo?.codeGenType)">
               {{
                 appInfo?.codeGenType === 'single_html' ? '单文件结构' :
@@ -156,9 +156,9 @@
 
           <a-form-item
             v-if="formData.deployKey"
+            class="form-item"
             label="部署密钥"
             name="deployKey"
-            class="form-item"
           >
             <a-input v-model:value="formData.deployKey" disabled />
             <div class="form-tip">
@@ -169,26 +169,26 @@
           <a-form-item class="form-actions">
             <a-space>
               <a-button
-                type="primary"
-                html-type="submit"
                 :loading="submitting"
-                size="large"
                 class="submit-btn"
+                html-type="submit"
+                size="large"
+                type="primary"
               >
                 <SaveOutlined />
                 <span>保存修改</span>
               </a-button>
-              <a-button @click="resetForm" size="large" class="reset-btn">
+              <a-button class="reset-btn" size="large" @click="resetForm">
                 <UndoOutlined />
                 <span>重置表单</span>
               </a-button>
               <a-button
                 v-if="isDeployed"
-                type="primary"
-                class="detail-btn"
-                target="_blank"
                 :href="deployedSiteUrl"
+                class="detail-btn"
                 size="large"
+                target="_blank"
+                type="primary"
               >
                 <ExportOutlined />
                 <span>访问已部署网站</span>
@@ -255,7 +255,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { FormInstance } from 'ant-design-vue'
@@ -491,7 +491,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped lang="less">
+<style lang="less" scoped>
 #appEditPage {
   padding: 24px;
   background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);

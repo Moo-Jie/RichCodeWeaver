@@ -5,9 +5,10 @@
         <h1 class="title">织码睿奇 -注册</h1>
         <p class="desc">不写一行代码，生成完整应用</p>
       </div>
-      <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit">
-        <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
-          <a-input v-model:value="formState.userAccount" placeholder="请输入账号" class="input-field">
+      <a-form :model="formState" autocomplete="off" name="basic" @finish="handleSubmit">
+        <a-form-item :rules="[{ required: true, message: '请输入账号' }]" name="userAccount">
+          <a-input v-model:value="formState.userAccount" class="input-field"
+                   placeholder="请输入账号">
             <template #prefix>
               <UserOutlined />
             </template>
@@ -15,13 +16,14 @@
         </a-form-item>
 
         <a-form-item
-          name="userPassword"
           :rules="[
             { required: true, message: '请输入密码' },
             { min: 8, message: '密码不能小于 8 位' },
           ]"
+          name="userPassword"
         >
-          <a-input-password v-model:value="formState.userPassword" placeholder="请输入密码" class="input-field">
+          <a-input-password v-model:value="formState.userPassword" class="input-field"
+                            placeholder="请输入密码">
             <template #prefix>
               <LockOutlined />
             </template>
@@ -29,14 +31,15 @@
         </a-form-item>
 
         <a-form-item
-          name="checkPassword"
           :rules="[
             { required: true, message: '请确认密码' },
             { min: 8, message: '密码不能小于 8 位' },
             { validator: validateCheckPassword },
           ]"
+          name="checkPassword"
         >
-          <a-input-password v-model:value="formState.checkPassword" placeholder="请确认密码" class="input-field">
+          <a-input-password v-model:value="formState.checkPassword" class="input-field"
+                            placeholder="请确认密码">
             <template #prefix>
               <SafetyOutlined />
             </template>
@@ -45,17 +48,17 @@
 
         <div class="tips">
           已有账号？
-          <RouterLink to="/user/login" class="link">去登录</RouterLink>
+          <RouterLink class="link" to="/user/login">去登录</RouterLink>
         </div>
 
         <div class="tips">
-          <RouterLink to="/other/privacy" class="tips">隐私政策</RouterLink>
+          <RouterLink class="tips" to="/other/privacy">隐私政策</RouterLink>
           &nbsp;&nbsp;<span class="tips">|</span>&nbsp;&nbsp;
-          <RouterLink to="/other/terms" class="tips">服务条款</RouterLink>
+          <RouterLink class="tips" to="/other/terms">服务条款</RouterLink>
         </div>
 
         <a-form-item>
-          <a-button type="primary" html-type="submit" class="submit-btn" :loading="submitting">
+          <a-button :loading="submitting" class="submit-btn" html-type="submit" type="primary">
             注册
           </a-button>
         </a-form-item>
@@ -64,7 +67,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { LockOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons-vue'
@@ -72,13 +75,13 @@ import { userRegister } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 
 const router = useRouter()
-const backgroundImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 100 100'%3E%3Cpath fill='none' stroke='rgba(204,230,255,0.1)' stroke-width='1' d='M80,80 Q20,60 20,20 M50,100 Q50,0 100,50'/%3E%3C/svg%3E"
+const backgroundImage = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'400\' viewBox=\'0 0 100 100\'%3E%3Cpath fill=\'none\' stroke=\'rgba(204,230,255,0.1)\' stroke-width=\'1\' d=\'M80,80 Q20,60 20,20 M50,100 Q50,0 100,50\'/%3E%3C/svg%3E'
 const submitting = ref(false)
 
 const formState = reactive({
   userAccount: '',
   userPassword: '',
-  checkPassword: '',
+  checkPassword: ''
 })
 
 const validateCheckPassword = (rule: unknown, value: string, callback: (error?: Error) => void) => {
