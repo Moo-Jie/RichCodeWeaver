@@ -1,4 +1,4 @@
-# 本文件展示推荐的本地配置文件写法，若使用先改为 application-local.yml
+# 本模板配置文件展示推荐的本地配置文件写法，若使用先改文件名为 application-local.yml
 
 # langchain4j 配置
 langchain4j:
@@ -49,3 +49,7 @@ langchain4j:
       log-requests: true
       # 开启响应日志
       log-responses: true
+
+# Pexels 图片搜索
+pexels:
+  api-key: 【Your ApiKey】
