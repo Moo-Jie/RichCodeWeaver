@@ -1,12 +1,12 @@
 package com.rich.richcodeweaver.utils.aiUtils;
 
-import com.rich.richcodeweaver.config.AiCodeGeneratorServiceFactory;
+import com.rich.richcodeweaver.config.aiChatServiceFactory.AiCodeGeneratorServiceFactory;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
-import com.rich.richcodeweaver.service.AiCodeGeneratorService;
+import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorService;
 import com.rich.richcodeweaver.utils.aiUtils.codeParse.CodeParseExecutor;
 import com.rich.richcodeweaver.utils.aiUtils.codeSave.CodeResultSaveExecutor;
 import dev.langchain4j.service.TokenStream;

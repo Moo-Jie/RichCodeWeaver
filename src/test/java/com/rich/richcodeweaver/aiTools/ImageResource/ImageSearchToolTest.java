@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.aiTools.ImageSearch;
+package com.rich.richcodeweaver.aiTools.ImageResource;
 
 import com.rich.richcodeweaver.model.entity.ImageResource;
 import com.rich.richcodeweaver.model.enums.ImageCategoryEnum;
@@ -19,7 +19,7 @@ class ImageSearchToolTest {
     @Test
     void testSearchContentImages() {
         // 测试正常搜索
-        List<ImageResource> images = imageSearchTool.searchContentImages("technology");
+        List<ImageResource> images = imageSearchTool.searchImages("technology");
         assertNotNull(images);
         assertFalse(images.isEmpty());
         // 验证返回的图片资源

@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.config;
+package com.rich.richcodeweaver.config.aiChatServiceFactory;
 
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;

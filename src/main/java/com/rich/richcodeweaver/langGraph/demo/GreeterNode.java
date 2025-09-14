@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.langgraph4j.demo;
+package com.rich.richcodeweaver.langGraph.demo;
 
 import org.bsc.langgraph4j.action.NodeAction;
 

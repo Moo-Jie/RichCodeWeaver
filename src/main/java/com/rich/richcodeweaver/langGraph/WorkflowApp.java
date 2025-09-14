@@ -1,7 +1,7 @@
-package com.rich.richcodeweaver.langgraph4j;
+package com.rich.richcodeweaver.langGraph;
 
-import com.rich.richcodeweaver.langgraph4j.node.*;
-import com.rich.richcodeweaver.langgraph4j.state.WorkflowContext;
+import com.rich.richcodeweaver.langGraph.node.*;
+import com.rich.richcodeweaver.langGraph.state.WorkflowContext;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.GraphRepresentation;

@@ -26,6 +26,7 @@ import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
 import com.rich.richcodeweaver.service.*;
+import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorTypeStrategyService;
 import com.rich.richcodeweaver.utils.aiUtils.AIGenerateCodeAndSaveToFileUtils;
 import com.rich.richcodeweaver.utils.aiUtils.streamHandle.StreamHandlerExecutor;
 import jakarta.annotation.Resource;

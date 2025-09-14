@@ -1,6 +1,6 @@
-package com.rich.richcodeweaver.config;
+package com.rich.richcodeweaver.config.aiChatServiceFactory;
 
-import com.rich.richcodeweaver.service.AiCodeGeneratorTypeStrategyService;
+import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorTypeStrategyService;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;

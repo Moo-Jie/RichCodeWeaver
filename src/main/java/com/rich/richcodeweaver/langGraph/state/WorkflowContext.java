@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.langgraph4j.state;
+package com.rich.richcodeweaver.langGraph.state;
 
 import com.rich.richcodeweaver.model.entity.ImageResource;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;

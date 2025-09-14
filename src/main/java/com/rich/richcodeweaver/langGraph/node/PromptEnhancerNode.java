@@ -1,6 +1,6 @@
-package com.rich.richcodeweaver.langgraph4j.node;
+package com.rich.richcodeweaver.langGraph.node;
 
-import com.rich.richcodeweaver.langgraph4j.state.WorkflowContext;
+import com.rich.richcodeweaver.langGraph.state.WorkflowContext;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;

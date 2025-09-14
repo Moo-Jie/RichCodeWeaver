@@ -1,10 +1,10 @@
-package com.rich.richcodeweaver.config;
+package com.rich.richcodeweaver.config.aiChatServiceFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.richcodeweaver.aiTools.base.ToolsManager;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
-import com.rich.richcodeweaver.service.AiCodeGeneratorService;
+import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
@@ -34,7 +34,7 @@ public class AiCodeGeneratorServiceFactory {
      * 创建 Caffeine 缓存服务，用于存储 AI 服务实例
      *
      * @param appId 应用 id
-     * @return com.rich.richcodeweaver.service.AiCodeGeneratorService
+     * @return com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorService
      * @author DuRuiChi
      * @create 2025/8/18
      **/
@@ -76,7 +76,7 @@ public class AiCodeGeneratorServiceFactory {
     /**
      * 在 Caffeine 缓存中创建 AI 服务实例
      *
-     * @return com.rich.richcodeweaver.service.AiCodeGeneratorService
+     * @return com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorService
      * @author DuRuiChi
      * @create 2025/8/5
      **/
@@ -91,7 +91,7 @@ public class AiCodeGeneratorServiceFactory {
      * 根据 appId 实现创建不同的独立 AI 服务，并从数据库加载对话历史
      *
      * @param appId
-     * @return com.rich.richcodeweaver.service.AiCodeGeneratorService
+     * @return com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorService
      * @author DuRuiChi
      * @create 2025/8/18
      **/

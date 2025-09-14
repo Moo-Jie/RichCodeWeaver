@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.service;
+package com.rich.richcodeweaver.service.aiChatService;
 
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;

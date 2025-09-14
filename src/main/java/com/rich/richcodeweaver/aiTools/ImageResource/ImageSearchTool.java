@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.aiTools.ImageSearch;
+package com.rich.richcodeweaver.aiTools.ImageResource;
 
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 图片搜索工具（仅供自主图片搜索 AI 使用）
+ * 图片搜索工具（仅供自主图片生成 AI 使用）
  * 支持 AI 通过工具调用的方式搜索图片
  * 开发文档：https://www.pexels.com/api/
  *
@@ -42,13 +42,14 @@ public class ImageSearchTool {
      * @return 返回图片资源列表，包含图片URL、描述和分类信息
      */
     @Tool("搜索内容相关的图片，用于网站内容展示")
-    public List<ImageResource> searchContentImages(@P("搜索关键词") String query) {
+    public List<ImageResource> searchImages(@P("搜索关键词") String query) {
         // 初始化图片列表
         List<ImageResource> imageList = new ArrayList<>();
         // 设置每次搜索返回的图片数量
         int searchCount = 12;
 
         // 调用 Pexels API，使用 try-with-resources 确保HTTP响应资源被正确释放
+        // 文档：https://www.pexels.com/api/documentation/#photos-search
         try (HttpResponse response = HttpRequest.get(PEXELS_API_URL)
                 .header("Authorization", pexelsApiKey) // 设置认证头
                 .form("query", query)                  // 设置搜索关键词

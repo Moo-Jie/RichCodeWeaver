@@ -13,9 +13,7 @@ import lombok.Getter;
 public enum ImageCategoryEnum {
 
     CONTENT("内容图片", "CONTENT"),
-    LOGO("LOGO图片", "LOGO"),
-    ILLUSTRATION("插画图片", "ILLUSTRATION"),
-    ARCHITECTURE("架构图片", "ARCHITECTURE");
+    AI("AI 图片", "ai");
 
 
     private final String text;
