@@ -48,6 +48,26 @@ public class AppController {
     @Resource
     private FileService fileService;
 
+    /**
+     * 执行 AI 生成应用代码（SSE 流式)
+     *
+     * @param appId      应用id
+     * @param message    用户消息
+     * @param isWorkflow 是否使用工作流
+     * @param request    请求对象
+     * @return 生成结果流
+     */
+    @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId,
+                                                             @RequestParam String message,
+                                                             @RequestParam(defaultValue = "false") Boolean isWorkflow,
+                                                             HttpServletRequest request) {
+        // 参数校验
+        Long userId = userService.getLoginUser(request).getId();
+        ThrowUtils.throwIf(appId == null || userId == null || message == null, ErrorCode.PARAMS_ERROR);
+        // 执行 AI 生成应用代码
+        return appService.aiChatAndGenerateCodeStream(appId, userId, message, isWorkflow);
+    }
 
     /**
      * 预览指定应用
@@ -215,23 +235,6 @@ public class AppController {
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         // 转换为视图对象并返回
         return ResultUtils.success(appService.getAppVO(app));
-    }
-
-    /**
-     * 执行 AI 生成应用代码（SSE 流式)
-     *
-     * @param appId   应用id
-     * @param message 用户消息
-     * @param request 请求对象
-     * @return 生成结果流
-     */
-    @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId, @RequestParam String message, HttpServletRequest request) {
-        // 参数校验
-        Long userId = userService.getLoginUser(request).getId();
-        ThrowUtils.throwIf(appId == null || userId == null || message == null, ErrorCode.PARAMS_ERROR);
-        // 执行 AI 生成应用代码
-        return appService.aiChatAndGenerateCodeStream(appId, userId, message);
     }
 
     /**

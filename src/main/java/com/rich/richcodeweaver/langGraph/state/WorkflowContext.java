@@ -32,6 +32,10 @@ public class WorkflowContext implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
     /**
+     * 应用 ID
+     */
+    private Long appId;
+    /**
      * 当前执行步骤
      */
     private String currentStep;
@@ -43,6 +47,10 @@ public class WorkflowContext implements Serializable {
      * 图片资源字符串
      */
     private String imageListStr;
+    /**
+     * 代码生成类型
+     **/
+    private CodeGeneratorTypeEnum codeGenType;
     /**
      * 图片资源列表
      */
@@ -58,11 +66,11 @@ public class WorkflowContext implements Serializable {
     /**
      * 生成的代码目录
      */
-    private String generatedCodeDir;
+    private String outputDir;
     /**
      * 构建成功的目录
      */
-    private String buildResultDir;
+    private String deployDir;
     /**
      * 错误信息
      */

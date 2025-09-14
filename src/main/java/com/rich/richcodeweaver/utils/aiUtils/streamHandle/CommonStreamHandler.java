@@ -36,7 +36,7 @@ public class CommonStreamHandler {
                             ChatHistoryTypeEnum.AI.getValue(),
                             userId);
                 })
-                // 封装为 JOSN 格式的 SSE 事件
+                // 封装为和前端约定好的 JOSN 格式的 SSE 事件
                 .map(
                         strBlock -> {
                             // 封装为 JSON 字符串，预防直接进行字符串流式传输丢失空格符、换行符等问题

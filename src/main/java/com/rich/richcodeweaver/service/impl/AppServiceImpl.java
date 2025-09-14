@@ -13,6 +13,7 @@ import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.exception.ThrowUtils;
+import com.rich.richcodeweaver.langGraph.CodeGenWorkflowApp;
 import com.rich.richcodeweaver.mapper.AppMapper;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
 import com.rich.richcodeweaver.model.dto.app.AppAddRequest;
@@ -86,6 +87,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private AiCodeGeneratorTypeStrategyService aiCodeGeneratorTypeStrategyService;
 
+    @Resource
+    private CodeGenWorkflowApp codeGenWorkflowApp;
+
     /**
      * 管理员执行 AI 对话并并生成代码(流式)
      *
@@ -97,7 +101,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @create 2025/8/8
      **/
     @Override
-    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message) {
+    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isWorkflow) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
         // 查询 AI 应用
@@ -115,9 +119,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
         // 调用 AI 基础响应流
-        Flux<String> stringFlux = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
-        // 处理 AI 响应流
-        return streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
+        if (isWorkflow) {
+            // 通过工作流执行对话：搜索图片资源——>提示词强化——>代码生成类型规划——>代码生成——>代码保存——>项目构建——>持久化——>响应前端
+            return codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
+        } else {
+            // 直接执行对话：代码生成类型规划——>代码生成——>代码保存
+            Flux<String> stringFlux =aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
+            // 处理 AI 响应流：数据块处理——>持久化——>项目构建——>响应前端
+            return streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
+        }
     }
 
     /**
@@ -444,7 +454,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             // 自动规划生成策略
             codeGeneratorTypeEnum = aiCodeGeneratorTypeStrategyService.getCodeGenStrategy(initPrompt);
         }
-
         app.setCodeGenType(codeGeneratorTypeEnum.getValue());
         // 设置默认封面
         app.setCover(AppConstant.APP_COVER);
