@@ -1,9 +1,16 @@
 package com.rich.richcodeweaver.langGraph.node;
 
+import com.rich.richcodeweaver.exception.BusinessException;
+import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.langGraph.state.WorkflowContext;
+import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
+import com.rich.richcodeweaver.utils.SpringContextUtil;
+import com.rich.richcodeweaver.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
+
+import java.io.File;
 
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
@@ -20,12 +27,29 @@ public class ProjectBuilderNode {
             WorkflowContext context = WorkflowContext.getContext(state);
             log.info("\n 正在执行节点: 项目构建。\n");
 
-            // TODO 实现逻辑
+            String outputDir = context.getOutputDir();
+            String buildResultDir;
+            try {
+                BuildWebProjectExecutor buildWebProjectExecutor = SpringContextUtil.getBean(BuildWebProjectExecutor.class);
+                // 构建代码
+                boolean buildSuccess = buildWebProjectExecutor.buildProject(outputDir);
+                if (buildSuccess) {
+                    // 返回 dist 目录的路径
+                    buildResultDir = outputDir + File.separator + "dist";
+                    log.info("项目构建成功，目录为: {}", buildResultDir);
+                } else {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "工程项目构建失败");
+                }
+            } catch (Exception e) {
+                log.error("Vue 项目构建异常: {}", e.getMessage(), e);
+                // 返回原路径
+                buildResultDir = outputDir;
+            }
 
-            // TODO 模拟工作流上下文状态内容的更新
-            context.setCurrentStep("项目构建");
-            context.setBuildResultDir("/appCode/code_deploy/deployKey");
-            log.info("\n 项目构建节点运行完成。\n");
+            // 更新状态
+            context.setDeployDir(buildResultDir);
+            context.setCurrentStep("项目构建已完成");
+            log.info("\n 项目构建节点运行完成，最终目录: {} \n ", buildResultDir);
             return WorkflowContext.saveContext(context);
         });
     }
