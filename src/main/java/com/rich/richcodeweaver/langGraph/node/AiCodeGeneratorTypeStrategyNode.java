@@ -26,12 +26,12 @@ public class AiCodeGeneratorTypeStrategyNode {
             CodeGeneratorTypeEnum generationType = context.getGenerationType();
             log.info("\n 正在执行节点: 代码生成类型策略节点。\n");
             ThrowUtils.throwIf(generationType == null, ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
-            // 智能路由
+            // 设置代码生成类型
             try {
                 if (CodeGeneratorTypeEnum.AI_STRATEGY.equals(generationType)) {
-                    // 获取AI路由服务
+                    // 获取 AI 代码生成类型策略服务
                     AiCodeGeneratorTypeStrategyService aiCodeGeneratorTypeStrategyService = SpringContextUtil.getBean(AiCodeGeneratorTypeStrategyService.class);
-                    // 根据原始提示词进行智能路由
+                    // 让 AI 根据原始提示词选择代码生成方案
                     CodeGeneratorTypeEnum genType = aiCodeGeneratorTypeStrategyService.getCodeGenStrategy(context.getOriginalPrompt());
                     log.info("AI 智能选择代码生成方案: {} ({})", genType.getValue(), genType.getText());
                 } else {

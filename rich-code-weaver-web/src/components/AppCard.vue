@@ -4,7 +4,8 @@
       <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
       <div v-else class="app-placeholder">
         <img alt="应用封面"
-             src="@/assets/logo.png" style="width: 100%; opacity: 0.8; margin: 0 auto; display: block;" />
+             src="@/assets/logo.png"
+             style="width: 100%; opacity: 0.8; margin: 0 auto; display: block;" />
       </div>
       <div class="app-overlay">
         <a-space>

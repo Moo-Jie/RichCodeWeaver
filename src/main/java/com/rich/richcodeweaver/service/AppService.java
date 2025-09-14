@@ -114,10 +114,10 @@ public interface AppService extends IService<App> {
      * @param appId   AI 应用id
      * @param userId  用户id
      * @param message 对话消息
-     * @param isWorkflow 是否使用工作流
+     * @param isAgent 是否开启 Agent 模式
      * @return 代码流
      */
-    Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isWorkflow);
+    Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isAgent);
 
     /**
      * 执行 AI 对话并并生成代码(非流式)

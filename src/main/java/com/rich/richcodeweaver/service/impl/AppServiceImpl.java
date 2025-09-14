@@ -26,7 +26,10 @@ import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
-import com.rich.richcodeweaver.service.*;
+import com.rich.richcodeweaver.service.AppService;
+import com.rich.richcodeweaver.service.ChatHistoryService;
+import com.rich.richcodeweaver.service.ScreenshotService;
+import com.rich.richcodeweaver.service.UserService;
 import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorTypeStrategyService;
 import com.rich.richcodeweaver.utils.aiUtils.AIGenerateCodeAndSaveToFileUtils;
 import com.rich.richcodeweaver.utils.aiUtils.streamHandle.StreamHandlerExecutor;
@@ -96,12 +99,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appId   AI 应用id
      * @param userId  用户id
      * @param message 对话消息
+     * @param isAgent 是否开启 Agent 模式
      * @return 代码流
      * @author DuRuiChi
      * @create 2025/8/8
      **/
     @Override
-    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isWorkflow) {
+    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isAgent) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
         // 查询 AI 应用
@@ -119,13 +123,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
         // 调用 AI 基础响应流
-        if (isWorkflow) {
-            // 通过工作流执行对话：搜索图片资源——>提示词强化——>代码生成类型规划——>代码生成——>代码保存——>项目构建——>持久化——>响应前端
+        if (isAgent) {
+            // 通过工作流执行对话，输出 Agent 风格的响应内容：
+            // 步骤：搜索图片资源——>提示词强化——>代码生成类型规划——>代码生成——>代码保存——>项目构建——>持久化——>响应前端
             return codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
         } else {
-            // 直接执行对话：代码生成类型规划——>代码生成——>代码保存
-            Flux<String> stringFlux =aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
-            // 处理 AI 响应流：数据块处理——>持久化——>项目构建——>响应前端
+            // 直接执行对话，输出 AI 的真实响应内容：
+            // 步骤1：代码生成类型规划——>代码生成——>代码保存
+            Flux<String> stringFlux = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
+            // 步骤2：处理 AI 响应流：数据块处理——>持久化——>项目构建——>响应前端
             return streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
         }
     }

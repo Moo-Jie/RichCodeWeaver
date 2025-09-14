@@ -35,9 +35,6 @@ import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
  **/
 @Slf4j
 public class CodeGenWorkflowApp {
-    @Resource
-    private CommonStreamHandler commonStreamHandler;
-
     /**
      * 条件边判断参数映射，用于根据代码生成类型决定工作流路由
      * key: 路由条件判断结果
@@ -49,6 +46,8 @@ public class CodeGenWorkflowApp {
             // 跳过构建直接结束工作流
             "skip_build", END
     );
+    @Resource
+    private CommonStreamHandler commonStreamHandler;
 
     /**
      * 创建完整的工作流
@@ -96,17 +95,23 @@ public class CodeGenWorkflowApp {
 
     /**
      * 执行工作流
-     * 通过Server-Sent Events (SSE) 实时推送工作流执行进度
+     * 通过 ServerSentEvent (SSE) 实时推送工作流执行进度
      *
-     * @param originalPrompt 原始提示词，描述需要生成的代码功能
-     * @param type           代码生成器的不同模式，影响工作流的执行路径
-     * @param appId          应用ID，用于标识不同的生成任务
+     * @param originalPrompt     原始提示词，描述需要生成的代码功能
+     * @param type               代码生成器的不同模式，影响工作流的执行路径
+     * @param appId              应用ID，用于标识不同的生成任务
+     * @param chatHistoryService 对话历史服务，用于存储和管理对话记录
+     * @param userId             用户ID，用于关联生成任务的用户
      * @return Flux<String> SSE事件流，包含工作流执行过程中的各种事件
      * @author DuRuiChi
      * @create 2025/9/14
      **/
-    public Flux<ServerSentEvent<String>> executeWorkflow(String originalPrompt, CodeGeneratorTypeEnum type, Long appId, ChatHistoryService chatHistoryService, Long userId) {
-        // 构建 Agent 工作流的输出流
+    public Flux<ServerSentEvent<String>> executeWorkflow(String originalPrompt,
+                                                         CodeGeneratorTypeEnum type,
+                                                         Long appId,
+                                                         ChatHistoryService chatHistoryService,
+                                                         Long userId) {
+        // 构建 Agent 工作流风格的响应流
         Flux<String> fluxStream = Flux.create(sink -> {
             // 使用虚拟线程执行工作流，避免阻塞主线程
             Thread.startVirtualThread(() -> {
@@ -255,13 +260,13 @@ public class CodeGenWorkflowApp {
                 }
             });
         });
-        // 收集 AI 响应内容，用于保存到对话历史
+        // 收集 AI 响应内容，保存到对话历史，并进一步处理为响应给前端的最终内容
         StringBuilder aiResponseBuilder = new StringBuilder();
         return commonStreamHandler.handleStream(
                 fluxStream
                         // 过滤空字串
                         .filter(StrUtil::isNotEmpty)
-                        // 流结束后
+                        // 流结束后，保存 AI 响应到对话历史
                         .doOnComplete(() -> {
                             // 保存 AI 响应到对话历史
                             String aiResponse = aiResponseBuilder.toString();

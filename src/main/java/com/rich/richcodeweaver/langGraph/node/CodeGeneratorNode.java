@@ -34,10 +34,12 @@ public class CodeGeneratorNode {
             log.info("\n 正在执行节点: AI 代码生成。\n");
 
             CodeGeneratorTypeEnum generationType = context.getGenerationType();
+            // 获取增强后的提示词
             String enhancedPrompt = context.getEnhancedPrompt();
             Long appId = context.getAppId();
             AIGenerateCodeAndSaveToFileUtils aIGenerateCodeAndSaveToFileUtils = SpringContextUtil.getBean(AIGenerateCodeAndSaveToFileUtils.class);
 
+            // 执行代码生成逻辑，Agent 模式下忽略代码生成过程的展示（只输出分布执行的步骤）
             Flux<String> codeStream = aIGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(enhancedPrompt, generationType, appId);
             // 等待流式输出完成
             codeStream.blockLast(Duration.ofMinutes(10));

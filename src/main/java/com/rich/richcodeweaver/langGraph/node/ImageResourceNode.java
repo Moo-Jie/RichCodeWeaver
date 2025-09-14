@@ -1,16 +1,11 @@
 package com.rich.richcodeweaver.langGraph.node;
 
 import com.rich.richcodeweaver.langGraph.state.WorkflowContext;
-import com.rich.richcodeweaver.model.entity.ImageResource;
-import com.rich.richcodeweaver.model.enums.ImageCategoryEnum;
 import com.rich.richcodeweaver.service.aiChatService.AiImageResourceService;
 import com.rich.richcodeweaver.utils.SpringContextUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
-
-import java.util.Arrays;
-import java.util.List;
 
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 

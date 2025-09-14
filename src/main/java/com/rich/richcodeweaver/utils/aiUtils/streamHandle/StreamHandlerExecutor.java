@@ -24,14 +24,14 @@ public class StreamHandlerExecutor {
     private TestStreamHandler testStreamHandler;
 
     /**
-     * 分类型对 AI 响应流进行处理
+     * 分类型对 AI 原始响应流进行处理
      *
      * @param stringFlux            AI 响应流
      * @param chatHistoryService    对话历史服务
      * @param appId                 应用 ID
      * @param userId                用户 ID
      * @param codeGeneratorTypeEnum 代码生成器类型枚举
-     * @return reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent < java.lang.String>>
+     * @return reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent < java.lang.String>>  处理后响应给前端的 AI 响应流
      **/
     public Flux<ServerSentEvent<String>> executeStreamHandler(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, CodeGeneratorTypeEnum codeGeneratorTypeEnum) {
         return switch (codeGeneratorTypeEnum) {

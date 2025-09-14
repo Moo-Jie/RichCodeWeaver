@@ -21,16 +21,6 @@ public class SpringContextUtil implements ApplicationContextAware {
     private static ApplicationContext applicationContext;
 
     /**
-     * Spring 容器初始化时自动调用此方法注入静态上下文
-     *
-     * @param applicationContext Spring 应用上下文对象
-     */
-    @Override
-    public void setApplicationContext(@NotNull ApplicationContext applicationContext) throws BeansException {
-        SpringContextUtil.applicationContext = applicationContext;
-    }
-
-    /**
      * 通过类型获取 Spring Bean
      *
      * @param clazz Bean 的类类型
@@ -59,5 +49,15 @@ public class SpringContextUtil implements ApplicationContextAware {
      */
     public static <T> T getBean(String name, Class<T> clazz) {
         return applicationContext.getBean(name, clazz);
+    }
+
+    /**
+     * Spring 容器初始化时自动调用此方法注入静态上下文
+     *
+     * @param applicationContext Spring 应用上下文对象
+     */
+    @Override
+    public void setApplicationContext(@NotNull ApplicationContext applicationContext) throws BeansException {
+        SpringContextUtil.applicationContext = applicationContext;
     }
 }

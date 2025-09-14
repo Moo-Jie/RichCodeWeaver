@@ -19,7 +19,7 @@ import java.util.Map;
 @Component
 public class CommonStreamHandler {
     /**
-     * 处理 AI 响应流的通用逻辑
+     * 处理 AI 响应流的通用逻辑，用于处理为响应给前端的最终内容
      *
      * @param stringFlux         AI 响应流
      * @param chatHistoryService 对话历史服务
@@ -40,7 +40,8 @@ public class CommonStreamHandler {
                 .map(
                         strBlock -> {
                             // 封装为 JSON 字符串，预防直接进行字符串流式传输丢失空格符、换行符等问题
-                            // {"b": "代码内容"}
+                            // {"b": "代码内容"} 格式，用于前端解析
+                            // 注意： 前端应当具备对当前输出格式的解析能力
                             String jsonStrBlock = JSONUtil.toJsonStr(Map.of("b", strBlock));
                             // 封装为 SSE 事件
                             return ServerSentEvent.<String>builder()

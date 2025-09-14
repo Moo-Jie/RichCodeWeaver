@@ -98,7 +98,8 @@
           </a-button>
         </template>
         <!-- 未部署状态下的 部署为可访问网站 按钮 -->
-        <a-button v-else :disabled="isGenerating" :loading="deploying" class="detail-btn" type="primary"
+        <a-button v-else :disabled="isGenerating" :loading="deploying" class="detail-btn"
+                  type="primary"
                   @click="deployApp">
           <template #icon>
             <CloudUploadOutlined />
