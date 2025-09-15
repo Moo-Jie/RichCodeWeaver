@@ -69,7 +69,7 @@ const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
 // 控制下拉框可见性
-const showPromptDropdown = ref(false)
+const showPromptDropdown = ref(true)
 // 处理选择的方法
 const handlePromptSelect = (value: string) => {
   setPrompt(value)
@@ -84,9 +84,24 @@ const creating = ref(false)
 const generatorType = ref<API.AppAddRequest['generatorType']>('AI_STRATEGY')
 const generatorOptions = ref([
   { label: 'AI 自主规划模式', value: 'AI_STRATEGY' },
-  { label: 'Vue 工程项目模式', value: 'VUE_PROJECT' },
+  { label: '工程项目模式', value: 'VUE_PROJECT' },
   { label: '多文件模式', value: 'MULTI_FILE' },
   { label: '单文件模式', value: 'HTML' }
+])
+
+// Agent模式选择
+const useAgentMode = ref(true)
+const agentModeOptions = ref([
+  {
+    label: 'Agent 智能模式',
+    value: true,
+    desc: '基于一套工作流的 Agent 模式会让 AI 有更强的分析和决策能，构建出的应用更加完善、稳定'
+  },
+  {
+    label: '快速生成模式',
+    value: false,
+    desc: '基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善'
+  }
 ])
 
 // 我的应用数据
@@ -134,7 +149,11 @@ const createApp = async () => {
       message.success('应用创建成功')
       // 跳转到对话页面，确保ID是字符串类型
       const appId = String(res.data.data)
-      await router.push(`/app/chat/${appId}`)
+      // 传递Agent模式参数
+      await router.push({
+        path: `/app/chat/${appId}`,
+        query: { useAgent: useAgentMode.value.toString() }
+      })
     } else {
       message.error('创建失败：' + res.data.message)
     }
@@ -221,85 +240,98 @@ onMounted(() => {
 
       <!-- 用户提示词输入框 -->
       <div class="input-section">
-        <a-textarea
-          v-model:value="userPrompt"
-          :maxlength="1000"
-          :rows="4"
-          class="prompt-input"
-          placeholder="描述您想要创建的创意作品..."
-        />
+        <div class="generator-content">
+          <a-textarea
+            v-model:value="userPrompt"
+            :maxlength="1000"
+            :rows="4"
+            class="prompt-input"
+            placeholder="描述您想要创建的创意作品..."
+          />
 
-        <!-- 按钮组 -->
-        <div class="action-buttons">
-          <!-- 快速入门按钮 -->
-          <a-button
-            class="action-button tour-button"
-            size="large"
-            type="primary"
-            @click="startTour"
-          >
-            <template #icon>
-              <PlayCircleOutlined />
-            </template>
-            快速入门
-          </a-button>
+          <!-- 按钮组 -->
+          <div class="action-buttons">
+            <!-- 快速入门按钮 -->
+            <a-button
+              class="action-button tour-button"
+              size="large"
+              type="primary"
+              @click="startTour"
+            >
+              <template #icon>
+                <PlayCircleOutlined />
+              </template>
+              快速入门
+            </a-button>
 
-          <!-- 自动填入提示词按钮 -->
-          <a-button
-            class="action-button rich-select-button"
-            size="large"
-            type="primary"
-            @click="showPromptDropdown = !showPromptDropdown"
-          >
-            <template #icon>
-              <AppstoreOutlined />
-            </template>
-            热门提示词
-          </a-button>
+            <!-- 自动填入提示词按钮 -->
+            <a-button
+              class="action-button rich-select-button"
+              size="large"
+              type="primary"
+              @click="showPromptDropdown = !showPromptDropdown"
+            >
+              <template #icon>
+                <AppstoreOutlined />
+              </template>
+              热门提示词
+            </a-button>
 
-          <!-- 热门提示词下拉列表 -->
-          <div v-if="showPromptDropdown" class="prompt-dropdown">
-            <a-list :bordered="false" class="prompt-list">
-              <a-list-item
-                v-for="option in promptOptions"
-                :key="option.value"
-                class="prompt-item"
-                @click="handlePromptSelect(option.value)"
-              >
-                <div class="option-content">
-                  <span :style="{backgroundColor: option.color}" class="option-icon">
-                    <component :is="option.icon" />
-                  </span>
-                  <div class="option-text">
-                    <span class="option-title">{{ option.label }}</span>
-                    <span class="option-desc">{{ option.desc }}</span>
-                  </div>
-                </div>
-              </a-list-item>
-            </a-list>
+
+
+            <!-- 创建作品按钮 -->
+            <a-button
+              :loading="creating"
+              class="action-button create-button"
+              size="large"
+              target="_blank"
+              type="primary"
+              @click="createApp"
+            >
+              <template #icon>
+                <RocketOutlined />
+              </template>
+              开始生成
+            </a-button>
           </div>
+        </div>
 
-          <!-- 创建作品按钮 -->
-          <a-button
-            :loading="creating"
-            class="action-button create-button"
-            size="large"
-            target="_blank"
-            type="primary"
-            @click="createApp"
-          >
-            <template #icon>
-              <RocketOutlined />
-            </template>
-            开始生成
-          </a-button>
+        <!-- 热门提示词滑动模块 -->
+        <div v-if="showPromptDropdown" class="prompt-slider-container">
+          <div class="prompt-slider-header">
+            <h3 class="slider-title">🔥 热门提示词</h3>
+            <a-button
+              type="text"
+              size="small"
+              @click="showPromptDropdown = false"
+              class="close-button"
+            >
+              ✕
+            </a-button>
+          </div>
+          <div class="prompt-slider">
+            <div
+              v-for="option in promptOptions"
+              :key="option.value"
+              class="prompt-card"
+              @click="handlePromptSelect(option.value)"
+            >
+              <div class="prompt-card-icon" :style="{backgroundColor: option.color}">
+                <component :is="option.icon" />
+              </div>
+              <div class="prompt-card-content">
+                <div class="prompt-card-title">{{ option.label }}</div>
+                <div class="prompt-card-desc">{{ option.desc }}</div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 代码生成模式选择器  -->
         <div class="generator-selector">
           <div class="selector-title">
             <span class="title-icon">⚙️</span>
-            <span>选择生成模式</span>
+            <span>选择应用架构</span>
             <a-tooltip placement="top">
               <template #title>
                 <div style="max-width: 300px">
@@ -328,16 +360,61 @@ onMounted(() => {
                 <div class="card-title">{{ option.label }}</div>
                 <div class="card-desc">
                   <span
-                    v-if="option.value === 'AI_STRATEGY'">AI 自主规划模式会智能分析您的需求并生成完整应用</span>
+                    v-if="option.value === 'AI_STRATEGY'">AI 智能分析您的需求并生成完整应用
+                  </span>
                   <span
-                    v-else-if="option.value === 'VUE_PROJECT'">Vue 工程项目模式会生成完整的基于Vue 3框架的项目，适合复杂的应用，但生成时间更长</span>
+                    v-else-if="option.value === 'VUE_PROJECT'">生成完整的 VUE 工程项目，适合复杂的应用，但生成时间更长
+                  </span>
                   <span
-                    v-else-if="option.value === 'MULTI_FILE'">多文件模式会生成多个文件的应用结构</span>
-                  <span v-else>单文件模式会生成单个 HTML 文件，适合简单应用，极速生成</span>
+                    v-else-if="option.value === 'MULTI_FILE'">多文件模式会生成多个文件的应用结构
+                  </span>
+                  <span v-else>单文件模式会生成单个 HTML 文件，适合简单应用，极速生成
+                  </span>
                 </div>
               </div>
               <div class="card-check">
                 <check-circle-filled v-if="generatorType === option.value" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Agent模式选择器 -->
+        <div class="generator-selector agent-selector">
+          <div class="selector-title">
+            <span class="title-icon">🔄</span>
+            <span>选择生成模式</span>
+            <a-tooltip placement="top">
+              <template #title>
+                <div style="max-width: 300px">
+                  基于一套工作流的 Agent 模式会让 AI 有更强的分析和决策能，构建出的应用更加完善、稳定；
+                  基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善。
+                </div>
+              </template>
+              <question-circle-outlined class="help-icon" />
+            </a-tooltip>
+          </div>
+
+          <div class="mode-cards agent-mode-cards">
+            <div
+              v-for="option in agentModeOptions"
+              :key="option.value"
+              :class="{ active: useAgentMode === option.value }"
+              class="mode-card"
+              @click="useAgentMode = option.value"
+            >
+              <div class="card-icon">
+                <robot-outlined v-if="option.value" />
+                <code-outlined v-else />
+              </div>
+              <div class="card-content">
+                <div class="card-title">{{ option.label }}</div>
+                <div class="card-desc">
+                  {{ option.desc }}
+                </div>
+              </div>
+              <div class="card-check">
+                <check-circle-filled v-if="useAgentMode === option.value" />
               </div>
             </div>
           </div>
@@ -495,7 +572,6 @@ onMounted(() => {
 .input-section {
   position: relative;
   margin: 0 auto 40px;
-  max-width: 800px;
 }
 
 .prompt-input {
@@ -507,6 +583,7 @@ onMounted(() => {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   font-family: 'Nunito', sans-serif;
   transition: all 0.3s ease;
+  max-width: 800px;
 }
 
 .prompt-input:focus {
@@ -530,13 +607,27 @@ onMounted(() => {
   transform: translateY(-2px);
 }
 
+.generator-content {
+  padding: 15px;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  margin: 0 auto;
+  max-width: 800px;
+}
+
+.generator-content:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
 .selector-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   font-family: 'Comic Neue', cursive;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #2c3e50;
 }
@@ -560,21 +651,45 @@ onMounted(() => {
 
 .mode-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1200px) {
+  .mode-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .mode-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Agent模式选择器特殊样式 */
+.agent-mode-cards {
+  grid-template-columns: repeat(2, 1fr) !important;
+}
+
+@media (max-width: 768px) {
+  .agent-mode-cards {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .mode-card {
   display: flex;
   align-items: center;
-  padding: 20px;
+  padding: 18px 16px;
   background: white;
   border: 2px solid #f0f0f0;
-  border-radius: 16px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  min-height: 90px;
 }
 
 .mode-card::before {
@@ -605,7 +720,7 @@ onMounted(() => {
 }
 
 .card-icon {
-  font-size: 2rem;
+  font-size: 1.8rem;
   margin-right: 16px;
   min-width: 50px;
   text-align: center;
@@ -622,12 +737,17 @@ onMounted(() => {
   color: #2c3e50;
   margin-bottom: 4px;
   font-family: 'Nunito', sans-serif;
+  line-height: 1.2;
 }
 
 .card-desc {
-  font-size: 0.85rem;
+  font-size: 12px;
   color: #7f8c8d;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-check {
@@ -728,6 +848,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
   border: none;
   color: white;
+  position: relative;
 }
 
 .rich-select-button:hover {
@@ -735,39 +856,132 @@ onMounted(() => {
   box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
 }
 
-.prompt-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 400px;
+/* 热门提示词滑动模块样式 */
+.prompt-slider-container {
+  margin-top: 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e8f4fd;
+  animation: slideDown 0.3s ease-out;
+}
+
+.prompt-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.slider-title {
+  margin: 0;
+  font-family: 'Comic Neue', cursive;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.close-button {
+  color: #999;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.close-button:hover {
+  background: #f0f0f0;
+  color: #666;
+}
+
+.prompt-slider {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #ddd transparent;
+}
+
+.prompt-slider::-webkit-scrollbar {
+  height: 6px;
+}
+
+.prompt-slider::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.prompt-slider::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.prompt-slider::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.prompt-card {
+  min-width: 280px;
   background: white;
   border-radius: 16px;
-  margin-top: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  z-index: 100;
-  max-height: 400px;
-  overflow-y: auto;
-  padding: 16px 0;
-  border: 2px solid #f0f0f0;
-}
-
-.prompt-item {
-  padding: 12px 20px;
+  padding: 20px;
   cursor: pointer;
-  transition: all 0.2s;
-  border-radius: 10px;
-  margin: 0 10px;
+  transition: all 0.3s ease;
+  border: 2px solid #f0f0f0;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.prompt-item:hover {
-  background: #f8f9fa;
-  transform: translateX(5px);
+.prompt-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: #1890ff;
 }
 
-.prompt-list {
-  max-height: 350px;
-  overflow-y: auto;
-  padding: 0;
+.prompt-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.prompt-card-content {
+  flex: 1;
+}
+
+.prompt-card-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  font-family: 'Nunito', sans-serif;
+  line-height: 1.2;
+}
+
+.prompt-card-desc {
+  font-size: 14px;
+  color: #7f8c8d;
+  line-height: 1.4;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .meituan-workspace-card {
@@ -887,45 +1101,7 @@ onMounted(() => {
   border-radius: 10px;
 }
 
-/* 选项样式 */
-.option-content {
-  display: flex;
-  align-items: center;
-}
 
-.option-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  margin-right: 12px;
-  color: white;
-  font-size: 18px;
-}
-
-.option-text {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.option-title {
-  font-weight: 600;
-  font-size: 16px;
-  color: #2c3e50;
-  font-family: 'Comic Neue', cursive;
-}
-
-.option-desc {
-  font-size: 14px;
-  color: #7f8c8d;
-  margin-top: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* 响应式设计 */
 @media (max-width: 768px) {
@@ -975,7 +1151,47 @@ onMounted(() => {
     max-width: 280px;
     justify-content: center;
   }
+}
 
+/* Agent选择器特殊样式 */
+.agent-selector {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 2px solid #bae6fd;
+}
+
+.agent-selector:hover {
+  box-shadow: 0 12px 40px rgba(14, 165, 233, 0.12);
+}
+
+.agent-selector .mode-card {
+  border: 2px solid #e0f2fe;
+}
+
+.agent-selector .mode-card:hover {
+  border-color: #0ea5e9;
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.15);
+}
+
+.agent-selector .mode-card.active {
+  border-color: #0ea5e9;
+  background: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%);
+  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.2);
+}
+
+.agent-selector .selector-title {
+  color: #0c4a6e;
+}
+
+.agent-selector .help-icon {
+  color: #0ea5e9;
+}
+
+.agent-selector .help-icon:hover {
+  color: #0284c7;
+}
+
+/* 移动端样式调整 */
+@media (max-width: 768px) {
   .prompt-dropdown {
     width: 90%;
     left: 5%;

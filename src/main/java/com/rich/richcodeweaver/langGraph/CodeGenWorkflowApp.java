@@ -18,6 +18,7 @@ import org.bsc.langgraph4j.NodeOutput;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 import org.bsc.langgraph4j.prebuilt.MessagesStateGraph;
 import org.springframework.http.codec.ServerSentEvent;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
@@ -34,6 +35,7 @@ import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
  * @create 2025/9/14
  **/
 @Slf4j
+@Component
 public class CodeGenWorkflowApp {
     /**
      * 条件边判断参数映射，用于根据代码生成类型决定工作流路由
@@ -46,6 +48,10 @@ public class CodeGenWorkflowApp {
             // 跳过构建直接结束工作流
             "skip_build", END
     );
+
+    // 收集 AI 响应内容，用于保存到对话历史
+    private final StringBuilder aiResponseBuilder = new StringBuilder();
+
     @Resource
     private CommonStreamHandler commonStreamHandler;
 
@@ -125,34 +131,39 @@ public class CodeGenWorkflowApp {
                             .build();
 
                     // 发送工作流开始事件 - Agent 风格输出
-                    sink.next(" **代码生成 Agent 启动中...**\n" +
-                            "**任务概览:**\n" +
-                            "   • 应用ID: " + appId + "\n" +
-                            "   • 生成类型: " + type.getValue() + "\n" +
-                            "   • 原始需求: " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + "\n" +
-                            "   • 用户ID: " + userId + "\n\n" +
-                            "**开始执行智能代码生成工作流...**\n");
+                    sink.next("\n\n# 代码生成 Agent 启动中...\n\n" +
+                            "\n\n## 📋 一、任务概览\n\n" +
+                            "\n**应用ID:** " + appId + "\n\n" +
+                            "**生成类型:** " + type.getValue() + "\n\n" +
+                            "**原始需求:** " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + "\n\n" +
+                            "**用户ID:** " + userId + "\n\n" +
+                            "\n\n## 🔄 二、下面我将开始执行 Agent 智能代码生成工作流，正在初始化工作流...\n\n");
 
                     CompiledGraph<MessagesState<String>> workflow = createWorkflow();
                     // 生成可视化工作流图
                     GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);
-                    log.info("工作流图:\n{}", graph.content());
+                    log.info("\n工作流图:\n{}", graph.content());
 
                     // 发送工作流架构信息
                     sink.next("""
-                            **工作流架构已构建完成**
-                               • 节点数量: 5个核心处理节点
-                               • 流程路径: 图片采集 → 提示词增强 → 类型策略 → 代码生成 → 项目构建
-                               • 条件分支: 根据生成类型智能选择构建策略
+                            ## 🏗️ 三、本次工作流架构已构建完成
+                            
+                            **节点数量:** 将采用 5 个核心处理节点
+                            
+                            **流程路径:** 图片采集 → 提示词增强 → 类型策略 → 代码生成 → 项目构建
+                            
+                            **条件分支:** 根据生成类型智能选择构建策略
                             """);
 
                     // 执行工作流并跟踪进度
                     int stepCounter = 1;
                     String[] stepNames = {"图片资源采集", "提示词智能增强", "代码类型策略分析", "智能代码生成", "项目构建部署"};
 
+                    sink.next("\n\n## 🎬 四、开始执行规划节点\n\n");
+
                     for (NodeOutput<MessagesState<String>> step : workflow.stream(
                             Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {
-                        log.info("\n--- 第 {} 步完成 ---\n", stepCounter);
+                        log.info(" --- 第 {} 步完成 ---", stepCounter);
                         // 获取当前步骤的上下文
                         WorkflowContext currentContext = WorkflowContext.getContext(step.state());
                         if (currentContext != null) {
@@ -162,106 +173,115 @@ public class CodeGenWorkflowApp {
                             // 步骤标题和进度
                             String stepName = stepCounter <= stepNames.length ? stepNames[stepCounter - 1] : currentContext.getCurrentStep();
 
-                            stepInfo.append(String.format("**第%d步: %s** \n", stepCounter, stepName));
-                            stepInfo.append(String.format("• 执行状态: %s\n", currentContext.getCurrentStep()));
-                            stepInfo.append(String.format("• 应用ID: %d\n", appId));
+                            stepInfo.append(String.format("\n\n## ✅ 第%d步执行完成: %s\n\n", stepCounter, stepName));
+                            stepInfo.append(String.format("\n**🔄 执行状态:** %s\n\n", currentContext.getCurrentStep()));
+                            stepInfo.append(String.format("**应用ID:** %d\n\n", appId));
 
                             // 展示更多 WorkflowContext 字段信息
                             if (StrUtil.isNotBlank(currentContext.getOriginalPrompt())) {
-                                stepInfo.append(String.format("• 原始提示词长度: %d字符\n", currentContext.getOriginalPrompt().length()));
+                                stepInfo.append(String.format("**原始提示词长度:** %d字符\n\n", currentContext.getOriginalPrompt().length()));
                             }
 
                             if (currentContext.getCodeGenType() != null) {
-                                stepInfo.append(String.format("• 代码生成类型: %s\n", currentContext.getCodeGenType().getValue()));
+                                stepInfo.append(String.format("**代码生成类型:** %s\n\n", currentContext.getCodeGenType().getValue()));
                             }
 
                             if (currentContext.getGenerationType() != null) {
-                                stepInfo.append(String.format("• 生成策略类型: %s\n", currentContext.getGenerationType().getValue()));
+                                stepInfo.append(String.format("**生成策略类型:** %s\n\n", currentContext.getGenerationType().getValue()));
                             }
 
                             // 图片资源信息
                             if (currentContext.getImageList() != null && !currentContext.getImageList().isEmpty()) {
-                                stepInfo.append(String.format("• 收集图片资源: %d张\n", currentContext.getImageList().size()));
-                                stepInfo.append("• 图片处理状态: 已完成资源解析和优化\n");
+                                stepInfo.append(String.format("**收集图片资源:** %d张\n\n", currentContext.getImageList().size()));
+                                stepInfo.append("**图片处理状态:** 已完成资源解析和优化\n\n");
                             }
 
                             if (StrUtil.isNotBlank(currentContext.getImageListStr())) {
-                                stepInfo.append(String.format("• 图片资源字符串长度: %d字符\n", currentContext.getImageListStr().length()));
+                                stepInfo.append(String.format("**图片资源字符串长度:** %d字符\n\n", currentContext.getImageListStr().length()));
                             }
 
                             // 提示词增强信息
                             if (StrUtil.isNotBlank(currentContext.getEnhancedPrompt())) {
-                                stepInfo.append("• 提示词增强: 已完成智能优化\n");
-                                stepInfo.append(String.format("• 增强后长度: %d字符 (提升了 %.1f%%)\n",
+                                stepInfo.append("**提示词增强:** 已完成智能优化\n\n");
+                                stepInfo.append(String.format("**增强后长度:** %d字符 (提升了 %.1f%%)\n\n",
                                         currentContext.getEnhancedPrompt().length(),
                                         ((double) (currentContext.getEnhancedPrompt().length() - currentContext.getOriginalPrompt().length()) / currentContext.getOriginalPrompt().length()) * 100));
                             }
 
                             // 输出目录信息
                             if (StrUtil.isNotBlank(currentContext.getOutputDir())) {
-                                stepInfo.append(String.format("• 代码输出目录: %s\n", currentContext.getOutputDir()));
-                                stepInfo.append("• 文件生成状态: 代码文件已成功创建\n");
+                                stepInfo.append(String.format("**代码输出目录:** %s\n\n", currentContext.getOutputDir()));
+                                stepInfo.append("**文件生成状态:** 代码文件已成功创建\n\n");
                             }
 
                             // 部署目录信息
                             if (StrUtil.isNotBlank(currentContext.getDeployDir())) {
-                                stepInfo.append(String.format("• 项目部署目录: %s\n", currentContext.getDeployDir()));
-                                stepInfo.append("• 构建状态: 项目构建和部署完成\n");
+                                stepInfo.append(String.format("**项目部署目录:** %s\n\n", currentContext.getDeployDir()));
+                                stepInfo.append("**构建状态:** 项目构建和部署完成\n\n");
                             }
 
                             // 错误信息处理
                             if (StrUtil.isNotBlank(currentContext.getErrorMessage())) {
-                                stepInfo.append(String.format("• 异常信息: %s\n", currentContext.getErrorMessage()));
+                                stepInfo.append(String.format("**⚠️ 异常信息:** %s\n\n", currentContext.getErrorMessage()));
                             }
 
                             // 进度指示器
                             int totalSteps = 5; // 总步骤数
-                            int progress = (stepCounter * 100) / totalSteps;
-                            stepInfo.append(String.format("• 整体进度: %d%% [%s%s]\n",
+                            int progress = Math.min((stepCounter * 100) / totalSteps, 100); // 限制进度不超过100%
+                            int filledBars = Math.min(progress / 10, 10); // 限制填充条数不超过10
+                            int emptyBars = Math.max(10 - filledBars, 0); // 确保空白条数不为负
+                            stepInfo.append(String.format("\n**📊 整体进度:** %d%% [%s%s]\n\n",
                                     progress,
-                                    "█".repeat(progress / 10),
-                                    "░".repeat(10 - progress / 10)));
+                                    "█".repeat(filledBars),
+                                    "░".repeat(emptyBars)));
 
-                            stepInfo.append("\n");
+                            stepInfo.append("\n\n**🤔 正在继续思考...**\n\n");
+
+                            // 代码生成类型策略分析完成后，添加构建应用提示
+                            if (currentContext.getCurrentStep().equals("代码生成类型策略已完成")) {
+                                stepInfo.append("\n\n### **接下来开始构建应用，代码生成中，请耐心等待~**\n\n");
+                            }
 
                             sink.next(stepInfo.toString());
+                            // 收集 AI 响应内容，用于保存到历史信息
+                            aiResponseBuilder.append(stepInfo);
                             log.info("当前步骤上下文: {}", currentContext);
                         }
                         stepCounter++;
                     }
 
                     // 发送工作流完成事件 - Agent 风格总结
-                    String completionInfo = "**代码生成工作流执行完成!**\n\n" +
-                            "**执行统计:**\n" +
-                            String.format("   • 应用ID: %d\n", appId) +
-                            String.format("   • 总执行步骤: %d个\n", stepCounter - 1) +
-                            String.format("   • 用户ID: %d\n", userId) +
-                            String.format("   • 生成类型: %s\n", type.getValue()) +
-                            "• 执行状态: 全部完成\n\n" +
-                            "**Agent 任务完成，代码已准备就绪！**\n";
+                    String completionInfo = "# 代码生成工作流执行完成!\n\n" +
+                            "\n## 📈 执行统计\n\n" +
+                            String.format("**应用ID:** %d\n\n", appId) +
+                            String.format("**总执行步骤:** %d个\n\n", stepCounter - 1) +
+                            String.format("**用户ID:** %d\n\n", userId) +
+                            String.format("**生成类型:** %s\n\n", type.getValue()) +
+                            "**✅ 执行状态:** 全部完成\n\n" +
+                            "\n\n# Agent 任务完成，代码已准备就绪！\n\n";
 
                     sink.next(completionInfo);
+                    sink.next("\n\n# 代码生成工作流执行完成!\n\n");
                     log.info("代码生成工作流执行完成！应用ID: {}", appId);
                     sink.complete();
                 } catch (Exception e) {
                     log.error("工作流执行失败，应用ID: {}，错误信息: {}", appId, e.getMessage(), e);
                     // 发送错误事件 - Agent 风格错误处理
-                    String errorInfo = "**工作流执行异常**\n\n" +
-                            "**异常详情:**\n" +
-                            String.format("   • 应用ID: %d\n", appId) +
-                            String.format("   • 用户ID: %d\n", userId) +
-                            String.format("   • 异常类型: %s\n", e.getClass().getSimpleName()) +
-                            String.format("   • 错误信息: %s\n", e.getMessage()) +
-                            String.format("   • 生成类型: %s\n", type.getValue()) +
-                            "\n**建议操作:** 请检查输入参数或联系技术支持\n";
+                    String errorInfo = "# Agent 工作流执行异常\n\n" +
+                            "## 🔍 异常详情\n\n" +
+                            String.format("**应用ID:** %d\n\n", appId) +
+                            String.format("**用户ID:** %d\n\n", userId) +
+                            String.format("**异常类型:** %s\n\n", e.getClass().getSimpleName()) +
+                            String.format("**错误信息:** %s\n\n", e.getMessage()) +
+                            String.format("**生成类型:** %s\n\n", type.getValue()) +
+                            "\n\n# 🛑 代码生成任务终止，请联系管理员\n\n";
 
                     sink.next(errorInfo);
                     sink.error(e);
                 }
             });
         });
-        // 收集 AI 响应内容，保存到对话历史，并进一步处理为响应给前端的最终内容
-        StringBuilder aiResponseBuilder = new StringBuilder();
+        // 处理流，把收集 AI 响应内容保存到对话历史，并进一步处理为响应给前端的最终内容
         return commonStreamHandler.handleStream(
                 fluxStream
                         // 过滤空字串

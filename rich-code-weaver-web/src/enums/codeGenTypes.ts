@@ -18,6 +18,10 @@ export const CODE_GEN_TYPE_CONFIG = {
   [CodeGenTypeEnum.MULTI_FILE]: {
     label: '多文件模式',
     value: CodeGenTypeEnum.MULTI_FILE
+  },
+  [CodeGenTypeEnum.VUE_PROJECT]: {
+    label: 'VUE 工程项目模式',
+    value: CodeGenTypeEnum.VUE_PROJECT
   }
 } as const
 

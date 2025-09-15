@@ -404,6 +404,9 @@ const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
+// 从URL参数获取Agent模式设置
+const useAgentMode = ref(route.query.useAgent !== 'false')
+
 // 新手指引相关
 const tourOpen = ref(false)
 const tourCurrent = ref(0)
@@ -826,7 +829,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     // 构建URL参数
     const params = new URLSearchParams({
       appId: appId.value || '',
-      message: userMessage
+      message: userMessage,
+      isAgent: useAgentMode.value
     })
 
     const url = `${baseURL}/app/gen/code/stream?${params}`

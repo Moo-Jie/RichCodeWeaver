@@ -12,6 +12,6 @@ export async function downloadCodeZipFile(
   return request<any>(`/download/code/zip/${param0}`, {
     method: 'GET',
     params: { ...queryParams },
-    ...(options || {})
+    ...(options || {}),
   })
 }

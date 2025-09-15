@@ -7,11 +7,10 @@ import * as fileController from './fileController'
 import * as chatHistoryController from './chatHistoryController'
 import * as appController from './appController'
 import * as downloadCodeFileController from './downloadCodeFileController'
-
 export default {
   userController,
   fileController,
   chatHistoryController,
   appController,
-  downloadCodeFileController
+  downloadCodeFileController,
 }

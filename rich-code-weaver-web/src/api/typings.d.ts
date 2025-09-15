@@ -146,6 +146,7 @@ declare namespace API {
   type chatToGenCodeStreamParams = {
     appId: number
     message: string
+    isAgent?: boolean
   }
 
   type deleteByIdParams = {

@@ -7,10 +7,10 @@ export async function addApp(body: API.AppAddRequest, options?: { [key: string]:
   return request<API.BaseResponseLong>('/app/add', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -19,10 +19,10 @@ export async function deleteApp(body: API.DeleteRequest, options?: { [key: strin
   return request<API.BaseResponseBoolean>('/app/delete', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -31,10 +31,10 @@ export async function deleteAppByAdmin(body: API.DeleteRequest, options?: { [key
   return request<API.BaseResponseBoolean>('/app/delete/admin', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -43,10 +43,10 @@ export async function deployApp(body: API.AppDeployRequest, options?: { [key: st
   return request<API.BaseResponseString>('/app/deploy', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -61,9 +61,9 @@ export async function chatToGenCode(
     params: {
       ...params,
       appCodeGenRequest: undefined,
-      ...params['appCodeGenRequest']
+      ...params['appCodeGenRequest'],
     },
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -76,9 +76,9 @@ export async function chatToGenCodeStream(
   return request<API.ServerSentEventString[]>('/app/gen/code/stream', {
     method: 'GET',
     params: {
-      ...params
+      ...params,
     },
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -91,9 +91,9 @@ export async function getAppVoById(
   return request<API.BaseResponseAppVO>('/app/get/vo', {
     method: 'GET',
     params: {
-      ...params
+      ...params,
     },
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -106,9 +106,9 @@ export async function getAppVoByIdByAdmin(
   return request<API.BaseResponseAppVO>('/app/get/vo/admin', {
     method: 'GET',
     params: {
-      ...params
+      ...params,
     },
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -120,10 +120,10 @@ export async function listStarAppVoByPage(
   return request<API.BaseResponsePageAppVO>('/app/good/list/page/vo', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -135,10 +135,10 @@ export async function listAppVoByPageByAdmin(
   return request<API.BaseResponsePageAppVO>('/app/list/page/vo/admin', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -150,10 +150,10 @@ export async function listMyAppVoByPage(
   return request<API.BaseResponsePageAppVO>('/app/my/list/page/vo', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -162,10 +162,10 @@ export async function updateApp(body: API.AppUpdateRequest, options?: { [key: st
   return request<API.BaseResponseBoolean>('/app/update', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -177,10 +177,10 @@ export async function updateAppByAdmin(
   return request<API.BaseResponseBoolean>('/app/update/admin', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -194,13 +194,13 @@ export async function uploadAppCover(
   return request<API.BaseResponseString>('/app/upload/cover', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     params: {
-      ...params
+      ...params,
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -214,6 +214,6 @@ export async function viewApp(
   return request<string>(`/app/view/${param0}/**`, {
     method: 'GET',
     params: { ...queryParams },
-    ...(options || {})
+    ...(options || {}),
   })
 }
