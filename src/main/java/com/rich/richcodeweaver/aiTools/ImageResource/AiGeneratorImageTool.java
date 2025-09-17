@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 图片生成工具（仅供自主图片生成 AI 使用）
+ * 图片生成工具
  * 支持 AI 通过工具调用的方式根据描述生成设计图片
  *
  * @author DuRuiChi

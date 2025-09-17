@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.langGraph.node.*;
+import com.rich.richcodeweaver.langGraph.node.WebResourceOrganizeNode;
 import com.rich.richcodeweaver.langGraph.state.WorkflowContext;
 import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
@@ -134,13 +135,15 @@ public class CodeGenWorkflowApp {
                             .build();
 
                     // 发送工作流开始事件 - Agent 风格输出
-                    sink.next("\n\n# 代码生成 Agent 启动中...\n\n" +
+                    String startInfo = "\n\n# 代码生成 Agent 启动中...\n\n" +
                             "\n\n## 📋 一、任务概览\n\n" +
                             "\n**应用ID:** " + appId + "\n\n" +
                             "**生成类型:** " + type.getValue() + "\n\n" +
                             "**原始需求:** " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + "\n\n" +
                             "**用户ID:** " + userId + "\n\n" +
-                            "\n\n## 🔄 二、下面我将开始执行 Agent 智能代码生成工作流，正在初始化工作流...\n\n");
+                            "\n\n## 🔄 二、下面我将开始执行 Agent 智能代码生成工作流，正在初始化工作流...\n\n";
+                    sink.next(startInfo);
+                    aiResponseBuilder.append(startInfo); // 收集开始信息
 
                     CompiledGraph<MessagesState<String>> workflow = createWorkflow();
                     // 生成可视化工作流图
@@ -148,7 +151,7 @@ public class CodeGenWorkflowApp {
                     log.info("\n工作流图:\n{}", graph.content());
 
                     // 发送工作流架构信息
-                    sink.next("""
+                    String architectureInfo = """
                             ## 🏗️ 三、本次工作流架构已构建完成
                             
                             **节点数量:** 将采用 6 个核心处理节点
@@ -156,13 +159,18 @@ public class CodeGenWorkflowApp {
                             **流程路径:** 网络资源整理 → 图片采集 → 提示词增强 → 类型策略 → 代码生成 → 项目构建
                             
                             **条件分支:** 根据生成类型智能选择构建策略
-                            """);
+                            """;
+                    sink.next(architectureInfo);
+                    aiResponseBuilder.append(architectureInfo); // 收集架构信息
 
                     // 执行工作流并跟踪进度
                     int stepCounter = 1;
                     String[] stepNames = {"网络资源整理", "图片资源采集", "提示词智能增强", "代码类型策略分析", "智能代码生成", "项目构建部署"};
+                    int totalWorkflowSteps = stepNames.length; // 总工作流步骤数
 
-                    sink.next("\n\n## 🎬 四、开始执行规划节点\n\n");
+                    String executionStartInfo = "\n\n## 🎬 四、开始执行规划节点\n\n";
+                    sink.next(executionStartInfo);
+                    aiResponseBuilder.append(executionStartInfo); // 收集执行开始信息
 
                     for (NodeOutput<MessagesState<String>> step : workflow.stream(
                             Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {
@@ -230,8 +238,7 @@ public class CodeGenWorkflowApp {
                             }
 
                             // 进度指示器
-                            int totalSteps = 5; // 总步骤数
-                            int progress = Math.min((stepCounter * 100) / totalSteps, 100); // 限制进度不超过100%
+                            int progress = Math.min((stepCounter * 100) / totalWorkflowSteps, 100); // 限制进度不超过100%
                             int filledBars = Math.min(progress / 10, 10); // 限制填充条数不超过10
                             int emptyBars = Math.max(10 - filledBars, 0); // 确保空白条数不为负
                             stepInfo.append(String.format("\n**📊 整体进度:** %d%% [%s%s]\n\n",
@@ -242,7 +249,7 @@ public class CodeGenWorkflowApp {
                             stepInfo.append("\n\n**🤔 正在继续思考...**\n\n");
 
                             // 代码生成类型策略分析完成后，添加构建应用提示
-                            if (currentContext.getCurrentStep().equals("代码生成类型策略已完成")) {
+                            if (currentContext.getCurrentStep().equals("提示词增强已完成")) {
                                 stepInfo.append("\n\n### **接下来开始构建应用，代码生成中，请耐心等待~**\n\n");
                             }
 
@@ -265,7 +272,11 @@ public class CodeGenWorkflowApp {
                             "\n\n# Agent 任务完成，代码已准备就绪！\n\n";
 
                     sink.next(completionInfo);
-                    sink.next("\n\n# 代码生成工作流执行完成!\n\n");
+                    aiResponseBuilder.append(completionInfo); // 收集完成信息
+                    
+                    String finalInfo = "\n\n# 代码生成工作流执行完成!\n\n";
+                    sink.next(finalInfo);
+                    aiResponseBuilder.append(finalInfo); // 收集最终信息
                     log.info("代码生成工作流执行完成！应用ID: {}", appId);
                     sink.complete();
                 } catch (Exception e) {
@@ -281,6 +292,7 @@ public class CodeGenWorkflowApp {
                             "\n\n# 🛑 代码生成任务终止，请联系管理员\n\n";
 
                     sink.next(errorInfo);
+                    aiResponseBuilder.append(errorInfo); // 收集错误信息
                     sink.error(e);
                 }
             });
@@ -316,11 +328,15 @@ public class CodeGenWorkflowApp {
     private String routeBuildOrSkip(MessagesState<String> state) {
         WorkflowContext context = WorkflowContext.getContext(state);
         CodeGeneratorTypeEnum generationType = context.getGenerationType();
+        log.info("路由判断 - 代码生成类型: {}", generationType);
+        
         // HTML 和 MULTI_FILE 类型不需要构建，直接结束
         if (generationType == CodeGeneratorTypeEnum.HTML || generationType == CodeGeneratorTypeEnum.MULTI_FILE) {
+            log.info("跳过项目构建，类型: {}", generationType);
             return "skip_build";
         }
         // 项目工程模式需要构建
+        log.info("执行项目构建，类型: {}", generationType);
         return "build";
     }
 }

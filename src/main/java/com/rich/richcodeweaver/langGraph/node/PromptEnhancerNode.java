@@ -37,7 +37,7 @@ public class PromptEnhancerNode {
             String webResourceListStr = context.getWebResourceListStr();
             if (StrUtil.isNotBlank(webResourceListStr)) {
                 enhancedPromptBuilder.append("\n\n## 可用素材\n");
-                enhancedPromptBuilder.append("在生成网站时，推荐参考以下素材（必要时，可以适当调用联网搜索工具和网页抓取工具作补充）：\n");
+                enhancedPromptBuilder.append("在生成网站时，可以参考以下素材，或调用联网搜索工具和网页抓取工具作补充：\n");
                 // 拼接 AI 获取到的网络资源
                 enhancedPromptBuilder.append(webResourceListStr);
             }

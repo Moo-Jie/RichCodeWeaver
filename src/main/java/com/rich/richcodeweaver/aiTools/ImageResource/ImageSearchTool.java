@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 图片搜索工具（仅供自主图片生成 AI 使用）
+ * 图片搜索工具
  * 支持 AI 通过工具调用的方式搜索图片
  * 开发文档：https://www.pexels.com/api/
  *
