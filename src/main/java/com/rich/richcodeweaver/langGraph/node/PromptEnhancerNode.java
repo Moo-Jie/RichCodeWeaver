@@ -28,7 +28,7 @@ public class PromptEnhancerNode {
             // 添加图片信息
             if (StrUtil.isNotBlank(imageListStr)) {
                 enhancedPromptBuilder.append("\n\n## 可用素材资源\n");
-                enhancedPromptBuilder.append("在生成网站时，推荐使用以下图片资源（也可以自行搜索图片）：\n");
+                enhancedPromptBuilder.append("在生成网站时，推荐使用以下图片资源（不必再调用图片搜索工具和图片生成工具）：\n");
                 // 拼接 AI 获取到的图片资源
                 enhancedPromptBuilder.append(imageListStr);
             }

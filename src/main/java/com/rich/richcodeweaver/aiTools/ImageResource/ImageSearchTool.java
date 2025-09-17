@@ -5,6 +5,7 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.rich.richcodeweaver.aiTools.BaseTool;
 import com.rich.richcodeweaver.model.entity.ImageResource;
 import com.rich.richcodeweaver.model.enums.ImageCategoryEnum;
 import dev.langchain4j.agent.tool.P;
@@ -26,7 +27,7 @@ import java.util.List;
  **/
 @Slf4j
 @Component
-public class ImageSearchTool {
+public class ImageSearchTool extends BaseTool {
 
     // Pexels API 的基础URL
     private static final String PEXELS_API_URL = "https://api.pexels.com/v1/search";
@@ -35,6 +36,23 @@ public class ImageSearchTool {
     @Value("${pexels.api-key}")
     private String pexelsApiKey;
 
+    @Override
+    public String getToolName() {
+        return "searchImages";
+    }
+
+    @Override
+    public String getToolDisplayName() {
+        return "图片搜索工具";
+    }
+
+    @Override
+    public String getResultMsg(JSONObject arguments) {
+        String query = arguments.getStr("query");
+        query = query == null || query.isEmpty() ? "" : "\n[\n" + query + "\n]\n";
+        return String.format("[工具调用结束] %s %s", "成功搜索以下关键词的图片", query);
+    }
+
     /**
      * 搜索内容相关的图片，用于网站内容展示
      *
@@ -42,7 +60,7 @@ public class ImageSearchTool {
      * @return 返回图片资源列表，包含图片URL、描述和分类信息
      */
     @Tool("搜索内容相关的图片，用于网站内容展示")
-    public List<ImageResource> searchImages(@P("搜索关键词") String query) {
+    public List<ImageResource> searchImages(@P("清晰、凝练的搜索关键词") String query) {
         // 初始化图片列表
         List<ImageResource> imageList = new ArrayList<>();
         // 设置每次搜索返回的图片数量

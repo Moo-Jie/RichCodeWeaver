@@ -1,6 +1,7 @@
-package com.rich.richcodeweaver.aiTools.base;
+package com.rich.richcodeweaver.aiTools.fileOperate;
 
 import cn.hutool.json.JSONObject;
+import com.rich.richcodeweaver.aiTools.BaseTool;
 import com.rich.richcodeweaver.constant.AppConstant;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;

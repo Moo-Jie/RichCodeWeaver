@@ -1,9 +1,11 @@
 package com.rich.richcodeweaver.aiTools.ImageResource;
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONObject;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesis;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisParam;
 import com.alibaba.dashscope.aigc.imagesynthesis.ImageSynthesisResult;
+import com.rich.richcodeweaver.aiTools.BaseTool;
 import com.rich.richcodeweaver.model.entity.ImageResource;
 import com.rich.richcodeweaver.model.enums.ImageCategoryEnum;
 import dev.langchain4j.agent.tool.P;
@@ -25,7 +27,7 @@ import java.util.Map;
  **/
 @Slf4j
 @Component
-public class AiGeneratorImageTool {
+public class AiGeneratorImageTool extends BaseTool {
 
     /**
      * DashScope API密钥，从配置文件中注入
@@ -42,6 +44,24 @@ public class AiGeneratorImageTool {
     @Value("${dashscope.image-model:wan2.2-t2i-flash}")
     private String imageModel;
 
+    @Override
+    public String getToolName() {
+        return "aiGeneratorImage";
+    }
+
+    @Override
+    public String getToolDisplayName() {
+        return "AI图片生成工具";
+    }
+
+    @Override
+    public String getResultMsg(JSONObject arguments) {
+        String type = arguments.getStr("type");
+        String description = arguments.getStr("description");
+        type = type == null || type.isEmpty() ? "" : "\n[\n" + type + "\n]\n";
+        return String.format("[工具调用结束] %s %s\n\n描述信息：\n```\n%s\n```", "成功生成以下类型的图片", type, description);
+    }
+
     /**
      * 根据生成类型、描述生成图片
      *
@@ -49,7 +69,7 @@ public class AiGeneratorImageTool {
      * @return 生成的设计图片列表
      */
     @Tool("根据描述让 AI 生成设计图片（不能指定生成文字）")
-    public List<ImageResource> aiGeneratorImage(@P("类型描述，如品牌标识、Logo设计 、架构图等等") String type, @P("设计描述风格的 AI 提示词，如名称、行业、风格等，尽量详细") String description) {
+    public List<ImageResource> aiGeneratorImage(@P("类型描述，如Logo、图标、架构图、概念视觉图等等") String type, @P("设计描述，含主体、风格、色彩等要素，尽量详细") String description) {
         List<ImageResource> imageList = new ArrayList<>();
         try {
             // 构建设计提示词

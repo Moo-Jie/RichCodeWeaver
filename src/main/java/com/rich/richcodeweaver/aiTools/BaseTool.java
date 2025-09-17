@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.aiTools.base;
+package com.rich.richcodeweaver.aiTools;
 
 import cn.hutool.json.JSONObject;
 
