@@ -33,6 +33,14 @@ public class PromptEnhancerNode {
                 enhancedPromptBuilder.append(imageListStr);
             }
             String enhancedPrompt = enhancedPromptBuilder.toString();
+            // 补充整理后的网络资源文档
+            String webResourceListStr = context.getWebResourceListStr();
+            if (StrUtil.isNotBlank(webResourceListStr)) {
+                enhancedPromptBuilder.append("\n\n## 可用素材\n");
+                enhancedPromptBuilder.append("在生成网站时，推荐参考以下素材（必要时，可以适当调用联网搜索工具和网页抓取工具作补充）：\n");
+                // 拼接 AI 获取到的网络资源
+                enhancedPromptBuilder.append(webResourceListStr);
+            }
             // 更新状态
             context.setCurrentStep("提示词增强已完成");
             context.setEnhancedPrompt(enhancedPrompt);

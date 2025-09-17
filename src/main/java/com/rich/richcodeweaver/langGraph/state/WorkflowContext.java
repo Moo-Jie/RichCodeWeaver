@@ -44,6 +44,10 @@ public class WorkflowContext implements Serializable {
      */
     private String originalPrompt;
     /**
+     * 网络资源字符串
+     */
+    private String webResourceListStr;
+    /**
      * 图片资源字符串
      */
     private String imageListStr;

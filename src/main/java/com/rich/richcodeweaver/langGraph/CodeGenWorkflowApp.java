@@ -68,7 +68,9 @@ public class CodeGenWorkflowApp {
         try {
             return new MessagesStateGraph<String>()
                     // 添加工作流节点
-                    // 图片采集节点：收集与项目相关的图像资源
+                    // 图片采集节点：收集与项目相关的图像资源（单独调用专精于图片收集的 AI 模型）
+                    .addNode("web_resource_organizer", WebResourceOrganizeNode.create())
+                    // 图片采集节点：收集与项目相关的图像资源（单独调用专精于图片收集的 AI 模型）
                     .addNode("image_collector", ImageResourceNode.create())
                     // 提示词增强节点：优化和丰富原始提示词
                     .addNode("prompt_enhancer", PromptEnhancerNode.create())
@@ -80,7 +82,8 @@ public class CodeGenWorkflowApp {
                     .addNode("project_builder", ProjectBuilderNode.create())
 
                     // 添加边，连接节点形成工作流
-                    .addEdge(START, "image_collector")  // 起始节点到图片采集
+                    .addEdge(START, "web_resource_organizer")  // 起始节点到网络资源整理
+                    .addEdge("web_resource_organizer", "image_collector")  // 网络资源整理到图片采集
                     .addEdge("image_collector", "prompt_enhancer")  // 图片采集到提示词增强
                     .addEdge("prompt_enhancer", "ai_code_generator_type_strategy")  // 提示词增强到类型策略
                     .addEdge("ai_code_generator_type_strategy", "code_generator")  // 类型策略到代码生成
@@ -148,16 +151,16 @@ public class CodeGenWorkflowApp {
                     sink.next("""
                             ## 🏗️ 三、本次工作流架构已构建完成
                             
-                            **节点数量:** 将采用 5 个核心处理节点
+                            **节点数量:** 将采用 6 个核心处理节点
                             
-                            **流程路径:** 图片采集 → 提示词增强 → 类型策略 → 代码生成 → 项目构建
+                            **流程路径:** 网络资源整理 → 图片采集 → 提示词增强 → 类型策略 → 代码生成 → 项目构建
                             
                             **条件分支:** 根据生成类型智能选择构建策略
                             """);
 
                     // 执行工作流并跟踪进度
                     int stepCounter = 1;
-                    String[] stepNames = {"图片资源采集", "提示词智能增强", "代码类型策略分析", "智能代码生成", "项目构建部署"};
+                    String[] stepNames = {"网络资源整理", "图片资源采集", "提示词智能增强", "代码类型策略分析", "智能代码生成", "项目构建部署"};
 
                     sink.next("\n\n## 🎬 四、开始执行规划节点\n\n");
 
@@ -196,8 +199,9 @@ public class CodeGenWorkflowApp {
                                 stepInfo.append("**图片处理状态:** 已完成资源解析和优化\n\n");
                             }
 
-                            if (StrUtil.isNotBlank(currentContext.getImageListStr())) {
-                                stepInfo.append(String.format("**图片资源字符串长度:** %d字符\n\n", currentContext.getImageListStr().length()));
+                            // 网络资源信息
+                            if (StrUtil.isNotBlank(currentContext.getWebResourceListStr())) {
+                                stepInfo.append(String.format("**搜索到了 %d 字符的网络资源** %d\n\n", currentContext.getWebResourceListStr().length(), currentContext.getWebResourceListStr().length()));
                             }
 
                             // 提示词增强信息
