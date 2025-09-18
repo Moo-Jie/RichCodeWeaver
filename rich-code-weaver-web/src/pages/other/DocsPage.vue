@@ -260,9 +260,24 @@ const handleItemClick = (id: string) => {
 .docs-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
-  background: #f5f7fa;
+  padding: 40px 20px;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
+  position: relative;
+  z-index: 2;
+}
+
+/* 背景效果 */
+.docs-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .header-nav {

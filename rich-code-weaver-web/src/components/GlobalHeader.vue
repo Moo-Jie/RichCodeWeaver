@@ -213,14 +213,13 @@ const doLogout = async () => {
 
 /* 全局圆角增强 */
 .header {
-  background: linear-gradient(135deg, #faf8f5 0%, #f0f4f9 100%);
+  background: transparent;
   padding: 0 30px;
-  height: 80px; /* 增加高度容纳新布局 */
+  height: 80px; /* 高度容纳新布局 */
   box-shadow: 0 4px 20px rgba(140, 150, 160, 0.12);
   position: sticky;
   top: 0;
   z-index: 100;
-  border-radius: 0 0 35px 35px !important; /* 增强底部圆角 */
   backdrop-filter: blur(8px);
   border: 1px solid rgba(220, 220, 230, 0.3); /* 轻微边框 */
 }
@@ -294,7 +293,7 @@ const doLogout = async () => {
   font-weight: 700;
   color: #7a8b9c;
   border-radius: 25px !important; /* 增强菜单项圆角 */
-  height: 42px; /* 增加高度 */
+  height: 42px; /* 高度 */
   margin: 0 10px; /* 增大间距 */
   padding: 0 22px;
   line-height: 42px;

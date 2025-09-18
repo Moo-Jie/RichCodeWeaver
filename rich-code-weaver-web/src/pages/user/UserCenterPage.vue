@@ -327,7 +327,17 @@ const handleEmail = () => {
 // 处理头像上传
 const handleAvatarUpload = async (file: File) => {
   try {
-    const res = await updateUserAvatar(file)
+    // 创建FormData对象
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    // 直接使用request发送multipart请求
+    const res = await updateUserAvatar(formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
     if (res.data.code === 0) {
       message.success('头像上传成功')
       // 重新获取用户信息以更新头像

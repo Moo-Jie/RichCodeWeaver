@@ -18,11 +18,10 @@
 
       <!-- 导航链接 -->
       <nav class="footer-nav">
-        <a class="nav-link" href="/other/about" target="_blank">关于我们</a>
+        <a class="nav-link" href="/other/about" target="_blank">关于/联系作者</a>
         <a class="nav-link" href="/other/docs" target="_blank">文档中心</a>
         <a class="nav-link" href="/other/privacy" target="_blank">隐私政策</a>
         <a class="nav-link" href="/other/terms" target="_blank">服务条款</a>
-        <a class="nav-link" href="/other/contact" target="_blank">联系我们</a>
       </nav>
 
       <!-- 版权声明 -->
@@ -94,7 +93,7 @@ const currentYear = computed(() => new Date().getFullYear())
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #c8e5ff 0%, #59a7ff 100%);
+  background: linear-gradient(135deg, #59a7ff 20%, #c8e5ff 100%);
   color: white;
   font-size: 18px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -127,7 +126,7 @@ const currentYear = computed(() => new Date().getFullYear())
 }
 
 .nav-link:hover {
-  color: #c8e5ff;
+  color: #000000;
 }
 
 .nav-link::after {
@@ -153,7 +152,7 @@ const currentYear = computed(() => new Date().getFullYear())
 
 .copyright {
   margin: 0;
-  color: #888;
+  color: #000000;
   font-size: 0.9rem;
   font-family: 'Comic Neue', cursive;
 }

@@ -147,16 +147,29 @@ import {
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@300;400;600&display=swap');
 
 .terms-container {
-  background: white;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   min-height: 100vh;
-  font-family: 'Source Sans Pro', sans-serif;
-  color: #3a3a44;
-  padding-bottom: 60px;
+  position: relative;
+  z-index: 2;
+}
+
+/* 背景效果 */
+.terms-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .header-nav {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: 20px 20px 0;
 }
 
@@ -176,8 +189,6 @@ import {
 }
 
 .content-wrapper {
-  max-width: 800px;
-  margin: 0 auto;
   padding: 20px;
 }
 
