@@ -1,5 +1,6 @@
 package com.rich.richcodeweaver.langGraph.state;
 
+import com.rich.richcodeweaver.model.aiChatResponse.CodeReviewResponse;
 import com.rich.richcodeweaver.model.entity.ImageResource;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import lombok.AllArgsConstructor;
@@ -47,6 +48,10 @@ public class WorkflowContext implements Serializable {
      * 网络资源字符串
      */
     private String webResourceListStr;
+    /**
+     * 代码审查结果
+     */
+    private CodeReviewResponse codeReviewResponse;
     /**
      * 图片资源字符串
      */
