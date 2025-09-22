@@ -11,6 +11,7 @@ import com.rich.richcodeweaver.utils.SpringContextUtil;
 import com.rich.richcodeweaver.utils.aiUtils.codeParse.CodeParseExecutor;
 import com.rich.richcodeweaver.utils.aiUtils.codeSave.CodeResultSaveExecutor;
 import dev.langchain4j.service.TokenStream;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -29,6 +30,9 @@ import static com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum.MULTI_FI
 @Slf4j
 @Service
 public class AIGenerateCodeAndSaveToFileUtils {
+    @Resource
+    private ConvertTokenStreamToFluxUtils convertTokenStreamToFluxUtils;
+
     /**
      * 通过判断代码生成业务类型，调用对应的 AI 服务生成代码，并保存到本地（非流式）
      *
@@ -119,7 +123,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
                 case VUE_PROJECT -> {
                     TokenStream resultStream = aiCodeGeneratorService.generateVueProjectCodeStream(userMessage, appId);
                     // 将 LangChain4j 的 TokenStream 转换为 Reactor 的 Flux<String>
-                    yield ConvertTokenStreamToFluxUtils.convertTokenStreamToFlux(resultStream);
+                    yield convertTokenStreamToFluxUtils.convertTokenStreamToFlux(resultStream, appId);
                 }
                 default -> {
                     String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();

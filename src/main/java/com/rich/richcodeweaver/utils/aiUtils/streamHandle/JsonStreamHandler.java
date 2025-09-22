@@ -40,9 +40,6 @@ public class JsonStreamHandler {
     private CommonStreamHandler commonStreamHandler;
 
     @Resource
-    private BuildWebProjectExecutor buildWebProjectExecutor;
-
-    @Resource
     private ToolsManager toolsManager;
 
     /**
@@ -78,11 +75,6 @@ public class JsonStreamHandler {
                                         ChatHistoryTypeEnum.AI.getValue(),
                                         userId);
                             }
-                            // 代码生成完毕后，异步通过 npm 构造 Web 工程项目
-                            String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-                            // 此处前端注意应访问 /dist 目录，
-                            boolean isBuild = buildWebProjectExecutor.buildProjectAsync(projectPath);
-                            ThrowUtils.throwIf(!isBuild, OPERATION_ERROR, "构建 Vue 项目失败");
                         }),
                 chatHistoryService,
                 appId,

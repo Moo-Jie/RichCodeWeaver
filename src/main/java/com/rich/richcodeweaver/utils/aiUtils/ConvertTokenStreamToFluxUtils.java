@@ -1,13 +1,21 @@
 package com.rich.richcodeweaver.utils.aiUtils;
 
 import cn.hutool.json.JSONUtil;
+import com.rich.richcodeweaver.constant.AppConstant;
+import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamAiChatMsgResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamToolExecutedMsgResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamToolInvocMsgResponse;
+import com.rich.richcodeweaver.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;
+import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+
+import static com.rich.richcodeweaver.exception.ErrorCode.OPERATION_ERROR;
 
 /**
  * 将 LangChain4j 的 TokenStream 转换为 Reactor 的 Flux<String> 工具类
@@ -16,7 +24,14 @@ import reactor.core.publisher.Flux;
  * @author DuRuiChi
  * @create 2025/8/25
  **/
+@Slf4j
+@Component
 public class ConvertTokenStreamToFluxUtils {
+    /**
+     * 构建 Web 项目的执行器
+     */
+    @Resource
+    private BuildWebProjectExecutor buildWebProjectExecutor;
 
     /**
      * TokenStream (LangChain4j) 转换为 Flux<String> (Reactor )
@@ -24,7 +39,7 @@ public class ConvertTokenStreamToFluxUtils {
      * @param tokenStream TokenStream 对象
      * @return Flux<String> 流式响应
      */
-    public static Flux<String> convertTokenStreamToFlux(TokenStream tokenStream) {
+    public Flux<String> convertTokenStreamToFlux(TokenStream tokenStream, Long appId) {
         // 创建 Flux 流，使用 sink 发射器处理 TokenStream 事件
         return Flux.create(sink -> {
             // 转换的主要逻辑 ：在 tokenStream 事件处理的回调函数中，使用 sink.next() 发射器，把 AI 输出的信息转 ——> 自定义封装类 ——> JSON 格式，最后发射出去
@@ -47,11 +62,17 @@ public class ConvertTokenStreamToFluxUtils {
                     })
                     // 处理完成事件
                     .onCompleteResponse((ChatResponse response) -> {
+                        // 代码生成完毕后，异步通过 npm 构造 Web 工程项目
+                        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+                        // 此处前端注意应访问 /dist 目录，
+                        boolean isBuild = buildWebProjectExecutor.buildProjectAsync(projectPath);
+                        ThrowUtils.throwIf(!isBuild, OPERATION_ERROR, "构建 Vue 项目失败");
+                        log.info("TokenStream 输出完成。 \n 项目构建完成。");
                         sink.complete();
                     })
                     // 处理错误事件
                     .onError((Throwable error) -> {
-                        error.printStackTrace();
+                        log.error("TokenStream 转换为 Flux 流时发生错误", error);
                         sink.error(error);
                     })
                     // 启动 TokenStream
