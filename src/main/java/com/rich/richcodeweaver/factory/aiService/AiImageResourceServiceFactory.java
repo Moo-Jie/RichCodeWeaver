@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.config.aiChatServiceFactory;
+package com.rich.richcodeweaver.factory.aiService;
 
 import com.rich.richcodeweaver.aiTools.ImageResource.AiGeneratorImageTool;
 import com.rich.richcodeweaver.aiTools.ImageResource.ImageSearchTool;
@@ -18,13 +18,13 @@ import org.springframework.context.annotation.Configuration;
  **/
 @Slf4j
 @Configuration
-public class ImageResourceServiceFactory {
+public class AiImageResourceServiceFactory {
 
     /**
-     * 基础模型
+     * 多例模式下的图片收集 AI 服务模型
      **/
-    @Resource
-    private ChatModel chatModel;
+    @Resource(name = "imageResourceChatModel")
+    private ChatModel imageResourceChatModel;
 
     /**
      * 图片收集 AI 服务
@@ -44,7 +44,7 @@ public class ImageResourceServiceFactory {
     @Bean
     public AiImageResourceService createAiImageGeneratorService() {
         return AiServices.builder(AiImageResourceService.class)
-                .chatModel(chatModel)
+                .chatModel(imageResourceChatModel)
                 .tools(
                         imageSearchTool,
                         aiGeneratorImageTool

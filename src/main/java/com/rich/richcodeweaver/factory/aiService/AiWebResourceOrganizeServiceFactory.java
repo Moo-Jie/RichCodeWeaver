@@ -1,10 +1,7 @@
-package com.rich.richcodeweaver.config.aiChatServiceFactory;
+package com.rich.richcodeweaver.factory.aiService;
 
-import com.rich.richcodeweaver.aiTools.ImageResource.AiGeneratorImageTool;
-import com.rich.richcodeweaver.aiTools.ImageResource.ImageSearchTool;
 import com.rich.richcodeweaver.aiTools.webOperate.AiWebScrapingTool;
 import com.rich.richcodeweaver.aiTools.webOperate.AiWebSearchTool;
-import com.rich.richcodeweaver.service.aiChatService.AiImageResourceService;
 import com.rich.richcodeweaver.service.aiChatService.AiWebResourceOrganizeService;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -21,13 +18,13 @@ import org.springframework.context.annotation.Configuration;
  **/
 @Slf4j
 @Configuration
-public class WebResourceOrganizeServiceFactory {
+public class AiWebResourceOrganizeServiceFactory {
 
     /**
-     * 基础模型
+     * 多例模式下的网络资源整理 AI 服务模型
      **/
-    @Resource
-    private ChatModel chatModel;
+    @Resource(name = "webResourceOrganizeChatModel")
+    private ChatModel webResourceOrganizeChatModel;
 
     /**
      * 网络资源抓取工具
@@ -47,7 +44,7 @@ public class WebResourceOrganizeServiceFactory {
     @Bean
     public AiWebResourceOrganizeService createAiWebResourceOrganizeService() {
         return AiServices.builder(AiWebResourceOrganizeService.class)
-                .chatModel(chatModel)
+                .chatModel(webResourceOrganizeChatModel)
                 .tools(
                         aiWebScrapingTool,
                         aiWebSearchTool

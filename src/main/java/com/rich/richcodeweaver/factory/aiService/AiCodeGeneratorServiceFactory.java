@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.config.aiChatServiceFactory;
+package com.rich.richcodeweaver.factory.aiService;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -6,6 +6,7 @@ import com.rich.richcodeweaver.aiTools.ToolsManager;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorService;
+import com.rich.richcodeweaver.utils.SpringContextUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
@@ -51,25 +52,28 @@ public class AiCodeGeneratorServiceFactory {
                 log.debug("【AI 服务实例缓存】已移除，appId: {}, 原因: {}", key, cause);
             })
             .build();
+
     /**
-     * 基础模型
+     * 基础模型（使用 langchain4j 自带的 OpenAiChatModel）
      **/
-    @Resource
+    @Resource(name = "openAiChatModel")
     private ChatModel chatModel;
+
     /**
-     * 基础流式模型，用于生成多文件代码
+     * 供 AI 服务调用的工具包
      **/
-    @Resource
-    private StreamingChatModel openAiStreamingChatModel;
-    /**
-     * 自定义流式推理模型，用于生成复杂的项目工程代码
-     **/
-    @Resource
-    private StreamingChatModel reasoningStreamingChatModel;
     @Resource
     private ToolsManager toolsManager;
+
+    /**
+     * Redis 类型的 ChatMemory 存储，用于存储对话历史
+     **/
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
+
+    /**
+     * 对话历史服务，用于从数据库加载和保存对话历史
+     **/
     @Resource
     private ChatHistoryService chatHistoryService;
 
@@ -115,20 +119,24 @@ public class AiCodeGeneratorServiceFactory {
         }
         // 分模式构建 AI 服务实例
         AiServices<AiCodeGeneratorService> aiCodeGenServices = AiServices.builder(AiCodeGeneratorService.class)
-                // 配置 AI 模型
+                // 配置基础 AI 模型
                 .chatModel(chatModel)
                 // 配置 chatMemory
                 .chatMemory(chatMemory);
         switch (codeGenTypeEnum) {
             // 单文件模式、多文件模式
             case HTML, MULTI_FILE -> {
+                // 取出自定义的多例模式下的普通流式 AI 模型
+                StreamingChatModel streamingChatModel = SpringContextUtil.getBean("streamingChatModel", StreamingChatModel.class);
                 return aiCodeGenServices
                         // 配置流式模型
-                        .streamingChatModel(openAiStreamingChatModel)
+                        .streamingChatModel(streamingChatModel)
                         .build();
             }
             // Vue 项目工程模式
             case VUE_PROJECT -> {
+                // 取出自定义的多例模式下的推理流式 AI 模型
+                StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean("reasoningStreamingChatModel", StreamingChatModel.class);
                 return aiCodeGenServices
                         // 配置自定义推理流式模型
                         .streamingChatModel(reasoningStreamingChatModel)

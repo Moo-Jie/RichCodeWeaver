@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.config.aiChatServiceFactory;
+package com.rich.richcodeweaver.factory.aiService;
 
 import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorTypeStrategyService;
 import dev.langchain4j.model.chat.ChatModel;
@@ -20,10 +20,10 @@ import org.springframework.context.annotation.Configuration;
 public class AiCodeGeneratorTypeStrategyServiceFactory {
 
     /**
-     * 基础模型
+     * 多例模式下的代码生成策略选择 AI 服务模型
      **/
-    @Resource
-    private ChatModel chatModel;
+    @Resource(name = "codeGeneratorTypeStrategyChatModel")
+    private ChatModel codeGeneratorTypeStrategyChatModel;
 
     /**
      * AI 代码生成策略选择服务实例
@@ -33,7 +33,7 @@ public class AiCodeGeneratorTypeStrategyServiceFactory {
     @Bean
     public AiCodeGeneratorTypeStrategyService aiCodeGeneratorTypeStrategyService() {
         return AiServices.builder(AiCodeGeneratorTypeStrategyService.class)
-                .chatModel(chatModel)
+                .chatModel(codeGeneratorTypeStrategyChatModel)
                 .build();
     }
 }

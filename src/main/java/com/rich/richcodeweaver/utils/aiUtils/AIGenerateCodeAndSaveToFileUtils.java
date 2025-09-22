@@ -1,16 +1,16 @@
 package com.rich.richcodeweaver.utils.aiUtils;
 
-import com.rich.richcodeweaver.config.aiChatServiceFactory.AiCodeGeneratorServiceFactory;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
+import com.rich.richcodeweaver.factory.aiService.AiCodeGeneratorServiceFactory;
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorService;
+import com.rich.richcodeweaver.utils.SpringContextUtil;
 import com.rich.richcodeweaver.utils.aiUtils.codeParse.CodeParseExecutor;
 import com.rich.richcodeweaver.utils.aiUtils.codeSave.CodeResultSaveExecutor;
 import dev.langchain4j.service.TokenStream;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -29,14 +29,6 @@ import static com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum.MULTI_FI
 @Slf4j
 @Service
 public class AIGenerateCodeAndSaveToFileUtils {
-
-    /**
-     * 引入 AI 代码生成器服务
-     **/
-    @Resource
-    private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
-
-
     /**
      * 通过判断代码生成业务类型，调用对应的 AI 服务生成代码，并保存到本地（非流式）
      *
@@ -55,6 +47,9 @@ public class AIGenerateCodeAndSaveToFileUtils {
             }
 
             log.info("（非流式）开始生成{}类型代码，用户需求：{}", codeGenTypeEnum.getValue(), userMessage);
+
+            // 引入 AI 代码生成器并发服务
+            AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory = SpringContextUtil.getBean(AiCodeGeneratorServiceFactory.class);
 
             // 自定义 AI 服务工厂，用于通过 AppId 创建 AI 服务实例
             AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
@@ -104,6 +99,9 @@ public class AIGenerateCodeAndSaveToFileUtils {
             }
 
             log.info("（流式）开始生成{}类型代码，用户需求：{}", codeGenTypeEnum.getValue(), userMessage);
+
+            // 引入 AI 代码生成器并发服务
+            AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory = SpringContextUtil.getBean(AiCodeGeneratorServiceFactory.class);
 
             // AI 服务工厂，用于通过 AppId 创建 AI 服务实例
             AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);

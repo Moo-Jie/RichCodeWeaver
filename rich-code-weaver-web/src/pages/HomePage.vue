@@ -22,7 +22,7 @@ import {
 import { promptOptions } from '@/constants/prompts.ts'
 
 // 当前激活的选项卡状态
-const activeTab = ref('my')
+const activeTab = ref('featured')
 
 // 导入 Tour 相关状态
 const tourOpen = ref(false)
@@ -278,7 +278,6 @@ onMounted(() => {
             </a-button>
 
 
-
             <!-- 创建作品按钮 -->
             <a-button
               :loading="creating"
@@ -426,14 +425,6 @@ onMounted(() => {
         <div class="card-header">
           <div class="header-tabs">
             <div
-              :class="{ active: activeTab === 'my' }"
-              class="tab"
-              @click="activeTab = 'my'"
-            >
-              <span class="tab-icon">🎨</span>
-              <span class="tab-text">我的创作空间</span>
-            </div>
-            <div
               :class="{ active: activeTab === 'featured' }"
               class="tab"
               @click="activeTab = 'featured'"
@@ -441,35 +432,18 @@ onMounted(() => {
               <span class="tab-icon">⭐</span>
               <span class="tab-text">星选灵感工坊</span>
             </div>
+            <div
+              :class="{ active: activeTab === 'my' }"
+              class="tab"
+              @click="activeTab = 'my'"
+            >
+              <span class="tab-icon">🎨</span>
+              <span class="tab-text">我的创作空间</span>
+            </div>
           </div>
         </div>
 
         <div class="card-content">
-          <!-- 我的作品区域 -->
-          <div v-show="activeTab === 'my'" class="workspace-section my-workspace">
-            <div class="app-grid-wrapper">
-              <transition-group appear name="fade">
-                <AppCard
-                  v-for="app in myApps"
-                  :key="app.id"
-                  :app="app"
-                  @view-chat="viewChat"
-                  @view-work="viewWork"
-                />
-              </transition-group>
-            </div>
-            <div class="pagination-wrapper">
-              <a-pagination
-                v-model:current="myAppsPage.current"
-                v-model:page-size="myAppsPage.pageSize"
-                :show-size-changer="false"
-                :show-total="(total: number) => `共 ${total} 个项目`"
-                :total="myAppsPage.total"
-                @change="loadMyApps"
-              />
-            </div>
-          </div>
-
           <!-- 星选案例区域 -->
           <div v-show="activeTab === 'featured'" class="workspace-section featured-workspace">
             <div class="app-grid-wrapper">
@@ -492,6 +466,31 @@ onMounted(() => {
                 :show-total="(total: number) => `共 ${total} 个作品`"
                 :total="featuredAppsPage.total"
                 @change="loadFeaturedApps"
+              />
+            </div>
+          </div>
+
+          <!-- 我的作品区域 -->
+          <div v-show="activeTab === 'my'" class="workspace-section my-workspace">
+            <div class="app-grid-wrapper">
+              <transition-group appear name="fade">
+                <AppCard
+                  v-for="app in myApps"
+                  :key="app.id"
+                  :app="app"
+                  @view-chat="viewChat"
+                  @view-work="viewWork"
+                />
+              </transition-group>
+            </div>
+            <div class="pagination-wrapper">
+              <a-pagination
+                v-model:current="myAppsPage.current"
+                v-model:page-size="myAppsPage.pageSize"
+                :show-size-changer="false"
+                :show-total="(total: number) => `共 ${total} 个项目`"
+                :total="myAppsPage.total"
+                @change="loadMyApps"
               />
             </div>
           </div>
@@ -1100,7 +1099,6 @@ onMounted(() => {
 .pagination-wrapper :deep(.ant-pagination-next .ant-pagination-item-link) {
   border-radius: 10px;
 }
-
 
 
 /* 响应式设计 */

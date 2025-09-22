@@ -189,8 +189,9 @@ public class CodeGenWorkflowApp {
 
                     // 执行工作流并跟踪进度
                     int stepCounter = 1;
-                    int totalExpectedSteps; // 初始预期步骤数
+                    int totalExpectedSteps = BASE_WORKFLOW_STEPS; // 初始预期步骤数
                     int codeReviewAttempts = 0; // 代码审查尝试次数
+                    int actualExecutedSteps = 0; // 实际执行的步骤数（用于显示）
 
                     String executionStartInfo = "\n\n## 🎬 四、开始执行规划节点\n\n**🤔 正在继续思考...**\n\n";
                     sink.next(executionStartInfo);
@@ -198,7 +199,8 @@ public class CodeGenWorkflowApp {
 
                     for (NodeOutput<MessagesState<String>> step : workflow.stream(
                             Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {
-                        log.info(" --- 第 {} 步完成 ---", stepCounter);
+                        actualExecutedSteps++;
+                        log.info(" --- 第 {} 步完成 ---", actualExecutedSteps);
                         // 获取当前步骤的上下文
                         WorkflowContext currentContext = WorkflowContext.getContext(step.state());
                         if (currentContext != null) {
@@ -211,7 +213,7 @@ public class CodeGenWorkflowApp {
                             // 动态计算总预期步骤数
                             totalExpectedSteps = calculateTotalExpectedSteps(currentContext, type);
 
-                            stepInfo.append(String.format("\n\n## ✅ 第%d步开始执行: %s\n\n", stepCounter, stepName));
+                            stepInfo.append(String.format("\n\n## ✅ 第%d步开始执行: %s\n\n", actualExecutedSteps, stepName));
                             stepInfo.append(String.format("\n**🔄 当前状态** 【%s】\n\n", currentContext.getCurrentStep()));
                             stepInfo.append(String.format("**应用ID:** %d\n\n", appId));
 
@@ -271,10 +273,9 @@ public class CodeGenWorkflowApp {
                                 stepInfo.append(String.format("**⚠️ 异常信息:** %s\n\n", currentContext.getErrorMessage()));
                             }
 
-                            // 动态进度指示器
-                            int progress = Math.min((stepCounter * 100) / totalExpectedSteps, 100); // 基于动态总步骤数计算进度
-                            int filledBars = Math.min(progress / 10, 10); // 限制填充条数不超过10
-                            int emptyBars = Math.max(10 - filledBars, 0); // 确保空白条数不为负
+                            // 智能进度指示器 - 处理代码审查重试情况
+                            int displayStepNumber;
+                            int progress;
 
                             // 添加代码审查次数信息
                             String reviewInfo = "";
@@ -286,11 +287,24 @@ public class CodeGenWorkflowApp {
                                 }
                             }
 
+                            // 如果是代码审查重试阶段，显示步数不超过总步数
+                            if (codeReviewAttempts > 1 && actualExecutedSteps > totalExpectedSteps) {
+                                // 重试时，显示为最后几个步骤的重复执行
+                                displayStepNumber = totalExpectedSteps;
+                                progress = 100; // 重试时进度保持100%
+                            } else {
+                                displayStepNumber = Math.min(actualExecutedSteps, totalExpectedSteps);
+                                progress = Math.min((displayStepNumber * 100) / totalExpectedSteps, 100);
+                            }
+
+                            int filledBars = Math.min(progress / 10, 10); // 限制填充条数不超过10
+                            int emptyBars = Math.max(10 - filledBars, 0); // 确保空白条数不为负
+
                             stepInfo.append(String.format("\n**📊 整体进度:** %d%% [%s%s] (%d/%d步)%s\n\n",
                                     progress,
                                     "█".repeat(filledBars),
                                     "░".repeat(emptyBars),
-                                    stepCounter,
+                                    displayStepNumber,
                                     totalExpectedSteps,
                                     reviewInfo));
 
@@ -315,14 +329,24 @@ public class CodeGenWorkflowApp {
                             aiResponseBuilder.append(stepInfo);
                             log.info("当前步骤上下文: {}", currentContext);
                         }
-                        stepCounter++;
+
+                        // 根据当前步骤更新stepCounter
+                        if (currentContext != null) {
+                            // 如果是重新执行的步骤（代码审查失败后），不增加stepCounter
+                            String currentStepName = currentContext.getCurrentStep();
+                            if (!currentStepName.contains("已完成") || actualExecutedSteps <= BASE_WORKFLOW_STEPS) {
+                                stepCounter++;
+                            }
+                        } else {
+                            stepCounter++;
+                        }
                     }
 
                     // 发送工作流完成事件 - Agent 风格总结
                     String completionInfo = "# 代码生成工作流执行完成!\n\n" +
                             "\n## 📈 执行统计\n\n" +
                             String.format("**应用ID:** %d\n\n", appId) +
-                            String.format("**总执行步骤:** %d个\n\n", stepCounter - 1) +
+                            String.format("**总执行步骤:** %d个\n\n", actualExecutedSteps) +
                             String.format("**代码审查次数:** %d次\n\n", codeReviewAttempts) +
                             String.format("**用户ID:** %d\n\n", userId) +
                             String.format("**生成类型:** %s\n\n", type.getValue()) +
@@ -427,7 +451,7 @@ public class CodeGenWorkflowApp {
         if ("代码审查".equals(currentStep) && context.getCodeReviewResponse() != null) {
             Long reviewCount = context.getCodeReviewResponse().getReviewCount();
             if (reviewCount != null && reviewCount > 1) {
-                return String.format("AI代码审查 (第%d次)", reviewCount);
+                return String.format("AI代码审查 (第%d次重试)", reviewCount);
             }
         }
 
@@ -435,6 +459,16 @@ public class CodeGenWorkflowApp {
         if ("提示词增强".equals(currentStep) && context.getCodeReviewResponse() != null &&
                 !context.getCodeReviewResponse().getIsPass()) {
             return "提示词智能增强 (代码修复)";
+        }
+
+        // 如果是代码生成步骤且是重试，显示修复标识
+        if ("代码生成".equals(currentStep) && codeReviewAttempts > 1) {
+            return "智能代码生成 (代码修复)";
+        }
+
+        // 如果是项目构建完成的重复步骤，显示为"项目构建已完成"
+        if (currentStep.contains("项目构建已完成")) {
+            return "项目构建已完成";
         }
 
         // 使用预定义的步骤名称或当前步骤名称
@@ -456,14 +490,10 @@ public class CodeGenWorkflowApp {
             totalSteps = BASE_WORKFLOW_STEPS - 1; // 减去项目构建步骤
         }
 
-        // 如果代码审查失败过，可能会有额外的提示词增强和代码生成步骤
-        if (context.getCodeReviewResponse() != null) {
-            Long reviewCount = context.getCodeReviewResponse().getReviewCount();
-            if (reviewCount != null && reviewCount > 1) {
-                // 每次重试会增加：提示词增强 + 代码类型策略 + 代码生成 + 代码审查 = 4步
-                totalSteps += (reviewCount.intValue() - 1) * 4;
-            }
-        }
+        // 注意：不再动态增加步骤数，因为重试时我们希望保持原有的步骤数显示
+        // 这样可以避免出现 8/7步 这样的显示问题
+        // 代码审查重试时，进度条会保持在合理范围内
+
         return totalSteps;
     }
 }

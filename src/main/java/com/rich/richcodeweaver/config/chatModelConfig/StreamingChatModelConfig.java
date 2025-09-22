@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.config.aiChatServiceFactory;
+package com.rich.richcodeweaver.config.chatModelConfig;
 
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
@@ -6,18 +6,20 @@ import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
+
+import java.time.Duration;
 
 /**
- * 自定义的推理模型 （流式），用于生成复杂项目工程代码
- * 【需要写配置类，因为默认没有提供流式推理模型实例的类】
+ * 支持多例模式的普通流式模型（用于构建简单的应用，如：构建单文件应用、多文件应用等）
  *
  * @author DuRuiChi
  * @create 2025/8/24
  **/
 @Data
 @Configuration
-@ConfigurationProperties(prefix = "langchain4j.open-ai.reasoning-chat-model")
-public class ReasoningChatModelConfig {
+@ConfigurationProperties(prefix = "langchain4j.open-ai.streaming-chat-model")
+public class StreamingChatModelConfig {
     /**
      * 模型名称
      **/
@@ -49,19 +51,32 @@ public class ReasoningChatModelConfig {
     private Boolean logResponses;
 
     /**
-     * 推理模型 （流式），用于生成复杂项目工程代码
+     * 超时时间
+     **/
+    private Integer timeout;
+    /**
+     * 温度（0-1），较高的值会使输出更加随机，而较低的值则会使输出更加确定
+     **/
+    private Double temperature;
+
+    /**
+     * 普通流式模型（支持多例模式）
      *
      * @return dev.langchain4j.model.chat.StreamingChatModel
      * @author DuRuiChi
      * @create 2025/8/24
+     * @Scope("prototype") 原型模式，每次调用都创建一个新的实例
      **/
     @Bean
-    public StreamingChatModel reasoningStreamingChatModel() {
+    @Scope("prototype")
+    public StreamingChatModel streamingChatModel() {
         return OpenAiStreamingChatModel.builder()
                 .modelName(modelName)
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
                 .maxTokens(maxTokens)
+                .timeout(timeout != null ? Duration.ofMillis(timeout) : null)
+                .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .build();
