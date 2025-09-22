@@ -19,6 +19,7 @@ import com.rich.richcodeweaver.service.UserService;
 import com.rich.richcodeweaver.utils.ResultUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,8 @@ import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+
+import static com.rich.richcodeweaver.constant.CacheConstant.STAR_APP_CACHE_NAME;
 
 /**
  * AI 应用相关接口
@@ -112,6 +115,9 @@ public class AppController {
 
     /**
      * 创建 AI 应用
+     * @param appAddRequest
+     * @param request
+     * @return
      */
     @PostMapping("/add")
     public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
@@ -122,6 +128,9 @@ public class AppController {
 
     /**
      * 更新 AI 应用（用户只能更新自己的 AI 应用名称）
+     * @param appUpdateRequest 更新请求参数
+     * @param request 请求对象
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean> 更新结果
      */
     @PostMapping("/update")
     public BaseResponse<Boolean> updateApp(@RequestBody AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
@@ -134,6 +143,9 @@ public class AppController {
 
     /**
      * 删除 AI 应用
+     * @param deleteRequest 删除请求参数
+     * @param request 请求对象
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean> 删除结果
      */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteApp(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
@@ -146,8 +158,9 @@ public class AppController {
 
     /**
      * 根据 id 查询 AI 应用详情
+     * @param id 应用 id
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<com.rich.richcodeweaver.model.vo.AppVO> 应用详情
      */
-    // 处理GET请求，路径为/get/vo
     @GetMapping("/get/vo")
     public BaseResponse<AppVO> getAppVOById(@RequestParam("id") long id) {
         // 参数校验
@@ -160,6 +173,8 @@ public class AppController {
 
     /**
      * 分页获取当前用户创建的 AI 应用列表
+     * @param appQueryRequest 查询请求参数
+     * @param request 请求对象
      */
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<AppVO>> listMyAppVOByPage(@RequestBody AppQueryRequest appQueryRequest, HttpServletRequest request) {
@@ -170,7 +185,14 @@ public class AppController {
 
     /**
      * 分页获取星标 AI 应用列表
+     * @param appQueryRequest 查询请求参数
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<org.springframework.data.domain.Page<com.rich.richcodeweaver.model.vo.AppVO>> 星标应用列表
      */
+    @Cacheable(
+            value = STAR_APP_CACHE_NAME, // 缓存名
+            key = "T( com.rich.richcodeweaver.utils.RedisUtils).genKey(#appQueryRequest)", // 缓存 key 名
+            condition = "#appQueryRequest.pageNum <= 5" // 缓存条件
+    )
     @PostMapping("/good/list/page/vo")
     public BaseResponse<Page<AppVO>> listStarAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
         // 参数校验
@@ -180,6 +202,8 @@ public class AppController {
 
     /**
      * 管理员删除 AI 应用
+     * @param deleteRequest 删除请求参数
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean> 删除结果
      */
     @PostMapping("/delete/admin")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -199,6 +223,8 @@ public class AppController {
 
     /**
      * 管理员更新 AI 应用
+     * @param appAdminUpdateRequest 更新请求参数
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean> 更新结果
      */
     @PostMapping("/update/admin")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -212,6 +238,8 @@ public class AppController {
 
     /**
      * 管理员分页获取 AI 应用列表
+     * @param appQueryRequest 查询请求参数
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<org.springframework.data.domain.Page<com.rich.richcodeweaver.model.vo.AppVO>> 应用列表
      */
     @PostMapping("/list/page/vo/admin")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -223,10 +251,12 @@ public class AppController {
 
     /**
      * 管理员根据 id 获取 AI 应用详情
+     * @param id 应用 id
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<com.rich.richcodeweaver.model.vo.AppVO> 应用详情
      */
     @GetMapping("/get/vo/admin")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<AppVO> getAppVOByIdByAdmin(long id) {
+    public BaseResponse<AppVO> getAppVOByIdByAdmin(@RequestParam("id") long id) {
         // 参数校验
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         // 查询 AI 应用实体

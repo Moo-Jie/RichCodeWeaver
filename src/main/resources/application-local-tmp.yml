@@ -1,14 +1,24 @@
-# 本模板配置文件展示推荐的本地配置文件写法，若使用先改文件名为 application-local.yml
+# 阿里云OSS配置
+aliyun:
+  oss:
+    end-point: 【Your End Point】
+    access-key-id: 【Your Api Id】
+    access-key-secret: 【Your Api Key】
+    bucket-name: 【Your Bucket Name】
+
+# searchApi
+search-api:
+  api-key: vsFqK6b6j2nxzTNvdwX9Nyj3
 
 # langchain4j 配置
 langchain4j:
   open-ai:
-    # 基础模型
+    # 基础模型配置参数（用于简单的 AI 服务，如：代码审查、代码生成策略选择、网络资源收集、图片资源构建等）
     chat-model:
       # 接口地址
       base-url: https://api.deepseek.com
       # 接口密钥
-      api-key: 【Your ApiKey】
+      api-key: 【Your Api Key】
       # 模型名称
       model-name: deepseek-chat
       # 开启请求日志
@@ -17,45 +27,52 @@ langchain4j:
       log-responses: true
       # 最大 token 数
       max-tokens: 8192
-      # 严格按照 JSON Schema 格式返回
-      strict-json-schema: true
-      # 响应格式
-      response-format: json_object
-    # 流式响应模型，用于生成简单的代码
+      # 超时设置（毫秒）（秒）- 增加超时时间以处理网络资源整理等耗时操作
+      timeout: 180000
+    # 基础流式模型配置参数（用于构建简单的应用，如：构建单文件应用、多文件应用等）
     streaming-chat-model:
       # 接口地址
       base-url: https://api.deepseek.com
       # 接口密钥
-      api-key: 【Your ApiKey】
+      api-key: 【Your Api Key】
       # 模型名称
       model-name: deepseek-chat
       # 最大 token 数
       max-tokens: 8192
+      # 超时设置（毫秒）- 增加超时时间
+      timeout: 600000
       # 开启请求日志
       log-requests: true
       # 开启响应日志
       log-responses: true
-    # 自定义的推理模型【需要写配置类，因为默认没有提供流式推理模型实例的类】，用于生成复杂项目工程代码
-    reasoning-chat-model:
+    # 推理流式模型配置参数（用于构建复杂的应用，如：构建工程化项目等）
+    reasoning-streaming-chat-model:
       # 接口地址
       base-url: https://api.deepseek.com
       # 接口密钥
-      api-key: 【Your ApiKey】
+      api-key: 【Your Api Key】
       # 模型名称
       model-name: deepseek-reasoner
+      #      model-name: deepseek-chat
       # 最大 token 数 （推理模型多给点 Token）
       max-tokens: 32768
+      # 温度参数（控制模型输出的随机性）
+      temperature: 0.1
+      # 超时设置（毫秒）- 推理模型需要更长的超时时间
+      timeout: 1000000
       # 开启请求日志
       log-requests: true
       # 开启响应日志
       log-responses: true
 
 # Pexels 图片搜索
+# https://www.pexels.com/api/
 pexels:
-  api-key: 【Your ApiKey】
+  api-key: 【Your Api Key】
 
 # 阿里云 DashScope 配置
 dashscope:
-  api-key: 【Your ApiKey】
+  api-key: 【Your Api Key】
   # 绘图模型
   image-model: wan2.2-t2i-flash
+

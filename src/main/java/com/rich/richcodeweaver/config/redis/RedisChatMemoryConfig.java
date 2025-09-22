@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.config;
+package com.rich.richcodeweaver.config.redis;
 
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import lombok.Data;
