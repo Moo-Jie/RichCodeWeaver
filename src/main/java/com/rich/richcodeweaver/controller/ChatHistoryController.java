@@ -3,12 +3,14 @@ package com.rich.richcodeweaver.controller;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.rich.richcodeweaver.annotation.AuthCheck;
+import com.rich.richcodeweaver.annotation.RateLimit;
 import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.model.common.BaseResponse;
 import com.rich.richcodeweaver.model.dto.chathistory.ChatHistoryQueryRequest;
 import com.rich.richcodeweaver.model.entity.ChatHistory;
+import com.rich.richcodeweaver.model.enums.RateLimitTypeEnum;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.utils.ResultUtils;
@@ -43,6 +45,7 @@ public class ChatHistoryController {
      * @create 2025/8/16
      **/
     @GetMapping("/app/{appId}")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
     public BaseResponse<Page<ChatHistory>> listAppChatHistoryByPage(@PathVariable Long appId,
                                                                     @RequestParam(defaultValue = "10") int pageSize,
                                                                     @RequestParam(required = false) LocalDateTime lastCreateTime,

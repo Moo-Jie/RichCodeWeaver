@@ -159,7 +159,7 @@ const createApp = async () => {
     }
   } catch (error) {
     console.error('创建应用失败：', error)
-    message.error('创建失败，请重试')
+    message.error('创建失败，请重试:' + res.data.message)
   } finally {
     creating.value = false
   }

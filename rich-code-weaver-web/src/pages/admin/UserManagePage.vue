@@ -322,7 +322,7 @@ const fetchData = async () => {
     }
   } catch (error) {
     console.error('获取用户数据失败：', error)
-    message.error('获取数据失败')
+    message.error('获取数据失败:' + res.data.message)
   }
 }
 
@@ -388,7 +388,7 @@ const handleEditSubmit = async () => {
     }
   } catch (error) {
     console.error('更新用户信息失败：', error)
-    message.error('更新失败')
+    message.error('更新失败:' + res.data.message)
   }
 }
 
@@ -413,7 +413,7 @@ const handlePasswordSubmit = async () => {
     }
   } catch (error) {
     console.error('重置密码失败：', error)
-    message.error('重置失败:' + error)
+    message.error('重置失败::' + res.data.message)
   }
 }
 
@@ -431,7 +431,7 @@ const doDelete = async (id: string | undefined) => {
     }
   } catch (error) {
     console.error('用户删除失败：', error)
-    message.error('删除操作失败')
+    message.error('删除操作失败:' + res.data.message)
   }
 }
 

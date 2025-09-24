@@ -561,7 +561,7 @@ const deployedSiteUrl = computed(() => {
 const fetchAppInfo = async () => {
   const id = route.params.id as string
   if (!id) {
-    message.error('应用ID不存在')
+    message.error('应用ID不存在:' + res.data.message)
     await router.push('/')
     return
   }
@@ -646,7 +646,7 @@ const clearSelection = () => {
 // 下载代码
 const downloadCode = async () => {
   if (!appId.value) {
-    message.error('应用ID不存在')
+    message.error('应用ID不存在:' + res.data.message)
     return
   }
   downloading.value = true
@@ -927,7 +927,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   console.error('生成代码失败：', error)
   messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
   messages.value[aiMessageIndex].loading = false
-  message.error('生成失败，请重试')
+  message.error('生成失败，请重试:' + res.data.message)
   isGenerating.value = false
 }
 
@@ -966,7 +966,7 @@ const scrollToBottom = () => {
 // 部署应用
 const deployApp = async () => {
   if (!appId.value) {
-    message.error('应用ID不存在')
+    message.error('应用ID不存在:' + res.data.message)
     return
   }
 
@@ -993,7 +993,7 @@ const deployApp = async () => {
     }
   } catch (error) {
     console.error('部署失败：', error)
-    message.error('部署失败，请重试')
+    message.error('部署失败，请重试:' + res.data.message)
   } finally {
     deploying.value = false
   }
@@ -1024,7 +1024,7 @@ const confirmReDeploy = async () => {
         }
       } catch (error) {
         console.error('重新部署失败：', error)
-        message.error('重新部署失败，请重试')
+        message.error('重新部署失败，请重试:' + res.data.message)
       } finally {
         deploying.value = false
         showReDeployWarning.value = false
@@ -1083,7 +1083,7 @@ const deleteApp = async () => {
     }
   } catch (error) {
     console.error('删除失败：', error)
-    message.error('删除失败')
+    message.error('删除失败:' + res.data.message)
   }
 }
 

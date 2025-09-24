@@ -241,7 +241,7 @@ const fetchUserInfo = async () => {
         userProfile: res.data.data.userProfile
       })
     } else {
-      message.error('获取用户信息失败')
+      message.error('获取用户信息失败:' + res.data.message)
     }
   } catch (error) {
     console.error('获取用户信息失败：', error)
@@ -270,7 +270,7 @@ const handleEditSubmit = async () => {
     }
   } catch (error) {
     console.error('更新用户信息失败：', error)
-    message.error('更新失败')
+    message.error('更新失败:' + res.data.message)
   }
 }
 
@@ -310,7 +310,7 @@ const handlePasswordSubmit = async () => {
     }
   } catch (error) {
     console.error('修改密码失败：', error)
-    message.error('修改失败')
+    message.error('修改失败:' + res.data.message)
   }
 }
 
@@ -330,14 +330,14 @@ const handleAvatarUpload = async (file: File) => {
     // 创建FormData对象
     const formData = new FormData()
     formData.append('file', file)
-    
+
     // 直接使用request发送multipart请求
     const res = await updateUserAvatar(formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
     })
-    
+
     if (res.data.code === 0) {
       message.success('头像上传成功')
       // 重新获取用户信息以更新头像
@@ -347,7 +347,7 @@ const handleAvatarUpload = async (file: File) => {
     }
   } catch (error) {
     console.error('头像上传失败：', error)
-    message.error('头像上传失败')
+    message.error('头像上传失败:' + res.data.message)
   }
   return false // 阻止默认上传行为
 }

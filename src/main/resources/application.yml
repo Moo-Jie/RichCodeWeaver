@@ -46,3 +46,13 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+# redisson 配置
+redisson:
+  connectionPoolSize: 10
+  connectionMinimumIdleSize: 1
+  idleConnectionTimeout: 30000
+  connectTimeout: 5000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500

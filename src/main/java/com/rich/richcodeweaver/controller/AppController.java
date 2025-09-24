@@ -3,6 +3,7 @@ package com.rich.richcodeweaver.controller;
 
 import com.mybatisflex.core.paginate.Page;
 import com.rich.richcodeweaver.annotation.AuthCheck;
+import com.rich.richcodeweaver.annotation.RateLimit;
 import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
@@ -12,6 +13,7 @@ import com.rich.richcodeweaver.model.common.DeleteRequest;
 import com.rich.richcodeweaver.model.dto.app.*;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.entity.User;
+import com.rich.richcodeweaver.model.enums.RateLimitTypeEnum;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.FileService;
@@ -60,6 +62,7 @@ public class AppController {
      * @param request 请求对象
      * @return 生成结果流
      */
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 60)
     @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId,
                                                              @RequestParam String message,
@@ -83,6 +86,7 @@ public class AppController {
      * @create 2025/8/9
      **/
     @GetMapping("/view/{appId}/**")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
     public ResponseEntity<FileSystemResource> viewApp(@PathVariable Long appId, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR);
@@ -100,6 +104,7 @@ public class AppController {
      * @create 2025/8/10
      **/
     @PostMapping("/deploy")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 60)
     public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
@@ -115,11 +120,13 @@ public class AppController {
 
     /**
      * 创建 AI 应用
+     *
      * @param appAddRequest
      * @param request
      * @return
      */
     @PostMapping("/add")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 60)
     public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
@@ -128,11 +135,13 @@ public class AppController {
 
     /**
      * 更新 AI 应用（用户只能更新自己的 AI 应用名称）
+     *
      * @param appUpdateRequest 更新请求参数
-     * @param request 请求对象
+     * @param request          请求对象
      * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean> 更新结果
      */
     @PostMapping("/update")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
     public BaseResponse<Boolean> updateApp(@RequestBody AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
         // 参数校验
         if (appUpdateRequest == null || appUpdateRequest.getId() == null) {
@@ -143,8 +152,9 @@ public class AppController {
 
     /**
      * 删除 AI 应用
+     *
      * @param deleteRequest 删除请求参数
-     * @param request 请求对象
+     * @param request       请求对象
      * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean> 删除结果
      */
     @PostMapping("/delete")
@@ -158,10 +168,12 @@ public class AppController {
 
     /**
      * 根据 id 查询 AI 应用详情
+     *
      * @param id 应用 id
      * @return com.rich.richcodeweaver.model.common.BaseResponse<com.rich.richcodeweaver.model.vo.AppVO> 应用详情
      */
     @GetMapping("/get/vo")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
     public BaseResponse<AppVO> getAppVOById(@RequestParam("id") long id) {
         // 参数校验
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
@@ -173,8 +185,9 @@ public class AppController {
 
     /**
      * 分页获取当前用户创建的 AI 应用列表
+     *
      * @param appQueryRequest 查询请求参数
-     * @param request 请求对象
+     * @param request         请求对象
      */
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<AppVO>> listMyAppVOByPage(@RequestBody AppQueryRequest appQueryRequest, HttpServletRequest request) {
@@ -185,8 +198,9 @@ public class AppController {
 
     /**
      * 分页获取星标 AI 应用列表
+     *
      * @param appQueryRequest 查询请求参数
-     * @return com.rich.richcodeweaver.model.common.BaseResponse<org.springframework.data.domain.Page<com.rich.richcodeweaver.model.vo.AppVO>> 星标应用列表
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.richcodeweaver.model.vo.AppVO>> 星标应用列表
      */
     @Cacheable(
             value = STAR_APP_CACHE_NAME, // 缓存名
@@ -194,6 +208,7 @@ public class AppController {
             condition = "#appQueryRequest.pageNum <= 5" // 缓存条件
     )
     @PostMapping("/good/list/page/vo")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
     public BaseResponse<Page<AppVO>> listStarAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
         // 参数校验
         ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);
@@ -202,6 +217,7 @@ public class AppController {
 
     /**
      * 管理员删除 AI 应用
+     *
      * @param deleteRequest 删除请求参数
      * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean> 删除结果
      */
@@ -223,6 +239,7 @@ public class AppController {
 
     /**
      * 管理员更新 AI 应用
+     *
      * @param appAdminUpdateRequest 更新请求参数
      * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean> 更新结果
      */
@@ -238,8 +255,9 @@ public class AppController {
 
     /**
      * 管理员分页获取 AI 应用列表
+     *
      * @param appQueryRequest 查询请求参数
-     * @return com.rich.richcodeweaver.model.common.BaseResponse<org.springframework.data.domain.Page<com.rich.richcodeweaver.model.vo.AppVO>> 应用列表
+     * @return com.rich.richcodeweaver.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.richcodeweaver.model.vo.AppVO>> 应用列表
      */
     @PostMapping("/list/page/vo/admin")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -251,6 +269,7 @@ public class AppController {
 
     /**
      * 管理员根据 id 获取 AI 应用详情
+     *
      * @param id 应用 id
      * @return com.rich.richcodeweaver.model.common.BaseResponse<com.rich.richcodeweaver.model.vo.AppVO> 应用详情
      */
@@ -275,6 +294,7 @@ public class AppController {
      * @return 生成结果流
      */
     @GetMapping(value = "/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 60)
     public File chatToGenCode(@RequestBody AppCodeGenRequest appCodeGenRequest, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appCodeGenRequest == null || request == null, ErrorCode.PARAMS_ERROR);
@@ -295,6 +315,7 @@ public class AppController {
      * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.String>
      **/
     @PostMapping("/upload/cover")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 10)
     public BaseResponse<String> uploadAppCover(@RequestParam("file") MultipartFile file, @RequestParam("appId") Long appId, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(file == null, ErrorCode.PARAMS_ERROR, "参数错误");

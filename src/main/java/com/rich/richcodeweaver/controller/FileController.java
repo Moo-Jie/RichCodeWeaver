@@ -1,8 +1,10 @@
 package com.rich.richcodeweaver.controller;
 
+import com.rich.richcodeweaver.annotation.RateLimit;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.model.common.BaseResponse;
+import com.rich.richcodeweaver.model.enums.RateLimitTypeEnum;
 import com.rich.richcodeweaver.service.FileService;
 import com.rich.richcodeweaver.utils.ResultUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,7 @@ public class FileController {
      * @author DuRuiChi
      * @create 2025/9/3
      **/
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 10)
     @PostMapping("/upload")
     public BaseResponse<String> upload(@RequestPart("file") MultipartFile file) {
         {

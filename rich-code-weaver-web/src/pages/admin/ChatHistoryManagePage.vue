@@ -229,7 +229,7 @@ const deleteMessage = async (messageId: number) => {
     }
   } catch (error) {
     console.error('删除失败:', error)
-    message.error('删除失败，请重试')
+    message.error('删除失败，请重试:' + res.data.message)
   }
 }
 
@@ -262,7 +262,7 @@ const loadApps = async () => {
     }
   } catch (error) {
     console.error('加载应用列表失败:', error)
-    message.error('加载应用列表失败')
+    message.error('加载应用列表失败:' + res.data.message)
   } finally {
     loadingApps.value = false
   }
@@ -300,7 +300,7 @@ const loadHistory = async () => {
     }
   } catch (error) {
     console.error('加载对话失败:', error)
-    message.error('加载对话失败')
+    message.error('加载对话失败:' + res.data.message)
   } finally {
     loadingHistory.value = false
   }

@@ -350,7 +350,7 @@ const getTypeColor = (type: string) => {
 const fetchAppInfo = async () => {
   const id = route.params.id as string
   if (!id) {
-    message.error('应用ID无效')
+    message.error('应用ID无效:' + res.data.message)
     await router.push('/')
     return
   }
@@ -363,7 +363,7 @@ const fetchAppInfo = async () => {
 
       // 检查权限
       if (!isAdmin.value && appInfo.value.userId !== loginUserStore.loginUser.id) {
-        message.error('您没有权限编辑此应用')
+        message.error('您没有权限编辑此应用:' + res.data.message)
         router.push('/')
         return
       }
@@ -381,7 +381,7 @@ const fetchAppInfo = async () => {
     }
   } catch (error) {
     console.error('获取应用信息失败:', error)
-    message.error('获取应用信息失败')
+    message.error('获取应用信息失败:' + res.data.message)
     router.push('/')
   } finally {
     loading.value = false
@@ -411,11 +411,11 @@ const handleCoverUpload = async (file: File) => {
       formData.cover = result.data + '?t=' + Date.now() // 添加时间戳强制刷新图片
       message.success('封面图片上传成功')
     } else {
-      message.error('上传失败: ' + result.message)
+      message.error('上传失败')
     }
   } catch (error) {
     console.error('上传失败:', error)
-    message.error('上传过程中出现错误')
+    message.error('上传过程中出现错误:' + res.data.message)
   }
 }
 
@@ -423,11 +423,11 @@ const handleCoverUpload = async (file: File) => {
 const beforeUpload = (file: File) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
   if (!isJpgOrPng) {
-    message.error('只能上传 JPG/PNG 格式的图片!')
+    message.error('只能上传 JPG/PNG 格式的图片!:' + res.data.message)
   }
   const isLt2M = file.size / 1024 / 1024 < 2
   if (!isLt2M) {
-    message.error('图片大小不能超过 2MB!')
+    message.error('图片大小不能超过 2MB!:' + res.data.message)
   }
   return isJpgOrPng && isLt2M
 }
@@ -461,7 +461,7 @@ const handleSubmit = async () => {
     }
   } catch (error) {
     console.error('修改失败:', error)
-    message.error('提交过程中出现错误')
+    message.error('提交过程中出现错误:' + res.data.message)
     console.error('Error details:', error)
   } finally {
     submitting.value = false

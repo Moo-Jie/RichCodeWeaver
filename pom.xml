@@ -67,6 +67,13 @@
             <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>
             <version>1.1.0-beta7</version>
         </dependency>
+        <!-- Redisson —— 架设在Redis基础上的一个Java驻内存数据网格（In-Memory Data Grid）-->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <version>3.50.0</version>
+        </dependency>
+
         <!-- jsoup 实现网页抓取解析  -->
         <dependency>
             <groupId>org.jsoup</groupId>

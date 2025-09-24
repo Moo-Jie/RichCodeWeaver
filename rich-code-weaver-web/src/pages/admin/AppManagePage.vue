@@ -364,7 +364,7 @@ const fetchData = async () => {
     }
   } catch (error) {
     console.error('获取数据失败：', error)
-    message.error('获取数据失败')
+    message.error('获取数据失败:' + res.data.message)
   }
 }
 
@@ -457,7 +457,7 @@ const toggleFeatured = async (app: API.AppVO) => {
     }
   } catch (error) {
     console.error('操作失败：', error)
-    message.error('操作失败')
+    message.error('操作失败:' + res.data.message)
   }
 }
 
@@ -475,7 +475,7 @@ const doDeleteApp = async (id: number | undefined) => {
     }
   } catch (error) {
     console.error('删除失败：', error)
-    message.error('删除失败')
+    message.error('删除失败:' + res.data.message)
   }
 }
 </script>

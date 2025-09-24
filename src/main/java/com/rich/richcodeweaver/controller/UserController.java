@@ -3,6 +3,7 @@ package com.rich.richcodeweaver.controller;
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.rich.richcodeweaver.annotation.AuthCheck;
+import com.rich.richcodeweaver.annotation.RateLimit;
 import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
@@ -11,6 +12,7 @@ import com.rich.richcodeweaver.model.common.BaseResponse;
 import com.rich.richcodeweaver.model.common.DeleteRequest;
 import com.rich.richcodeweaver.model.dto.user.*;
 import com.rich.richcodeweaver.model.entity.User;
+import com.rich.richcodeweaver.model.enums.RateLimitTypeEnum;
 import com.rich.richcodeweaver.model.vo.LoginUserVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
 import com.rich.richcodeweaver.service.FileService;
@@ -46,6 +48,7 @@ public class UserController {
      * @return 注册结果
      */
     @PostMapping("/register")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 10)
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         ThrowUtils.throwIf(userRegisterRequest == null, ErrorCode.PARAMS_ERROR);
         String userAccount = userRegisterRequest.getUserAccount();
@@ -63,6 +66,7 @@ public class UserController {
      * @return 脱敏后的用户登录信息
      */
     @PostMapping("/login")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 10)
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
         String userAccount = userLoginRequest.getUserAccount();
@@ -72,6 +76,7 @@ public class UserController {
     }
 
     @GetMapping("/get/login")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
         return ResultUtils.success(userService.getLoginUserVO(loginUser));
@@ -84,6 +89,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/logout")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 10)
     public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
         ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR);
         boolean result = userService.userLogout(request);
@@ -124,6 +130,7 @@ public class UserController {
      * 根据 id 获取包装类
      */
     @GetMapping("/get/vo")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
     public BaseResponse<UserVO> getUserVOById(long id) {
         BaseResponse<User> response = getUserById(id);
         User user = response.getData();
@@ -147,6 +154,7 @@ public class UserController {
      * 更新用户
      */
     @PostMapping("/update")
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 10)
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -182,6 +190,7 @@ public class UserController {
      * @author DuRuiChi
      * @create 2025/9/7
      **/
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 10)
     @PostMapping("/update/avatar")
     public BaseResponse<Boolean> updateUserAvatar(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
         ThrowUtils.throwIf(file == null || file.isEmpty(), ErrorCode.PARAMS_ERROR);
@@ -219,6 +228,7 @@ public class UserController {
      * @param userUpdatePasswordRequest 更新密码请求参数
      * @return 更新密码是否成功
      */
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 10)
     @PostMapping("/update/password")
     public BaseResponse<Boolean> updateUserPassword(@RequestBody UserUpdatePasswordRequest userUpdatePasswordRequest) {
         ThrowUtils.throwIf(userUpdatePasswordRequest == null, ErrorCode.PARAMS_ERROR);
@@ -231,6 +241,7 @@ public class UserController {
      * @param userId 用户 ID
      * @return 重置密码是否成功
      */
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 10)
     @PostMapping("/reset/password")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> resetUserPassword(long userId) {

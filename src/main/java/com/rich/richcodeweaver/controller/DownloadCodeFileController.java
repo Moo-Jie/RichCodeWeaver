@@ -1,8 +1,10 @@
 package com.rich.richcodeweaver.controller;
 
+import com.rich.richcodeweaver.annotation.RateLimit;
 import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.model.entity.App;
+import com.rich.richcodeweaver.model.enums.RateLimitTypeEnum;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.DownloadCodeFileService;
 import jakarta.annotation.Resource;
@@ -34,6 +36,7 @@ public class DownloadCodeFileController {
      * @param appId    应用 ID
      * @param response 响应
      */
+    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 10)
     @GetMapping("/code/zip/{appId}")
     public void downloadCodeZipFile(@PathVariable Long appId,
 //                                    HttpServletRequest request,

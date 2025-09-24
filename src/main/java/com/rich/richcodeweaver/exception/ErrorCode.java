@@ -21,6 +21,8 @@ public enum ErrorCode {
     OPERATION_ERROR(50001, "操作失败"),
     ACCOUNT_NOT_EXIST(50002, "账号不存在"),
     AUTH_ERROR(50003, "权限校验失败"),
+    RATE_LIMIT_ERROR(50004, "限流时异常"),
+    TOO_MANY_REQUESTS(50005, "请求过于频繁"),
     ACCOUNT_FORBIDDEN(50004, "账号已被禁用");
 
     /**
