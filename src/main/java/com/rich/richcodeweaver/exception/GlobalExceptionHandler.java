@@ -25,6 +25,10 @@ import java.util.Map;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    /**
+     * 匹配非中文字符的正则表达式
+     */
+    private static final String NON_CHINESE_CHAR_REGEX = "[^\\u4e00-\\u9fa5]";
 
     @ExceptionHandler(BusinessException.class)
     public BaseResponse<?> businessExceptionHandler(BusinessException e) {
@@ -34,17 +38,17 @@ public class GlobalExceptionHandler {
             return null;
         }
         // 对于普通请求，返回标准 JSON 响应
-        return ResultUtils.error(e.getCode(), e.getMessage());
+        return ResultUtils.error(e.getCode(), e.getMessage().replaceAll(NON_CHINESE_CHAR_REGEX, ""));
     }
 
     @ExceptionHandler(RuntimeException.class)
     public BaseResponse<?> runtimeExceptionHandler(RuntimeException e) {
         log.error("RuntimeException", e);
         // 尝试处理 SSE 请求
-        if (handleSseError(ErrorCode.SYSTEM_ERROR.getCode(), "系统错误")) {
+        if (handleSseError(ErrorCode.SYSTEM_ERROR.getCode(), e.getMessage())) {
             return null;
         }
-        return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统错误");
+        return ResultUtils.error(ErrorCode.SYSTEM_ERROR, e.getMessage().replaceAll(NON_CHINESE_CHAR_REGEX, ""));
     }
 
     /**
@@ -77,7 +81,7 @@ public class GlobalExceptionHandler {
                 Map<String, Object> errorData = Map.of(
                         "error", true,
                         "code", errorCode,
-                        "message", errorMessage
+                        "message", errorMessage.replaceAll("[^\\u4e00-\\u9fa5]", "")
                 );
                 String errorJson = JSONUtil.toJsonStr(errorData);
                 // 发送业务错误事件（避免与标准error事件冲突）
