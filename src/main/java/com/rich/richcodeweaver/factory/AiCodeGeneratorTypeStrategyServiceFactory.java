@@ -1,5 +1,6 @@
-package com.rich.richcodeweaver.factory.aiService;
+package com.rich.richcodeweaver.factory;
 
+import com.rich.richcodeweaver.guardrail.PromptSafetyInputGuardrail;
 import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorTypeStrategyService;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -34,6 +35,8 @@ public class AiCodeGeneratorTypeStrategyServiceFactory {
     public AiCodeGeneratorTypeStrategyService aiCodeGeneratorTypeStrategyService() {
         return AiServices.builder(AiCodeGeneratorTypeStrategyService.class)
                 .chatModel(codeGeneratorTypeStrategyChatModel)
+                // 配置提示词护轨规则
+                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .build();
     }
 }

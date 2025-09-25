@@ -1,5 +1,6 @@
-package com.rich.richcodeweaver.factory.aiService;
+package com.rich.richcodeweaver.factory;
 
+import com.rich.richcodeweaver.guardrail.PromptSafetyInputGuardrail;
 import com.rich.richcodeweaver.service.aiChatService.AiCodeReviewService;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -34,6 +35,8 @@ public class AiCodeReviewServiceFactory {
     public AiCodeReviewService aiCodeReviewService() {
         return AiServices.builder(AiCodeReviewService.class)
                 .chatModel(codeReviewChatModel)
+                // 配置提示词护轨规则
+                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .build();
     }
 }

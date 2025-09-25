@@ -2,7 +2,7 @@ package com.rich.richcodeweaver.utils.aiUtils;
 
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
-import com.rich.richcodeweaver.factory.aiService.AiCodeGeneratorServiceFactory;
+import com.rich.richcodeweaver.factory.AiCodeGeneratorServiceFactory;
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.HtmlCodeResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.codeResponse.MultiFileCodeResponse;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;

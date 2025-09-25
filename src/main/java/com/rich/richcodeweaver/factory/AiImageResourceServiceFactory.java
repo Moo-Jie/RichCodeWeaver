@@ -1,7 +1,8 @@
-package com.rich.richcodeweaver.factory.aiService;
+package com.rich.richcodeweaver.factory;
 
 import com.rich.richcodeweaver.aiTools.ImageResource.AiGeneratorImageTool;
 import com.rich.richcodeweaver.aiTools.ImageResource.ImageSearchTool;
+import com.rich.richcodeweaver.guardrail.PromptSafetyInputGuardrail;
 import com.rich.richcodeweaver.service.aiChatService.AiImageResourceService;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
@@ -45,6 +46,8 @@ public class AiImageResourceServiceFactory {
     public AiImageResourceService createAiImageGeneratorService() {
         return AiServices.builder(AiImageResourceService.class)
                 .chatModel(imageResourceChatModel)
+                // 配置提示词护轨规则
+                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .tools(
                         imageSearchTool,
                         aiGeneratorImageTool

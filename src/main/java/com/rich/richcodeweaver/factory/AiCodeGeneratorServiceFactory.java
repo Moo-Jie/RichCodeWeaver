@@ -1,8 +1,9 @@
-package com.rich.richcodeweaver.factory.aiService;
+package com.rich.richcodeweaver.factory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.richcodeweaver.aiTools.ToolsManager;
+import com.rich.richcodeweaver.guardrail.PromptSafetyInputGuardrail;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorService;
@@ -121,6 +122,8 @@ public class AiCodeGeneratorServiceFactory {
         AiServices<AiCodeGeneratorService> aiCodeGenServices = AiServices.builder(AiCodeGeneratorService.class)
                 // 配置基础 AI 模型
                 .chatModel(chatModel)
+                // 配置提示词护轨规则
+                .inputGuardrails(new PromptSafetyInputGuardrail())
                 // 配置 chatMemory
                 .chatMemory(chatMemory);
         switch (codeGenTypeEnum) {
