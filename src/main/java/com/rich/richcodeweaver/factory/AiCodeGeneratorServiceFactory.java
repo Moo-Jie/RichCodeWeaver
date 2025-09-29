@@ -124,6 +124,8 @@ public class AiCodeGeneratorServiceFactory {
                 .chatModel(chatModel)
                 // 配置提示词护轨规则
                 .inputGuardrails(new PromptSafetyInputGuardrail())
+                // 最大调用工具数
+                .maxSequentialToolsInvocations(25)
                 // 配置 chatMemory
                 .chatMemory(chatMemory);
         switch (codeGenTypeEnum) {
