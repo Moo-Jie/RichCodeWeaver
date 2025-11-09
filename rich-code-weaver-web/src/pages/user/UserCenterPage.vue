@@ -386,8 +386,6 @@ onMounted(() => {
 </script>
 
 <style lang="less" scoped>
-@import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Nunito:wght@300;400;600;700&display=swap');
-
 #userCenterPage {
   font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 24px;

@@ -29,7 +29,7 @@ public class FileController {
      * @author DuRuiChi
      * @create 2025/9/3
      **/
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 10)
+   @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     @PostMapping("/upload")
     public BaseResponse<String> upload(@RequestPart("file") MultipartFile file) {
         {

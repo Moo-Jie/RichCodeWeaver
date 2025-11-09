@@ -45,7 +45,7 @@ public class ChatHistoryController {
      * @create 2025/8/16
      **/
     @GetMapping("/app/{appId}")
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<Page<ChatHistory>> listAppChatHistoryByPage(@PathVariable Long appId,
                                                                     @RequestParam(defaultValue = "10") int pageSize,
                                                                     @RequestParam(required = false) LocalDateTime lastCreateTime,

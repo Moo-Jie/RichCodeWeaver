@@ -61,6 +61,16 @@
             <artifactId>langchain4j-reactor</artifactId>
             <version>1.1.0-beta7</version>
         </dependency>
+        <!-- 度量、统计、收集系统运行时的监控信息，并对外开放 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- 使 spring-actuator 对外开放的监控信息支持 Prometheus 请求获取 -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
         <!-- LangChain4j 社区 Redis 集成 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>

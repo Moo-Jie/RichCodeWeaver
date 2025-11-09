@@ -1,6 +1,5 @@
 package com.rich.richcodeweaver.guardrail;
 
-import com.rich.richcodeweaver.constant.SensitiveWordsConstant;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.guardrail.InputGuardrail;
 import dev.langchain4j.guardrail.InputGuardrailResult;
@@ -175,12 +174,12 @@ public class PromptSafetyInputGuardrail implements InputGuardrail {
      * @return 验证结果，成功则返回成功状态，否则返回失败状态
      */
     private InputGuardrailResult validateInjectionAttacks(String input) {
-        for (Pattern pattern : SensitiveWordsConstant.ADVANCED_INJECTION_PATTERNS) {
-            if (pattern.matcher(input).find()) {
-                log.warn("检测到注入攻击模式: {}", pattern.pattern());
-                return fatal("检测到恶意输入模式，请求被拒绝");
-            }
-        }
+//        for (Pattern pattern : SensitiveWordsConstant.ADVANCED_INJECTION_PATTERNS) {
+//            if (pattern.matcher(input).find()) {
+//                log.warn("检测到注入攻击模式: {}", pattern.pattern());
+//                return fatal("检测到恶意输入模式，请求被拒绝,请您修改为合法提示词后重试");
+//            }
+//        }
         return success();
     }
 

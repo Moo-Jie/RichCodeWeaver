@@ -62,7 +62,7 @@ public class AppController {
      * @param request 请求对象
      * @return 生成结果流
      */
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 60)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId,
                                                              @RequestParam String message,
@@ -86,7 +86,7 @@ public class AppController {
      * @create 2025/8/9
      **/
     @GetMapping("/view/{appId}/**")
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public ResponseEntity<FileSystemResource> viewApp(@PathVariable Long appId, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR);
@@ -104,7 +104,7 @@ public class AppController {
      * @create 2025/8/10
      **/
     @PostMapping("/deploy")
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 60)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
@@ -126,7 +126,7 @@ public class AppController {
      * @return
      */
     @PostMapping("/add")
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 60)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<Long> addApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
@@ -141,7 +141,7 @@ public class AppController {
      * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean> 更新结果
      */
     @PostMapping("/update")
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<Boolean> updateApp(@RequestBody AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
         // 参数校验
         if (appUpdateRequest == null || appUpdateRequest.getId() == null) {
@@ -173,7 +173,7 @@ public class AppController {
      * @return com.rich.richcodeweaver.model.common.BaseResponse<com.rich.richcodeweaver.model.vo.AppVO> 应用详情
      */
     @GetMapping("/get/vo")
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<AppVO> getAppVOById(@RequestParam("id") long id) {
         // 参数校验
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
@@ -208,7 +208,7 @@ public class AppController {
             condition = "#appQueryRequest.pageNum <= 5" // 缓存条件
     )
     @PostMapping("/good/list/page/vo")
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 5, window = 10)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<Page<AppVO>> listStarAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
         // 参数校验
         ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);
@@ -294,7 +294,7 @@ public class AppController {
      * @return 生成结果流
      */
     @GetMapping(value = "/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 3, window = 60)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public File chatToGenCode(@RequestBody AppCodeGenRequest appCodeGenRequest, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appCodeGenRequest == null || request == null, ErrorCode.PARAMS_ERROR);
@@ -315,7 +315,7 @@ public class AppController {
      * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.String>
      **/
     @PostMapping("/upload/cover")
-    @RateLimit(type = RateLimitTypeEnum.USER, rate = 2, window = 10)
+    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<String> uploadAppCover(@RequestParam("file") MultipartFile file, @RequestParam("appId") Long appId, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(file == null, ErrorCode.PARAMS_ERROR, "参数错误");

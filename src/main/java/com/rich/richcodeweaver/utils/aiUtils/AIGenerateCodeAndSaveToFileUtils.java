@@ -135,7 +135,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
             throw e;
         } catch (Exception e) {
             log.error("系统异常：{}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成失败:" + e.getMessage());
         }
     }
 

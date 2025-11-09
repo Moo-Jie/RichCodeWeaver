@@ -31,6 +31,8 @@ import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.service.ScreenshotService;
 import com.rich.richcodeweaver.service.UserService;
 import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorTypeStrategyService;
+import com.rich.richcodeweaver.sysMonitor.SysMonitorContextHolder;
+import com.rich.richcodeweaver.sysMonitor.context.SysMonitorContext;
 import com.rich.richcodeweaver.utils.aiUtils.AIGenerateCodeAndSaveToFileUtils;
 import com.rich.richcodeweaver.utils.aiUtils.streamHandle.StreamHandlerExecutor;
 import jakarta.annotation.Resource;
@@ -108,6 +110,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isAgent) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
+        // 为当前线程分配监控上下文
+        SysMonitorContextHolder.setContext(SysMonitorContext.builder()
+                // 监控应用id
+                .appId(String.valueOf(appId))
+                // 监控用户id
+                .userId(String.valueOf(userId))
+                .build());
         // 查询 AI 应用
         App app = appService.getById(appId);
         // 校验 AI 应用是否存在
@@ -122,18 +131,23 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 保存用户消息
         boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
-        // 调用 AI 基础响应流
+        Flux<ServerSentEvent<String>> resultFlux;
+        // 调用 AI 响应流
         if (isAgent) {
             // 通过工作流执行对话，输出 Agent 风格的响应内容：
             // 步骤：搜索图片资源——>提示词强化——>代码生成类型规划——>代码生成——>代码保存——>项目构建——>持久化——>响应前端
-            return codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
+            resultFlux = codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
         } else {
             // 直接执行对话，输出 AI 的真实响应内容：
             // 步骤1：代码生成类型规划——>代码生成——>代码保存
             Flux<String> stringFlux = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
             // 步骤2：处理 AI 响应流：数据块处理——>持久化——>项目构建——>响应前端
-            return streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
+            resultFlux = streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
         }
+        // 清空当前线程的监控上下文
+        SysMonitorContextHolder.clearContext();
+        // 返回处理后的响应流
+        return resultFlux;
     }
 
     /**

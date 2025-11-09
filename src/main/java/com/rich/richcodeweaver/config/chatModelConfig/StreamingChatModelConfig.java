@@ -1,7 +1,9 @@
 package com.rich.richcodeweaver.config.chatModelConfig;
 
+import com.rich.richcodeweaver.sysMonitor.listener.AiModelMetricsMonitorListener;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -9,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 支持多例模式的普通流式模型（用于构建简单的应用，如：构建单文件应用、多文件应用等）
@@ -20,6 +23,12 @@ import java.time.Duration;
 @Configuration
 @ConfigurationProperties(prefix = "langchain4j.open-ai.streaming-chat-model")
 public class StreamingChatModelConfig {
+    /**
+     * AI 模型指标监控监听器
+     **/
+    @Resource
+    private AiModelMetricsMonitorListener aiModelMetricsMonitorListener;
+
     /**
      * 模型名称
      **/
@@ -79,6 +88,7 @@ public class StreamingChatModelConfig {
                 .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
+                .listeners(List.of(aiModelMetricsMonitorListener))
                 .build();
     }
 }
