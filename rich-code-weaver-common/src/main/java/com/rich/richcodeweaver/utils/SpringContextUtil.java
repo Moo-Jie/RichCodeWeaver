@@ -1,6 +1,5 @@
 package com.rich.richcodeweaver.utils;
 
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -57,7 +56,7 @@ public class SpringContextUtil implements ApplicationContextAware {
      * @param applicationContext Spring 应用上下文对象
      */
     @Override
-    public void setApplicationContext(@NotNull ApplicationContext applicationContext) throws BeansException {
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         SpringContextUtil.applicationContext = applicationContext;
     }
 }

@@ -1,7 +1,7 @@
 package com.rich.richcodeweaver.utils;
 
 import com.rich.richcodeweaver.exception.ErrorCode;
-import com.rich.richcodeweaver.model.common.BaseResponse;
+import com.rich.richcodeweaver.model.BaseResponse;
 
 /**
  * 响应构建工具类
@@ -15,7 +15,7 @@ public class ResultUtils {
      * 成功响应
      *
      * @param data 响应数据
-     * @return com.rich.richcodeweaver.common.response.BaseResponse<T>
+     * @return com.rich.richcodeweaver.response.BaseResponse<T>
      * @author DuRuiChi
      * @create 2025/8/4
      **/
@@ -27,7 +27,7 @@ public class ResultUtils {
      * 失败响应（错误枚举）
      *
      * @param errorCode 错误枚举
-     * @return com.rich.richcodeweaver.common.response.BaseResponse<?>
+     * @return com.rich.richcodeweaver.response.BaseResponse<?>
      * @author DuRuiChi
      * @create 2025/8/4
      **/
@@ -40,7 +40,7 @@ public class ResultUtils {
      *
      * @param code    错误码
      * @param message 信息
-     * @return com.rich.richcodeweaver.common.response.BaseResponse<?>
+     * @return com.rich.richcodeweaver.response.BaseResponse<?>
      * @author DuRuiChi
      * @create 2025/8/4
      **/
@@ -53,7 +53,7 @@ public class ResultUtils {
      *
      * @param errorCode 错误枚举
      * @param message   信息
-     * @return com.rich.richcodeweaver.common.response.BaseResponse<?>
+     * @return com.rich.richcodeweaver.response.BaseResponse<?>
      * @author DuRuiChi
      * @create 2025/8/4
      **/

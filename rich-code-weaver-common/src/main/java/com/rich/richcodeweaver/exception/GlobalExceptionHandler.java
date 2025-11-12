@@ -1,7 +1,7 @@
 package com.rich.richcodeweaver.exception;
 
 import cn.hutool.json.JSONUtil;
-import com.rich.richcodeweaver.model.common.BaseResponse;
+import com.rich.richcodeweaver.model.BaseResponse;
 import com.rich.richcodeweaver.utils.ResultUtils;
 import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.servlet.http.HttpServletRequest;

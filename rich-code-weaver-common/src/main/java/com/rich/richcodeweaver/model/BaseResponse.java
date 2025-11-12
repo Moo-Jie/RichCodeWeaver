@@ -1,4 +1,4 @@
-package com.rich.richcodeweaver.model.common;
+package com.rich.richcodeweaver.model;
 
 import com.rich.richcodeweaver.exception.ErrorCode;
 import lombok.Data;
