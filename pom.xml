@@ -12,13 +12,22 @@
 
     <!-- 多模块定义 -->
     <modules>
+        <!-- 通用模块 -->
         <module>rich-code-weaver-common</module>
+        <!-- 数据模型模块 -->
         <module>rich-code-weaver-model</module>
+        <!-- 内部接口模块 -->
         <module>rich-code-weaver-client</module>
+        <!-- 用户模块 -->
         <module>rich-code-weaver-user</module>
+        <!-- 应用模块 -->
         <module>rich-code-weaver-app</module>
+        <!-- AI模块 -->
         <module>rich-code-weaver-ai</module>
+        <!-- 截图模块 -->
         <module>rich-code-weaver-screenshot</module>
+        <!-- 文件模块 -->
+        <module>rich-code-weaver-file</module>
     </modules>
 
     <!-- 全局属性配置 -->
