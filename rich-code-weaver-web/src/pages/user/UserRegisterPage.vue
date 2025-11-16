@@ -10,7 +10,7 @@
           <a-input v-model:value="formState.userAccount" class="input-field"
                    placeholder="请输入账号">
             <template #prefix>
-              <UserOutlined />
+              <UserOutlined/>
             </template>
           </a-input>
         </a-form-item>
@@ -25,7 +25,7 @@
           <a-input-password v-model:value="formState.userPassword" class="input-field"
                             placeholder="请输入密码">
             <template #prefix>
-              <LockOutlined />
+              <LockOutlined/>
             </template>
           </a-input-password>
         </a-form-item>
@@ -41,7 +41,7 @@
           <a-input-password v-model:value="formState.checkPassword" class="input-field"
                             placeholder="请确认密码">
             <template #prefix>
-              <SafetyOutlined />
+              <SafetyOutlined/>
             </template>
           </a-input-password>
         </a-form-item>
@@ -68,11 +68,11 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { LockOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons-vue'
-import { userRegister } from '@/api/userController.ts'
-import { message } from 'ant-design-vue'
+import {reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {LockOutlined, SafetyOutlined, UserOutlined} from '@ant-design/icons-vue'
+import {userRegister} from '@/api/userController.ts'
+import {message} from 'ant-design-vue'
 
 const router = useRouter()
 const backgroundImage = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'400\' viewBox=\'0 0 100 100\'%3E%3Cpath fill=\'none\' stroke=\'rgba(204,230,255,0.1)\' stroke-width=\'1\' d=\'M80,80 Q20,60 20,20 M50,100 Q50,0 100,50\'/%3E%3C/svg%3E'
@@ -105,7 +105,7 @@ const handleSubmit = async () => {
       message.success('注册成功')
       router.replace({
         path: '/user/login',
-        query: { username: formState.userAccount }
+        query: {username: formState.userAccount}
       })
     } else {
       message.error('注册失败：' + res.data.message)

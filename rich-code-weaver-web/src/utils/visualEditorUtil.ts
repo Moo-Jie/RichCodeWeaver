@@ -131,7 +131,7 @@ export class visualEditorUtil {
    * @param event - 消息事件对象
    */
   handleIframeMessage(event: MessageEvent) {
-    const { type, data } = event.data
+    const {type, data} = event.data
     switch (type) {
       case 'ELEMENT_SELECTED': // 处理元素选中消息
         if (this.options.onElementSelected && data.elementInfo) {

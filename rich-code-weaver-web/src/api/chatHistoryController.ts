@@ -8,10 +8,10 @@ export async function deleteById(
   params: API.deleteByIdParams,
   options?: { [key: string]: any }
 ) {
-  const { id: param0, ...queryParams } = params
+  const {id: param0, ...queryParams} = params
   return request<API.BaseResponseBoolean>(`/chatHistory/admin/delete/${param0}`, {
     method: 'DELETE',
-    params: { ...queryParams },
+    params: {...queryParams},
     ...(options || {}),
   })
 }
@@ -37,7 +37,7 @@ export async function listAppChatHistoryByPage(
   params: API.listAppChatHistoryByPageParams,
   options?: { [key: string]: any }
 ) {
-  const { appId: param0, ...queryParams } = params
+  const {appId: param0, ...queryParams} = params
   return request<API.BaseResponsePageChatHistory>(`/chatHistory/app/${param0}`, {
     method: 'GET',
     params: {

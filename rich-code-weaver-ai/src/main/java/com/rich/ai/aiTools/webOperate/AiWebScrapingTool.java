@@ -1,7 +1,6 @@
 package com.rich.ai.aiTools.webOperate;
 
 import cn.hutool.json.JSONObject;
-
 import com.rich.ai.aiTools.BaseTool;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -36,8 +35,8 @@ public class AiWebScrapingTool extends BaseTool {
     public String getResultMsg(JSONObject arguments) {
         // 超长截取
         String scrapUrl = arguments.getStr("ScrapUrl");
-        if(scrapUrl.length() > 100) {
-            scrapUrl = scrapUrl.substring(0, 100)+"(超长省略...)";
+        if (scrapUrl.length() > 100) {
+            scrapUrl = scrapUrl.substring(0, 100) + "(超长省略...)";
         }
         scrapUrl = scrapUrl == null || scrapUrl.isEmpty() ? "" : "\n[\n" + scrapUrl + "\n]\n";
         return String.format("[工具调用结束] %s %s", "成功抓取以下网页内容", scrapUrl);

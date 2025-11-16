@@ -43,14 +43,14 @@
         <a-form-item class="search-actions">
           <a-button html-type="submit" type="primary">
             <template #icon>
-              <SearchOutlined />
+              <SearchOutlined/>
             </template>
             搜索
           </a-button>
           &nbsp;
           <a-button @click="resetSearch">
             <template #icon>
-              <ReloadOutlined />
+              <ReloadOutlined/>
             </template>
             重置
           </a-button>
@@ -87,7 +87,7 @@
               class="avatar-img"
             />
             <div v-else class="no-avatar">
-              <UserOutlined />
+              <UserOutlined/>
               <span>无头像</span>
             </div>
           </template>
@@ -95,7 +95,7 @@
           <template v-else-if="column.dataIndex === 'userProfile'">
             <a-tooltip :title="record.userProfile">
               <div class="profile-text">
-                <EllipsisOutlined />
+                <EllipsisOutlined/>
                 {{ record.userProfile || '无简介' }}
               </div>
             </a-tooltip>
@@ -109,7 +109,7 @@
 
           <template v-else-if="column.dataIndex === 'createTime'">
             <div class="time-cell">
-              <CalendarOutlined />
+              <CalendarOutlined/>
               {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm') }}
             </div>
           </template>
@@ -122,7 +122,7 @@
                 @click="showEditModal(record)"
               >
                 <template #icon>
-                  <EditOutlined />
+                  <EditOutlined/>
                 </template>
                 编辑
               </a-button>
@@ -134,7 +134,7 @@
                 @click="showResetPasswordModal(record)"
               >
                 <template #icon>
-                  <LockOutlined />
+                  <LockOutlined/>
                 </template>
                 重置密码
               </a-button>
@@ -145,7 +145,7 @@
               >
                 <a-button danger size="small">
                   <template #icon>
-                    <DeleteOutlined />
+                    <DeleteOutlined/>
                   </template>
                   删除
                 </a-button>
@@ -169,10 +169,10 @@
     >
       <a-form :label-col="{ span: 6 }" :model="editForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户账号">
-          <a-input v-model:value="editForm.userAccount" disabled />
+          <a-input v-model:value="editForm.userAccount" disabled/>
         </a-form-item>
         <a-form-item label="用户昵称">
-          <a-input v-model:value="editForm.userName" placeholder="请输入用户昵称" />
+          <a-input v-model:value="editForm.userName" placeholder="请输入用户昵称"/>
         </a-form-item>
         <a-form-item label="用户角色">
           <a-select v-model:value="editForm.userRole" placeholder="请选择用户角色">
@@ -211,9 +211,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {message} from 'ant-design-vue'
 import {
   CalendarOutlined,
   DeleteOutlined,
@@ -224,7 +224,7 @@ import {
   SearchOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import { deleteUser, listUserVoByPage, resetUserPassword, updateUser } from '@/api/userController'
+import {deleteUser, listUserVoByPage, resetUserPassword, updateUser} from '@/api/userController'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -404,7 +404,7 @@ const showResetPasswordModal = (user: API.UserVO) => {
 // 提交重置密码
 const handlePasswordSubmit = async () => {
   try {
-    const res = await resetUserPassword({ userId: passwordForm.id })
+    const res = await resetUserPassword({userId: passwordForm.id})
     if (res.data.code === 0) {
       message.success(`密码重置成功，新密码为：zmrq@${passwordForm.userName}`)
       passwordVisible.value = false
@@ -422,7 +422,7 @@ const doDelete = async (id: string | undefined) => {
   if (!id) return
 
   try {
-    const res = await deleteUser({ id })
+    const res = await deleteUser({id})
     if (res.data.code === 0) {
       message.success('用户删除成功')
       await fetchData()

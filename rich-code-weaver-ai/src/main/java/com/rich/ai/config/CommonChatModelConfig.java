@@ -139,4 +139,17 @@ public class CommonChatModelConfig {
                 .logResponses(logResponses)
                 .build();
     }
+
+    @Bean(name = "openAiChatModel")
+    public ChatModel openAiChatModel() {
+        return OpenAiChatModel.builder()
+                .modelName(modelName)
+                .apiKey(apiKey)
+                .baseUrl(baseUrl)
+                .timeout(timeout != null ? Duration.ofMillis(timeout) : null)
+                .maxTokens(maxTokens)
+                .logRequests(logRequests)
+                .logResponses(logResponses)
+                .build();
+    }
 }

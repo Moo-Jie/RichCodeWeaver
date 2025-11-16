@@ -1,6 +1,6 @@
-import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import { getLoginUser } from '@/api/userController.ts'
+import {defineStore} from 'pinia'
+import {ref} from 'vue'
+import {getLoginUser} from '@/api/userController.ts'
 
 /**
  * 登录用户信息
@@ -24,5 +24,5 @@ export const useLoginUserStore = defineStore('loginUser', () => {
     loginUser.value = newLoginUser
   }
 
-  return { loginUser, fetchLoginUser, setLoginUser }
+  return {loginUser, fetchLoginUser, setLoginUser}
 })

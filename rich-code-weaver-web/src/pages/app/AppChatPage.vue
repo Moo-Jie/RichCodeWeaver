@@ -5,7 +5,7 @@
     <!-- 编辑模式顶部提示条 -->
     <div v-if="isEditMode" class="edit-mode-top-bar">
       <div class="top-bar-content">
-        <EditOutlined style="color: #595959; margin-right: 8px;" />
+        <EditOutlined style="color: #595959; margin-right: 8px;"/>
         <span style="color: #595959; font-weight: 800;">可视化编辑模式已启用</span>
         <span style="color: #595959; margin-left: 12px; font-size: 20px;">
          （ 点击想要修改的页面元素并输入你的需求）
@@ -46,7 +46,7 @@
         <template v-if="appInfo">
           推广级别：
           <a-tag v-if="appInfo.priority === 99" class="app-tag2" color="gold">
-            <star-filled />
+            <star-filled/>
             星选应用
           </a-tag>
           <span v-else class="app-tag">普通应用</span>
@@ -58,7 +58,7 @@
         <!-- 查看/编辑 应用信息  -->
         <a-button class="detail-btn" type="primary" @click="showAppDetail">
           <template #icon>
-            <InfoCircleOutlined />
+            <InfoCircleOutlined/>
           </template>
           查看/编辑 应用信息
         </a-button>
@@ -67,7 +67,7 @@
                   type="primary"
                   @click="openInNewTab ">
           <template #icon>
-            <ExportOutlined />
+            <ExportOutlined/>
           </template>
           全屏查看预览
         </a-button>
@@ -75,7 +75,7 @@
         <a-button :disabled="isGenerating" :loading="downloading" class="detail-btn" type="primary"
                   @click="downloadCode">
           <template #icon>
-            <DownloadOutlined />
+            <DownloadOutlined/>
           </template>
           下载代码
         </a-button>
@@ -85,14 +85,14 @@
           <a-button :disabled="isGenerating" :loading="deploying" class="detail-btn" type="primary"
                     @click="confirmReDeploy">
             <template #icon>
-              <CloudUploadOutlined />
+              <CloudUploadOutlined/>
             </template>
             我的代码已更新，重复部署
           </a-button>
           <!-- 访问已部署网站 按钮 -->
           <a-button :href="deployedSiteUrl" class="detail-btn" target="_blank" type="primary">
             <template #icon>
-              <ExportOutlined />
+              <ExportOutlined/>
             </template>
             访问已部署网站
           </a-button>
@@ -102,7 +102,7 @@
                   type="primary"
                   @click="deployApp">
           <template #icon>
-            <CloudUploadOutlined />
+            <CloudUploadOutlined/>
           </template>
           部署为可访问网站
         </a-button>
@@ -129,7 +129,7 @@
           >
             加载更多历史消息
           </a-button>
-          <a-spin v-else size="small" />
+          <a-spin v-else size="small"/>
         </div>
 
 
@@ -139,17 +139,17 @@
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content creative-bubble">{{ message.content }}</div>
               <div class="message-avatar">
-                <a-avatar :src="loginUserStore.loginUser.userAvatar" class="avatar-glow" />
+                <a-avatar :src="loginUserStore.loginUser.userAvatar" class="avatar-glow"/>
               </div>
             </div>
             <div v-else class="ai-message">
               <div class="message-avatar">
-                <a-avatar :src="aiAvatar" class="avatar-glow ai-avatar" />
+                <a-avatar :src="aiAvatar" class="avatar-glow ai-avatar"/>
               </div>
               <div class="message-content creative-bubble">
-                <MarkdownRenderer v-if="message.content" :content="message.content" />
+                <MarkdownRenderer v-if="message.content" :content="message.content"/>
                 <div v-if="message.loading" class="loading-indicator">
-                  <a-spin size="small" />
+                  <a-spin size="small"/>
                   <span>AI 正在编织灵感...</span>
                 </div>
               </div>
@@ -183,7 +183,7 @@
           <div>
             <div v-if="!isOwner" class="creator-tip">
               <a-alert description="如需对话请创建您自己的项目" message="这是别人的创作作品"
-                       show-icon type="info" />
+                       show-icon type="info"/>
             </div>
             <a-textarea
               v-else
@@ -208,7 +208,7 @@
                   @click="startTour"
                 >
                   <template #icon>
-                    <PlayCircleOutlined />
+                    <PlayCircleOutlined/>
                   </template>
                 </a-button>
               </a-tooltip>
@@ -227,7 +227,7 @@
                   @click="toggleEditMode"
                 >
                   <template #icon>
-                    <EditOutlined />
+                    <EditOutlined/>
                   </template>
                 </a-button>
               </a-tooltip>
@@ -243,7 +243,7 @@
                   @click="sendMessage"
                 >
                   <template #icon>
-                    <SendOutlined />
+                    <SendOutlined/>
                   </template>
                 </a-button>
               </a-tooltip>
@@ -258,7 +258,7 @@
                   @click="sendMessage"
                 >
                   <template #icon>
-                    <SendOutlined />
+                    <SendOutlined/>
                   </template>
                 </a-button>
               </a-tooltip>
@@ -291,7 +291,7 @@
             <p class="placeholder-subtext">描述您的创意，AI将为您编织网站</p>
           </div>
           <div v-else-if="isGenerating" class="preview-loading">
-            <a-spin :tip="generatingTip" size="large" />
+            <a-spin :tip="generatingTip" size="large"/>
             <!-- 已用时间显示 -->
             <div class="generating-time">
               <p class="wait-tip">请勿刷新或退出本页面，否则将断开链接。</p>
@@ -364,19 +364,19 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import type { TourProps } from 'ant-design-vue'
-import { message, Modal, Tour } from 'ant-design-vue'
-import { useLoginUserStore } from '@/stores/loginUser'
+import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import type {TourProps} from 'ant-design-vue'
+import {message, Modal, Tour} from 'ant-design-vue'
+import {useLoginUserStore} from '@/stores/loginUser'
 import {
   deleteApp as deleteAppApi,
   deployApp as deployAppApi,
   getAppVoById
 } from '@/api/appController'
-import { CodeGenTypeEnum, formatCodeGenType } from '@/enums/codeGenTypes.ts'
+import {CodeGenTypeEnum, formatCodeGenType} from '@/enums/codeGenTypes.ts'
 import request from '@/request'
-import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
+import {listAppChatHistoryByPage} from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
@@ -398,7 +398,7 @@ import {
   SendOutlined,
   StarFilled
 } from '@ant-design/icons-vue'
-import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
+import {type ElementInfo, visualEditorUtil} from '@/utils/visualEditorUtil'
 
 const route = useRoute()
 const router = useRouter()
@@ -569,7 +569,7 @@ const fetchAppInfo = async () => {
   appId.value = id
 
   try {
-    const res = await getAppVoById({ id: id as unknown as number })
+    const res = await getAppVoById({id: id as unknown as number})
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
@@ -655,7 +655,7 @@ const downloadCode = async () => {
       responseType: 'blob'
     })
 
-    const blob = new Blob([res.data], { type: 'application/zip' })
+    const blob = new Blob([res.data], {type: 'application/zip'})
 
     const contentDisposition = res.headers['content-disposition']
 
@@ -843,7 +843,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     let fullContent = ''
 
     // 处理接收到的消息
-    eventSource.onmessage = function(event) {
+    eventSource.onmessage = function (event) {
       if (streamCompleted) return
 
       try {
@@ -865,7 +865,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     }
 
     // 处理 end 事件
-    eventSource.addEventListener('end', function() {
+    eventSource.addEventListener('end', function () {
       if (streamCompleted) return
 
       // 清除计时器
@@ -890,7 +890,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     })
 
     // 处理错误
-    eventSource.onerror = function() {
+    eventSource.onerror = function () {
       if (streamCompleted || !isGenerating.value) return
       // 检查是否是正常的连接关闭
       if (eventSource?.readyState === EventSource.CONNECTING) {
@@ -1073,7 +1073,7 @@ const deleteApp = async () => {
   if (!appInfo.value?.id) return
 
   try {
-    const res = await deleteAppApi({ id: appInfo.value.id })
+    const res = await deleteAppApi({id: appInfo.value.id})
     if (res.data.code === 0) {
       message.success('删除成功')
       appDetailVisible.value = false

@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: rich-code-weaver-app
+  # session 配置
+  session:
+    store-type: redis
+    # session 30 天过期
+    timeout: 2592000
+  # mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/rich_code_weaver
+    username: root
+    password: 12345
+  # redis
+  data:
+    redis:
+      database: 1
+      port: 6379
+      host: localhost
+      password:
+      user:
+      # 连接超时时间
+      timeout: 5000
+      # 过期时间
+      ttl: 5000
+  profiles:
+    active: local
+
+server:
+  port: 8101
+  servlet:
+    context-path: /api
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
+
+# redisson 配置
+redisson:
+  connectionPoolSize: 10
+  connectionMinimumIdleSize: 1
+  idleConnectionTimeout: 30000
+  connectTimeout: 5000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+
+# springdoc-openapi
+springdoc:
+  group-configs:
+    - group: 'default'
+      paths-to-match: '/**'
+      packages-to-scan: com.rich.app.controller
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn

@@ -33,7 +33,7 @@ public class ImageSearchTool extends BaseTool {
     private static final String PEXELS_API_URL = "https://api.pexels.com/v1/search";
 
     // 注入 Pexels API 密钥
-    @Value("${pexels.api-key}")
+    @Value("${pexels.api-key:}")
     private String pexelsApiKey;
 
     @Override
@@ -63,6 +63,10 @@ public class ImageSearchTool extends BaseTool {
     public List<ImageResource> searchImages(@P("清晰、凝练的搜索关键词") String query) {
         // 初始化图片列表
         List<ImageResource> imageList = new ArrayList<>();
+        if (pexelsApiKey == null || pexelsApiKey.isEmpty()) {
+            log.warn("Pexels API 密钥未配置，无法搜索图片");
+            return imageList;
+        }
         // 设置每次搜索返回的图片数量
         int searchCount = 12;
 

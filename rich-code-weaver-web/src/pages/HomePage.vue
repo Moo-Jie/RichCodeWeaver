@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import type { TourProps } from 'ant-design-vue'
-import { message, Tour } from 'ant-design-vue'
-import { useLoginUserStore } from '@/stores/loginUser'
-import { addApp, listMyAppVoByPage, listStarAppVoByPage } from '@/api/appController'
-import { getDeployUrl } from '@/config/env'
+import {onMounted, reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import type {TourProps} from 'ant-design-vue'
+import {message, Tour} from 'ant-design-vue'
+import {useLoginUserStore} from '@/stores/loginUser'
+import {addApp, listMyAppVoByPage, listStarAppVoByPage} from '@/api/appController'
+import {getDeployUrl} from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
 // 导入图标
 import {
@@ -19,7 +19,7 @@ import {
   RobotOutlined,
   RocketOutlined
 } from '@ant-design/icons-vue'
-import { promptOptions } from '@/constants/prompts.ts'
+import {promptOptions} from '@/constants/prompts.ts'
 
 // 当前激活的选项卡状态
 const activeTab = ref('featured')
@@ -83,10 +83,10 @@ const creating = ref(false)
 // 生成器类型
 const generatorType = ref<API.AppAddRequest['generatorType']>('AI_STRATEGY')
 const generatorOptions = ref([
-  { label: 'AI 自主规划模式', value: 'AI_STRATEGY' },
-  { label: '工程项目模式', value: 'VUE_PROJECT' },
-  { label: '多文件模式', value: 'MULTI_FILE' },
-  { label: '单文件模式', value: 'HTML' }
+  {label: 'AI 自主规划模式', value: 'AI_STRATEGY'},
+  {label: '工程项目模式', value: 'VUE_PROJECT'},
+  {label: '多文件模式', value: 'MULTI_FILE'},
+  {label: '单文件模式', value: 'HTML'}
 ])
 
 // Agent模式选择
@@ -152,7 +152,7 @@ const createApp = async () => {
       // 传递Agent模式参数
       await router.push({
         path: `/app/chat/${appId}`,
-        query: { useAgent: useAgentMode.value.toString() }
+        query: {useAgent: useAgentMode.value.toString()}
       })
     } else {
       message.error('创建失败：' + res.data.message)
@@ -259,7 +259,7 @@ onMounted(() => {
               @click="startTour"
             >
               <template #icon>
-                <PlayCircleOutlined />
+                <PlayCircleOutlined/>
               </template>
               快速入门
             </a-button>
@@ -272,7 +272,7 @@ onMounted(() => {
               @click="showPromptDropdown = !showPromptDropdown"
             >
               <template #icon>
-                <AppstoreOutlined />
+                <AppstoreOutlined/>
               </template>
               热门提示词
             </a-button>
@@ -288,7 +288,7 @@ onMounted(() => {
               @click="createApp"
             >
               <template #icon>
-                <RocketOutlined />
+                <RocketOutlined/>
               </template>
               开始生成
             </a-button>
@@ -300,10 +300,10 @@ onMounted(() => {
           <div class="prompt-slider-header">
             <h3 class="slider-title">🔥 热门提示词</h3>
             <a-button
-              type="text"
-              size="small"
-              @click="showPromptDropdown = false"
               class="close-button"
+              size="small"
+              type="text"
+              @click="showPromptDropdown = false"
             >
               ✕
             </a-button>
@@ -315,8 +315,8 @@ onMounted(() => {
               class="prompt-card"
               @click="handlePromptSelect(option.value)"
             >
-              <div class="prompt-card-icon" :style="{backgroundColor: option.color}">
-                <component :is="option.icon" />
+              <div :style="{backgroundColor: option.color}" class="prompt-card-icon">
+                <component :is="option.icon"/>
               </div>
               <div class="prompt-card-content">
                 <div class="prompt-card-title">{{ option.label }}</div>
@@ -337,7 +337,7 @@ onMounted(() => {
                   选择代码生成模式，不同模式适合不同的应用场景，生成速度、部署成本也不同。
                 </div>
               </template>
-              <question-circle-outlined class="help-icon" />
+              <question-circle-outlined class="help-icon"/>
             </a-tooltip>
           </div>
 
@@ -350,10 +350,10 @@ onMounted(() => {
               @click="generatorType = option.value"
             >
               <div class="card-icon">
-                <robot-outlined v-if="option.value === 'AI_STRATEGY'" />
-                <code-outlined v-else-if="option.value === 'VUE_PROJECT'" />
-                <folder-outlined v-else-if="option.value === 'MULTI_FILE'" />
-                <file-outlined v-else />
+                <robot-outlined v-if="option.value === 'AI_STRATEGY'"/>
+                <code-outlined v-else-if="option.value === 'VUE_PROJECT'"/>
+                <folder-outlined v-else-if="option.value === 'MULTI_FILE'"/>
+                <file-outlined v-else/>
               </div>
               <div class="card-content">
                 <div class="card-title">{{ option.label }}</div>
@@ -372,7 +372,7 @@ onMounted(() => {
                 </div>
               </div>
               <div class="card-check">
-                <check-circle-filled v-if="generatorType === option.value" />
+                <check-circle-filled v-if="generatorType === option.value"/>
               </div>
             </div>
           </div>
@@ -390,7 +390,7 @@ onMounted(() => {
                   基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善。
                 </div>
               </template>
-              <question-circle-outlined class="help-icon" />
+              <question-circle-outlined class="help-icon"/>
             </a-tooltip>
           </div>
 
@@ -403,8 +403,8 @@ onMounted(() => {
               @click="useAgentMode = option.value"
             >
               <div class="card-icon">
-                <robot-outlined v-if="option.value" />
-                <code-outlined v-else />
+                <robot-outlined v-if="option.value"/>
+                <code-outlined v-else/>
               </div>
               <div class="card-content">
                 <div class="card-title">{{ option.label }}</div>
@@ -413,7 +413,7 @@ onMounted(() => {
                 </div>
               </div>
               <div class="card-check">
-                <check-circle-filled v-if="useAgentMode === option.value" />
+                <check-circle-filled v-if="useAgentMode === option.value"/>
               </div>
             </div>
           </div>

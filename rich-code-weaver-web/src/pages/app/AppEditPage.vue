@@ -12,7 +12,7 @@
         <div class="card-header">
           <h2>应用信息</h2>
           <a-button class="view-chat" type="link" @click="goToChat">
-            <MessageOutlined />
+            <MessageOutlined/>
             <span>进入对话</span>
           </a-button>
         </div>
@@ -32,7 +32,7 @@
               placeholder="为您的应用输入一个有意义的名称"
             >
               <template #prefix>
-                <TagOutlined />
+                <TagOutlined/>
               </template>
               <template #suffix>
                 <span class="max-length">{{ formData.appName.length }}/50</span>
@@ -59,7 +59,7 @@
                   placeholder="输入封面图片URL链接"
                 >
                   <template #prefix>
-                    <PictureOutlined />
+                    <PictureOutlined/>
                   </template>
                 </a-input>
                 <a-upload
@@ -69,7 +69,7 @@
                   accept="image/jpeg,image/png"
                 >
                   <a-button class="upload-btn" type="primary">
-                    <UploadOutlined />
+                    <UploadOutlined/>
                     上传图片
                   </a-button>
                 </a-upload>
@@ -110,7 +110,7 @@
                     style="width: 100%"
                   >
                     <template #prefix>
-                      <StarOutlined />
+                      <StarOutlined/>
                     </template>
                     <template #addonBefore>
                       <span style="color: #2c3e50">星选等级：</span>
@@ -160,7 +160,7 @@
             label="部署密钥"
             name="deployKey"
           >
-            <a-input v-model:value="formData.deployKey" disabled />
+            <a-input v-model:value="formData.deployKey" disabled/>
             <div class="form-tip">
               此密钥用于应用部署，请勿随意分享给他人
             </div>
@@ -175,11 +175,11 @@
                 size="large"
                 type="primary"
               >
-                <SaveOutlined />
+                <SaveOutlined/>
                 <span>保存修改</span>
               </a-button>
               <a-button class="reset-btn" size="large" @click="resetForm">
-                <UndoOutlined />
+                <UndoOutlined/>
                 <span>重置表单</span>
               </a-button>
               <a-button
@@ -190,7 +190,7 @@
                 target="_blank"
                 type="primary"
               >
-                <ExportOutlined />
+                <ExportOutlined/>
                 <span>访问已部署网站</span>
               </a-button>
             </a-space>
@@ -211,28 +211,28 @@
         <a-descriptions :column="1" class="meta-grid">
           <a-descriptions-item label="创建者">
             <div class="meta-item">
-              <UserOutlined />
-              <UserInfo :user="appInfo?.user" size="small" />
+              <UserOutlined/>
+              <UserInfo :user="appInfo?.user" size="small"/>
             </div>
           </a-descriptions-item>
 
           <a-descriptions-item label="创建时间">
             <div class="meta-item">
-              <CalendarOutlined />
+              <CalendarOutlined/>
               <span>{{ formatTime(appInfo?.createTime) || '--' }}</span>
             </div>
           </a-descriptions-item>
 
           <a-descriptions-item label="更新时间">
             <div class="meta-item">
-              <SyncOutlined />
+              <SyncOutlined/>
               <span>{{ formatTime(appInfo?.updateTime) || '--' }}</span>
             </div>
           </a-descriptions-item>
 
           <a-descriptions-item label="部署状态">
             <div class="meta-item">
-              <CloudServerOutlined />
+              <CloudServerOutlined/>
               <template v-if="appInfo?.deployKey">
                 <a-tag color="green">已部署</a-tag>
               </template>
@@ -242,7 +242,7 @@
 
           <a-descriptions-item label="部署时间">
             <div class="meta-item">
-              <CloudServerOutlined />
+              <CloudServerOutlined/>
               <template v-if="appInfo?.deployKey">
                 <span class="time">{{ formatTime(appInfo.deployedTime) }}</span>
               </template>
@@ -256,10 +256,10 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import type { FormInstance } from 'ant-design-vue'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import type {FormInstance} from 'ant-design-vue'
+import {message} from 'ant-design-vue'
 import {
   CalendarOutlined,
   CloudServerOutlined,
@@ -274,11 +274,11 @@ import {
   UploadOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import { useLoginUserStore } from '@/stores/loginUser'
-import { DEPLOY_DOMAIN } from '@/config/env'
-import { getAppVoById, updateApp, updateAppByAdmin } from '@/api/appController'
-import { formatCodeGenType } from '@/enums/codeGenTypes.ts'
-import { formatTime } from '@/utils/timeUtil.ts'
+import {useLoginUserStore} from '@/stores/loginUser'
+import {DEPLOY_DOMAIN} from '@/config/env'
+import {getAppVoById, updateApp, updateAppByAdmin} from '@/api/appController'
+import {formatCodeGenType} from '@/enums/codeGenTypes.ts'
+import {formatTime} from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'
 
 const route = useRoute()
@@ -325,11 +325,11 @@ const deployedSiteUrl = computed(() => {
 // 表单验证规则
 const rules = {
   appName: [
-    { required: true, message: '请填写应用名称', trigger: 'blur' },
-    { min: 1, max: 50, message: '名称长度应为1-50个字符', trigger: 'blur' }
+    {required: true, message: '请填写应用名称', trigger: 'blur'},
+    {min: 1, max: 50, message: '名称长度应为1-50个字符', trigger: 'blur'}
   ],
-  cover: [{ type: 'url', message: '请提供有效的图片URL', trigger: 'blur' }],
-  priority: [{ type: 'number', min: 0, max: 99, message: '优先级范围为0-99', trigger: 'blur' }]
+  cover: [{type: 'url', message: '请提供有效的图片URL', trigger: 'blur'}],
+  priority: [{type: 'number', min: 0, max: 99, message: '优先级范围为0-99', trigger: 'blur'}]
 }
 
 // 根据生成类型获取标签颜色
@@ -357,7 +357,7 @@ const fetchAppInfo = async () => {
 
   loading.value = true
   try {
-    const res = await getAppVoById({ id: id as unknown as number })
+    const res = await getAppVoById({id: id as unknown as number})
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 

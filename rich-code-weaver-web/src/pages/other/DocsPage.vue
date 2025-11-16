@@ -3,7 +3,7 @@
     <!-- 顶部导航 -->
     <div class="header-nav">
       <router-link class="nav-link" to="/">
-        <arrow-left-outlined />
+        <arrow-left-outlined/>
         返回首页
       </router-link>
     </div>
@@ -24,7 +24,7 @@
         <a-collapse-panel key="1" :show-arrow="false">
           <template #header>
             <div class="panel-header">
-              <rocket-outlined class="section-icon" />
+              <rocket-outlined class="section-icon"/>
               <span class="panel-title">快速入门</span>
             </div>
           </template>
@@ -46,7 +46,7 @@
         <a-collapse-panel key="2" :show-arrow="false">
           <template #header>
             <div class="panel-header">
-              <code-outlined class="section-icon" />
+              <code-outlined class="section-icon"/>
               <span class="panel-title">应用优化</span>
             </div>
           </template>
@@ -68,7 +68,7 @@
         <a-collapse-panel key="3" :show-arrow="false">
           <template #header>
             <div class="panel-header">
-              <experiment-outlined class="section-icon" />
+              <experiment-outlined class="section-icon"/>
               <span class="panel-title">最佳实践</span>
             </div>
           </template>
@@ -196,7 +196,7 @@
         </div>
 
         <div v-else class="placeholder-section">
-          <rocket-outlined class="placeholder-icon" />
+          <rocket-outlined class="placeholder-icon"/>
           <p>请从左侧选择一个文档主题</p>
         </div>
       </div>
@@ -205,7 +205,7 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
+import {reactive, ref} from 'vue'
 import {
   ArrowLeftOutlined,
   CodeOutlined,
@@ -218,19 +218,19 @@ const activeKeys = ref<string[]>(['1'])
 
 // 文档项数据
 const quickStartItems = reactive([
-  { id: 'getting-started', title: '创建第一个应用' },
-  { id: 'prompt-guide', title: '提示词编写指南' },
-  { id: 'deploy-app', title: '应用部署流程' }
+  {id: 'getting-started', title: '创建第一个应用'},
+  {id: 'prompt-guide', title: '提示词编写指南'},
+  {id: 'deploy-app', title: '应用部署流程'}
 ])
 
 const optimizationItems = reactive([
-  { id: 'vue-optimization', title: 'Vue项目优化指南' },
-  { id: 'code-refactor', title: '代码重构技巧' },
-  { id: 'performance-optimization', title: '性能优化方法' }
+  {id: 'vue-optimization', title: 'Vue项目优化指南'},
+  {id: 'code-refactor', title: '代码重构技巧'},
+  {id: 'performance-optimization', title: '性能优化方法'}
 ])
 
 const bestPracticeItems = reactive([
-  { id: 'prompt-best-practice', title: '提示词最佳实践' }
+  {id: 'prompt-best-practice', title: '提示词最佳实践'}
 ])
 
 // 当前活动文档区域
@@ -243,13 +243,13 @@ const handleItemClick = (id: string) => {
   const item = allItems.find(i => i.id === id)
 
   if (item) {
-    activeSection.value = { id: item.id, title: item.title }
+    activeSection.value = {id: item.id, title: item.title}
 
     // 滚动到文档区域
     setTimeout(() => {
       const element = document.querySelector('.docs-content')
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element.scrollIntoView({behavior: 'smooth', block: 'center'})
       }
     }, 100)
   }

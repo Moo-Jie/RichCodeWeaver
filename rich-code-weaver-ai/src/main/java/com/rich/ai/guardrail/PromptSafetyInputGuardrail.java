@@ -214,7 +214,7 @@ public class PromptSafetyInputGuardrail implements InputGuardrail {
                 .filter(ch -> !Character.isLetterOrDigit(ch) && !Character.isWhitespace(ch))
                 .count();
         double specialCharRatio = (double) specialCharCount / input.length();
-        
+
         if (specialCharRatio > 0.3) {
             log.warn("特殊字符比例过高: {}", specialCharRatio);
             return fatal("输入包含过多特殊字符，请使用正常的文本描述");
@@ -244,12 +244,12 @@ public class PromptSafetyInputGuardrail implements InputGuardrail {
      */
     private boolean hasExcessiveRepetition(String input) {
         if (input.length() < 10) return false;
-        
+
         // 检测连续重复字符
         int maxRepeat = 0;
         int currentRepeat = 1;
         char lastChar = input.charAt(0);
-        
+
         for (int i = 1; i < input.length(); i++) {
             if (input.charAt(i) == lastChar) {
                 currentRepeat++;
@@ -260,7 +260,7 @@ public class PromptSafetyInputGuardrail implements InputGuardrail {
             }
         }
         maxRepeat = Math.max(maxRepeat, currentRepeat);
-        
+
         return maxRepeat > 10; // 超过10个连续相同字符认为异常
     }
 
@@ -275,7 +275,7 @@ public class PromptSafetyInputGuardrail implements InputGuardrail {
         // 简单的Base64模式检测
         Pattern base64Pattern = Pattern.compile("^[A-Za-z0-9+/]{20,}={0,2}$");
         String[] words = input.split("\\s+");
-        
+
         for (String word : words) {
             if (word.length() > 20 && base64Pattern.matcher(word).matches()) {
                 return true;
@@ -308,11 +308,11 @@ public class PromptSafetyInputGuardrail implements InputGuardrail {
         config.put("total_patterns", SensitiveWordsConstant.getTotalPatternsCount());
         config.put("version", "2.0 - Enhanced with expanded vocabulary");
         config.put("last_updated", "2025-01-25");
-        
+
         // 添加详细的词汇库统计
         Map<String, Integer> wordStats = SensitiveWordsConstant.getSensitiveWordStats();
         config.putAll(wordStats);
-        
+
         return config;
     }
 
@@ -333,9 +333,9 @@ public class PromptSafetyInputGuardrail implements InputGuardrail {
      * @return 护rail功能描述
      */
     public String getDescription() {
-        return "全面的AI输入安全护轨系统，包含" + 
-               SensitiveWordsConstant.getTotalSensitiveWordsCount() + "个敏感词汇和" +
-               SensitiveWordsConstant.getTotalPatternsCount() + "个检测模式，" +
-               "覆盖提示词注入、政治敏感、暴力色情、违法违规等多个维度的安全检测";
+        return "全面的AI输入安全护轨系统，包含" +
+                SensitiveWordsConstant.getTotalSensitiveWordsCount() + "个敏感词汇和" +
+                SensitiveWordsConstant.getTotalPatternsCount() + "个检测模式，" +
+                "覆盖提示词注入、政治敏感、暴力色情、违法违规等多个维度的安全检测";
     }
 }

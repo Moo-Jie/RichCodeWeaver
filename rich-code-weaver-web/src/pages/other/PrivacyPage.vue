@@ -3,7 +3,7 @@
     <!-- 顶部导航 -->
     <div class="header-nav">
       <router-link class="nav-link" to="/">
-        <arrow-left-outlined />
+        <arrow-left-outlined/>
         返回首页
       </router-link>
     </div>
@@ -47,25 +47,25 @@
           <div class="usage-cards">
             <div class="usage-card">
               <div class="usage-icon">
-                <rocket-outlined />
+                <rocket-outlined/>
               </div>
               <p>提供、维护和改进我们的服务</p>
             </div>
             <div class="usage-card">
               <div class="usage-icon">
-                <experiment-outlined />
+                <experiment-outlined/>
               </div>
               <p>开发新功能和服务</p>
             </div>
             <div class="usage-card">
               <div class="usage-icon">
-                <security-scan-outlined />
+                <security-scan-outlined/>
               </div>
               <p>保护平台和用户的安全</p>
             </div>
             <div class="usage-card">
               <div class="usage-icon">
-                <message-outlined />
+                <message-outlined/>
               </div>
               <p>与您沟通服务更新和安全通知</p>
             </div>
@@ -99,7 +99,7 @@
           <div class="contact-card">
             <div class="contact-info">
               <div class="contact-icon">
-                <mail-outlined />
+                <mail-outlined/>
               </div>
               <div>
                 <h3>邮箱</h3>

@@ -2,7 +2,7 @@ package com.rich.user.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
-import com.rich.common.annotation.AuthCheck;
+import com.rich.model.annotation.AuthCheck;
 import com.rich.common.constant.UserConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;

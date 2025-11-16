@@ -3,7 +3,7 @@
     <!-- 顶部导航 -->
     <div class="header-nav">
       <router-link class="nav-link" to="/">
-        <arrow-left-outlined />
+        <arrow-left-outlined/>
         返回首页
       </router-link>
     </div>
@@ -25,25 +25,25 @@
           <div class="service-cards">
             <div class="service-card">
               <div class="service-icon">
-                <code-outlined />
+                <code-outlined/>
               </div>
               <p>基于用户描述生成应用原型</p>
             </div>
             <div class="service-card">
               <div class="service-icon">
-                <edit-outlined />
+                <edit-outlined/>
               </div>
               <p>提供应用编辑和管理功能</p>
             </div>
             <div class="service-card">
               <div class="service-icon">
-                <cloud-server-outlined />
+                <cloud-server-outlined/>
               </div>
               <p>存储用户生成的内容</p>
             </div>
             <div class="service-card">
               <div class="service-icon">
-                <share-alt-outlined />
+                <share-alt-outlined/>
               </div>
               <p>提供应用部署和分享功能</p>
             </div>
@@ -93,19 +93,19 @@
           <div class="disclaimer-card">
             <div class="disclaimer-item">
               <div class="disclaimer-icon">
-                <warning-outlined />
+                <warning-outlined/>
               </div>
               <p>本服务按"原样"提供，不作任何明示或暗示的保证</p>
             </div>
             <div class="disclaimer-item">
               <div class="disclaimer-icon">
-                <warning-outlined />
+                <warning-outlined/>
               </div>
               <p>生成内容可能存在不准确或缺陷，使用风险由您自行承担</p>
             </div>
             <div class="disclaimer-item">
               <div class="disclaimer-icon">
-                <warning-outlined />
+                <warning-outlined/>
               </div>
               <p>服务可能中断或无法使用，不保证满足所有用户需求</p>
             </div>
@@ -117,7 +117,7 @@
           <div class="contact-card">
             <div class="contact-info">
               <div class="contact-icon">
-                <customer-service-outlined />
+                <customer-service-outlined/>
               </div>
               <div>
                 <h3>邮箱</h3>

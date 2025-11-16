@@ -1,10 +1,10 @@
 <template>
   <a-layout class="basic-layout">
-    <GlobalHeader />
+    <GlobalHeader/>
     <a-layout-content class="main-content">
-      <router-view />
+      <router-view/>
     </a-layout-content>
-    <GlobalFooter />
+    <GlobalFooter/>
   </a-layout>
 </template>
 

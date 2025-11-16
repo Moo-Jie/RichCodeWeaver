@@ -24,7 +24,7 @@
         </a-card>
 
         <div v-if="loadingApps" class="loading-container">
-          <a-spin size="large" tip="加载应用列表中..." />
+          <a-spin size="large" tip="加载应用列表中..."/>
         </div>
 
         <a-empty
@@ -51,7 +51,7 @@
             @click="selectApp(app)"
           >
             <div class="app-info">
-              <a-avatar :src="app.cover" size="medium" />
+              <a-avatar :src="app.cover" size="medium"/>
               <div class="app-meta">
                 <div class="app-name">{{ app.appName }}</div>
                 <div class="app-date">{{ formatTime(app.updateTime) }}</div>
@@ -71,7 +71,7 @@
 
           <a-card :bordered="false" class="app-card">
             <div class="app-header">
-              <a-avatar :src="selectedApp.cover" size="large" />
+              <a-avatar :src="selectedApp.cover" size="large"/>
               <div class="app-info">
                 <h3>{{ selectedApp.appName }}</h3>
                 <p class="app-desc">{{ selectedApp.appDescription }}</p>
@@ -86,7 +86,7 @@
                   @click="navigateToApp(selectedApp.id)"
                 >
                   <template #icon>
-                    <ArrowRightOutlined />
+                    <ArrowRightOutlined/>
                   </template>
                   查看详情
                 </a-button>
@@ -96,7 +96,7 @@
 
           <div class="dialog-area">
             <div v-if="loadingHistory" class="loading-container">
-              <a-spin size="large" tip="加载对话中..." />
+              <a-spin size="large" tip="加载对话中..."/>
             </div>
 
             <a-empty
@@ -116,12 +116,12 @@
                    class="conversation-item">
                 <div v-if="history.messageType === 'ai'" class="ai-message">
                   <div class="message-avatar">
-                    <a-avatar :src="aiAvatar" class="ai-avatar" size="default" />
+                    <a-avatar :src="aiAvatar" class="ai-avatar" size="default"/>
                     <span class="ai-label">AI</span>
                   </div>
                   <div class="message-content">
                     <div :class="{ 'collapsed': history.collapsed }" class="message-content-inner">
-                      <markdown-renderer v-if="history.message" :content="history.message" />
+                      <markdown-renderer v-if="history.message" :content="history.message"/>
                     </div>
                     <a-button
                       v-if="history.message && history.message.length > 300"
@@ -133,13 +133,13 @@
                     </a-button>
                   </div>
                   <a-button class="delete-icon" @click="deleteMessage(history.id)">
-                    <DeleteOutlined />
+                    <DeleteOutlined/>
                   </a-button>
                 </div>
 
                 <div v-if="history.messageType === 'user'" class="user-message">
                   <a-button class="delete-icon" @click="deleteMessage(history.id)">
-                    <DeleteOutlined />
+                    <DeleteOutlined/>
                   </a-button>
                   <div class="message-content">
                     <div :class="{ 'collapsed': history.collapsed }" class="message-content-inner">
@@ -157,7 +157,7 @@
                     </a-button>
                   </div>
                   <div class="message-avatar">
-                    <a-avatar :src="loginUserStore.loginUser.userAvatar" size="default" />
+                    <a-avatar :src="loginUserStore.loginUser.userAvatar" size="default"/>
                     <span class="user-label">用户</span>
                   </div>
                 </div>
@@ -194,20 +194,20 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { useLoginUserStore } from '@/stores/loginUser'
-import { ArrowRightOutlined, DeleteOutlined } from '@ant-design/icons-vue'
-import { listAppVoByPageByAdmin as listAppsAdmin } from '@/api/appController'
+import {computed, onMounted, ref, watch} from 'vue'
+import {useRouter} from 'vue-router'
+import {useLoginUserStore} from '@/stores/loginUser'
+import {ArrowRightOutlined, DeleteOutlined} from '@ant-design/icons-vue'
+import {listAppVoByPageByAdmin as listAppsAdmin} from '@/api/appController'
 import {
   deleteById,
   listAppChatHistoryByPageAdmin as listHistoryAdmin
 } from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
-import { message } from 'ant-design-vue'
+import {message} from 'ant-design-vue'
 
 import aiAvatar from '@/assets/aiAvatar.png'
-import { formatTime } from '@/utils/timeUtil.ts'
+import {formatTime} from '@/utils/timeUtil.ts'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()

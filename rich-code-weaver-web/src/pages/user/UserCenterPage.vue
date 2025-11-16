@@ -11,12 +11,12 @@
       <a-card class="info-card">
         <div class="card-header">
           <h2>
-            <UserOutlined />
+            <UserOutlined/>
             个人信息
           </h2>
           <a-button class="gradient-button" type="primary" @click="showEditModal">
             <template #icon>
-              <EditOutlined />
+              <EditOutlined/>
             </template>
             编辑资料
           </a-button>
@@ -26,7 +26,7 @@
           <div class="avatar-section">
             <a-avatar :size="120" :src="userInfo.userAvatar" class="user-avatar">
               <template v-if="!userInfo.userAvatar" #icon>
-                <UserOutlined style="font-size: 48px" />
+                <UserOutlined style="font-size: 48px"/>
               </template>
             </a-avatar>
             <a-upload
@@ -37,7 +37,7 @@
               name="avatar"
             >
               <a-button class="upload-btn gradient-button">
-                <UploadOutlined />
+                <UploadOutlined/>
                 更换头像
               </a-button>
             </a-upload>
@@ -65,7 +65,7 @@
             <div class="detail-row">
               <label>注册时间</label>
               <span>
-                <CalendarOutlined />
+                <CalendarOutlined/>
                 {{ dayjs(userInfo.createTime).format('YYYY-MM-DD HH:mm') }}
               </span>
             </div>
@@ -76,7 +76,7 @@
       <!-- 账户安全卡片 -->
       <a-card class="security-card">
         <h2>
-          <LockOutlined />
+          <LockOutlined/>
           账户安全
         </h2>
 
@@ -94,7 +94,8 @@
           <div class="setting-item">
             <div>
               <h3>手机绑定</h3>
-              <p>{{ userInfo.phone ? `已绑定手机: ${maskPhone(userInfo.phone)}` : '未绑定手机号'
+              <p>{{
+                  userInfo.phone ? `已绑定手机: ${maskPhone(userInfo.phone)}` : '未绑定手机号'
                 }}</p>
             </div>
             <a-button class="gradient-button" type="primary" @click="handleMobile">
@@ -105,7 +106,8 @@
           <div class="setting-item">
             <div>
               <h3>邮箱验证</h3>
-              <p>{{ userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
+              <p>{{
+                  userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
                 }}</p>
             </div>
             <a-button class="gradient-button" type="primary" @click="handleEmail">
@@ -117,7 +119,7 @@
         <div class="logout-section">
           <a-button class="logout-button" danger @click="handleLogout">
             <template #icon>
-              <LogoutOutlined />
+              <LogoutOutlined/>
             </template>
             退出登录
           </a-button>
@@ -139,7 +141,7 @@
       <br>
       <a-form :label-col="{ span: 6 }" :model="editForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户昵称">
-          <a-input v-model:value="editForm.userName" placeholder="请输入新昵称" />
+          <a-input v-model:value="editForm.userName" placeholder="请输入新昵称"/>
         </a-form-item>
         <a-form-item label="个人简介">
           <a-textarea
@@ -162,14 +164,14 @@
       <br>
       <a-form :label-col="{ span: 6 }" :model="passwordForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="原密码">
-          <a-input-password v-model:value="passwordForm.oldPassword" placeholder="请输入当前密码" />
+          <a-input-password v-model:value="passwordForm.oldPassword" placeholder="请输入当前密码"/>
         </a-form-item>
         <a-form-item label="新密码">
-          <a-input-password v-model:value="passwordForm.newPassword" placeholder="请输入新密码" />
+          <a-input-password v-model:value="passwordForm.newPassword" placeholder="请输入新密码"/>
         </a-form-item>
         <a-form-item label="确认密码">
           <a-input-password v-model:value="passwordForm.confirmPassword"
-                            placeholder="请确认新密码" />
+                            placeholder="请确认新密码"/>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -177,10 +179,10 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useLoginUserStore } from '@/stores/loginUser'
-import { message } from 'ant-design-vue'
+import {onMounted, reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {useLoginUserStore} from '@/stores/loginUser'
+import {message} from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
   CalendarOutlined,

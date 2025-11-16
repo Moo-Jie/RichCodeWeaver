@@ -8,10 +8,10 @@ export async function downloadCodeZipFile(
   params: API.downloadCodeZipFileParams,
   options?: { [key: string]: any }
 ) {
-  const { appId: param0, ...queryParams } = params
+  const {appId: param0, ...queryParams} = params
   return request<any>(`/download/code/zip/${param0}`, {
     method: 'GET',
-    params: { ...queryParams },
+    params: {...queryParams},
     ...(options || {}),
   })
 }

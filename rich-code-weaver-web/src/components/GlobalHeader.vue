@@ -5,7 +5,7 @@
       <a-col :lg="4" :md="6" :sm="10" :xl="4" :xs="8">
         <RouterLink to="/">
           <div class="header-left">
-            <img alt="Logo" class="logo" src="@/assets/logo.png" />
+            <img alt="Logo" class="logo" src="@/assets/logo.png"/>
             <h1 class="site-title">织码睿奇</h1>
           </div>
         </RouterLink>
@@ -26,17 +26,17 @@
           <div v-if="loginUserStore.loginUser.id">
             <a-dropdown>
               <a-space>
-                <a-avatar :src="loginUserStore.loginUser.userAvatar" />
+                <a-avatar :src="loginUserStore.loginUser.userAvatar"/>
                 {{ loginUserStore.loginUser.userName ?? '无名' }}
               </a-space>
               <template #overlay>
                 <a-menu>
                   <a-menu-item @click="goToProfile">
-                    <UserOutlined />
+                    <UserOutlined/>
                     个人中心
                   </a-menu-item>
                   <a-menu-item @click="doLogout">
-                    <LogoutOutlined />
+                    <LogoutOutlined/>
                     退出登录
                   </a-menu-item>
                 </a-menu>
@@ -46,13 +46,13 @@
           <div v-else>
             <a-dropdown>
               <a-space>
-                <UserOutlined />
+                <UserOutlined/>
                 <span>登录</span>
               </a-space>
               <template #overlay>
                 <a-menu>
                   <a-menu-item @click="goToLogin">
-                    <UserOutlined />
+                    <UserOutlined/>
                     登录
                   </a-menu-item>
                 </a-menu>
@@ -66,11 +66,11 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, h, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { type MenuProps, message } from 'ant-design-vue'
-import { useLoginUserStore } from '@/stores/loginUser.ts'
-import { userLogout } from '@/api/userController.ts'
+import {computed, h, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {type MenuProps, message} from 'ant-design-vue'
+import {useLoginUserStore} from '@/stores/loginUser.ts'
+import {userLogout} from '@/api/userController.ts'
 import {
   AuditOutlined,
   BorderlessTableOutlined,

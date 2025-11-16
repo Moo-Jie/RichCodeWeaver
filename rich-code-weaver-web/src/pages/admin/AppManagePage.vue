@@ -100,7 +100,7 @@
               class="app-cover"
             />
             <div v-else class="no-cover">
-              <picture-outlined />
+              <picture-outlined/>
               <span>未上传封面</span>
             </div>
           </template>
@@ -108,7 +108,7 @@
           <template v-else-if="column.dataIndex === 'initPrompt'">
             <a-tooltip :title="record.initPrompt">
               <div class="prompt-text">
-                <ellipsis-outlined />
+                <ellipsis-outlined/>
                 {{ record.initPrompt }}
               </div>
             </a-tooltip>
@@ -116,7 +116,8 @@
 
           <template v-else-if="column.dataIndex === 'codeGenType'">
             <a-tag :color="getTypeColor(record.codeGenType)">
-              {{ record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : record.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(record.codeGenType)
+              {{
+                record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : record.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(record.codeGenType)
               }}
             </a-tag>
           </template>
@@ -135,7 +136,7 @@
 
           <template v-else-if="column.dataIndex === 'priority'">
             <a-tag v-if="record.priority === 99" color="gold">
-              <star-filled />
+              <star-filled/>
               星选应用
             </a-tag>
             <span v-else>普通应用</span>
@@ -143,26 +144,26 @@
 
           <template v-else-if="column.dataIndex === 'deployedTime'">
             <div v-if="record.deployedTime" class="time-cell">
-              <calendar-outlined />
+              <calendar-outlined/>
               {{ formatTime(record.deployedTime) }}
             </div>
             <div v-else class="text-gray">
-              <clock-circle-outlined />
+              <clock-circle-outlined/>
               <span>未部署</span>
             </div>
           </template>
 
           <template v-else-if="column.dataIndex === 'createTime'">
             <div class="time-cell">
-              <calendar-outlined />
+              <calendar-outlined/>
               {{ formatTime(record.createTime) }}
             </div>
           </template>
 
           <template v-else-if="column.dataIndex === 'user'">
             <div class="user-cell">
-              <user-outlined />
-              <UserInfo :user="record.user" size="small" />
+              <user-outlined/>
+              <UserInfo :user="record.user" size="small"/>
             </div>
           </template>
 
@@ -175,7 +176,7 @@
                 @click="enterApp(record)"
               >
                 <template #icon>
-                  <ArrowRightOutlined />
+                  <ArrowRightOutlined/>
                 </template>
                 进入
               </a-button>
@@ -193,7 +194,7 @@
                 @click="showAppDetail(record)"
               >
                 <template #icon>
-                  <InfoCircleOutlined />
+                  <InfoCircleOutlined/>
                 </template>
                 详情
               </a-button>
@@ -205,11 +206,11 @@
                 @click="toggleFeatured(record)"
               >
                 <template v-if="record.priority === 99">
-                  <star-filled />
+                  <star-filled/>
                   取消星选
                 </template>
                 <template v-else>
-                  <star-outlined />
+                  <star-outlined/>
                   设为星选
                 </template>
               </a-button>
@@ -236,9 +237,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {message} from 'ant-design-vue'
 import {
   ArrowRightOutlined,
   CalendarOutlined,
@@ -252,9 +253,9 @@ import {
   StarOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
-import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
-import { formatTime } from '@/utils/timeUtil.ts'
+import {deleteApp, listAppVoByPageByAdmin, updateAppByAdmin} from '@/api/appController'
+import {CODE_GEN_TYPE_OPTIONS, formatCodeGenType} from '@/enums/codeGenTypes.ts'
+import {formatTime} from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'
 import AppInfo from '@/components/AppInfo.vue'
 
@@ -466,7 +467,7 @@ const doDeleteApp = async (id: number | undefined) => {
   if (!id) return
 
   try {
-    const res = await deleteApp({ id })
+    const res = await deleteApp({id})
     if (res.data.code === 0) {
       message.success('删除成功')
       await fetchData()

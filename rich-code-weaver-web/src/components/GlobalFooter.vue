@@ -6,13 +6,13 @@
         <a class="social-link"
            href="https://github.com/Moo-Jie"
            target="_blank">
-          <GithubOutlined />
+          <GithubOutlined/>
         </a>
         <a class="social-link" href="#" target="_blank">
-          <WeiboOutlined />
+          <WeiboOutlined/>
         </a>
         <a class="social-link" href="#" target="_blank">
-          <WechatOutlined />
+          <WechatOutlined/>
         </a>
       </div>
 
@@ -41,8 +41,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import { GithubOutlined, WechatOutlined, WeiboOutlined } from '@ant-design/icons-vue'
+import {computed} from 'vue'
+import {GithubOutlined, WechatOutlined, WeiboOutlined} from '@ant-design/icons-vue'
 
 const currentYear = computed(() => new Date().getFullYear())
 </script>

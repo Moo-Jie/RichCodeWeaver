@@ -12,7 +12,7 @@
               <svg height="32" viewBox="0 0 24 24" width="32">
                 <path
                   d="M7,2H17V13H7V2M7,15V21H17V15H7M4,11V13H2V11H4M22,11V13H20V11H22M5,4V6H6V4H5M5,7V9H6V7H5M5,10V12H6V10H5M18,4V6H19V4H18M18,7V9H19V7H18M18,10V12H19V10H18Z"
-                  fill="currentColor" />
+                  fill="currentColor"/>
               </svg>
             </div>
             <div>
@@ -26,7 +26,7 @@
               <svg height="32" viewBox="0 0 24 24" width="32">
                 <path
                   d="M21,16V14H13V16H21M21,11V9H13V11H21M21,6V4H13V6H21M8.5,12A2.5,2.5 0 0,0 6,9.5A2.5,2.5 0 0,0 3.5,12A2.5,2.5 0 0,0 6,14.5A2.5,2.5 0 0,0 8.5,12M11,20V19.5A5.5,5.5 0 0,0 5.5,14A5.5,5.5 0 0,0 0,19.5V20H11Z"
-                  fill="currentColor" />
+                  fill="currentColor"/>
               </svg>
             </div>
             <div>
@@ -40,7 +40,7 @@
               <svg height="32" viewBox="0 0 24 24" width="32">
                 <path
                   d="M17,18V19H15V18H17M13,19V18H7V19H13M18,13V15H19V17H17V15H13V13H17V11H19V13H18M6,11V13H11V15H6V17H11V19H6V21H4V19H5V15H4V13H5V11H4V9H6V11M7,11V13H8V11H7M7,4V6H17V4H7M7,8V10H15V8H7Z"
-                  fill="currentColor" />
+                  fill="currentColor"/>
               </svg>
             </div>
             <div>
@@ -67,7 +67,7 @@
             <a-input v-model:value="formState.userAccount" class="input-field"
                      placeholder="请输入账号">
               <template #prefix>
-                <UserOutlined />
+                <UserOutlined/>
               </template>
             </a-input>
           </a-form-item>
@@ -82,7 +82,7 @@
             <a-input-password v-model:value="formState.userPassword" class="input-field"
                               placeholder="请输入密码">
               <template #prefix>
-                <LockOutlined />
+                <LockOutlined/>
               </template>
             </a-input-password>
           </a-form-item>
@@ -110,12 +110,12 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { LockOutlined, UserOutlined } from '@ant-design/icons-vue'
-import { userLogin } from '@/api/userController.ts'
-import { useLoginUserStore } from '@/stores/loginUser.ts'
-import { message } from 'ant-design-vue'
+import {reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {LockOutlined, UserOutlined} from '@ant-design/icons-vue'
+import {userLogin} from '@/api/userController.ts'
+import {useLoginUserStore} from '@/stores/loginUser.ts'
+import {message} from 'ant-design-vue'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -138,7 +138,7 @@ const handleSubmit = async () => {
     if (res.data.code === 0 && res.data.data) {
       await loginUserStore.fetchLoginUser()
       message.success('登录成功')
-      router.replace({ path: '/' })
+      router.replace({path: '/'})
     } else {
       message.error('登录失败：' + res.data.message)
     }

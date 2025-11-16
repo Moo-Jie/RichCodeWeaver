@@ -2,7 +2,7 @@
   <a-modal v-model:open="visible" :footer="null" title="部署成功" width="600px">
     <div class="deploy-success">
       <div class="success-icon">
-        <CheckCircleOutlined style="color: #52c41a; font-size: 48px" />
+        <CheckCircleOutlined style="color: #52c41a; font-size: 48px"/>
       </div>
       <h3>网站部署成功！</h3>
       <p>你的网站已经成功部署，可以通过以下链接访问：</p>
@@ -10,7 +10,7 @@
         <a-input :value="deployUrl" readonly>
           <template #suffix>
             <a-button type="text" @click="handleCopyUrl">
-              <CopyOutlined />
+              <CopyOutlined/>
             </a-button>
           </template>
         </a-input>
@@ -24,9 +24,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import { message } from 'ant-design-vue'
-import { CheckCircleOutlined, CopyOutlined } from '@ant-design/icons-vue'
+import {computed} from 'vue'
+import {message} from 'ant-design-vue'
+import {CheckCircleOutlined, CopyOutlined} from '@ant-design/icons-vue'
 
 interface Props {
   open: boolean

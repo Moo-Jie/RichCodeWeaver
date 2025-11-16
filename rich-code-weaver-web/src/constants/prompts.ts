@@ -11,7 +11,7 @@ import {
   SecurityScanOutlined,
   ShopOutlined
 } from '@ant-design/icons-vue'
-import { ref } from 'vue'
+import {ref} from 'vue'
 
 /**
  * 主页推荐提示词 - 纯前端实现方案

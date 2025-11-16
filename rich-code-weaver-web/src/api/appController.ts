@@ -210,10 +210,10 @@ export async function viewApp(
   params: API.viewAppParams,
   options?: { [key: string]: any }
 ) {
-  const { appId: param0, ...queryParams } = params
+  const {appId: param0, ...queryParams} = params
   return request<string>(`/app/view/${param0}/**`, {
     method: 'GET',
-    params: { ...queryParams },
+    params: {...queryParams},
     ...(options || {}),
   })
 }
