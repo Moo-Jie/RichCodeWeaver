@@ -16,7 +16,7 @@ server:
 springdoc:
   group-configs:
     - group: 'default'
-      paths-to-match: '/**'
+#      paths-to-match: '/**'
       packages-to-scan: com.rich.file.controller
 # knife4j
 knife4j:

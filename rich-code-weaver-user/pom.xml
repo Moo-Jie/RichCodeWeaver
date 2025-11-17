@@ -23,6 +23,16 @@
             <groupId>org.springframework.session</groupId>
             <artifactId>spring-session-data-redis</artifactId>
         </dependency>
+        <!-- Dubbo 核心框架,提供服务治理、远程调用、流量控制、可扩展架构 -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- Dubbo Nacos 扩展,使用 Nacos 作为 Dubbo 的注册中心和配置中心 -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
+        </dependency>
         <!-- 排除 lettuce-core 依赖，使用 jedis 客户端 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -69,6 +79,12 @@
         <dependency>
             <groupId>com.rich</groupId>
             <artifactId>rich-code-weaver-file</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <!-- 内部接口模块 -->
+        <dependency>
+            <groupId>com.rich</groupId>
+            <artifactId>rich-code-weaver-client</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>

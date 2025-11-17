@@ -24,6 +24,16 @@
             <artifactId>redisson</artifactId>
             <version>3.50.0</version>
         </dependency>
+        <!-- Dubbo 核心框架,提供服务治理、远程调用、流量控制、可扩展架构 -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- Dubbo Nacos 扩展,使用 Nacos 作为 Dubbo 的注册中心和配置中心 -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
+        </dependency>
         <!-- caffeine 本地缓存 -->
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -76,6 +86,16 @@
             <artifactId>langgraph4j-core</artifactId>
             <version>1.6.0-rc2</version>
         </dependency>
+        <!-- Dubbo 核心框架,提供服务治理、远程调用、流量控制、可扩展架构 -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- Dubbo Nacos 扩展,使用 Nacos 作为 Dubbo 的注册中心和配置中心 -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
+        </dependency>
         <!-- 通用模块 -->
         <dependency>
             <groupId>com.rich</groupId>
@@ -86,12 +106,6 @@
         <dependency>
             <groupId>com.rich</groupId>
             <artifactId>rich-code-weaver-model</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <!-- 文件模块 -->
-        <dependency>
-            <groupId>com.rich</groupId>
-            <artifactId>rich-code-weaver-file</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <!-- AI 模块 -->

@@ -6,24 +6,8 @@ spring:
     store-type: redis
     # session 30 天过期
     timeout: 2592000
-  # mysql
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/rich_code_weaver
-    username: root
-    password: 12345
-  # redis
-  data:
     redis:
-      database: 1
-      port: 6379
-      host: localhost
-      password:
-      user:
-      # 连接超时时间
-      timeout: 5000
-      # 过期时间
-      ttl: 5000
+      namespace: rcw:sess:v2
   profiles:
     active: local
 
@@ -50,7 +34,7 @@ redisson:
 springdoc:
   group-configs:
     - group: 'default'
-      paths-to-match: '/**'
+#      paths-to-match: '/**'
       packages-to-scan: com.rich.app.controller
 # knife4j
 knife4j:

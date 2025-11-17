@@ -3,6 +3,7 @@ package com.rich.app.controller;
 
 import com.mybatisflex.core.paginate.Page;
 import com.rich.app.service.AppService;
+import com.rich.client.innerService.InnerFileService;
 import com.rich.client.innerService.InnerUserService;
 import com.rich.common.constant.UserConstant;
 import com.rich.common.exception.BusinessException;
@@ -11,7 +12,6 @@ import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
 import com.rich.common.model.DeleteRequest;
 import com.rich.common.utils.ResultUtils;
-import com.rich.file.service.FileService;
 import com.rich.model.annotation.AuthCheck;
 import com.rich.model.dto.app.*;
 import com.rich.model.entity.App;
@@ -19,6 +19,7 @@ import com.rich.model.entity.User;
 import com.rich.model.vo.AppVO;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
@@ -45,8 +46,9 @@ public class AppController {
     @Resource
     private AppService appService;
 
-    @Resource
-    private FileService fileService;
+    // 注入外部文件上传服务的代理对象
+    @DubboReference
+    private InnerFileService fileService;
 
     /**
      * 执行 AI 生成应用代码（SSE 流式)
@@ -193,8 +195,8 @@ public class AppController {
      */
     @Cacheable(
             value = STAR_APP_CACHE_NAME, // 缓存名
-            key = "T( com.rich.app.utils.RedisUtils).genKey(#appQueryRequest)", // 缓存 key 名
-            condition = "#appQueryRequest.pageNum <= 5" // 缓存条件
+            key = "T( com.rich.app.utils.RedisUtils).genKey(#appQueryRequest)" // 缓存 key 名
+//            condition = "#appQueryRequest.pageNum <= 5" // 缓存条件
     )
     @PostMapping("/good/list/page/vo")
     public BaseResponse<Page<AppVO>> listStarAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {

@@ -37,6 +37,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
@@ -67,11 +68,6 @@ import static com.rich.common.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
 @Service
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
-
-    @Resource
-    @Lazy
-    private InnerUserService userService;
-
     @Resource
     @Lazy
     private AppService appService;
@@ -85,9 +81,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
 
-    @Resource
-    @Lazy
+    // 注入外部截图服务的代理对象
+    @DubboReference
     private InnerScreenshotService screenshotService;
+
+    // 注入外部用户服务的代理对象
+    @DubboReference
+    private InnerUserService userService;
 
     @Resource
     private AiCodeGeneratorTypeStrategyService aiCodeGeneratorTypeStrategyService;

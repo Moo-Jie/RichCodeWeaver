@@ -24,12 +24,28 @@
             <artifactId>rich-code-weaver-common</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+        <!-- 内部接口模块 -->
+        <dependency>
+            <groupId>com.rich</groupId>
+            <artifactId>rich-code-weaver-client</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
         <!-- 阿里云 OSS -->
         <!-- OSS依赖-->
         <dependency>
             <groupId>com.aliyun.oss</groupId>
             <artifactId>aliyun-sdk-oss</artifactId>
             <version>3.10.2</version>
+        </dependency>
+        <!-- Dubbo 核心框架,提供服务治理、远程调用、流量控制、可扩展架构 -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- Dubbo Nacos 扩展,使用 Nacos 作为 Dubbo 的注册中心和配置中心 -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
         </dependency>
         <!-- Selenium 网页截图 -->
         <dependency>
