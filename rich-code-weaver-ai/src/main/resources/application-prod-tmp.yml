@@ -1,0 +1,86 @@
+# 生产配置模板 ，使用需去除 "-tmp" 后缀
+
+spring:
+  # redis
+  data:
+    redis:
+      database: 1
+      port: 6379
+      host: localhost
+      password:
+      user:
+      # 连接超时时间
+      timeout: 5000
+      # 过期时间
+      ttl: 5000
+
+# searchApi
+search-api:
+  api-key: 
+
+# langchain4j 配置
+langchain4j:
+  open-ai:
+    # 基础模型配置参数（用于简单的 AI 服务，如：代码审查、代码生成策略选择、网络资源收集、图片资源构建等）
+    chat-model:
+      # 接口地址
+      base-url: https://api.deepseek.com
+      # 接口密钥
+      api-key:
+      # 模型名称
+      model-name: deepseek-chat
+      # 开启请求日志
+      log-requests: true
+      # 开启响应日志
+      log-responses: true
+      # 最大 token 数
+      max-tokens: 8192
+      # 超时设置（毫秒）（秒）- 增加超时时间以处理网络资源整理等耗时操作
+      timeout: 180000
+    # 基础流式模型配置参数（用于构建简单的应用，如：构建单文件应用、多文件应用等）
+    streaming-chat-model:
+      # 接口地址
+      base-url: https://api.deepseek.com
+      # 接口密钥
+      api-key: 
+      # 模型名称
+      model-name: deepseek-chat
+      # 最大 token 数
+      max-tokens: 8192
+      # 超时设置（毫秒）- 增加超时时间
+      timeout: 600000
+      # 开启请求日志
+      log-requests: true
+      # 开启响应日志
+      log-responses: true
+    # 推理流式模型配置参数（用于构建复杂的应用，如：构建工程化项目等）
+    reasoning-streaming-chat-model:
+      # 接口地址
+      base-url: https://api.deepseek.com
+      # 接口密钥
+      api-key: 
+      # 模型名称
+      model-name: deepseek-reasoner
+      #      model-name: deepseek-chat
+      # 最大 token 数 （推理模型多给点 Token）
+      max-tokens: 32768
+      # 温度参数（控制模型输出的随机性）
+      temperature: 0.1
+      # 超时设置（毫秒）- 推理模型需要更长的超时时间
+      timeout: 1000000
+      # 开启请求日志
+      log-requests: true
+      # 开启响应日志
+      log-responses: true
+
+# Pexels 图片搜索
+# https://www.pexels.com/api/
+pexels:
+  api-key:
+
+# 阿里云 DashScope 配置
+dashscope:
+  api-key:
+  # 绘图模型
+  image-model: wan2.2-t2i-flash
+

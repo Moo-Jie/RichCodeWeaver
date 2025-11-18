@@ -27,21 +27,11 @@ public interface InnerUserService {
      * @return
      */
     static User getLoginUser(HttpServletRequest request) {
-        // 1. 从session获取登录态
+        // 从 session 获取登录态
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        if (userObj == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
-        }
-
-        // 2. 基础类型校验
-        if (!(userObj instanceof User)) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "登录状态异常");
-        }
-
-        // 3. 查询最新用户信息
         User currentUser = (User) userObj;
         if (currentUser == null || currentUser.getId() == null) {
-            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "登录状态异常");
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
         return currentUser;
     }

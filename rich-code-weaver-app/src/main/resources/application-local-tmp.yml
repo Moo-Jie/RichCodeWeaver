@@ -1,0 +1,38 @@
+# 本地配置模板 ，使用需去除 "-tmp" 后缀
+
+spring:
+  # mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/rich_code_weaver
+    username: root
+    password: 12345
+  # redis
+  data:
+    redis:
+      database: 2
+      port: 6379
+      host: localhost
+      password:
+      user:
+      # 连接超时时间
+      timeout: 5000
+      # 过期时间
+      ttl: 5000
+
+# Dubbo
+dubbo:
+  registry:
+    # nacos 注册中心启动地址
+    address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    register-mode: instance
+  protocol:
+    name: tri
+    port: 50051
+  consumer:
+    timeout: 60000
+  provider:
+    timeout: 60000
+# Dubbo QoS 配置
+  application:
+    qos-port: 33333

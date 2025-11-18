@@ -18,11 +18,6 @@
     </properties>
 
     <dependencies>
-        <!-- Spring Session Redis 集成配置-->
-        <dependency>
-            <groupId>org.springframework.session</groupId>
-            <artifactId>spring-session-data-redis</artifactId>
-        </dependency>
         <!-- Dubbo 核心框架,提供服务治理、远程调用、流量控制、可扩展架构 -->
         <dependency>
             <groupId>org.apache.dubbo</groupId>
@@ -32,6 +27,11 @@
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- Spring Session Redis 集成配置,使用 redis 来存储 session 从而使服务间共享 session -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
         </dependency>
         <!-- 排除 lettuce-core 依赖，使用 jedis 客户端 -->
         <dependency>

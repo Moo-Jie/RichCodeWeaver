@@ -6,13 +6,12 @@ spring:
     store-type: redis
     # session 30 天过期
     timeout: 2592000
-    redis:
-      namespace: rcw:sess:v2
+    
   profiles:
     active: local
 
 server:
-  port: 8101
+  port: 8080
   servlet:
     context-path: /api
     # cookie 30 天过期
