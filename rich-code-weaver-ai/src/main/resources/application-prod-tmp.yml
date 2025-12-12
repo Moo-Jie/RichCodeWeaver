@@ -4,7 +4,7 @@ spring:
   # redis
   data:
     redis:
-      database: 1
+      database: 5
       port: 6379
       host: localhost
       password:
@@ -60,10 +60,10 @@ langchain4j:
       # 接口密钥
       api-key: 
       # 模型名称
-      model-name: deepseek-reasoner
+      model-name: deepseek-chat
       #      model-name: deepseek-chat
       # 最大 token 数 （推理模型多给点 Token）
-      max-tokens: 32768
+      max-tokens: 8192
       # 温度参数（控制模型输出的随机性）
       temperature: 0.1
       # 超时设置（毫秒）- 推理模型需要更长的超时时间

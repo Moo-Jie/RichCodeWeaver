@@ -140,8 +140,8 @@ public class CommonChatModelConfig {
                 .build();
     }
 
-    @Bean(name = "openAiChatModel")
-    public ChatModel openAiChatModel() {
+    @Bean(name = "openAiCommonChatModel")
+    public ChatModel openAiCommonChatModel() {
         return OpenAiChatModel.builder()
                 .modelName(modelName)
                 .apiKey(apiKey)

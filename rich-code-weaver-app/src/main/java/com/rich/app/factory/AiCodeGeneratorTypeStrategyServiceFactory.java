@@ -36,7 +36,7 @@ public class AiCodeGeneratorTypeStrategyServiceFactory {
         return AiServices.builder(AiCodeGeneratorTypeStrategyService.class)
                 .chatModel(codeGeneratorTypeStrategyChatModel)
                 // 配置提示词护轨规则
-                .inputGuardrails(new PromptSafetyInputGuardrail())
+//                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .build();
     }
 }

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {onMounted, reactive, ref} from 'vue'
+import {onMounted, reactive, ref, watch} from 'vue'
 import {useRouter} from 'vue-router'
 import type {TourProps} from 'ant-design-vue'
 import {message, Tour} from 'ant-design-vue'
@@ -89,13 +89,13 @@ const generatorOptions = ref([
   {label: '单文件模式', value: 'HTML'}
 ])
 
-// Agent模式选择
+// 模式选择
 const useAgentMode = ref(true)
 const agentModeOptions = ref([
   {
-    label: 'Agent 智能模式',
+    label: '节点智能生成模式',
     value: true,
-    desc: '基于一套工作流的 Agent 模式会让 AI 有更强的分析和决策能，构建出的应用更加完善、稳定'
+    desc: '基于一套工作流的节点生成模式会让 AI 有更强的分析和决策能，构建出的应用更加完善、稳定'
   },
   {
     label: '快速生成模式',
@@ -103,6 +103,22 @@ const agentModeOptions = ref([
     desc: '基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善'
   }
 ])
+
+// 监听 Agent 模式变化
+watch(useAgentMode, (newVal) => {
+  if (newVal) {
+    generatorType.value = 'VUE_PROJECT'
+  }
+}, { immediate: true })
+
+// 处理生成器类型选择
+const handleGeneratorTypeSelect = (value: any) => {
+  if (useAgentMode.value && value !== 'VUE_PROJECT') {
+    message.warning('节点智能生成模式下，需使用工程项目模式')
+    return
+  }
+  generatorType.value = value
+}
 
 // 我的应用数据
 const myApps = ref<API.AppVO[]>([])
@@ -345,9 +361,9 @@ onMounted(() => {
             <div
               v-for="option in generatorOptions"
               :key="option.value"
-              :class="{ active: generatorType === option.value }"
+              :class="{ active: generatorType === option.value, disabled: useAgentMode && option.value !== 'VUE_PROJECT' }"
               class="mode-card"
-              @click="generatorType = option.value"
+              @click="handleGeneratorTypeSelect(option.value)"
             >
               <div class="card-icon">
                 <robot-outlined v-if="option.value === 'AI_STRATEGY'"/>
@@ -716,6 +732,18 @@ onMounted(() => {
   border-color: #1890ff;
   background: linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%);
   box-shadow: 0 8px 24px rgba(24, 144, 255, 0.2);
+}
+
+.mode-card.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f5f5f5;
+}
+
+.mode-card.disabled:hover {
+  border-color: #f0f0f0;
+  box-shadow: none;
+  transform: none;
 }
 
 .card-icon {

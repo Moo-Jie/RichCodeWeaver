@@ -1,5 +1,6 @@
 package com.rich.app.utils.streamHandle;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.model.enums.ChatHistoryTypeEnum;
@@ -49,6 +50,22 @@ public class CommonStreamHandler {
                                     .build();
                         }
                 )
+                .onErrorResume(error -> {
+                    String msg = error != null ? error.getMessage() : null;
+                    boolean connectionAborted = (error instanceof java.io.IOException) && msg != null && (
+                            msg.contains("软件中止了一个已建立的连接") ||
+                                    msg.contains("Broken pipe") ||
+                                    msg.contains("Connection reset"));
+                    if (connectionAborted) {
+                        return Flux.empty();
+                    }
+                    return Flux.just(
+                            ServerSentEvent.<String>builder()
+                                    .event("error")
+                                    .data(JSONUtil.toJsonStr(Map.of("error", msg)))
+                                    .build()
+                    );
+                })
                 // 拼接结束事件
                 // Flux 适用于处理 0-N 个项目的情况，而 Mono 适用于处理 0-1 个项目的情况，故使用 Mono.just() 执行一次结束事件拼接
                 .concatWith(Mono.just(
@@ -56,6 +73,22 @@ public class CommonStreamHandler {
                                 .event("end")
                                 .data("")
                                 .build()
-                ));
+                ))
+                .doFinally(signalType -> {
+                    try {
+                        String aiResponse = aiResponseBuilder.toString();
+                        if (StrUtil.isNotBlank(aiResponse)) {
+                            chatHistoryService.addChatMessage(appId,
+                                    aiResponse,
+                                    ChatHistoryTypeEnum.AI.getValue(),
+                                    userId);
+                        }
+                    } catch (Exception e) {
+                        chatHistoryService.addChatMessage(appId,
+                                "AI 响应保存失败：" + e.getMessage(),
+                                ChatHistoryTypeEnum.AI.getValue(),
+                                userId);
+                    }
+                });
     }
 }

@@ -1,9 +1,13 @@
 package com.rich.app.utils.deployWebProjectUtils;
 
+import cn.hutool.json.JSONUtil;
+import cn.hutool.json.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.rich.app.utils.deployWebProjectUtils.ExecuteSysCommandUtil.executeNpmCommand;
@@ -59,6 +63,8 @@ public class BuildWebProjectExecutor {
         if (projectDir == null) return false;
 
         log.info("开始打包构建 Vue 项目: {}", projectPath);
+
+        ensureEsmConfig(projectDir);
 
         // 反转布尔逻辑：成功时继续执行
         if (!executeNpmCommand(projectDir, "install", MAX_RETRIES)) {
@@ -125,5 +131,23 @@ public class BuildWebProjectExecutor {
 
         log.error("打包构建目录未生成，请检查打包构建输出");
         return false;
+    }
+
+    private void ensureEsmConfig(File projectDir) {
+        try {
+            File pkg = new File(projectDir, "package.json");
+            if (!pkg.exists()) return;
+            String text = Files.readString(pkg.toPath(), StandardCharsets.UTF_8);
+            JSONObject obj = JSONUtil.parseObj(text);
+            String type = obj.getStr("type");
+            if (type == null || !"module".equalsIgnoreCase(type)) {
+                obj.set("type", "module");
+                String updated = obj.toStringPretty();
+                Files.writeString(pkg.toPath(), updated, StandardCharsets.UTF_8);
+                log.info("已设置 package.json 的 type 为 module");
+            }
+        } catch (Exception e) {
+            log.warn("ESM 配置处理失败: {}", e.getMessage());
+        }
     }
 }

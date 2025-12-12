@@ -10,7 +10,7 @@ spring:
   # redis
   data:
     redis:
-      database: 1
+      database: 5
       port: 6379
       host: localhost
       password:

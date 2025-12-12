@@ -47,7 +47,7 @@ public class AiWebResourceOrganizeServiceFactory {
         return AiServices.builder(AiWebResourceOrganizeService.class)
                 .chatModel(webResourceOrganizeChatModel)
                 // 配置提示词护轨规则
-                .inputGuardrails(new PromptSafetyInputGuardrail())
+//                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .tools(
                         aiWebScrapingTool,
                         aiWebSearchTool

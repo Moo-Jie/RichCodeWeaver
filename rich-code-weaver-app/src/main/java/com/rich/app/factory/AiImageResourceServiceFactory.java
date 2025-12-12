@@ -47,7 +47,7 @@ public class AiImageResourceServiceFactory {
         return AiServices.builder(AiImageResourceService.class)
                 .chatModel(imageResourceChatModel)
                 // 配置提示词护轨规则
-                .inputGuardrails(new PromptSafetyInputGuardrail())
+//                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .tools(
                         imageSearchTool,
                         aiGeneratorImageTool

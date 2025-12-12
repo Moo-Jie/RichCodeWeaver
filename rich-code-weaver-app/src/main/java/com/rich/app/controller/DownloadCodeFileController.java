@@ -36,7 +36,7 @@ public class DownloadCodeFileController {
      * @param appId    应用 ID
      * @param response 响应
      */
-    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+//    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     @GetMapping("/code/zip/{appId}")
     public void downloadCodeZipFile(@PathVariable Long appId,
 //                                    HttpServletRequest request,

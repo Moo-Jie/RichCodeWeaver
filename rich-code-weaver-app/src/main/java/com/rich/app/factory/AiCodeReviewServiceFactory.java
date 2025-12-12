@@ -36,7 +36,7 @@ public class AiCodeReviewServiceFactory {
         return AiServices.builder(AiCodeReviewService.class)
                 .chatModel(codeReviewChatModel)
                 // 配置提示词护轨规则
-                .inputGuardrails(new PromptSafetyInputGuardrail())
+//                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .build();
     }
 }

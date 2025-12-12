@@ -193,11 +193,11 @@ public class AppController {
      * @param appQueryRequest 查询请求参数
      * @return com.rich.app.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.app.model.vo.AppVO>> 星标应用列表
      */
-    @Cacheable(
-            value = STAR_APP_CACHE_NAME, // 缓存名
-            key = "T( com.rich.app.utils.RedisUtils).genKey(#appQueryRequest)" // 缓存 key 名
-//            condition = "#appQueryRequest.pageNum <= 5" // 缓存条件
-    )
+//    @Cacheable(
+//            value = STAR_APP_CACHE_NAME, // 缓存名
+//            key = "T( com.rich.app.utils.RedisUtils).genKey(#appQueryRequest)" // 缓存 key 名
+////            condition = "#appQueryRequest.pageNum <= 5" // 缓存条件
+//    )
     @PostMapping("/good/list/page/vo")
     public BaseResponse<Page<AppVO>> listStarAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
         // 参数校验
