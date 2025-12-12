@@ -30,7 +30,7 @@ spring:
 server:
   port: 8101
   servlet:
-    context-path: /api
+    context-path: /
     # cookie 30 天过期
     session:
       cookie:
@@ -57,3 +57,25 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+
+# Spring Boot Admin Client 配置
+spring.boot.admin.client:
+  # Spring Boot Admin Server 地址
+  url: http://localhost:9001
+  instance:
+    # 服务实例名称
+    name: ${spring.application.name}
+    # 服务访问地址
+    service-base-url: http://localhost:${server.port}
+
+# actuator 端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        # 暴露所有端点
+        include: '*'
+  endpoint:
+    health:
+      # 显示详细健康信息
+      show-details: always

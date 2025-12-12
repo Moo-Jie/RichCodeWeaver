@@ -120,5 +120,16 @@
             <artifactId>rich-code-weaver-client</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+        <!-- Spring Boot Admin Client -->
+        <dependency>
+            <groupId>de.codecentric</groupId>
+            <artifactId>spring-boot-admin-starter-client</artifactId>
+            <version>3.4.7</version>
+        </dependency>
+        <!-- Spring Boot Actuator -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
     </dependencies>
 </project>
