@@ -25,20 +25,20 @@ public interface AppConstant {
     /**
      * 应用生成目录
      */
-    String CODE_OUTPUT_ROOT_DIR = System.getProperty("user.dir") + "/appCode/code_output";
+    String CODE_OUTPUT_ROOT_DIR = "/www/wwwroot/server/cache/appCode/code_output";
 
     /**
      * 应用部署目录
      */
-    String CODE_DEPLOY_ROOT_DIR = System.getProperty("user.dir") + "/appCode/code_deploy";
+    String CODE_DEPLOY_ROOT_DIR = "/www/wwwroot/server/cache/appCode/code_deploy";
 
     /**
      * 应用截图目录
      */
-    String APP_SCREENSHOT_DIR = System.getProperty("user.dir") + "/sysCache/screenshots";
+    String APP_SCREENSHOT_DIR = "/www/wwwroot/server/cache/sysCache/screenshots";
 
     /**
      * 应用部署域名
      */
-    String CODE_DEPLOY_HOST = "http://localhost";
+    String CODE_DEPLOY_HOST = "http://rubyyan.cn/userWeb";
 }

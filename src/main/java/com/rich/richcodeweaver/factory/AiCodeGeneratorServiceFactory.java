@@ -3,18 +3,17 @@ package com.rich.richcodeweaver.factory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.richcodeweaver.aiTools.ToolsManager;
-import com.rich.richcodeweaver.guardrail.PromptSafetyInputGuardrail;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorService;
 import com.rich.richcodeweaver.utils.SpringContextUtil;
-import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -70,7 +69,7 @@ public class AiCodeGeneratorServiceFactory {
      * Redis 类型的 ChatMemory 存储，用于存储对话历史
      **/
     @Resource
-    private RedisChatMemoryStore redisChatMemoryStore;
+    private ChatMemoryStore chatMemoryStore;
 
     /**
      * 对话历史服务，用于从数据库加载和保存对话历史
@@ -107,7 +106,7 @@ public class AiCodeGeneratorServiceFactory {
                 .builder()
                 .id(appId)
                 // 指定为 Redis 类型的 ChatMemory
-                .chatMemoryStore(redisChatMemoryStore)
+                .chatMemoryStore(chatMemoryStore)
                 // 最大消息数
                 .maxMessages(50)
                 .build();
@@ -123,7 +122,7 @@ public class AiCodeGeneratorServiceFactory {
                 // 配置基础 AI 模型
                 .chatModel(chatModel)
                 // 配置提示词护轨规则
-                .inputGuardrails(new PromptSafetyInputGuardrail())
+                // .inputGuardrails(new PromptSafetyInputGuardrail())
                 // 最大调用工具数
                 .maxSequentialToolsInvocations(25)
                 // 配置 chatMemory
@@ -148,7 +147,7 @@ public class AiCodeGeneratorServiceFactory {
                         // 当前模式使用了 memoryId ,强制要求指定 chatMemoryProvider
                         .chatMemoryProvider(id -> chatMemory)
                         // 指定供 AI 调用的自定义工具包
-                        .tools(toolsManager.getAllTools())
+                        .tools((Object[]) toolsManager.getAllTools())
                         // 当幻觉调用工具名称时，使用自定义策略
                         // 参考 ：https://blog.csdn.net/qq_52155674/article/details/147238250
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(

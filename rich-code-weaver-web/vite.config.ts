@@ -16,7 +16,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8101',
+        target: 'http://rubyyan.cn',
         changeOrigin: true,
         secure: false
       }
