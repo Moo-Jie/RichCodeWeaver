@@ -18,7 +18,8 @@ export default defineConfig({
       '/api': {
         target: 'http://rubyyan.cn',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        ws: true
       }
     }
   }

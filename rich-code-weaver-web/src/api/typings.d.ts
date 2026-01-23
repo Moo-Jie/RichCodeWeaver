@@ -225,7 +225,8 @@ declare namespace API {
     userId: number
   }
 
-  type ServerSentEventString = true
+  // SSE 已迁移为 WebSocket：/api/ws/codegen
+  // type ServerSentEventString = true
 
   type uploadAppCoverParams = {
     appId: number

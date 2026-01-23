@@ -387,6 +387,7 @@ import {
   getStaticPreviewUrl,
   getWebProjectStaticPreviewUrl
 } from '@/config/env'
+import { CodeGenWsClient, type CodeGenWsServerMessage } from '@/utils/codeGenWs'
 
 import {
   CloudUploadOutlined,
@@ -462,6 +463,13 @@ const timer = ref(null)
 // 应用信息
 const appInfo = ref<API.AppVO>()
 const appId = ref<string>()
+
+// WebSocket：代码生成（替代 SSE，支持断线重连/刷新续传）
+const codeGenWs = new CodeGenWsClient(API_BASE_URL)
+const LOCAL_TASK_KEY_PREFIX = 'rcw_codegen_active_'
+let currentTaskId: string | null = null
+let lastSeq = 0
+let cachedContent = ''
 
 // 部署按钮点击处理
 const handleDeployClick = () => {
@@ -618,6 +626,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('message', handleIframeMessage)
   visualEditor.value?.disableEditMode()
+  codeGenWs.close()
 })
 
 // 处理来自 iframe 的消息
@@ -811,7 +820,7 @@ const sendMessage = async () => {
   await generateCode(prompt, aiMessageIndex)
 }
 
-// 生成代码 - 使用 EventSource 处理流式响应
+// 生成代码 - 使用 WebSocket 处理流式响应（支持断线重连/刷新续传）
 const generateCode = async (userMessage: string, aiMessageIndex: number) => {
   // 启动计时器
   generatingTime.value = 0
@@ -819,100 +828,76 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
     generatingTime.value++
   }, 1000)
 
-  let eventSource: EventSource | null = null
-  let streamCompleted = false
-
   try {
-    // 获取 axios 配置的 baseURL
-    const baseURL = request.defaults.baseURL || API_BASE_URL
+    const appIdStr = appId.value || ''
+    const localKey = `${LOCAL_TASK_KEY_PREFIX}${appIdStr}`
 
-    // 构建URL参数
-    const params = new URLSearchParams({
-      appId: appId.value || '',
-      message: userMessage,
-      isAgent: useAgentMode.value
-    })
+    // 初始化本次缓存
+    currentTaskId = null
+    lastSeq = 0
+    cachedContent = ''
 
-    const url = `${baseURL}/app/gen/code/stream?${params}`
-
-    // 创建 EventSource 连接
-    eventSource = new EventSource(url, {
-      withCredentials: true
-    })
-
-    let fullContent = ''
-
-    // 处理接收到的消息
-    eventSource.onmessage = function(event) {
-      if (streamCompleted) return
-
-      try {
-        // 解析JSON包装的数据
-        const parsed = JSON.parse(event.data)
-        const content = parsed.b
-
-        // 拼接内容
-        if (content !== undefined && content !== null) {
-          fullContent += content
-          messages.value[aiMessageIndex].content = fullContent
-          messages.value[aiMessageIndex].loading = false
-          scrollToBottom()
-        }
-      } catch (error) {
-        console.error('解析消息失败:', error)
-        handleError(error, aiMessageIndex)
+    // 绑定 WS 消息处理（与当前 aiMessageIndex 绑定）
+    codeGenWs.onMessage = async (msg: CodeGenWsServerMessage) => {
+      if (msg.type === 'started') {
+        currentTaskId = msg.taskId
+        localStorage.setItem(localKey, JSON.stringify({ taskId: currentTaskId, lastSeq, content: cachedContent }))
+        return
       }
-    }
-
-    // 处理 end 事件
-    eventSource.addEventListener('end', function() {
-      if (streamCompleted) return
-
-      // 清除计时器
-      if (timer.value) {
-        clearInterval(timer.value)
-        timer.value = null
+      if (msg.type === 'chunk') {
+        if (currentTaskId && msg.taskId !== currentTaskId) return
+        if (typeof msg.seq === 'number') lastSeq = msg.seq
+        const data = msg.data ?? ''
+        cachedContent += data
+        messages.value[aiMessageIndex].content = cachedContent
+        messages.value[aiMessageIndex].loading = false
+        scrollToBottom()
+        localStorage.setItem(
+          localKey,
+          JSON.stringify({ taskId: currentTaskId ?? msg.taskId, lastSeq, content: cachedContent })
+        )
+        return
       }
-
-      streamCompleted = true
-      isGenerating.value = false
-      eventSource?.close()
-
-      // 延迟更新预览，确保后端已完成处理
-      setTimeout(async () => {
-        await fetchAppInfo()
-        updatePreview()
-        // 强制刷新预览 iframe
-        if (previewIframe.value) {
-          previewIframe.value.src = previewIframe.value.src
+      if (msg.type === 'end') {
+        if (currentTaskId && msg.taskId !== currentTaskId) return
+        if (timer.value) {
+          clearInterval(timer.value)
+          timer.value = null
         }
-      }, 5000) // 5秒延迟
-    })
-
-    // 处理错误
-    eventSource.onerror = function() {
-      if (streamCompleted || !isGenerating.value) return
-      // 检查是否是正常的连接关闭
-      if (eventSource?.readyState === EventSource.CONNECTING) {
-        streamCompleted = true
         isGenerating.value = false
-        eventSource?.close()
+        localStorage.removeItem(localKey)
 
         setTimeout(async () => {
           await fetchAppInfo()
           updatePreview()
-          // 强制刷新预览
-          const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement
-          if (iframe) {
-            iframe.src = iframe.src
+          if (previewIframe.value) {
+            previewIframe.value.src = previewIframe.value.src
           }
-        }, 1000)
-      } else {
-        handleError(new Error('SSE连接错误'), aiMessageIndex)
+        }, 5000)
+        return
+      }
+      if (msg.type === 'error') {
+        if (timer.value) {
+          clearInterval(timer.value)
+          timer.value = null
+        }
+        isGenerating.value = false
+        messages.value[aiMessageIndex].content = msg.message || '抱歉，生成过程中出现了错误，请重试。'
+        messages.value[aiMessageIndex].loading = false
+        localStorage.removeItem(localKey)
+        message.error('生成失败：' + (msg.message || '未知错误'))
       }
     }
+
+    await codeGenWs.ensureConnected()
+    codeGenWs.send({
+      type: 'start',
+      appId: appIdStr,
+      message: userMessage,
+      isAgent: !!useAgentMode.value
+    })
   } catch (error) {
-    console.error('创建 EventSource 失败：', error)
+    console.error('创建 WebSocket 失败：', error)
     handleError(error, aiMessageIndex)
   }
 }
@@ -927,7 +912,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   console.error('生成代码失败：', error)
   messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
   messages.value[aiMessageIndex].loading = false
-  message.error('生成失败，请重试:' + res.data.message)
+  message.error('生成失败，请重试')
   isGenerating.value = false
 }
 
@@ -1087,16 +1072,84 @@ const deleteApp = async () => {
   }
 }
 
-// 页面加载时获取应用信息
-onMounted(() => {
-  fetchAppInfo()
+// 页面加载时获取应用信息 + 初始化 WebSocket，并在刷新后自动续传
+onMounted(async () => {
+  await fetchAppInfo()
+
+  // 刷新/崩溃恢复：如果 localStorage 有进行中的 task，则自动 resume
+  const appIdStr = appId.value || ''
+  if (appIdStr) {
+    const localKey = `${LOCAL_TASK_KEY_PREFIX}${appIdStr}`
+    const raw = localStorage.getItem(localKey)
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { taskId: string; lastSeq: number; content: string }
+        if (parsed?.taskId) {
+          currentTaskId = parsed.taskId
+          lastSeq = parsed.lastSeq || 0
+          cachedContent = parsed.content || ''
+
+          // 补一个 AI 消息占位，用于续传追加
+          const aiMessageIndex = messages.value.length
+          messages.value.push({
+            type: 'ai',
+            content: cachedContent,
+            loading: true
+          })
+          isGenerating.value = true
+
+          // 绑定 WS 消息处理（resume 时也必须绑定，否则后端推了 chunk 前端也不会更新）
+          codeGenWs.onMessage = async (msg: CodeGenWsServerMessage) => {
+            if (msg.type === 'chunk') {
+              if (currentTaskId && msg.taskId !== currentTaskId) return
+              if (typeof msg.seq === 'number') lastSeq = msg.seq
+              const data = msg.data ?? ''
+              cachedContent += data
+              messages.value[aiMessageIndex].content = cachedContent
+              messages.value[aiMessageIndex].loading = false
+              scrollToBottom()
+              localStorage.setItem(
+                localKey,
+                JSON.stringify({ taskId: currentTaskId ?? msg.taskId, lastSeq, content: cachedContent })
+              )
+              return
+            }
+            if (msg.type === 'end') {
+              if (currentTaskId && msg.taskId !== currentTaskId) return
+              isGenerating.value = false
+              localStorage.removeItem(localKey)
+              return
+            }
+            if (msg.type === 'error') {
+              isGenerating.value = false
+              messages.value[aiMessageIndex].content = msg.message || '抱歉，生成过程中出现了错误，请重试。'
+              messages.value[aiMessageIndex].loading = false
+              localStorage.removeItem(localKey)
+              message.error('生成失败：' + (msg.message || '未知错误'))
+            }
+          }
+
+          await codeGenWs.ensureConnected()
+          codeGenWs.send({
+            type: 'resume',
+            appId: appIdStr,
+            taskId: currentTaskId,
+            fromSeq: (lastSeq || 0) + 1
+          })
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+  }
 })
 
-// 清理资源,EventSource 会在组件卸载时自动清理
+// 清理资源
 onUnmounted(() => {
   if (timer.value) {
     clearInterval(timer.value)
   }
+  codeGenWs.close()
 })
 </script>
 

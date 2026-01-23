@@ -1,14 +1,9 @@
 package com.rich.richcodeweaver.utils.aiUtils.streamHandle;
 
-import cn.hutool.json.JSONUtil;
 import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.service.ChatHistoryService;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.util.Map;
 
 /**
  * 通用流处理器，含 AI 响应流处理的通用逻辑
@@ -27,35 +22,14 @@ public class CommonStreamHandler {
      * @param userId             用户 ID
      * @return 处理后的 AI 响应流
      */
-    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, StringBuilder aiResponseBuilder) {
-        // 处理 AI 响应流
-        return stringFlux
-                // 错误处理
-                .doOnError(error -> {
-                    chatHistoryService.addChatMessage(appId, "AI 响应失败,请联系管理员：" + error.getMessage(),
-                            ChatHistoryTypeEnum.AI.getValue(),
-                            userId);
-                })
-                // 封装为和前端约定好的 JOSN 格式的 SSE 事件
-                .map(
-                        strBlock -> {
-                            // 封装为 JSON 字符串，预防直接进行字符串流式传输丢失空格符、换行符等问题
-                            // {"b": "代码内容"} 格式，用于前端解析
-                            // 注意： 前端应当具备对当前输出格式的解析能力
-                            String jsonStrBlock = JSONUtil.toJsonStr(Map.of("b", strBlock));
-                            // 封装为 SSE 事件
-                            return ServerSentEvent.<String>builder()
-                                    .data(jsonStrBlock)
-                                    .build();
-                        }
-                )
-                // 拼接结束事件
-                // Flux 适用于处理 0-N 个项目的情况，而 Mono 适用于处理 0-1 个项目的情况，故使用 Mono.just() 执行一次结束事件拼接
-                .concatWith(Mono.just(
-                        ServerSentEvent.<String>builder()
-                                .event("end")
-                                .data("")
-                                .build()
-                ));
+    public Flux<String> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, StringBuilder aiResponseBuilder) {
+        // WebSocket 模式下不再封装 ServerSentEvent；直接返回文本块。
+        // 错误仍然需要记录到对话历史中，方便刷新后可追溯。
+        return stringFlux.doOnError(error -> chatHistoryService.addChatMessage(
+                appId,
+                "AI 响应失败,请联系管理员：" + error.getMessage(),
+                ChatHistoryTypeEnum.AI.getValue(),
+                userId
+        ));
     }
 }

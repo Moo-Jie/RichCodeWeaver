@@ -14,8 +14,6 @@ import com.rich.richcodeweaver.model.vo.AppVO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent;
-import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.util.List;
@@ -108,16 +106,7 @@ public interface AppService extends IService<App> {
      */
     Page<AppVO> listAppVOByPageByAdmin(AppQueryRequest appQueryRequest);
 
-    /**
-     * 执行 AI 对话并并生成代码(流式)
-     *
-     * @param appId   AI 应用id
-     * @param userId  用户id
-     * @param message 对话消息
-     * @param isAgent 是否开启 Agent 模式
-     * @return 代码流
-     */
-    Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isAgent);
+    // 流式生成已由 SSE 迁移为 WebSocket：/api/ws/codegen
 
     /**
      * 执行 AI 对话并并生成代码(非流式)

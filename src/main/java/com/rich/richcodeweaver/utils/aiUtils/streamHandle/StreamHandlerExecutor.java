@@ -5,7 +5,6 @@ import com.rich.richcodeweaver.exception.ErrorCode;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import jakarta.annotation.Resource;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -31,9 +30,9 @@ public class StreamHandlerExecutor {
      * @param appId                 应用 ID
      * @param userId                用户 ID
      * @param codeGeneratorTypeEnum 代码生成器类型枚举
-     * @return reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent < java.lang.String>>  处理后响应给前端的 AI 响应流
+     * @return reactor.core.publisher.Flux<java.lang.String> 处理后响应给前端的 AI 响应流
      **/
-    public Flux<ServerSentEvent<String>> executeStreamHandler(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, CodeGeneratorTypeEnum codeGeneratorTypeEnum) {
+    public Flux<String> executeStreamHandler(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, CodeGeneratorTypeEnum codeGeneratorTypeEnum) {
         return switch (codeGeneratorTypeEnum) {
             // 处理 JSON 格式的 AI 响应流
             // (用于推理构建 Vue 项目模式的 AI 响应流处理器，因为推理模型关于 【思考步骤】 和 【工具调用】 等信息，是用 JOSN 格式输出的)

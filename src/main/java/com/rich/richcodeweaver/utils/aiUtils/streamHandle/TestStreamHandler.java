@@ -4,7 +4,6 @@ import cn.hutool.core.util.StrUtil;
 import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.service.ChatHistoryService;
 import jakarta.annotation.Resource;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -29,7 +28,7 @@ public class TestStreamHandler {
      * @param userId             用户 ID
      * @return 处理后的 AI 响应流
      */
-    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId) {
+    public Flux<String> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId) {
         // 用于收集 AI 响应内容的 StringBuilder
         StringBuilder aiResponseBuilder = new StringBuilder();
         // 处理 AI 响应流

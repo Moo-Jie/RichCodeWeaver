@@ -22,7 +22,6 @@ import com.rich.richcodeweaver.model.dto.app.AppQueryRequest;
 import com.rich.richcodeweaver.model.dto.app.AppUpdateRequest;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.entity.User;
-import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.model.vo.UserVO;
@@ -31,8 +30,6 @@ import com.rich.richcodeweaver.service.ChatHistoryService;
 import com.rich.richcodeweaver.service.ScreenshotService;
 import com.rich.richcodeweaver.service.UserService;
 import com.rich.richcodeweaver.service.aiChatService.AiCodeGeneratorTypeStrategyService;
-import com.rich.richcodeweaver.sysMonitor.SysMonitorContextHolder;
-import com.rich.richcodeweaver.sysMonitor.context.SysMonitorContext;
 import com.rich.richcodeweaver.utils.aiUtils.AIGenerateCodeAndSaveToFileUtils;
 import com.rich.richcodeweaver.utils.aiUtils.streamHandle.StreamHandlerExecutor;
 import jakarta.annotation.Resource;
@@ -44,10 +41,8 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.HandlerMapping;
-import reactor.core.publisher.Flux;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -96,59 +91,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private CodeGenWorkflowApp codeGenWorkflowApp;
 
     /**
-     * 管理员执行 AI 对话并并生成代码(流式)
-     *
-     * @param appId   AI 应用id
-     * @param userId  用户id
-     * @param message 对话消息
-     * @param isAgent 是否开启 Agent 模式
-     * @return 代码流
-     * @author DuRuiChi
-     * @create 2025/8/8
+     * SSE 流式生成已迁移为 WebSocket：/api/ws/codegen
+     * （流式生成的业务编排已抽到 {@link com.rich.richcodeweaver.service.codegen.CodeGenStreamService}）
      **/
-    @Override
-    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isAgent) {
-        // 参数校验
-        ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
-        // 为当前线程分配监控上下文
-        SysMonitorContextHolder.setContext(SysMonitorContext.builder()
-                // 监控应用id
-                .appId(String.valueOf(appId))
-                // 监控用户id
-                .userId(String.valueOf(userId))
-                .build());
-        // 查询 AI 应用
-        App app = appService.getById(appId);
-        // 校验 AI 应用是否存在
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
-        // 是否为当前用户所属 AI 应用
-        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
-        // 获取生成类型
-        CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
-        if (type == null) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成类型为空");
-        }
-        // 保存用户消息
-        boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
-        ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
-        Flux<ServerSentEvent<String>> resultFlux;
-        // 调用 AI 响应流
-        if (isAgent) {
-            // 通过工作流执行对话，输出 Agent 风格的响应内容：
-            // 步骤：搜索图片资源——>提示词强化——>代码生成类型规划——>代码生成——>代码保存——>项目构建——>持久化——>响应前端
-            resultFlux = codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
-        } else {
-            // 直接执行对话，输出 AI 的真实响应内容：
-            // 步骤1：代码生成类型规划——>代码生成——>代码保存
-            Flux<String> stringFlux = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
-            // 步骤2：处理 AI 响应流：数据块处理——>持久化——>项目构建——>响应前端
-            resultFlux = streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
-        }
-        // 清空当前线程的监控上下文
-        SysMonitorContextHolder.clearContext();
-        // 返回处理后的响应流
-        return resultFlux;
-    }
 
     /**
      * 管理员执行 AI 对话并并生成代码(非流式)

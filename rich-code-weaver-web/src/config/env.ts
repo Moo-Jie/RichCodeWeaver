@@ -6,7 +6,8 @@
 export const DEPLOY_DOMAIN = import.meta.env.VITE_DEPLOY_DOMAIN || 'http://rubyyan.cn/userWeb'
 
 // API 基础地址
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://rubyyan.cn/api'
+// 默认用相对路径，方便本地 dev 走 Vite proxy，也方便同域部署
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 // 静态资源地址
 export const STATIC_BASE_URL = `${API_BASE_URL}/app/view`

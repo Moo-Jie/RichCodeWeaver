@@ -3,7 +3,6 @@ package com.rich.richcodeweaver.controller;
 
 import com.mybatisflex.core.paginate.Page;
 import com.rich.richcodeweaver.annotation.AuthCheck;
-import com.rich.richcodeweaver.annotation.RateLimit;
 import com.rich.richcodeweaver.constant.UserConstant;
 import com.rich.richcodeweaver.exception.BusinessException;
 import com.rich.richcodeweaver.exception.ErrorCode;
@@ -13,7 +12,6 @@ import com.rich.richcodeweaver.model.common.DeleteRequest;
 import com.rich.richcodeweaver.model.dto.app.*;
 import com.rich.richcodeweaver.model.entity.App;
 import com.rich.richcodeweaver.model.entity.User;
-import com.rich.richcodeweaver.model.enums.RateLimitTypeEnum;
 import com.rich.richcodeweaver.model.vo.AppVO;
 import com.rich.richcodeweaver.service.AppService;
 import com.rich.richcodeweaver.service.FileService;
@@ -23,12 +21,9 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import reactor.core.publisher.Flux;
 
 import java.io.File;
 
@@ -53,27 +48,7 @@ public class AppController {
     @Resource
     private FileService fileService;
 
-    /**
-     * 执行 AI 生成应用代码（SSE 流式)
-     *
-     * @param appId   应用id
-     * @param message 用户消息
-     * @param isAgent 是否开启 Agent 模式
-     * @param request 请求对象
-     * @return 生成结果流
-     */
-    // @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
-    @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId,
-                                                             @RequestParam String message,
-                                                             @RequestParam(defaultValue = "false") Boolean isAgent,
-                                                             HttpServletRequest request) {
-        // 参数校验
-        Long userId = userService.getLoginUser(request).getId();
-        ThrowUtils.throwIf(appId == null || userId == null || message == null, ErrorCode.PARAMS_ERROR);
-        // 执行 AI 生成应用代码
-        return appService.aiChatAndGenerateCodeStream(appId, userId, message, isAgent);
-    }
+    // SSE 流式接口已迁移为 WebSocket：/api/ws/codegen
 
     /**
      * 预览指定应用
@@ -293,7 +268,7 @@ public class AppController {
      * @param request           请求对象
      * @return 生成结果流
      */
-    @GetMapping(value = "/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @GetMapping(value = "/gen/code")
     // @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public File chatToGenCode(@RequestBody AppCodeGenRequest appCodeGenRequest, HttpServletRequest request) {
         // 参数校验

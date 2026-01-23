@@ -5,7 +5,6 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.rich.richcodeweaver.aiTools.BaseTool;
 import com.rich.richcodeweaver.aiTools.ToolsManager;
-import com.rich.richcodeweaver.constant.AppConstant;
 import com.rich.richcodeweaver.exception.ThrowUtils;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamAiChatMsgResponse;
 import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamMsgResponse;
@@ -14,10 +13,8 @@ import com.rich.richcodeweaver.model.aiChatResponse.msgResponse.StreamToolInvocM
 import com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum;
 import com.rich.richcodeweaver.model.enums.ReasoningStreamMsgTypeEnum;
 import com.rich.richcodeweaver.service.ChatHistoryService;
-import com.rich.richcodeweaver.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -51,7 +48,7 @@ public class JsonStreamHandler {
      * @param userId             用户 ID
      * @return 处理后的 AI 响应流
      */
-    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId) {
+    public Flux<String> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId) {
         // 收集 AI 响应内容，用于保存到对话历史
         StringBuilder aiResponseBuilder = new StringBuilder();
         // 用于跟踪已经见过的工具ID，判断是否是第一次调用

@@ -19,7 +19,6 @@ import org.bsc.langgraph4j.GraphStateException;
 import org.bsc.langgraph4j.NodeOutput;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 import org.bsc.langgraph4j.prebuilt.MessagesStateGraph;
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
@@ -129,22 +128,22 @@ public class CodeGenWorkflowApp {
 
     /**
      * 执行工作流
-     * 通过 ServerSentEvent (SSE) 实时推送工作流执行进度
+     * WebSocket 模式下实时推送工作流执行进度（返回字符串块，由上层负责封装为 WS 消息）
      *
      * @param originalPrompt     原始提示词，描述需要生成的代码功能
      * @param type               代码生成器的不同模式，影响工作流的执行路径
      * @param appId              应用ID，用于标识不同的生成任务
      * @param chatHistoryService 对话历史服务，用于存储和管理对话记录
      * @param userId             用户ID，用于关联生成任务的用户
-     * @return Flux<String> SSE事件流，包含工作流执行过程中的各种事件
+     * @return Flux<String> 文本流，包含工作流执行过程中的各种事件
      * @author DuRuiChi
      * @create 2025/9/14
      **/
-    public Flux<ServerSentEvent<String>> executeWorkflow(String originalPrompt,
-                                                         CodeGeneratorTypeEnum type,
-                                                         Long appId,
-                                                         ChatHistoryService chatHistoryService,
-                                                         Long userId) {
+    public Flux<String> executeWorkflow(String originalPrompt,
+                                        CodeGeneratorTypeEnum type,
+                                        Long appId,
+                                        ChatHistoryService chatHistoryService,
+                                        Long userId) {
         // 构建 Agent 工作流风格的响应流
         Flux<String> fluxStream = Flux.create(sink -> {
             // 使用虚拟线程执行工作流，避免阻塞主线程
