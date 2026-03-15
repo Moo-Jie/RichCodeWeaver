@@ -56,6 +56,7 @@ public class AiCodeGeneratorServiceFactory {
 
     /**
      * 基础模型（使用 langchain4j 自带的 OpenAiChatModel）
+     * 使用 langchain4j 自动配置的 openAiChatModel
      **/
     @Resource(name = "openAiChatModel")
     private ChatModel chatModel;

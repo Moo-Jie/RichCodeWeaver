@@ -3,34 +3,18 @@ spring:
     name: rich-code-weaver-app
   # session 配置
   session:
-    store-type: redis
     # session 30 天过期
     timeout: 2592000
-  # mysql
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/rich_code_weaver
-    username: root
-    password: 12345
-  # redis
-  data:
-    redis:
-      database: 5
-      port: 6379
-      host: localhost
-      password:
-      user:
-      # 连接超时时间
-      timeout: 5000
-      # 过期时间
-      ttl: 5000
   profiles:
     active: local
+  # 允许 Bean 定义覆盖
+  main:
+    allow-bean-definition-overriding: true
 
 server:
   port: 8101
   servlet:
-    context-path: /
+    context-path: /api
     # cookie 30 天过期
     session:
       cookie:
@@ -57,16 +41,6 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
-
-# Spring Boot Admin Client 配置
-spring.boot.admin.client:
-  # Spring Boot Admin Server 地址
-  url: http://localhost:9001
-  instance:
-    # 服务实例名称
-    name: ${spring.application.name}
-    # 服务访问地址
-    service-base-url: http://localhost:${server.port}
 
 # actuator 端点配置
 management:

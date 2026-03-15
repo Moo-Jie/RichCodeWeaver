@@ -20,7 +20,8 @@ import java.util.List;
 /**
  * 图片搜索工具
  * 支持 AI 通过工具调用的方式搜索图片
- * 开发文档：https://www.pexels.com/api/
+ * 使用百度通用图片搜索API
+ * 开发文档：https://cloud.baidu.com/doc/IMAGESEARCH/s/Lk3bczuw0
  *
  * @author DuRuiChi
  * @create 2025/9/11
@@ -29,12 +30,17 @@ import java.util.List;
 @Component
 public class ImageSearchTool extends BaseTool {
 
-    // Pexels API 的基础URL
-    private static final String PEXELS_API_URL = "https://api.pexels.com/v1/search";
+    // 注入百度图片搜索API密钥
+    @Value("${baidu.image-search-api.api-key:}")
+    private String baiduApiKey;
 
-    // 注入 Pexels API 密钥
-    @Value("${pexels.api-key:}")
-    private String pexelsApiKey;
+    // 注入百度图片搜索API名称
+    @Value("${baidu.image-search-api.api-name:}")
+    private String baiduApiName;
+
+    // 注入百度图片搜索API地址
+    @Value("${baidu.image-search-api.base-url:}")
+    private String baiduBaseUrl;
 
     @Override
     public String getToolName() {
@@ -63,46 +69,63 @@ public class ImageSearchTool extends BaseTool {
     public List<ImageResource> searchImages(@P("清晰、凝练的搜索关键词") String query) {
         // 初始化图片列表
         List<ImageResource> imageList = new ArrayList<>();
-        if (pexelsApiKey == null || pexelsApiKey.isEmpty()) {
-            log.warn("Pexels API 密钥未配置，无法搜索图片");
+        if (baiduApiKey == null || baiduApiKey.isEmpty()) {
+            log.warn("百度图片搜索API密钥未配置，无法搜索图片");
             return imageList;
         }
         // 设置每次搜索返回的图片数量
         int searchCount = 12;
 
-        // 调用 Pexels API，使用 try-with-resources 确保HTTP响应资源被正确释放
-        // 文档：https://www.pexels.com/api/documentation/#photos-search
-        try (HttpResponse response = HttpRequest.get(PEXELS_API_URL)
-                .header("Authorization", pexelsApiKey) // 设置认证头
-                .form("query", query)                  // 设置搜索关键词
-                .form("per_page", searchCount)        // 设置每页返回结果数量
-                .form("page", 1)                      // 设置页码（第一页）
-                .execute()) {
+        // 调用百度图片搜索API
+        try {
+            // 构建请求体
+            JSONObject requestBody = new JSONObject();
+            requestBody.set("keyword", query);
+            requestBody.set("pn", 0);  // 分页页号，从0开始
+            requestBody.set("rn", searchCount);  // 返回结果数量
+
+            // 发送POST请求
+            HttpResponse response = HttpRequest.post(baiduBaseUrl)
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", baiduApiKey)
+                    .body(requestBody.toString())
+                    .execute();
 
             // 检查HTTP响应是否成功（状态码200）
             if (response.isOk()) {
                 // 解析JSON响应
                 JSONObject result = JSONUtil.parseObj(response.body());
+                
+                // 检查是否有错误
+                if (result.containsKey("error_code")) {
+                    log.error("百度图片搜索API返回错误: {}", result.getStr("error_msg"));
+                    return imageList;
+                }
+                
                 // 获取图片数组
-                JSONArray photos = result.getJSONArray("photos");
+                JSONArray images = result.getJSONArray("data");
+                if (images == null || images.isEmpty()) {
+                    log.warn("未找到相关图片");
+                    return imageList;
+                }
 
                 // 遍历所有图片结果
-                for (int i = 0; i < photos.size(); i++) {
-                    JSONObject photo = photos.getJSONObject(i);
-                    // 获取图片的不同尺寸URL
-                    JSONObject src = photo.getJSONObject("src");
+                for (int i = 0; i < images.size(); i++) {
+                    JSONObject image = images.getJSONObject(i);
 
                     // 构建图片资源对象并添加到列表
                     imageList.add(ImageResource.builder()
                             .category(ImageCategoryEnum.CONTENT)           // 设置图片分类为内容图片
-                            .description(photo.getStr("alt", query))       // 使用图片的alt文本或搜索关键词作为描述
-                            .url(src.getStr("medium"))                     // 使用中等尺寸的图片URL
+                            .description(image.getStr("title", query))     // 使用图片标题或搜索关键词作为描述
+                            .url(image.getStr("thumbURL"))                 // 使用缩略图URL
                             .build());
                 }
+            } else {
+                log.error("百度图片搜索API请求失败，状态码: {}", response.getStatus());
             }
         } catch (Exception e) {
             // 记录API调用失败的错误日志
-            log.error("Pexels API 调用失败: {}", e.getMessage(), e);
+            log.error("百度图片搜索API调用失败: {}", e.getMessage(), e);
         }
 
         // 返回搜索到的图片列表（可能为空列表）

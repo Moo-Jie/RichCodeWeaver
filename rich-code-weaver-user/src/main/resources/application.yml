@@ -3,16 +3,18 @@ spring:
     name: rich-code-weaver-user
   # session 配置
   session:
-    store-type: redis
     # session 30 天过期
     timeout: 2592000
   profiles:
     active: local
+  # 允许 Bean 定义覆盖
+  main:
+    allow-bean-definition-overriding: true
 
 server:
   port: 8102
   servlet:
-    context-path: /
+    context-path: /api
     # cookie 30 天过期
     session:
       cookie:
@@ -28,16 +30,6 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
-
-# Spring Boot Admin Client 配置
-spring.boot.admin.client:
-  # Spring Boot Admin Server 地址
-  url: http://localhost:9001
-  instance:
-    # 服务实例名称
-    name: ${spring.application.name}
-    # 服务访问地址
-    service-base-url: http://localhost:${server.port}
 
 # actuator 端点配置
 management:

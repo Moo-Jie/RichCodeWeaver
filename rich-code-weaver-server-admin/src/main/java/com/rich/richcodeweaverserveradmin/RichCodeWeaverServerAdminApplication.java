@@ -8,9 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 // 启动 spring boot admin server
 @EnableAdminServer
 public class RichCodeWeaverServerAdminApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(RichCodeWeaverServerAdminApplication.class, args);
     }
-
 }

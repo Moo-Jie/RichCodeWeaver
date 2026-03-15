@@ -1,7 +1,8 @@
 package com.rich.ai.aiTools.webOperate;
 
 import cn.hutool.http.HttpException;
-import cn.hutool.http.HttpUtil;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONException;
 import cn.hutool.json.JSONObject;
@@ -14,12 +15,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
- * 供 AI 调用的联网搜索工具，通过 SearchAPI 集成百度搜索引擎
+ * 供 AI 调用的联网搜索工具，通过百度搜索API集成
+ * API 文档：https://cloud.baidu.com/doc/WENXINWORKSHOP/s/Nlks5zkzu
  *
  * @author DuRuiChi
  * @create 2025/7/5
@@ -29,21 +29,27 @@ import java.util.Map;
 public class AiWebSearchTool extends BaseTool {
 
     /**
-     * SearchAPI 的搜索端点URL
-     * API 文档：https://www.searchapi.io/docs/google
-     */
-    private static final String SEARCH_URL = "https://www.searchapi.io/api/v1/search";
-
-    /**
      * 默认的搜索结果返回数量
      */
     private static final int DEFAULT_RESULT_COUNT = 5;
 
     /**
-     * SearchAPI 的认证密钥，从配置文件注入
+     * 百度搜索API的认证密钥，从配置文件注入
      */
-    @Value("${search-api.api-key:}")
+    @Value("${baidu.search-api.api-key:}")
     private String apiKey;
+
+    /**
+     * 百度搜索API的名称，从配置文件注入
+     */
+    @Value("${baidu.search-api.api-name:}")
+    private String apiName;
+
+    /**
+     * 百度搜索API的基础URL，从配置文件注入
+     */
+    @Value("${baidu.search-api.base-url:}")
+    private String baseUrl;
 
     @Override
     public String getToolName() {
@@ -77,19 +83,28 @@ public class AiWebSearchTool extends BaseTool {
             throw new IllegalArgumentException("搜索查询不能为空");
         }
         if (apiKey == null || apiKey.isEmpty()) {
-            log.error("SearchAPI 密钥未配置");
-            return "SearchAPI 密钥未配置，请检查配置";
+            log.error("百度搜索API密钥未配置");
+            return "百度搜索API密钥未配置，请检查配置";
         }
 
-        Map<String, Object> paramMap = createRequestParams(query);
-
         try {
-            // 执行HTTP GET请求
-            log.info("正在搜索: {}", query);
-            String response = HttpUtil.get(SEARCH_URL, paramMap);
+            // 执行HTTP POST请求
+            log.info("正在通过百度搜索API搜索: {}", query);
+            
+            // 构建请求体
+            JSONObject requestBody = new JSONObject();
+            requestBody.set("query", query);
+            requestBody.set("top_n", DEFAULT_RESULT_COUNT);
+            
+            // 发送请求
+            HttpResponse response = HttpRequest.post(baseUrl)
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", apiKey)
+                    .body(requestBody.toString())
+                    .execute();
 
             // 解析并处理搜索结果
-            return processSearchResponse(response);
+            return processSearchResponse(response.body());
         } catch (HttpException e) {
             log.error("百度搜索网络异常: {}", e.getMessage());
             return "搜索服务暂时不可用，请稍后再试。错误详情: " + e.getMessage();
@@ -103,30 +118,6 @@ public class AiWebSearchTool extends BaseTool {
     }
 
     /**
-     * 创建搜索请求参数
-     *
-     * @param query 搜索关键词
-     * @return 参数映射表
-     */
-    private Map<String, Object> createRequestParams(String query) {
-        // 构建请求参数
-        Map<String, Object> paramMap = new HashMap<>(8);
-        // 添加搜索关键词
-        paramMap.put("q", query);
-        // 添加API密钥
-        paramMap.put("api_key", apiKey);
-        // 使用百度搜索引擎
-        paramMap.put("engine", "baidu");
-        // 国家/地区代码（中国）
-        paramMap.put("gl", "cn");
-        // 界面语言（简体中文）
-        paramMap.put("hl", "zh-cn");
-        // 明确请求结果数量
-        paramMap.put("num", DEFAULT_RESULT_COUNT);
-        return paramMap;
-    }
-
-    /**
      * 处理API响应并提取有用信息
      *
      * @param response API返回的JSON字符串
@@ -136,31 +127,31 @@ public class AiWebSearchTool extends BaseTool {
         JSONObject jsonObject = JSONUtil.parseObj(response);
 
         // 检查API返回的错误
-        if (jsonObject.containsKey("error")) {
-            String error = jsonObject.getStr("error");
-            log.error("SearchAPI返回错误: {}", error);
+        if (jsonObject.containsKey("error_code")) {
+            String error = jsonObject.getStr("error_msg");
+            log.error("百度搜索API返回错误: {}", error);
             return "搜索服务返回错误: " + error;
         }
 
         // 获取搜索结果列表
-        JSONArray organicResults = jsonObject.getJSONArray("organic_results");
-        if (organicResults == null || organicResults.isEmpty()) {
+        JSONArray results = jsonObject.getJSONArray("results");
+        if (results == null || results.isEmpty()) {
             log.warn("未找到相关搜索结果");
             return "未找到相关搜索结果";
         }
 
         // 确定实际结果数量（不超过默认值）
-        int resultCount = Math.min(DEFAULT_RESULT_COUNT, organicResults.size());
+        int resultCount = Math.min(DEFAULT_RESULT_COUNT, results.size());
         List<JSONObject> resultList = new ArrayList<>();
 
         // 提取并格式化关键信息
         for (int i = 0; i < resultCount; i++) {
-            JSONObject item = organicResults.getJSONObject(i);
+            JSONObject item = results.getJSONObject(i);
             JSONObject formatted = new JSONObject();
             formatted.set("id", i + 1);
             formatted.set("title", item.getStr("title"));
-            formatted.set("link", item.getStr("link"));
-            formatted.set("snippet", item.getStr("snippet", "无摘要"));
+            formatted.set("link", item.getStr("url"));
+            formatted.set("snippet", item.getStr("content", "无摘要"));
             resultList.add(formatted);
         }
 

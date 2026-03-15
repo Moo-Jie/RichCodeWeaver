@@ -7,6 +7,7 @@ import com.rich.model.annotation.AuthCheck;
 import com.rich.model.entity.User;
 import com.rich.model.enums.UserRoleEnum;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;

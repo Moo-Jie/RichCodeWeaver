@@ -14,37 +14,51 @@ spring:
       # 过期时间
       ttl: 5000
 
-# searchApi
-search-api:
-  api-key: 
+# 百度搜索API配置
+baidu:
+  search-api:
+    # 百度搜索API密钥
+    api-key: 
+    # 百度搜索API名称
+    api-name: 
+    # 百度搜索API地址
+    base-url: https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/search
+  # 百度通用图片搜索API配置
+  image-search-api:
+    # 百度图片搜索API密钥
+    api-key: 
+    # 百度图片搜索API名称
+    api-name: 
+    # 百度图片搜索API地址
+    base-url: https://aip.baidubce.com/rest/2.0/image-classify/v1/image_search
 
-# langchain4j 配置
+# langchain4j 配置（使用阿里云百炼AI）
 langchain4j:
   open-ai:
     # 基础模型配置参数（用于简单的 AI 服务，如：代码审查、代码生成策略选择、网络资源收集、图片资源构建等）
     chat-model:
-      # 接口地址
-      base-url: https://api.deepseek.com
-      # 接口密钥
+      # 阿里云百炼AI接口地址
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      # 阿里云百炼AI接口密钥
       api-key:
-      # 模型名称
-      model-name: deepseek-chat
+      # 模型名称（使用qwen-plus作为基础模型）
+      model-name: qwen-plus
       # 开启请求日志
       log-requests: true
       # 开启响应日志
       log-responses: true
       # 最大 token 数
       max-tokens: 8192
-      # 超时设置（毫秒）（秒）- 增加超时时间以处理网络资源整理等耗时操作
+      # 超时设置（毫秒）- 增加超时时间以处理网络资源整理等耗时操作
       timeout: 180000
     # 基础流式模型配置参数（用于构建简单的应用，如：构建单文件应用、多文件应用等）
     streaming-chat-model:
-      # 接口地址
-      base-url: https://api.deepseek.com
-      # 接口密钥
+      # 阿里云百炼AI接口地址
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      # 阿里云百炼AI接口密钥
       api-key: 
-      # 模型名称
-      model-name: deepseek-chat
+      # 模型名称（使用qwen-turbo作为流式模型，速度更快）
+      model-name: qwen-turbo
       # 最大 token 数
       max-tokens: 8192
       # 超时设置（毫秒）- 增加超时时间
@@ -55,14 +69,13 @@ langchain4j:
       log-responses: true
     # 推理流式模型配置参数（用于构建复杂的应用，如：构建工程化项目等）
     reasoning-streaming-chat-model:
-      # 接口地址
-      base-url: https://api.deepseek.com
-      # 接口密钥
+      # 阿里云百炼AI接口地址
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      # 阿里云百炼AI接口密钥
       api-key: 
-      # 模型名称
-      model-name: deepseek-chat
-      #      model-name: deepseek-chat
-      # 最大 token 数 （推理模型多给点 Token）
+      # 模型名称（使用qwen-max作为推理模型，能力最强）
+      model-name: qwen-max
+      # 最大 token 数（推理模型多给点 Token）
       max-tokens: 8192
       # 温度参数（控制模型输出的随机性）
       temperature: 0.1
@@ -73,14 +86,9 @@ langchain4j:
       # 开启响应日志
       log-responses: true
 
-# Pexels 图片搜索
-# https://www.pexels.com/api/
-pexels:
-  api-key:
-
-# 阿里云 DashScope 配置
+# 阿里云 DashScope 配置（用于图片生成）
 dashscope:
   api-key:
   # 绘图模型
-  image-model: wan2.2-t2i-flash
+  image-model: wanx-v1
 

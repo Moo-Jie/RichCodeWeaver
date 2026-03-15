@@ -12,7 +12,7 @@ aliyun:
 dubbo:
   registry:
     # nacos 注册中心启动地址
-    address: nacos://127.0.0.1:8848?username=nacos&password=nacos
+    address: nacos://172.25.48.1:8848?username=nacos&password=nacos
     register-mode: instance
   protocol:
     name: tri
