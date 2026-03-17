@@ -1,6 +1,5 @@
 package com.rich.app.controller;
 
-
 import com.mybatisflex.core.paginate.Page;
 import com.rich.app.service.AppService;
 import com.rich.client.innerService.InnerFileService;
@@ -20,7 +19,6 @@ import com.rich.model.vo.AppVO;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.dubbo.config.annotation.DubboReference;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,8 +28,6 @@ import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
-
-import static com.rich.common.constant.CacheConstant.STAR_APP_CACHE_NAME;
 
 /**
  * AI 应用相关接口
@@ -51,7 +47,7 @@ public class AppController {
     private InnerFileService fileService;
 
     /**
-     * 执行 AI 生成应用代码（SSE 流式)
+     * 执行 AI 生成应用代码（SSE 流式，支持断线重连）
      *
      * @param appId   应用id
      * @param message 用户消息
@@ -63,12 +59,14 @@ public class AppController {
     public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId,
                                                              @RequestParam String message,
                                                              @RequestParam(defaultValue = "false") Boolean isAgent,
+                                                             @RequestParam(defaultValue = "false") Boolean reconnect,
+                                                             @RequestParam(required = false) String lastEventId,
                                                              HttpServletRequest request) {
         // 参数校验
         Long userId = InnerUserService.getLoginUser(request).getId();
         ThrowUtils.throwIf(appId == null || userId == null || message == null, ErrorCode.PARAMS_ERROR);
-        // 执行 AI 生成应用代码
-        return appService.aiChatAndGenerateCodeStream(appId, userId, message, isAgent);
+        // 执行 AI 生成应用代码（支持断线重连）
+        return appService.aiChatAndGenerateCodeStreamWithReconnect(appId, userId, message, isAgent, lastEventId, reconnect);
     }
 
     /**

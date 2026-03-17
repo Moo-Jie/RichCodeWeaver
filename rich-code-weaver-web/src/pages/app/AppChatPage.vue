@@ -294,7 +294,7 @@
             <a-spin :tip="generatingTip" size="large"/>
             <!-- 已用时间显示 -->
             <div class="generating-time">
-              <p class="wait-tip">请勿刷新或退出本页面，否则将断开链接。</p>
+              <p class="wait-tip">支持断线重连，刷新页面后可继续接收生成内容。</p>
               <p class="wait-tip2">已思考时间: {{ generatingTime }}秒</p>
               <p class="wait-tip2">为了生成美观完善的页面，请耐心等待...</p>
             </div>
@@ -457,6 +457,39 @@ const handleTourClose = () => {
 // 添加计时器相关变量
 const generatingTime = ref(0)
 const timer = ref(null)
+
+// SSE 重连相关
+const lastEventId = ref<string | null>(null)
+const reconnectAttempts = ref(0)
+const maxReconnectAttempts = 5
+
+// 使用 localStorage 跟踪正在进行的生成任务（跨页面刷新持久化）
+const getGeneratingKey = () => `rcw_generating_${appId.value}`
+const markGeneratingStart = (userMessage: string) => {
+  localStorage.setItem(getGeneratingKey(), JSON.stringify({
+    message: userMessage,
+    timestamp: Date.now()
+  }))
+}
+const markGeneratingEnd = () => {
+  localStorage.removeItem(getGeneratingKey())
+}
+const getGeneratingInfo = (): { message: string; timestamp: number } | null => {
+  const raw = localStorage.getItem(getGeneratingKey())
+  if (!raw) return null
+  try {
+    const info = JSON.parse(raw)
+    // 超过30分钟的认为已过期
+    if (Date.now() - info.timestamp > 30 * 60 * 1000) {
+      localStorage.removeItem(getGeneratingKey())
+      return null
+    }
+    return info
+  } catch {
+    localStorage.removeItem(getGeneratingKey())
+    return null
+  }
+}
 
 
 // 应用信息
@@ -727,10 +760,46 @@ const fetchChatHistory = async (loadMore = false) => {
       scrollToBottom()
       // 加载历史消息后更新预览
       updatePreview()
+      
+      // 检测是否有未完成的生成任务（基于 localStorage 标记）
+      if (!loadMore) {
+        checkAndResumeGeneration()
+      }
     }
   } finally {
     loadingHistory.value = false
   }
+}
+
+// 检测并恢复未完成的生成任务（基于 localStorage 标记，而非内容猜测）
+const checkAndResumeGeneration = () => {
+  if (!isOwner.value) return
+  
+  const generatingInfo = getGeneratingInfo()
+  if (!generatingInfo) return // localStorage 中没有正在进行的任务
+  
+  console.log('检测到未完成的生成任务（来自 localStorage），准备恢复...', generatingInfo.message.substring(0, 50))
+  message.info('检测到未完成的任务，正在恢复生成...')
+  
+  const lastMessage = messages.value[messages.value.length - 1]
+  let aiMessageIndex: number
+  
+  if (lastMessage?.type === 'ai') {
+    // 已有 AI 消息（可能是半截的），复用它
+    aiMessageIndex = messages.value.length - 1
+    messages.value[aiMessageIndex].loading = true
+  } else {
+    // 没有 AI 消息，添加占位符
+    aiMessageIndex = messages.value.length
+    messages.value.push({
+      type: 'ai',
+      content: '',
+      loading: true
+    })
+  }
+  
+  isGenerating.value = true
+  generateCode(generatingInfo.message, aiMessageIndex, true)
 }
 
 // 加载更多历史消息
@@ -811,110 +880,148 @@ const sendMessage = async () => {
   await generateCode(prompt, aiMessageIndex)
 }
 
-// 生成代码 - 使用 EventSource 处理流式响应
-const generateCode = async (userMessage: string, aiMessageIndex: number) => {
+// 生成代码 - 使用 EventSource 处理流式响应（支持断线重连）
+const generateCode = async (userMessage: string, aiMessageIndex: number, isReconnect: boolean = false) => {
   // 启动计时器
   generatingTime.value = 0
   timer.value = setInterval(() => {
     generatingTime.value++
   }, 1000)
 
+  // 重置重连计数
+  reconnectAttempts.value = 0
+  lastEventId.value = null
+
   let eventSource: EventSource | null = null
   let streamCompleted = false
+  // 重连时从头重建内容（后端会重放所有缓存事件），新建时从空开始
+  let fullContent = ''
+  // 保存已有内容长度，用于重连时避免 UI 闪烁
+  const existingContentLength = isReconnect ? (messages.value[aiMessageIndex]?.content?.length || 0) : 0
 
-  try {
-    // 获取 axios 配置的 baseURL
-    const baseURL = request.defaults.baseURL || API_BASE_URL
+  // 仅新建生成时标记 localStorage（重连时已有标记）
+  if (!isReconnect) {
+    markGeneratingStart(userMessage)
+  }
 
-    // 构建URL参数
-    const params = new URLSearchParams({
-      appId: appId.value || '',
-      message: userMessage,
-      isAgent: useAgentMode.value
-    })
-
-    const url = `${baseURL}/app/gen/code/stream?${params}`
-
-    // 创建 EventSource 连接
-    eventSource = new EventSource(url, {
-      withCredentials: true
-    })
-
-    let fullContent = ''
-
-    // 处理接收到的消息
-    eventSource.onmessage = function (event) {
-      if (streamCompleted) return
-
-      try {
-        // 解析JSON包装的数据
-        const parsed = JSON.parse(event.data)
-        const content = parsed.b
-
-        // 拼接内容
-        if (content !== undefined && content !== null) {
-          fullContent += content
-          messages.value[aiMessageIndex].content = fullContent
-          messages.value[aiMessageIndex].loading = false
-          scrollToBottom()
-        }
-      } catch (error) {
-        console.error('解析消息失败:', error)
-        handleError(error, aiMessageIndex)
-      }
+  // 生成结束的统一清理函数
+  const onStreamEnd = () => {
+    if (streamCompleted) return
+    streamCompleted = true
+    eventSource?.close()
+    markGeneratingEnd()
+    if (timer.value) {
+      clearInterval(timer.value)
+      timer.value = null
     }
+    isGenerating.value = false
+    // 确保最终内容已更新
+    if (fullContent) {
+      messages.value[aiMessageIndex].content = fullContent
+    }
+    messages.value[aiMessageIndex].loading = false
+    // 延迟更新预览，确保后端已完成处理
+    setTimeout(async () => {
+      await fetchAppInfo()
+      updatePreview()
+      if (previewIframe.value) {
+        previewIframe.value.src = previewIframe.value.src
+      }
+    }, 5000)
+  }
 
-    // 处理 end 事件
-    eventSource.addEventListener('end', function () {
-      if (streamCompleted) return
+  let reconnectMode = isReconnect
 
-      // 清除计时器
-      if (timer.value) {
-        clearInterval(timer.value)
-        timer.value = null
+  const connectSSE = () => {
+    try {
+      const baseURL = request.defaults.baseURL || API_BASE_URL
+
+      // 构建URL参数（reconnect 和 lastEventId 作为查询参数）
+      const params = new URLSearchParams({
+        appId: appId.value || '',
+        message: userMessage,
+        isAgent: String(useAgentMode.value),
+        reconnect: String(reconnectMode)
+      })
+      // 如果有 lastEventId，传递给后端
+      if (lastEventId.value) {
+        params.set('lastEventId', lastEventId.value)
       }
 
-      streamCompleted = true
-      isGenerating.value = false
-      eventSource?.close()
+      const url = `${baseURL}/app/gen/code/stream?${params}`
 
-      // 延迟更新预览，确保后端已完成处理
-      setTimeout(async () => {
-        await fetchAppInfo()
-        updatePreview()
-        // 强制刷新预览 iframe
-        if (previewIframe.value) {
-          previewIframe.value.src = previewIframe.value.src
+      // 创建 EventSource 连接
+      eventSource = new EventSource(url, {
+        withCredentials: true
+      })
+
+      // 处理接收到的消息
+      eventSource.onmessage = function (event) {
+        if (streamCompleted) return
+
+        // 保存最后的事件ID
+        if (event.lastEventId) {
+          lastEventId.value = event.lastEventId
         }
-      }, 5000) // 5秒延迟
-    })
 
-    // 处理错误
-    eventSource.onerror = function () {
-      if (streamCompleted || !isGenerating.value) return
-      // 检查是否是正常的连接关闭
-      if (eventSource?.readyState === EventSource.CONNECTING) {
-        streamCompleted = true
-        isGenerating.value = false
+        try {
+          const parsed = JSON.parse(event.data)
+          const content = parsed.b
+
+          if (content !== undefined && content !== null) {
+            fullContent += content
+            // 重连时：只有当重建内容追上已有内容时才更新 UI（避免闪烁）
+            if (fullContent.length >= existingContentLength) {
+              messages.value[aiMessageIndex].content = fullContent
+              messages.value[aiMessageIndex].loading = false
+            }
+            scrollToBottom()
+          }
+        } catch (error) {
+          console.error('解析消息失败:', error)
+        }
+      }
+
+      // 处理 end 事件
+      eventSource.addEventListener('end', function () {
+        onStreamEnd()
+      })
+
+      // 处理错误事件
+      eventSource.addEventListener('error', function () {
+        if (streamCompleted || !isGenerating.value) return
+
+        console.log('SSE 连接错误，readyState:', eventSource?.readyState)
         eventSource?.close()
 
-        setTimeout(async () => {
-          await fetchAppInfo()
-          updatePreview()
-          // 强制刷新预览
-          const iframe = document.querySelector('.preview-iframe') as HTMLIFrameElement
-          if (iframe) {
-            iframe.src = iframe.src
+        // 尝试重连（切换为重连模式）
+        if (reconnectAttempts.value < maxReconnectAttempts) {
+          reconnectAttempts.value++
+          reconnectMode = true // 后续重试都用重连模式
+          console.log(`尝试重连 (${reconnectAttempts.value}/${maxReconnectAttempts})...`)
+          message.info(`连接中断，正在重连... (${reconnectAttempts.value}/${maxReconnectAttempts})`)
+          setTimeout(connectSSE, 1000 * reconnectAttempts.value)
+        } else {
+          // 达到最大重连次数
+          markGeneratingEnd()
+          streamCompleted = true
+          isGenerating.value = false
+          if (timer.value) {
+            clearInterval(timer.value)
+            timer.value = null
           }
-        }, 1000)
-      } else {
-        handleError(new Error('SSE连接错误'), aiMessageIndex)
-      }
+          message.error('连接失败次数过多，请刷新页面重试')
+          handleError(new Error('连接失败次数过多'), aiMessageIndex)
+        }
+      })
+    } catch (error) {
+      console.error('创建 EventSource 失败：', error)
+      handleError(error, aiMessageIndex)
     }
-  } catch (error) {
-    console.error('创建 EventSource 失败：', error)
-    handleError(error, aiMessageIndex)
   }
+
+  // 开始连接
+  connectSSE()
 }
 
 // 错误处理函数

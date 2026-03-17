@@ -6,6 +6,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(
         // 扫描所有 "com.rich" 包下的组件
         scanBasePackages = "com.rich",
@@ -14,6 +15,7 @@ import org.springframework.cache.annotation.EnableCaching;
 @MapperScan("com.rich.app.mapper")
 @EnableCaching
 @EnableDubbo
+@EnableScheduling
 public class AppApplication {
     public static void main(String[] args) {
         SpringApplication.run(AppApplication.class, args);

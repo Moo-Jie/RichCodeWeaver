@@ -11,8 +11,11 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.rich.ai.service.AiCodeGeneratorTypeStrategyService;
 import com.rich.app.langGraph.CodeGenWorkflowApp;
 import com.rich.app.mapper.AppMapper;
+import com.rich.app.model.StreamEvent;
+import com.rich.app.model.StreamSession;
 import com.rich.app.service.AppService;
 import com.rich.app.service.ChatHistoryService;
+import com.rich.app.service.StreamSessionService;
 import com.rich.app.utils.AIGenerateCodeAndSaveToFileUtils;
 import com.rich.app.utils.streamHandle.StreamHandlerExecutor;
 import com.rich.client.innerService.InnerScreenshotService;
@@ -49,11 +52,13 @@ import org.springframework.web.servlet.HandlerMapping;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static com.rich.common.constant.AppConstant.CODE_DEPLOY_ROOT_DIR;
@@ -94,6 +99,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private CodeGenWorkflowApp codeGenWorkflowApp;
+
+    @Resource
+    private StreamSessionService streamSessionService;
 
     /**
      * 管理员执行 AI 对话并并生成代码(流式)
@@ -148,6 +156,185 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 //        SysMonitorContextHolder.clearContext();
         // 返回处理后的响应流
         return resultFlux;
+    }
+
+    /**
+     * 执行 AI 对话并并生成代码(流式，支持断线重连)
+     *
+     * @param appId       AI 应用id
+     * @param userId      用户id
+     * @param message     对话消息
+     * @param isAgent     是否开启 Agent 模式
+     * @param lastEventId 最后接收到的事件ID（用于断线重连）
+     * @return 代码流
+     * @author DuRuiChi
+     * @create 2025/8/27
+     **/
+    @Override
+    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, Boolean isAgent, String lastEventId, Boolean reconnect) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
+        
+        // 生成会话ID（基于 appId + userId + message hash）
+        String sessionKey = generateSessionKey(appId, userId, message);
+        StreamSession existingSession = streamSessionService.getSession(sessionKey);
+        
+        // ========== 重连模式：仅跟随已有会话，绝不创建新的生成任务 ==========
+        if (Boolean.TRUE.equals(reconnect)) {
+            if (existingSession != null) {
+                log.info("重连到现有会话: sessionKey={}, completed={}, hasError={}, eventCount={}", 
+                        sessionKey, existingSession.isCompleted(), existingSession.isHasError(),
+                        existingSession.getEventQueue().size());
+                return createFollowFlux(sessionKey, lastEventId);
+            } else {
+                // 会话不存在（已过期或已被清理），通知前端生成已结束
+                log.info("重连时未找到会话（可能已过期）: sessionKey={}", sessionKey);
+                return Flux.just(ServerSentEvent.<String>builder().event("end").data("").build());
+            }
+        }
+        
+        // ========== 新建模式 ==========
+        
+        // 如果已有活跃会话（未完成且无错误），直接跟随，避免重复生成
+        if (existingSession != null && !existingSession.isCompleted() && !existingSession.isHasError()) {
+            log.info("发现活跃的未完成会话，直接跟随: sessionKey={}", sessionKey);
+            return createFollowFlux(sessionKey, lastEventId);
+        }
+        
+        // 创建新会话
+        streamSessionService.createSession(sessionKey, appId, userId);
+        log.info("创建新的流式会话: sessionKey={}", sessionKey);
+        
+        // 查询 AI 应用
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
+        
+        // 获取生成类型
+        CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
+        if (type == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成类型为空");
+        }
+        
+        // 保存用户消息（仅新建会话时保存，重连不保存）
+        boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
+        ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
+        
+        Flux<ServerSentEvent<String>> resultFlux;
+        
+        // 调用 AI 响应流
+        if (isAgent) {
+            resultFlux = codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
+        } else {
+            Flux<String> stringFlux = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
+            resultFlux = streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
+        }
+        
+        // 独立订阅生成流：AI 生成与客户端连接解耦
+        // 客户端断开不影响生成过程，事件全部缓存到会话中
+        resultFlux.subscribe(
+                event -> {
+                    // 跳过 end/error 事件，这些状态通过会话标记来追踪
+                    if ("end".equals(event.event()) || "error".equals(event.event())) {
+                        return;
+                    }
+                    // 生成事件ID并缓存
+                    String eventId = streamSessionService.generateEventId(sessionKey);
+                    StreamEvent streamEvent = StreamEvent.builder()
+                            .eventId(eventId)
+                            .eventType(event.event() != null ? event.event() : "message")
+                            .data(event.data())
+                            .timestamp(System.currentTimeMillis())
+                            .build();
+                    streamSessionService.addEvent(sessionKey, streamEvent);
+                },
+                error -> {
+                    streamSessionService.markError(sessionKey, error.getMessage());
+                    log.error("流式会话生成错误: sessionKey={}, error={}", sessionKey, error.getMessage());
+                },
+                () -> {
+                    streamSessionService.markCompleted(sessionKey);
+                    log.info("流式会话生成完成: sessionKey={}", sessionKey);
+                }
+        );
+        
+        // 返回跟随 Flux（从会话缓存中实时读取事件推送给客户端）
+        return createFollowFlux(sessionKey, lastEventId);
+    }
+    
+    /**
+     * 创建跟随 Flux：轮询会话缓存，将事件实时推送给客户端。
+     * 无论客户端何时连接/重连，都能从 lastEventId 之后的位置继续接收。
+     *
+     * @param sessionKey  会话密钥
+     * @param lastEventId 客户端最后接收到的事件ID（可为空）
+     * @return 跟随 Flux
+     */
+    private Flux<ServerSentEvent<String>> createFollowFlux(String sessionKey, String lastEventId) {
+        AtomicReference<String> lastSentEventId = new AtomicReference<>(lastEventId);
+        
+        return Flux.interval(Duration.ofMillis(100))
+                .flatMap(tick -> {
+                    StreamSession session = streamSessionService.getSession(sessionKey);
+                    if (session == null) {
+                        // 会话已被清理
+                        return Flux.just(ServerSentEvent.<String>builder()
+                                .event("end").data("").build());
+                    }
+                    
+                    // 获取 lastSentEventId 之后的新事件
+                    List<StreamEvent> newEvents = streamSessionService.getEventsAfter(
+                            sessionKey, lastSentEventId.get());
+                    
+                    if (!newEvents.isEmpty()) {
+                        // 更新最后发送的事件ID
+                        lastSentEventId.set(newEvents.get(newEvents.size() - 1).getEventId());
+                        return Flux.fromIterable(newEvents)
+                                .map(event -> ServerSentEvent.<String>builder()
+                                        .id(event.getEventId())
+                                        .event(event.getEventType())
+                                        .data(event.getData())
+                                        .build());
+                    }
+                    
+                    // 没有新事件时，检查会话是否已结束
+                    if (session.isCompleted()) {
+                        // 再次检查是否有遗漏的事件（防止竞态条件）
+                        List<StreamEvent> remainingEvents = streamSessionService.getEventsAfter(
+                                sessionKey, lastSentEventId.get());
+                        if (!remainingEvents.isEmpty()) {
+                            lastSentEventId.set(remainingEvents.get(remainingEvents.size() - 1).getEventId());
+                            return Flux.fromIterable(remainingEvents)
+                                    .map(e -> ServerSentEvent.<String>builder()
+                                            .id(e.getEventId())
+                                            .event(e.getEventType())
+                                            .data(e.getData())
+                                            .build());
+                        }
+                        return Flux.just(ServerSentEvent.<String>builder()
+                                .event("end").data("").build());
+                    }
+                    if (session.isHasError()) {
+                        String errMsg = session.getErrorMessage() != null ? session.getErrorMessage() : "未知错误";
+                        return Flux.just(ServerSentEvent.<String>builder()
+                                .event("error")
+                                .data(cn.hutool.json.JSONUtil.toJsonStr(Map.of("error", errMsg)))
+                                .build());
+                    }
+                    
+                    // 生成仍在进行中，暂无新事件
+                    return Flux.empty();
+                })
+                // 收到 end 或 error 事件后自动终止
+                .takeUntil(event -> "end".equals(event.event()) || "error".equals(event.event()));
+    }
+
+    /**
+     * 生成会话密钥（基于 appId + userId + message hash）
+     * 确保相同的请求参数生成相同的会话 ID
+     */
+    private String generateSessionKey(Long appId, Long userId, String message) {
+        return String.format("session-%d-%d-%d", appId, userId, message.hashCode());
     }
 
     /**
