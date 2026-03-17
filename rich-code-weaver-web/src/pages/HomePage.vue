@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import {onMounted, reactive, ref, watch} from 'vue'
+import {onMounted, reactive, ref} from 'vue'
 import {useRouter} from 'vue-router'
 import type {TourProps} from 'ant-design-vue'
 import {message, Tour} from 'ant-design-vue'
@@ -12,8 +12,6 @@ import {
   AppstoreOutlined,
   CheckCircleFilled,
   CodeOutlined,
-  FileOutlined,
-  FolderOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
   RobotOutlined,
@@ -80,45 +78,23 @@ const handlePromptSelect = (value: string) => {
 const userPrompt = ref('')
 const creating = ref(false)
 
-// 生成器类型
+// 生成器类型（固定为 AI 自主规划模式）
 const generatorType = ref<API.AppAddRequest['generatorType']>('AI_STRATEGY')
-const generatorOptions = ref([
-  {label: 'AI 自主规划模式', value: 'AI_STRATEGY'},
-  {label: '工程项目模式', value: 'VUE_PROJECT'},
-  {label: '多文件模式', value: 'MULTI_FILE'},
-  {label: '单文件模式', value: 'HTML'}
-])
 
 // 模式选择
 const useAgentMode = ref(true)
 const agentModeOptions = ref([
   {
-    label: '节点智能生成模式',
+    label: '分步执行模式',
     value: true,
-    desc: '基于一套工作流的节点生成模式会让 AI 有更强的分析和决策能，构建出的应用更加完善、稳定'
+    desc: '基于一套工作流的分步执行模式会让 AI 有更强的分析和决策能力，构建出的应用更加完善、稳定'
   },
   {
-    label: '快速生成模式',
+    label: 'Agent智能生成模式',
     value: false,
     desc: '基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善'
   }
 ])
-
-// 监听 Agent 模式变化
-watch(useAgentMode, (newVal) => {
-  if (newVal) {
-    generatorType.value = 'VUE_PROJECT'
-  }
-}, { immediate: true })
-
-// 处理生成器类型选择
-const handleGeneratorTypeSelect = (value: any) => {
-  if (useAgentMode.value && value !== 'VUE_PROJECT') {
-    message.warning('节点智能生成模式下，需使用工程项目模式')
-    return
-  }
-  generatorType.value = value
-}
 
 // 我的应用数据
 const myApps = ref<API.AppVO[]>([])
@@ -342,59 +318,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- 代码生成模式选择器  -->
-        <div class="generator-selector">
-          <div class="selector-title">
-            <span class="title-icon">⚙️</span>
-            <span>选择应用架构</span>
-            <a-tooltip placement="top">
-              <template #title>
-                <div style="max-width: 300px">
-                  选择代码生成模式，不同模式适合不同的应用场景，生成速度、部署成本也不同。
-                </div>
-              </template>
-              <question-circle-outlined class="help-icon"/>
-            </a-tooltip>
-          </div>
-
-          <div class="mode-cards">
-            <div
-              v-for="option in generatorOptions"
-              :key="option.value"
-              :class="{ active: generatorType === option.value, disabled: useAgentMode && option.value !== 'VUE_PROJECT' }"
-              class="mode-card"
-              @click="handleGeneratorTypeSelect(option.value)"
-            >
-              <div class="card-icon">
-                <robot-outlined v-if="option.value === 'AI_STRATEGY'"/>
-                <code-outlined v-else-if="option.value === 'VUE_PROJECT'"/>
-                <folder-outlined v-else-if="option.value === 'MULTI_FILE'"/>
-                <file-outlined v-else/>
-              </div>
-              <div class="card-content">
-                <div class="card-title">{{ option.label }}</div>
-                <div class="card-desc">
-                  <span
-                    v-if="option.value === 'AI_STRATEGY'">AI 智能分析您的需求并生成完整应用
-                  </span>
-                  <span
-                    v-else-if="option.value === 'VUE_PROJECT'">生成完整的 VUE 工程项目，适合复杂的应用，但生成时间更长
-                  </span>
-                  <span
-                    v-else-if="option.value === 'MULTI_FILE'">多文件模式会生成多个文件的应用结构
-                  </span>
-                  <span v-else>单文件模式会生成单个 HTML 文件，适合简单应用，极速生成
-                  </span>
-                </div>
-              </div>
-              <div class="card-check">
-                <check-circle-filled v-if="generatorType === option.value"/>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Agent模式选择器 -->
+        <!-- 生成模式选择器 -->
         <div class="generator-selector agent-selector">
           <div class="selector-title">
             <span class="title-icon">🔄</span>
@@ -402,8 +326,8 @@ onMounted(() => {
             <a-tooltip placement="top">
               <template #title>
                 <div style="max-width: 300px">
-                  基于一套工作流的 Agent 模式会让 AI 有更强的分析和决策能，构建出的应用更加完善、稳定；
-                  基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善。
+                  分步执行模式会让 AI 有更强的分析和决策能力，构建出的应用更加完善、稳定；
+                  Agent智能生成模式基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善。
                 </div>
               </template>
               <question-circle-outlined class="help-icon"/>

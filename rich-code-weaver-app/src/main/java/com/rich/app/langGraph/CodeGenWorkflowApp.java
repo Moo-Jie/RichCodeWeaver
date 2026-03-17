@@ -21,6 +21,7 @@ import org.bsc.langgraph4j.prebuilt.MessagesStateGraph;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 
 import java.util.Map;
 
@@ -57,8 +58,8 @@ public class CodeGenWorkflowApp {
             "code_review_failed", "prompt_enhancer"
     );
 
-    // 收集 AI 响应内容，用于保存到对话历史
-    private final StringBuilder aiResponseBuilder = new StringBuilder();
+    // 流式输出每个字符的延迟（毫秒），模拟 AI 打字效果
+    private static final int STREAM_CHAR_DELAY_MS = 15;
 
     @Resource
     private CommonStreamHandler commonStreamHandler;
@@ -131,6 +132,8 @@ public class CodeGenWorkflowApp {
                                                          Long appId,
                                                          ChatHistoryService chatHistoryService,
                                                          Long userId) {
+        // 每次执行使用局部 StringBuilder，避免并发问题
+        StringBuilder aiResponseBuilder = new StringBuilder();
         // 构建 Agent 工作流风格的响应流
         Flux<String> fluxStream = Flux.create(sink -> {
             // 使用虚拟线程执行工作流，避免阻塞主线程
@@ -149,17 +152,14 @@ public class CodeGenWorkflowApp {
                             "**应用ID:** " + appId + "\n\n" +
                             "**生成类型:** " + type.getValue() + "\n\n" +
                             "**原始需求:** " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + "\n\n";
-                    sink.next(startInfo);
-                    aiResponseBuilder.append(startInfo); // 收集开始信息
+                    emitStreamText(sink, aiResponseBuilder, startInfo);
 
                     CompiledGraph<MessagesState<String>> workflow = createWorkflow();
                     // 生成可视化工作流图
                     GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);
                     log.info("\n工作流图:\n{}", graph.content());
 
-                    String executionStartInfo = "\n\n## 🎬 开始执行规划节点\n\n";
-                    sink.next(executionStartInfo);
-                    aiResponseBuilder.append(executionStartInfo); // 收集执行开始信息
+                    emitStreamText(sink, aiResponseBuilder, "\n\n## 🎬 开始执行规划节点\n\n");
 
                     for (NodeOutput<MessagesState<String>> step : workflow.stream(
                             Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {
@@ -221,8 +221,7 @@ public class CodeGenWorkflowApp {
                                 stepInfo.append(String.format("\n**⚠️ 异常信息:** %s\n", currentContext.getErrorMessage()));
                             }
 
-                            sink.next(stepInfo.toString());
-                            aiResponseBuilder.append(stepInfo);
+                            emitStreamText(sink, aiResponseBuilder, stepInfo.toString());
                             log.info("当前步骤: {} - {}", nodeName, currentContext.getCurrentStep());
 
                             // 如果是项目构建节点，说明是最后一步，主动结束循环，防止流迭代器阻塞
@@ -234,9 +233,7 @@ public class CodeGenWorkflowApp {
                     }
 
                     // 发送工作流完成事件
-                    String completionInfo = "\n\n# 🎉 代码生成任务全部完成！\n\n";
-                    sink.next(completionInfo);
-                    aiResponseBuilder.append(completionInfo); // 收集完成信息
+                    emitStreamText(sink, aiResponseBuilder, "\n\n# 🎉 代码生成任务全部完成！\n\n");
                     
                     log.info("代码生成工作流执行完成！应用ID: {}", appId);
                     sink.complete();
@@ -246,8 +243,7 @@ public class CodeGenWorkflowApp {
                     String errorInfo = "\n\n# 🛑 Agent 工作流执行异常\n\n" +
                             "**错误信息:** " + e.getMessage() + "\n\n";
 
-                    sink.next(errorInfo);
-                    aiResponseBuilder.append(errorInfo); // 收集错误信息
+                    emitStreamText(sink, aiResponseBuilder, errorInfo);
                     sink.error(e);
                 }
             });
@@ -269,6 +265,25 @@ public class CodeGenWorkflowApp {
                             }
                         }),
                 chatHistoryService, appId, userId, aiResponseBuilder);
+    }
+
+    /**
+     * 辅助方法：流式输出文本，模拟打字效果
+     *
+     * @param sink            SSE事件流
+     * @param aiResponseBuilder 响应内容构建器
+     * @param text            需要输出的文本
+     */
+    private void emitStreamText(FluxSink<String> sink, StringBuilder aiResponseBuilder, String text) {
+        for (char c : text.toCharArray()) {
+            try {
+                Thread.sleep(STREAM_CHAR_DELAY_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            sink.next(String.valueOf(c));
+            aiResponseBuilder.append(c);
+        }
     }
 
     /**
