@@ -1,31 +1,30 @@
 <template>
-  <a-layout class="basic-layout">
-    <GlobalHeader/>
-    <a-layout-content class="main-content">
-      <router-view/>
-    </a-layout-content>
-    <GlobalFooter/>
-  </a-layout>
+  <div class="main-layout">
+    <TheSidebar />
+    <div class="main-area">
+      <router-view />
+    </div>
+  </div>
 </template>
 
 <script lang="ts" setup>
-import GlobalHeader from '@/components/GlobalHeader.vue'
-import GlobalFooter from '@/components/GlobalFooter.vue'
+import TheSidebar from '@/components/sidebar/TheSidebar.vue'
 </script>
 
 <style scoped>
-.basic-layout {
-  background: transparent;
-  min-height: 100vh;
+.main-layout {
   display: flex;
-  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: #fff;
 }
 
-.main-content {
+.main-area {
   flex: 1;
-  width: 100%;
-  padding: 0;
-  margin: 0;
+  display: flex;
+  flex-direction: column;
   overflow: auto;
+  min-width: 0;
 }
 </style>
