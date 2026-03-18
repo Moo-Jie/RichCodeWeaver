@@ -13,6 +13,18 @@
 
     <!-- Input Area -->
     <div v-else class="input-area">
+      <!-- Capsule mode selector (above input, only for create mode) -->
+      <div v-if="showModeSelector" class="capsule-switch">
+        <button
+          :class="['capsule-item', { active: generatorMode }]"
+          @click="$emit('update:generatorMode', true)"
+        >分步执行</button>
+        <button
+          :class="['capsule-item', { active: !generatorMode }]"
+          @click="$emit('update:generatorMode', false)"
+        >Agent 智能生成</button>
+      </div>
+
       <div class="input-row">
         <textarea
           ref="inputRef"
@@ -33,25 +45,12 @@
           </template>
         </button>
       </div>
-
-      <!-- Mode selector (only for create mode, not app chat) -->
-      <div v-if="showModeSelector" class="mode-selector">
-        <a-select
-          :value="generatorMode"
-          class="mode-select"
-          size="small"
-          @change="(val) => $emit('update:generatorMode', val)"
-        >
-          <a-select-option :value="true">分步执行模式</a-select-option>
-          <a-select-option :value="false">Agent 智能生成</a-select-option>
-        </a-select>
-      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import {h, ref, nextTick} from 'vue'
+import {h, ref, nextTick, onMounted} from 'vue'
 import {SendOutlined, LoadingOutlined} from '@ant-design/icons-vue'
 
 interface ElementInfo {
@@ -71,7 +70,7 @@ interface Props {
   placeholder?: string
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   sending: false,
   isOwner: true,
   isAppMode: false,
@@ -83,7 +82,14 @@ withDefaults(defineProps<Props>(), {
 const emit = defineEmits(['update:modelValue', 'send', 'clearSelection', 'update:generatorMode'])
 
 const inputRef = ref<HTMLTextAreaElement>()
+const baseHeight = ref(0)
 const indicator = h(LoadingOutlined, {style: {fontSize: '16px', color: '#999'}, spin: true})
+
+onMounted(() => {
+  if (inputRef.value) {
+    baseHeight.value = inputRef.value.scrollHeight || 22
+  }
+})
 
 const handleInput = (e: Event) => {
   const target = e.target as HTMLTextAreaElement
@@ -93,7 +99,8 @@ const handleInput = (e: Event) => {
 
 const autoResize = (el: HTMLTextAreaElement) => {
   el.style.height = 'auto'
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+  const maxH = (baseHeight.value || 22) * 2
+  el.style.height = Math.min(el.scrollHeight, maxH) + 'px'
 }
 
 const handleSend = () => {
@@ -162,6 +169,44 @@ defineExpose({focus: () => inputRef.value?.focus()})
   margin: 0 auto;
 }
 
+/* Capsule mode switch */
+.capsule-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 10px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  padding: 3px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.capsule-item {
+  padding: 5px 16px;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  color: #999;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.capsule-item.active {
+  background: #1a1a1a;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+
+.capsule-item:not(.active):hover {
+  color: #666;
+}
+
 .input-row {
   display: flex;
   align-items: flex-end;
@@ -189,7 +234,7 @@ defineExpose({focus: () => inputRef.value?.focus()})
   color: #1a1a1a;
   font-family: inherit;
   min-height: 22px;
-  max-height: 120px;
+  overflow-y: auto;
 }
 
 .chat-textarea::placeholder {
@@ -225,21 +270,5 @@ defineExpose({focus: () => inputRef.value?.focus()})
   background: #e5e5e5;
   color: #bbb;
   cursor: not-allowed;
-}
-
-.mode-selector {
-  display: flex;
-  justify-content: center;
-  margin-top: 8px;
-}
-
-.mode-select {
-  min-width: 160px;
-}
-
-:deep(.mode-select .ant-select-selector) {
-  border-radius: 8px !important;
-  border-color: #e5e5e5 !important;
-  font-size: 12px !important;
 }
 </style>

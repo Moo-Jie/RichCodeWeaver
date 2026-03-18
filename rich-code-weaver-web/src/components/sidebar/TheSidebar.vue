@@ -99,6 +99,7 @@ import {
   AppstoreOutlined,
   AuditOutlined,
   FileTextOutlined,
+  GlobalOutlined,
   HomeOutlined,
   LoginOutlined,
   LogoutOutlined,
@@ -115,6 +116,8 @@ const route = useRoute()
 
 const navItems = [
   {path: '/', label: '主页', icon: HomeOutlined},
+  {path: '/my/apps', label: '我的应用', icon: AppstoreOutlined},
+  {path: '/all/apps', label: '全部应用', icon: GlobalOutlined},
   {path: '/admin/userManage', label: '用户管理', icon: UserOutlined, admin: true},
   {path: '/admin/appManage', label: '应用管理', icon: AppstoreOutlined, admin: true},
   {path: '/admin/chatHistory', label: '对话历史', icon: FileTextOutlined, admin: true},

@@ -1,30 +1,42 @@
 <template>
-  <div class="app-list">
-    <div
-      v-for="app in appStore.myApps"
-      :key="app.id"
-      :class="['app-item', { active: appStore.selectedApp?.id === app.id }]"
-      @click="handleSelect(app)"
-    >
-      <div class="app-cover">
-        <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
-        <img v-else alt="默认封面" class="default-cover" src="@/assets/logo.png" />
+  <div class="app-list-wrapper">
+    <div class="app-list">
+      <div
+        v-for="app in appStore.myApps"
+        :key="app.id"
+        :class="['app-item', { active: appStore.selectedApp?.id === app.id }]"
+        @click="handleSelect(app)"
+      >
+        <div class="app-cover">
+          <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
+          <img v-else alt="默认封面" class="default-cover" src="@/assets/logo.png" />
+        </div>
+        <transition name="fade-text">
+          <span v-show="!appStore.sidebarCollapsed" class="app-name">
+            {{ app.appName || '未命名应用' }}
+          </span>
+        </transition>
       </div>
-      <transition name="fade-text">
-        <span v-show="!appStore.sidebarCollapsed" class="app-name">
-          {{ app.appName || '未命名应用' }}
-        </span>
-      </transition>
+      <div v-if="appStore.myApps.length === 0 && !appStore.sidebarCollapsed" class="empty-tip">
+        暂无应用
+      </div>
     </div>
-    <div v-if="appStore.myApps.length === 0 && !appStore.sidebarCollapsed" class="empty-tip">
-      暂无应用
-    </div>
+    <transition name="fade-text">
+      <button
+        v-if="appStore.myApps.length > 0 && !appStore.sidebarCollapsed"
+        class="view-more-btn"
+        @click="router.push('/my/apps')"
+      >
+        查看更多 <RightOutlined />
+      </button>
+    </transition>
   </div>
 </template>
 
 <script lang="ts" setup>
 import {useAppStore} from '@/stores/appStore'
 import {useRouter} from 'vue-router'
+import {RightOutlined} from '@ant-design/icons-vue'
 
 const appStore = useAppStore()
 const router = useRouter()
@@ -36,6 +48,14 @@ const handleSelect = (app: API.AppVO) => {
 </script>
 
 <style scoped>
+.app-list-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
 .app-list {
   flex: 1;
   overflow-y: auto;
@@ -50,6 +70,29 @@ const handleSelect = (app: API.AppVO) => {
 .app-list::-webkit-scrollbar-thumb {
   background: #e0e0e0;
   border-radius: 3px;
+}
+
+.view-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 12px;
+  margin: 8px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  background: #fafafa;
+  color: #666;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.view-more-btn:hover {
+  background: #f5f5f5;
+  border-color: #e5e5e5;
+  color: #333;
 }
 
 .app-item {

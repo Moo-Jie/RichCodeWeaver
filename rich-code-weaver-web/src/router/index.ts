@@ -6,6 +6,8 @@ import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
 import AppManagePage from '@/pages/admin/AppManagePage.vue'
 import AppEditPage from '@/pages/app/AppEditPage.vue'
+import MyAppsPage from '@/pages/app/MyAppsPage.vue'
+import AllAppsPage from '@/pages/app/AllAppsPage.vue'
 import UserCenterPage from '@/pages/user/UserCenterPage.vue'
 import ChatHistoryManagePage from '@/pages/admin/ChatHistoryManagePage.vue'
 import DocsPage from '@/pages/other/DocsPage.vue'
@@ -39,6 +41,16 @@ const router = createRouter({
           path: 'app/edit/:id',
           name: '编辑应用',
           component: AppEditPage
+        },
+        {
+          path: 'my/apps',
+          name: '我的应用',
+          component: MyAppsPage
+        },
+        {
+          path: 'all/apps',
+          name: '全部应用',
+          component: AllAppsPage
         },
         {
           path: 'user/userCenter',

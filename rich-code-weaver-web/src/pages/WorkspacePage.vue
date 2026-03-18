@@ -2,38 +2,74 @@
   <div class="workspace">
     <!-- Default view: no app selected -->
     <template v-if="!appStore.hasSelectedApp && !appId">
-      <div class="workspace-default">
-        <div class="greeting">
-          <img alt="Logo" class="greeting-logo" src="@/assets/logo.png" />
-          <h1 class="greeting-title">织码睿奇</h1>
-          <p class="greeting-sub">只需一句话，让创意触手可及</p>
-        </div>
-        <!-- Prompt suggestions -->
-        <div class="prompt-grid">
-          <div
-            v-for="item in promptOptions"
-            :key="item.label"
-            class="prompt-card"
-            @click="userPrompt = item.value"
-          >
-            <span class="prompt-label">{{ item.label }}</span>
-            <span class="prompt-desc">{{ item.desc }}</span>
+      <div class="workspace-home">
+        <div class="home-scroll">
+          <!-- Greeting -->
+          <div class="greeting">
+            <img alt="Logo" class="greeting-logo" src="@/assets/logo.png" />
+            <h1 class="greeting-title">织码睿奇</h1>
+            <p class="greeting-sub">只需一句话，让创意触手可及</p>
+          </div>
+
+          <!-- 热门应用 horizontal scrollable cards -->
+          <div v-if="appStore.hotApps.length > 0" class="section">
+            <div class="section-header">
+              <span class="section-title">热门应用</span>
+              <button class="section-more" @click="router.push('/all/apps')">查看更多 <RightOutlined /></button>
+            </div>
+            <div class="app-scroll-wrap">
+              <div class="app-scroll">
+                <div
+                  v-for="app in appStore.hotApps.slice(0, 10)"
+                  :key="app.id"
+                  class="app-card"
+                  @click="goToApp(app)"
+                >
+                  <div class="app-card-cover">
+                    <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
+                    <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
+                  </div>
+                  <span class="app-card-name">{{ app.appName || '未命名应用' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prompt suggestions -->
+          <div class="section">
+            <div class="section-header">
+              <span class="section-title">快速开始</span>
+            </div>
+            <div class="prompt-grid">
+              <div
+                v-for="item in promptOptions"
+                :key="item.label"
+                class="prompt-card"
+                @click="userPrompt = item.value"
+              >
+                <span class="prompt-label">{{ item.label }}</span>
+                <span class="prompt-desc">{{ item.desc }}</span>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- Chat Input at bottom -->
+        <ChatInput
+          v-model="userPrompt"
+          :generator-mode="useAgentMode"
+          :sending="creating"
+          :show-mode-selector="true"
+          placeholder="描述您想要创建的应用..."
+          @send="handleCreate"
+          @update:generator-mode="useAgentMode = $event"
+        />
       </div>
-      <ChatInput
-        v-model="userPrompt"
-        :generator-mode="useAgentMode"
-        :sending="creating"
-        :show-mode-selector="true"
-        placeholder="描述您想要创建的应用..."
-        @send="handleCreate"
-        @update:generator-mode="useAgentMode = $event"
-      />
+
     </template>
 
     <!-- App selected view -->
-    <template v-else>
+    <div v-else class="workspace-app">
       <!-- Edit mode top bar -->
       <div v-if="isEditMode" class="edit-mode-bar">
         <span class="edit-bar-text">
@@ -48,8 +84,8 @@
 
       <!-- Body: content + right panel side by side -->
       <div class="workspace-body">
-        <!-- Chat section (visible only in chat mode) -->
-        <div v-show="appStore.currentMode === 'chat'" class="split-chat">
+        <!-- Chat mode: full-width chat page (code response) -->
+        <div v-show="appStore.currentMode === 'chat'" class="pane-full">
           <ChatMessages
             ref="chatMessagesRef"
             :has-more="hasMore"
@@ -70,8 +106,8 @@
           />
         </div>
 
-        <!-- Preview section (always rendered, expands full width in app mode) -->
-        <div :class="['preview-area', { 'preview-full': appStore.currentMode === 'app' }]">
+        <!-- App mode: full-width preview -->
+        <div v-show="appStore.currentMode === 'app'" class="pane-full">
           <AppPreview
             ref="appPreviewRef"
             :generating-time="generatingTime"
@@ -104,7 +140,7 @@
           @visit-site="visitDeployedSite"
         />
       </div>
-    </template>
+    </div>
 
     <!-- Modals -->
     <AppInfo
@@ -126,7 +162,7 @@
 import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {message, Modal} from 'ant-design-vue'
-import {EditOutlined} from '@ant-design/icons-vue'
+import {EditOutlined, RightOutlined} from '@ant-design/icons-vue'
 import {useAppStore} from '@/stores/appStore'
 import {useLoginUserStore} from '@/stores/loginUser'
 import {addApp, deleteApp as deleteAppApi, deployApp as deployAppApi, getAppVoById} from '@/api/appController'
@@ -244,6 +280,14 @@ const getGeneratingInfo = (): { message: string; timestamp: number } | null => {
   } catch {
     localStorage.removeItem(getGeneratingKey())
     return null
+  }
+}
+
+// === Navigate to app ===
+const goToApp = (app: API.AppVO) => {
+  if (app.id) {
+    appStore.selectApp(app)
+    router.push(`/app/chat/${app.id}`)
   }
 }
 
@@ -731,10 +775,11 @@ onMounted(() => {
     fetchAppInfo()
   }
 
-  // Load user's apps for sidebar
+  // Load user's apps and hot apps
   if (loginUserStore.loginUser.id) {
     appStore.loadMyApps()
   }
+  appStore.loadHotApps()
 })
 
 onUnmounted(() => {
@@ -752,27 +797,36 @@ const handleIframeMessage = (event: MessageEvent) => {
 .workspace {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
   overflow: hidden;
   background: #fff;
   position: relative;
 }
 
-/* Default view (no app) */
-.workspace-default {
+/* ====== Home view (no app) ====== */
+.workspace-home {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 24px;
-  gap: 32px;
+  overflow: hidden;
+  min-width: 0;
 }
 
-.greeting {
-  text-align: center;
+.home-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 36px 32px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
 }
+
+.home-scroll::-webkit-scrollbar { width: 4px; }
+.home-scroll::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 4px; }
+
+.greeting { text-align: center; }
 
 .greeting-logo {
   width: 56px;
@@ -795,12 +849,110 @@ const handleIframeMessage = (event: MessageEvent) => {
   margin: 0;
 }
 
+/* Section */
+.section {
+  width: 100%;
+  max-width: 760px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.section-more {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  color: #999;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 0;
+  transition: color 0.15s;
+}
+
+.section-more:hover { color: #666; }
+
+/* Horizontal scrollable app cards */
+.app-scroll-wrap {
+  overflow: hidden;
+  margin: 0 -4px;
+}
+
+.app-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 4px 12px;
+  scroll-snap-type: x mandatory;
+}
+
+.app-scroll::-webkit-scrollbar { height: 3px; }
+.app-scroll::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 3px; }
+
+.app-card {
+  flex-shrink: 0;
+  width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 10px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  scroll-snap-align: start;
+}
+
+.app-card:hover {
+  background: #f5f5f5;
+  border-color: #e5e5e5;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.app-card-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.app-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-card-name {
+  font-size: 12px;
+  color: #333;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  line-height: 1.3;
+}
+
 /* Prompt grid */
 .prompt-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 10px;
-  max-width: 760px;
   width: 100%;
 }
 
@@ -833,7 +985,15 @@ const handleIframeMessage = (event: MessageEvent) => {
   color: #bbb;
 }
 
-/* App selected view */
+/* ====== App selected view ====== */
+.workspace-app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
 .workspace-body {
   flex: 1;
   display: flex;
@@ -842,33 +1002,13 @@ const handleIframeMessage = (event: MessageEvent) => {
   min-height: 0;
 }
 
-/* Chat mode: split view — chat left, preview right */
-.split-chat {
+.pane-full {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
   min-width: 0;
-  max-width: 420px;
-  border-right: 1px solid #f0f0f0;
-}
-
-/* Preview area — flexible, always present */
-.preview-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-height: 0;
-  min-width: 0;
-  padding: 8px;
-  transition: flex 0.3s ease;
-}
-
-/* Full-width when in app mode (chat hidden via v-show) */
-.preview-full {
-  flex: 1;
 }
 
 /* Edit mode bar */
