@@ -162,12 +162,16 @@ onMounted(() => {
   }
 })
 
-// Reload apps when login state changes
-watch(() => loginUserStore.loginUser?.id, (newId) => {
-  if (newId) {
-    appStore.loadMyApps()
-  }
-})
+// Reload apps when login state changes (watch entire loginUser object to catch async updates)
+watch(
+  () => loginUserStore.loginUser,
+  (newUser) => {
+    if (newUser?.id) {
+      appStore.loadMyApps()
+    }
+  },
+  { deep: true, immediate: true }
+)
 
 const doLogout = async () => {
   try {

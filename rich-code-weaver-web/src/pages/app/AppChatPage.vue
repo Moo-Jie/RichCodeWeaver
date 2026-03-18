@@ -722,6 +722,11 @@ const downloadCode = async () => {
 const fetchChatHistory = async (loadMore = false) => {
   if (!appId.value || loadingHistory.value) return
 
+  // Reset cursor for fresh load to avoid stale pagination
+  if (!loadMore) {
+    lastCreateTime.value = null
+  }
+
   loadingHistory.value = true
   try {
     const params = {
@@ -937,8 +942,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
     messages.value[aiMessageIndex].loading = false
     // 延迟更新预览，确保后端已完成处理
     setTimeout(async () => {
-      await fetchAppInfo()
-      updatePreview()
+      await refreshAppInfoOnly()
       if (previewIframe.value) {
         previewIframe.value.src = previewIframe.value.src
       }
@@ -1053,6 +1057,20 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   isGenerating.value = false
 }
 
+// 仅刷新应用信息（不重载对话历史、不自动发送消息）
+const refreshAppInfoOnly = async () => {
+  if (!appId.value) return
+  try {
+    const res = await getAppVoById({id: appId.value as unknown as number})
+    if (res.data.code === 0 && res.data.data) {
+      appInfo.value = res.data.data
+      updatePreview()
+    }
+  } catch (error) {
+    console.error('刷新应用信息失败：', error)
+  }
+}
+
 // 更新预览
 const updatePreview = () => {
   if (appId.value) {
@@ -1108,8 +1126,8 @@ const deployApp = async () => {
       deployUrl.value = res.data.data
       deployModalVisible.value = true
       message.success('部署成功')
-      // 刷新应用信息以获取最新的部署状态
-      await fetchAppInfo()
+      // 仅刷新应用信息（不重载对话历史）
+      await refreshAppInfoOnly()
     } else {
       message.error('部署失败：' + res.data.message)
     }
@@ -1139,8 +1157,8 @@ const confirmReDeploy = async () => {
           deployUrl.value = res.data.data
           deployModalVisible.value = true
           message.success('重新部署成功')
-          // 刷新应用信息以获取最新的部署状态
-          await fetchAppInfo()
+          // 仅刷新应用信息（不重载对话历史）
+          await refreshAppInfoOnly()
         } else {
           message.error('重新部署失败：' + res.data.message)
         }

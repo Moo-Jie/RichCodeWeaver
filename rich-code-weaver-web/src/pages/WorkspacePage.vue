@@ -368,6 +368,11 @@ const fetchAppInfo = async () => {
 const fetchChatHistory = async (loadMore = false) => {
   if (!appId.value || loadingHistory.value) return
 
+  // Reset cursor for fresh load to avoid stale pagination
+  if (!loadMore) {
+    lastCreateTime.value = null
+  }
+
   loadingHistory.value = true
   try {
     const params: any = {
@@ -520,8 +525,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
     }
     messages.value[aiMessageIndex].loading = false
     setTimeout(async () => {
-      await fetchAppInfo()
-      updatePreview()
+      await refreshAppInfoOnly()
       appPreviewRef.value?.refresh()
     }, 5000)
   }
@@ -602,6 +606,21 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   connectSSE()
 }
 
+// === Lightweight refresh: only updates app info, no chat reload or auto-send ===
+const refreshAppInfoOnly = async () => {
+  const id = route.params.id as string
+  if (!id) return
+  try {
+    const res = await getAppVoById({id: id as unknown as number})
+    if (res.data.code === 0 && res.data.data) {
+      appStore.refreshSelectedApp(res.data.data)
+      updatePreview()
+    }
+  } catch (error) {
+    console.error('刷新应用信息失败：', error)
+  }
+}
+
 // === Preview ===
 const updatePreview = () => {
   if (appId.value) {
@@ -649,7 +668,7 @@ const deployApp = async () => {
       deployUrl.value = res.data.data
       deployModalVisible.value = true
       message.success('部署成功')
-      await fetchAppInfo()
+      await refreshAppInfoOnly()
     } else {
       message.error('部署失败：' + (res.data.message || ''))
     }
@@ -674,7 +693,7 @@ const confirmReDeploy = async () => {
           deployUrl.value = res.data.data
           deployModalVisible.value = true
           message.success('重新部署成功')
-          await fetchAppInfo()
+          await refreshAppInfoOnly()
         } else {
           message.error('重新部署失败：' + (res.data.message || ''))
         }

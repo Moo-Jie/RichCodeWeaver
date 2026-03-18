@@ -274,6 +274,13 @@ public class CodeGenWorkflowApp {
                                         stepInfo.append("- ✓ 状态：可预览和部署\n");
                                     }
                                     break;
+
+                                default:
+                                    stepInfo.append("**⚙️ 工作流初始化**\n\n");
+                                    stepInfo.append("- ✓ 工作流上下文已创建\n");
+                                    stepInfo.append("- ✓ 执行参数已配置完成\n");
+                                    stepInfo.append("- ✓ 准备开始执行各节点任务\n");
+                                    break;
                             }
                             
                             // 错误信息总是显示，使用醒目的格式
