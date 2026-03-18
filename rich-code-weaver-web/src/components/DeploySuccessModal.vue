@@ -24,9 +24,9 @@
 </template>
 
 <script lang="ts" setup>
-import {computed} from 'vue'
-import {message} from 'ant-design-vue'
-import {CheckCircleOutlined, CopyOutlined} from '@ant-design/icons-vue'
+import { computed } from 'vue'
+import { message } from 'ant-design-vue'
+import { CheckCircleOutlined, CopyOutlined } from '@ant-design/icons-vue'
 
 interface Props {
   open: boolean

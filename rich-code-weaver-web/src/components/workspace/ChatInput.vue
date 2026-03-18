@@ -69,8 +69,8 @@
 </template>
 
 <script lang="ts" setup>
-import {h, ref, nextTick, onMounted} from 'vue'
-import {SendOutlined, LoadingOutlined} from '@ant-design/icons-vue'
+import { h, nextTick, onMounted, ref } from 'vue'
+import { LoadingOutlined, SendOutlined } from '@ant-design/icons-vue'
 
 interface ElementInfo {
   tagName: string

@@ -217,9 +217,9 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {message} from 'ant-design-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import {
   CalendarOutlined,
   DeleteOutlined,
@@ -230,7 +230,7 @@ import {
   SearchOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import {deleteUser, listUserVoByPage, resetUserPassword, updateUser} from '@/api/userController'
+import { deleteUser, listUserVoByPage, resetUserPassword, updateUser } from '@/api/userController'
 import dayjs from 'dayjs'
 
 const router = useRouter()

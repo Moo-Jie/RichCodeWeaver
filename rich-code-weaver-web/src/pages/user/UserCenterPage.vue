@@ -179,10 +179,10 @@
 </template>
 
 <script lang="ts" setup>
-import {onMounted, reactive, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {useLoginUserStore} from '@/stores/loginUser'
-import {message} from 'ant-design-vue'
+import { onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useLoginUserStore } from '@/stores/loginUser'
+import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
   CalendarOutlined,

@@ -110,12 +110,12 @@
 </template>
 
 <script lang="ts" setup>
-import {reactive, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {LockOutlined, UserOutlined} from '@ant-design/icons-vue'
-import {userLogin} from '@/api/userController.ts'
-import {useLoginUserStore} from '@/stores/loginUser.ts'
-import {message} from 'ant-design-vue'
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { LockOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { userLogin } from '@/api/userController.ts'
+import { useLoginUserStore } from '@/stores/loginUser.ts'
+import { message } from 'ant-design-vue'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()

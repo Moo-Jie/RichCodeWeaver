@@ -141,7 +141,7 @@
 </template>
 
 <script lang="ts" setup>
-import {computed} from 'vue'
+import { computed } from 'vue'
 import {
   AppstoreOutlined,
   CalendarOutlined,
@@ -156,9 +156,9 @@ import {
   UserOutlined
 } from '@ant-design/icons-vue'
 import UserInfo from './UserInfo.vue'
-import {formatTime} from '../utils/timeUtil.ts'
-import {formatCodeGenType} from '../enums/codeGenTypes.ts'
-import AppVO = API.AppVO;
+import { formatTime } from '../utils/timeUtil.ts'
+import { formatCodeGenType } from '../enums/codeGenTypes.ts'
+import AppVO = API.AppVO
 
 interface Props {
   open: boolean

@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import {onMounted, reactive, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import type {TourProps} from 'ant-design-vue'
-import {message, Tour} from 'ant-design-vue'
-import {useLoginUserStore} from '@/stores/loginUser'
-import {addApp, listMyAppVoByPage, listStarAppVoByPage} from '@/api/appController'
-import {getDeployUrl} from '@/config/env'
+import { onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import type { TourProps } from 'ant-design-vue'
+import { message, Tour } from 'ant-design-vue'
+import { useLoginUserStore } from '@/stores/loginUser'
+import { addApp, listMyAppVoByPage, listStarAppVoByPage } from '@/api/appController'
+import { getDeployUrl } from '@/config/env'
 import AppCard from '@/components/AppCard.vue'
 // 导入图标
 import {
@@ -17,7 +17,7 @@ import {
   RobotOutlined,
   RocketOutlined
 } from '@ant-design/icons-vue'
-import {promptOptions} from '@/constants/prompts.ts'
+import { promptOptions } from '@/constants/prompts.ts'
 
 // 当前激活的选项卡状态
 const activeTab = ref('featured')
@@ -238,7 +238,7 @@ const viewWork = (app: API.AppVO) => {
 onMounted(() => {
   // Load featured apps (existing)
   loadFeaturedApps()
-  
+
   // Load my apps if user is authenticated (NEW)
   if (loginUserStore.loginUser.id) {
     loadMyApps()

@@ -159,18 +159,28 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, nextTick, onMounted, onUnmounted, ref, watch} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
-import {message, Modal} from 'ant-design-vue'
-import {EditOutlined, RightOutlined} from '@ant-design/icons-vue'
-import {useAppStore} from '@/stores/appStore'
-import {useLoginUserStore} from '@/stores/loginUser'
-import {addApp, deleteApp as deleteAppApi, deployApp as deployAppApi, getAppVoById} from '@/api/appController'
-import {listAppChatHistoryByPage} from '@/api/chatHistoryController'
-import {CodeGenTypeEnum} from '@/enums/codeGenTypes'
-import {API_BASE_URL, DEPLOY_DOMAIN, getStaticPreviewUrl, getWebProjectStaticPreviewUrl} from '@/config/env'
-import {type ElementInfo, visualEditorUtil} from '@/utils/visualEditorUtil'
-import {promptOptions} from '@/constants/prompts'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { message, Modal } from 'ant-design-vue'
+import { EditOutlined, RightOutlined } from '@ant-design/icons-vue'
+import { useAppStore } from '@/stores/appStore'
+import { useLoginUserStore } from '@/stores/loginUser'
+import {
+  addApp,
+  deleteApp as deleteAppApi,
+  deployApp as deployAppApi,
+  getAppVoById
+} from '@/api/appController'
+import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
+import { CodeGenTypeEnum } from '@/enums/codeGenTypes'
+import {
+  API_BASE_URL,
+  DEPLOY_DOMAIN,
+  getStaticPreviewUrl,
+  getWebProjectStaticPreviewUrl
+} from '@/config/env'
+import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
+import { promptOptions } from '@/constants/prompts'
 import request from '@/request'
 import ChatInput from '@/components/workspace/ChatInput.vue'
 import ChatMessages from '@/components/workspace/ChatMessages.vue'

@@ -50,7 +50,7 @@
 </template>
 
 <script lang="ts" setup>
-import {ref} from 'vue'
+import { ref } from 'vue'
 
 interface Props {
   previewUrl: string

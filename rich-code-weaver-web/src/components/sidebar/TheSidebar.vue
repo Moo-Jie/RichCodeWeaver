@@ -130,12 +130,12 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
-import {message} from 'ant-design-vue'
-import {useAppStore} from '@/stores/appStore'
-import {useLoginUserStore} from '@/stores/loginUser'
-import {userLogout} from '@/api/userController'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
+import { useAppStore } from '@/stores/appStore'
+import { useLoginUserStore } from '@/stores/loginUser'
+import { userLogout } from '@/api/userController'
 import SidebarAppList from './SidebarAppList.vue'
 import {
   AppstoreOutlined,

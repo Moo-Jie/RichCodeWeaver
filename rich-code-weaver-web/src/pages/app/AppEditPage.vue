@@ -256,10 +256,10 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
-import type {FormInstance} from 'ant-design-vue'
-import {message} from 'ant-design-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import type { FormInstance } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
 import {
   CalendarOutlined,
   CloudServerOutlined,
@@ -274,11 +274,11 @@ import {
   UploadOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import {useLoginUserStore} from '@/stores/loginUser'
-import {DEPLOY_DOMAIN} from '@/config/env'
-import {getAppVoById, updateApp, updateAppByAdmin} from '@/api/appController'
-import {formatCodeGenType} from '@/enums/codeGenTypes.ts'
-import {formatTime} from '@/utils/timeUtil.ts'
+import { useLoginUserStore } from '@/stores/loginUser'
+import { DEPLOY_DOMAIN } from '@/config/env'
+import { getAppVoById, updateApp, updateAppByAdmin } from '@/api/appController'
+import { formatCodeGenType } from '@/enums/codeGenTypes.ts'
+import { formatTime } from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'
 
 const route = useRoute()

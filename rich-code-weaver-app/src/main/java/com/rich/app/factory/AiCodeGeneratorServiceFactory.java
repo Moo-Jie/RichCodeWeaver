@@ -3,7 +3,6 @@ package com.rich.app.factory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.ai.aiTools.ToolsManager;
-import com.rich.ai.guardrail.PromptSafetyInputGuardrail;
 import com.rich.ai.service.AiCodeGeneratorService;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.common.utils.SpringContextUtil;

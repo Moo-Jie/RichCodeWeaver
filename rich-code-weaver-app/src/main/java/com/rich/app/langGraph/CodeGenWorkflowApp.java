@@ -8,7 +8,6 @@ import com.rich.app.service.ChatHistoryService;
 import com.rich.app.utils.streamHandle.CommonStreamHandler;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
-import com.rich.model.enums.ChatHistoryTypeEnum;
 import com.rich.model.enums.CodeGeneratorTypeEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

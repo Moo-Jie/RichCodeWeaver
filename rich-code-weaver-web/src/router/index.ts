@@ -1,4 +1,4 @@
-import {createRouter, createWebHistory} from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import GlobalLayout from '@/layouts/GlobalLayout.vue'
 import WorkspacePage from '@/pages/WorkspacePage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'

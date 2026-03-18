@@ -2,23 +2,23 @@ package com.rich.user.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
-import com.rich.model.annotation.AuthCheck;
 import com.rich.common.constant.UserConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
 import com.rich.common.model.DeleteRequest;
+import com.rich.common.utils.ResultUtils;
+import com.rich.file.service.FileService;
+import com.rich.model.annotation.AuthCheck;
 import com.rich.model.dto.user.*;
 import com.rich.model.entity.User;
 import com.rich.model.vo.LoginUserVO;
 import com.rich.model.vo.UserVO;
-import com.rich.file.service.FileService;
 import com.rich.user.service.UserService;
-import com.rich.common.utils.ResultUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 

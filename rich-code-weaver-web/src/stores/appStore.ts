@@ -1,6 +1,6 @@
-import {defineStore} from 'pinia'
-import {computed, ref} from 'vue'
-import {getAppVoById, listMyAppVoByPage, listStarAppVoByPage} from '@/api/appController'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import { getAppVoById, listMyAppVoByPage, listStarAppVoByPage } from '@/api/appController'
 
 /**
  * 应用全局状态管理

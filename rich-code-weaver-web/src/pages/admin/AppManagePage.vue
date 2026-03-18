@@ -128,8 +128,8 @@
           </template>
 
           <template v-else-if="column.dataIndex === 'deployKey'">
-            <div 
-              class="deploy-key-cell" 
+            <div
+              class="deploy-key-cell"
               tabindex="0"
               role="button"
               :aria-label="`${showDeployKey[record.id] ? '隐藏' : '显示'}部署密钥`"
@@ -254,9 +254,9 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {message} from 'ant-design-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import {
   ArrowRightOutlined,
   CalendarOutlined,
@@ -270,9 +270,9 @@ import {
   StarOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import {deleteApp, listAppVoByPageByAdmin, updateAppByAdmin} from '@/api/appController'
-import {CODE_GEN_TYPE_OPTIONS, formatCodeGenType} from '@/enums/codeGenTypes.ts'
-import {formatTime} from '@/utils/timeUtil.ts'
+import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
+import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
+import { formatTime } from '@/utils/timeUtil.ts'
 import UserInfo from '@/components/UserInfo.vue'
 import AppInfo from '@/components/AppInfo.vue'
 

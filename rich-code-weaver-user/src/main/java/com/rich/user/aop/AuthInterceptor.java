@@ -1,8 +1,8 @@
 package com.rich.user.aop;
 
-import com.rich.model.annotation.AuthCheck;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
+import com.rich.model.annotation.AuthCheck;
 import com.rich.model.entity.User;
 import com.rich.model.enums.UserRoleEnum;
 import com.rich.user.service.UserService;

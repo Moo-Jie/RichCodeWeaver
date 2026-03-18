@@ -47,10 +47,10 @@
 </template>
 
 <script lang="ts" setup>
-import {ref, onMounted} from 'vue'
-import {useRouter} from 'vue-router'
-import {useAppStore} from '@/stores/appStore'
-import {listStarAppVoByPage} from '@/api/appController'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAppStore } from '@/stores/appStore'
+import { listStarAppVoByPage } from '@/api/appController'
 
 const router = useRouter()
 const appStore = useAppStore()

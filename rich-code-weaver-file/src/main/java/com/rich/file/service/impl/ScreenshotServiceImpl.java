@@ -10,10 +10,12 @@ import com.rich.file.utils.WebScreenshotUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import static com.rich.file.utils.MultipartFileUtils.getMultipartFile;
+
 import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+
+import static com.rich.file.utils.MultipartFileUtils.getMultipartFile;
 
 
 /**

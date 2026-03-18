@@ -38,7 +38,7 @@
 </template>
 
 <script lang="ts" setup>
-import {ref, watch, nextTick} from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import aiAvatarSrc from '@/assets/aiAvatar.png'
 

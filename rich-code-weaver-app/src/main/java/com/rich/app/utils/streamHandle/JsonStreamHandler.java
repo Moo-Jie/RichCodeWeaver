@@ -12,7 +12,6 @@ import com.rich.ai.model.msgResponse.StreamToolInvocMsgResponse;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
-import com.rich.model.enums.ChatHistoryTypeEnum;
 import com.rich.model.enums.ReasoningStreamMsgTypeEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

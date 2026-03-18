@@ -1,6 +1,6 @@
-import {defineStore} from 'pinia'
-import {ref} from 'vue'
-import {getLoginUser} from '@/api/userController.ts'
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { getLoginUser } from '@/api/userController.ts'
 
 /**
  * 登录用户信息

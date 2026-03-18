@@ -34,9 +34,9 @@
 </template>
 
 <script lang="ts" setup>
-import {useAppStore} from '@/stores/appStore'
-import {useRouter} from 'vue-router'
-import {RightOutlined} from '@ant-design/icons-vue'
+import { useAppStore } from '@/stores/appStore'
+import { useRouter } from 'vue-router'
+import { RightOutlined } from '@ant-design/icons-vue'
 
 const appStore = useAppStore()
 const router = useRouter()

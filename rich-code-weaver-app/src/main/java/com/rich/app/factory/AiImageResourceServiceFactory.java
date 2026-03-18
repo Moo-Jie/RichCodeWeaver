@@ -2,7 +2,6 @@ package com.rich.app.factory;
 
 import com.rich.ai.aiTools.ImageResource.AiGeneratorImageTool;
 import com.rich.ai.aiTools.ImageResource.ImageSearchTool;
-import com.rich.ai.guardrail.PromptSafetyInputGuardrail;
 import com.rich.ai.service.AiImageResourceService;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;

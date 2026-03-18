@@ -203,20 +203,20 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, ref, watch} from 'vue'
-import {useRouter} from 'vue-router'
-import {useLoginUserStore} from '@/stores/loginUser'
-import {ArrowRightOutlined, DeleteOutlined} from '@ant-design/icons-vue'
-import {listAppVoByPageByAdmin as listAppsAdmin} from '@/api/appController'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useLoginUserStore } from '@/stores/loginUser'
+import { ArrowRightOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { listAppVoByPageByAdmin as listAppsAdmin } from '@/api/appController'
 import {
   deleteById,
   listAppChatHistoryByPageAdmin as listHistoryAdmin
 } from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
-import {message} from 'ant-design-vue'
+import { message } from 'ant-design-vue'
 
 import aiAvatar from '@/assets/aiAvatar.png'
-import {formatTime} from '@/utils/timeUtil.ts'
+import { formatTime } from '@/utils/timeUtil.ts'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()

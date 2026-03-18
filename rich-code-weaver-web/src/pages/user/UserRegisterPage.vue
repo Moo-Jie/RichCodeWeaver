@@ -68,11 +68,11 @@
 </template>
 
 <script lang="ts" setup>
-import {reactive, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {LockOutlined, SafetyOutlined, UserOutlined} from '@ant-design/icons-vue'
-import {userRegister} from '@/api/userController.ts'
-import {message} from 'ant-design-vue'
+import { reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { LockOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { userRegister } from '@/api/userController.ts'
+import { message } from 'ant-design-vue'
 
 const router = useRouter()
 const backgroundImage = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'400\' viewBox=\'0 0 100 100\'%3E%3Cpath fill=\'none\' stroke=\'rgba(204,230,255,0.1)\' stroke-width=\'1\' d=\'M80,80 Q20,60 20,20 M50,100 Q50,0 100,50\'/%3E%3C/svg%3E'

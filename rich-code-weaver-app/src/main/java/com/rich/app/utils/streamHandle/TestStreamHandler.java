@@ -2,7 +2,6 @@ package com.rich.app.utils.streamHandle;
 
 import cn.hutool.core.util.StrUtil;
 import com.rich.app.service.ChatHistoryService;
-import com.rich.model.enums.ChatHistoryTypeEnum;
 import jakarta.annotation.Resource;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;

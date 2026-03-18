@@ -3,7 +3,7 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, nextTick, onMounted, watch} from 'vue'
+import { computed, nextTick, onMounted, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'

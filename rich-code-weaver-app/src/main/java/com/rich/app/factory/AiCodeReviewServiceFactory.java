@@ -1,6 +1,5 @@
 package com.rich.app.factory;
 
-import com.rich.ai.guardrail.PromptSafetyInputGuardrail;
 import com.rich.ai.service.AiCodeReviewService;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;

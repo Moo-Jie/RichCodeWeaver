@@ -1,7 +1,7 @@
 package com.rich.app.utils.deployWebProjectUtils;
 
-import cn.hutool.json.JSONUtil;
 import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
