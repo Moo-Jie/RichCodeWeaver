@@ -35,9 +35,43 @@ const md: MarkdownIt = new MarkdownIt({
   }
 })
 
-// 预处理Markdown内容，识别并包裹工具调用信息
+// 预处理Markdown内容，识别并包裹工具调用信息和工作流标记
 const preprocessMarkdown = (content: string): string => {
   if (!content) return ''
+
+  // 识别并包裹工作流开始标记
+  content = content.replace(
+    /<!-- WORKFLOW_START -->/g,
+    '<div class="workflow-start-marker"></div>'
+  )
+
+  // 识别并包裹工作流执行开始标记
+  content = content.replace(
+    /<!-- WORKFLOW_EXECUTION_START -->/g,
+    '<div class="workflow-execution-marker"></div>'
+  )
+
+  // 识别并包裹工作流完成标记
+  content = content.replace(
+    /<!-- WORKFLOW_COMPLETE -->/g,
+    '<div class="workflow-complete-marker"></div>'
+  )
+
+  // 识别并包裹工作流错误标记
+  content = content.replace(
+    /<!-- WORKFLOW_ERROR -->/g,
+    '<div class="workflow-error-marker"></div>'
+  )
+
+  // 识别并包裹节点开始/结束标记
+  content = content.replace(
+    /<!-- NODE_START:(\w+) -->/g,
+    '<div class="node-start-marker" data-node="$1"></div>'
+  )
+  content = content.replace(
+    /<!-- NODE_END:(\w+) -->/g,
+    '<div class="node-end-marker" data-node="$1"></div>'
+  )
 
   // 识别并包裹工具调用开始标记
   content = content.replace(
@@ -324,5 +358,245 @@ const highlightCode = () => {
 
 .markdown-content :deep(.tool-call code) {
   background-color: transparent;
+}
+
+/* 工作流标记样式 */
+.markdown-content :deep(.workflow-start-marker),
+.markdown-content :deep(.workflow-execution-marker),
+.markdown-content :deep(.workflow-complete-marker),
+.markdown-content :deep(.workflow-error-marker),
+.markdown-content :deep(.node-start-marker),
+.markdown-content :deep(.node-end-marker) {
+  display: none;
+}
+
+/* 工作流元信息样式 */
+.markdown-content :deep(.workflow-meta) {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  border: 1px solid #e1e8ed;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.markdown-content :deep(.workflow-meta table) {
+  margin: 0;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.markdown-content :deep(.workflow-meta table th) {
+  background: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 14px;
+}
+
+.markdown-content :deep(.workflow-meta table td) {
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+/* 工作流步骤列表样式 */
+.markdown-content :deep(.workflow-steps) {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  border-left: 4px solid #4CAF50;
+}
+
+.markdown-content :deep(.workflow-steps ul),
+.markdown-content :deep(.workflow-steps ol) {
+  margin: 8px 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.markdown-content :deep(.workflow-steps li) {
+  padding: 6px 0;
+  font-size: 14px;
+  color: #495057;
+  position: relative;
+  padding-left: 28px;
+}
+
+.markdown-content :deep(.workflow-steps li::before) {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  background: #4CAF50;
+  border-radius: 50%;
+}
+
+/* 节点结果样式 */
+.markdown-content :deep(.node-result) {
+  background: white;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 12px 0;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.markdown-content :deep(.node-result:hover) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #dee2e6;
+}
+
+.markdown-content :deep(.node-result) strong {
+  color: #212529;
+  font-weight: 600;
+}
+
+.markdown-content :deep(.node-result) ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.markdown-content :deep(.node-result) li {
+  margin: 6px 0;
+  color: #495057;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 工作流总结样式 */
+.markdown-content :deep(.workflow-summary) {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  border: 2px solid #81c784;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+}
+
+.markdown-content :deep(.workflow-summary) strong {
+  color: #2e7d32;
+  font-size: 16px;
+}
+
+.markdown-content :deep(.workflow-summary) ul {
+  margin: 12px 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.markdown-content :deep(.workflow-summary) li {
+  padding: 6px 0;
+  color: #388e3c;
+  font-size: 14px;
+  position: relative;
+  padding-left: 28px;
+}
+
+.markdown-content :deep(.workflow-summary) li::before {
+  content: '✓';
+  position: absolute;
+  left: 8px;
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* 工作流错误样式 */
+.markdown-content :deep(.workflow-error) {
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  border: 2px solid #ef5350;
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.15);
+}
+
+.markdown-content :deep(.workflow-error) strong {
+  color: #c62828;
+  font-size: 15px;
+}
+
+.markdown-content :deep(.workflow-error) pre {
+  background: #fff;
+  border: 1px solid #ef9a9a;
+  margin: 12px 0;
+}
+
+.markdown-content :deep(.workflow-error) ul,
+.markdown-content :deep(.workflow-error) ol {
+  margin: 12px 0;
+  color: #d32f2f;
+}
+
+/* 增强标题样式 - 工作流专用 */
+.markdown-content :deep(h1) {
+  color: #212529;
+  font-size: 1.6em;
+  margin-top: 1.2em;
+  margin-bottom: 0.8em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.markdown-content :deep(h2) {
+  color: #343a40;
+  font-size: 1.35em;
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+}
+
+.markdown-content :deep(h3) {
+  color: #495057;
+  font-size: 1.15em;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+/* 引用块样式增强 */
+.markdown-content :deep(blockquote) {
+  border-left: 4px solid #4CAF50;
+  background: linear-gradient(90deg, #f1f8f4 0%, #f8f9fa 100%);
+  color: #495057;
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 14px;
+}
+
+/* 分隔线样式增强 */
+.markdown-content :deep(hr) {
+  border: none;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #dee2e6 50%, transparent 100%);
+  margin: 24px 0;
+}
+
+/* 代码块样式优化 - 工作流输出 */
+.markdown-content :deep(code) {
+  background: #f1f3f5;
+  color: #495057;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.88em;
+  border: 1px solid #e9ecef;
+}
+
+.markdown-content :deep(pre) {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 12px 0;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 </style>

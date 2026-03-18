@@ -350,7 +350,8 @@ const fetchAppInfo = async () => {
       }
 
       // Auto-send initial prompt if new app with init prompt
-      if (appStore.selectedApp?.initPrompt && isOwner.value && messages.value.length === 0) {
+      // 但不在部署或其他操作后自动发送，只在首次加载且无消息时发送
+      if (appStore.selectedApp?.initPrompt && isOwner.value && messages.value.length === 0 && !isGenerating.value) {
         await sendInitialMessage(appStore.selectedApp.initPrompt)
       } else if (messages.value.length >= 2) {
         updatePreview()

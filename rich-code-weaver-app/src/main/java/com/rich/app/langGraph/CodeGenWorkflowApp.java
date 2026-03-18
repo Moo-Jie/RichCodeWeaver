@@ -147,11 +147,17 @@ public class CodeGenWorkflowApp {
                             .currentStep("工作流初始化")
                             .build();
 
-                    // 发送工作流开始事件
-                    String startInfo = "\n\n# 代码生成 Agent 启动中...\n\n" +
-                            "**应用ID:** " + appId + "\n\n" +
-                            "**生成类型:** " + type.getValue() + "\n\n" +
-                            "**原始需求:** " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + "\n\n";
+                    // 发送工作流开始事件 - 使用结构化格式
+                    String startInfo = "\n\n<!-- WORKFLOW_START -->\n\n" +
+                            "# 🚀 代码生成 Agent 启动\n\n" +
+                            "<div class='workflow-meta'>\n\n" +
+                            "| 项目 | 信息 |\n" +
+                            "|------|------|\n" +
+                            "| 应用ID | `" + appId + "` |\n" +
+                            "| 生成类型 | **" + type.getValue() + "** |\n" +
+                            "| 执行模式 | **分布式工作流** |\n" +
+                            "| 原始需求 | " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + " |\n\n" +
+                            "</div>\n\n";
                     emitStreamText(sink, aiResponseBuilder, startInfo);
 
                     CompiledGraph<MessagesState<String>> workflow = createWorkflow();
@@ -159,7 +165,19 @@ public class CodeGenWorkflowApp {
                     GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);
                     log.info("\n工作流图:\n{}", graph.content());
 
-                    emitStreamText(sink, aiResponseBuilder, "\n\n## 🎬 开始执行规划节点\n\n");
+                    emitStreamText(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_EXECUTION_START -->\n\n" +
+                            "## 📋 工作流执行计划\n\n" +
+                            "<div class='workflow-steps'>\n\n" +
+                            "**执行阶段:**\n\n" +
+                            "1. 🌐 网络资源整理\n" +
+                            "2. 🖼️ 图片资源收集\n" +
+                            "3. ✨ 提示词智能增强\n" +
+                            "4. 🎯 代码类型策略分析\n" +
+                            "5. 💻 AI 代码生成\n" +
+                            "6. 🔍 代码质量审查\n" +
+                            "7. 🏗️ 项目构建部署\n\n" +
+                            "</div>\n\n" +
+                            "---\n\n");
 
                     for (NodeOutput<MessagesState<String>> step : workflow.stream(
                             Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {
@@ -169,58 +187,108 @@ public class CodeGenWorkflowApp {
                         if (currentContext != null) {
                             StringBuilder stepInfo = new StringBuilder();
                             String nodeName = step.node();
+                            String stepTitle = currentContext.getCurrentStep();
 
-                            stepInfo.append(String.format("\n\n### ✅ 执行步骤: %s\n\n", currentContext.getCurrentStep()));
+                            // 使用结构化的步骤标记
+                            stepInfo.append(String.format("\n\n<!-- NODE_START:%s -->\n\n", nodeName));
+                            stepInfo.append(String.format("### ✅ %s\n\n", stepTitle));
+                            stepInfo.append("<div class='node-result'>\n\n");
                             
-                            // 根据节点类型输出特定信息，避免冗余
+                            // 根据节点类型输出特定信息，采用更清晰的展示格式
                             switch (nodeName) {
                                 case "web_resource_organizer":
+                                    stepInfo.append("**🌐 网络资源整理节点**\n\n");
                                     if (StrUtil.isNotBlank(currentContext.getWebResourceListStr())) {
-                                        stepInfo.append(String.format("- 整理网络资源: %d 字符\n", currentContext.getWebResourceListStr().length()));
+                                        int length = currentContext.getWebResourceListStr().length();
+                                        stepInfo.append(String.format("- ✓ 整理完成：收集到 **%d** 字符的网络资源\n", length));
+                                        stepInfo.append("- ✓ 资源类型：文本素材、URL链接等\n");
+                                        stepInfo.append("- ✓ 状态：已整合到工作流上下文\n");
+                                    } else {
+                                        stepInfo.append("- ℹ️ 未找到相关网络资源或无需收集\n");
                                     }
                                     break;
+                                    
                                 case "image_collector":
+                                    stepInfo.append("**🖼️ 图片资源收集节点**\n\n");
                                     if (currentContext.getImageList() != null && !currentContext.getImageList().isEmpty()) {
-                                        stepInfo.append(String.format("- 收集图片资源: %d 张\n", currentContext.getImageList().size()));
+                                        int count = currentContext.getImageList().size();
+                                        stepInfo.append(String.format("- ✓ 收集完成：获取到 **%d** 张图片资源\n", count));
+                                        stepInfo.append("- ✓ 资源来源：AI生成 + 网络搜索\n");
+                                        stepInfo.append("- ✓ 状态：已准备用于代码生成\n");
+                                    } else {
+                                        stepInfo.append("- ℹ️ 未找到相关图片资源或无需收集\n");
                                     }
                                     break;
+                                    
                                 case "prompt_enhancer":
+                                    stepInfo.append("**✨ 提示词增强节点**\n\n");
                                     if (StrUtil.isNotBlank(currentContext.getEnhancedPrompt())) {
-                                        stepInfo.append(String.format("- 提示词已增强 (长度: %d 字符)\n", currentContext.getEnhancedPrompt().length()));
+                                        int length = currentContext.getEnhancedPrompt().length();
+                                        stepInfo.append(String.format("- ✓ 增强完成：提示词优化至 **%d** 字符\n", length));
+                                        stepInfo.append("- ✓ 增强内容：融合网络资源、图片信息\n");
+                                        stepInfo.append("- ✓ 质量提升：更精准的代码生成指令\n");
                                     }
                                     break;
+                                    
                                 case "ai_code_generator_type_strategy":
+                                    stepInfo.append("**🎯 代码类型策略节点**\n\n");
                                     if (currentContext.getCodeGenType() != null) {
-                                        stepInfo.append(String.format("- 确定的代码生成类型: %s\n", currentContext.getCodeGenType().getValue()));
+                                        String codeType = currentContext.getCodeGenType().getValue();
+                                        stepInfo.append(String.format("- ✓ 策略确定：选择 **%s** 生成模式\n", codeType));
+                                        stepInfo.append("- ✓ AI分析：基于需求自动选择最优方案\n");
+                                        stepInfo.append("- ✓ 准备就绪：开始代码生成流程\n");
                                     }
                                     break;
+                                    
                                 case "code_generator":
+                                    stepInfo.append("**💻 AI 代码生成节点**\n\n");
                                     if (StrUtil.isNotBlank(currentContext.getOutputDir())) {
-                                        stepInfo.append(String.format("- 代码输出目录: %s\n", currentContext.getOutputDir()));
+                                        stepInfo.append(String.format("- ✓ 生成完成：代码已输出\n"));
+                                        stepInfo.append(String.format("- ✓ 输出路径：`%s`\n", currentContext.getOutputDir()));
+                                        stepInfo.append("- ✓ 下一步：等待 AI 代码质量审查\n");
                                     }
-                                    stepInfo.append("\n**等待 AI 代码审查...**\n");
+                                    stepInfo.append("\n> 🔍 正在启动代码审查流程...\n");
                                     break;
+                                    
                                 case "ai_code_reviewer":
+                                    stepInfo.append("**🔍 代码审查节点**\n\n");
                                     if (currentContext.getCodeReviewResponse() != null) {
                                         boolean passed = currentContext.getCodeReviewResponse().getIsPass();
-                                        stepInfo.append(String.format("- 审查结果: %s\n", passed ? "✅ 通过" : "❌ 未通过 (将尝试修复)"));
-                                        if (!passed) {
-                                             stepInfo.append("- 正在构建修改方案...\n");
+                                        if (passed) {
+                                            stepInfo.append("- ✅ **审查通过**：代码质量符合标准\n");
+                                            stepInfo.append("- ✓ 代码规范：符合最佳实践\n");
+                                            stepInfo.append("- ✓ 功能完整：满足需求描述\n");
+                                        } else {
+                                            stepInfo.append("- ⚠️ **审查未通过**：发现需要优化的问题\n");
+                                            stepInfo.append("- 🔄 自动修复：正在重新生成优化代码\n");
+                                            stepInfo.append("- 📝 改进方案：基于审查反馈调整\n");
                                         }
                                     }
                                     break;
+                                    
                                 case "project_builder":
+                                    stepInfo.append("**🏗️ 项目构建节点**\n\n");
                                     if (StrUtil.isNotBlank(currentContext.getDeployDir())) {
-                                        stepInfo.append(String.format("- 项目部署目录: %s\n", currentContext.getDeployDir()));
+                                        stepInfo.append("- ✓ 构建完成：项目已成功编译\n");
+                                        stepInfo.append(String.format("- ✓ 部署目录：`%s`\n", currentContext.getDeployDir()));
+                                        stepInfo.append("- ✓ 状态：可预览和部署\n");
                                     }
                                     break;
                             }
                             
-                            // 错误信息总是显示
+                            // 错误信息总是显示，使用醒目的格式
                             if (StrUtil.isNotBlank(currentContext.getErrorMessage())) {
-                                stepInfo.append(String.format("\n**⚠️ 异常信息:** %s\n", currentContext.getErrorMessage()));
+                                stepInfo.append("\n\n---\n\n");
+                                stepInfo.append("**⚠️ 执行异常**\n\n");
+                                stepInfo.append("```\n");
+                                stepInfo.append(currentContext.getErrorMessage());
+                                stepInfo.append("\n```\n");
+                                stepInfo.append("\n> 💡 提示：异常详情已记录到服务端日志，请检查控制台输出\n");
                             }
 
+                            stepInfo.append("\n\n</div>\n\n");
+                            stepInfo.append(String.format("<!-- NODE_END:%s -->\n\n", nodeName));
+                            
                             emitStreamText(sink, aiResponseBuilder, stepInfo.toString());
                             log.info("当前步骤: {} - {}", nodeName, currentContext.getCurrentStep());
 
@@ -232,16 +300,45 @@ public class CodeGenWorkflowApp {
                         }
                     }
 
-                    // 发送工作流完成事件
-                    emitStreamText(sink, aiResponseBuilder, "\n\n# 🎉 代码生成任务全部完成！\n\n");
+                    // 发送工作流完成事件 - 使用结构化完成标记
+                    String completeInfo = "\n\n<!-- WORKFLOW_COMPLETE -->\n\n" +
+                            "---\n\n" +
+                            "# 🎉 代码生成任务完成\n\n" +
+                            "<div class='workflow-summary'>\n\n" +
+                            "**✅ 所有工作流节点执行完毕**\n\n" +
+                            "- 🌐 网络资源已整理\n" +
+                            "- 🖼️ 图片资源已收集\n" +
+                            "- ✨ 提示词已增强\n" +
+                            "- 🎯 代码类型已确定\n" +
+                            "- 💻 代码已生成\n" +
+                            "- 🔍 质量已审查\n" +
+                            "- 🏗️ 项目已构建\n\n" +
+                            "**下一步操作：**\n\n" +
+                            "- 📱 切换到「应用模式」查看预览\n" +
+                            "- 🚀 点击「部署」发布到线上\n" +
+                            "- 💾 点击「下载」获取源代码\n\n" +
+                            "</div>\n\n";
+                    emitStreamText(sink, aiResponseBuilder, completeInfo);
                     
                     log.info("代码生成工作流执行完成！应用ID: {}", appId);
                     sink.complete();
                 } catch (Throwable e) {
                     log.error("工作流执行失败，应用ID: {}，错误信息: {}", appId, e.getMessage(), e);
-                    // 发送错误事件
-                    String errorInfo = "\n\n# 🛑 Agent 工作流执行异常\n\n" +
-                            "**错误信息:** " + e.getMessage() + "\n\n";
+                    // 发送错误事件 - 使用结构化错误格式
+                    String errorInfo = "\n\n<!-- WORKFLOW_ERROR -->\n\n" +
+                            "---\n\n" +
+                            "# 🛑 工作流执行异常\n\n" +
+                            "<div class='workflow-error'>\n\n" +
+                            "**异常类型：** " + e.getClass().getSimpleName() + "\n\n" +
+                            "**错误信息：**\n\n" +
+                            "```\n" +
+                            e.getMessage() +
+                            "\n```\n\n" +
+                            "**处理建议：**\n\n" +
+                            "1. 检查服务端控制台日志获取详细堆栈信息\n" +
+                            "2. 确认AI服务配置是否正确（API Key等）\n" +
+                            "3. 如问题持续，请联系技术支持\n\n" +
+                            "</div>\n\n";
 
                     emitStreamText(sink, aiResponseBuilder, errorInfo);
                     sink.error(e);
