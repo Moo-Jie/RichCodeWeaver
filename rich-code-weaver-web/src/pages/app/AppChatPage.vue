@@ -778,10 +778,25 @@ const checkAndResumeGeneration = () => {
   const generatingInfo = getGeneratingInfo()
   if (!generatingInfo) return // localStorage 中没有正在进行的任务
   
+  // 关键修复：检查最后一条 AI 消息是否已完整（有实质内容且不在加载中）
+  const lastMessage = messages.value[messages.value.length - 1]
+  if (lastMessage?.type === 'ai' && lastMessage.content && lastMessage.content.length > 100 && !lastMessage.loading) {
+    // AI 消息已完整生成，清除过期的 localStorage 标记
+    console.log('检测到已完成的生成任务，清除过期标记')
+    markGeneratingEnd()
+    return
+  }
+  
+  // 检查是否有预览 URL（说明代码已生成）
+  if (previewUrl.value) {
+    console.log('检测到已有预览 URL，清除过期标记')
+    markGeneratingEnd()
+    return
+  }
+  
   console.log('检测到未完成的生成任务（来自 localStorage），准备恢复...', generatingInfo.message.substring(0, 50))
   message.info('检测到未完成的任务，正在恢复生成...')
   
-  const lastMessage = messages.value[messages.value.length - 1]
   let aiMessageIndex: number
   
   if (lastMessage?.type === 'ai') {

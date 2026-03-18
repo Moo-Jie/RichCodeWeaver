@@ -341,6 +341,14 @@ const fetchAppInfo = async () => {
       await fetchChatHistory()
       updatePreview()
 
+      // 智能判断默认模式：如果已生成完毕（有预览URL），默认打开应用模式；否则打开对话模式
+      const hasGeneratedCode = !!res.data.data.deployKey || messages.value.length >= 2
+      if (hasGeneratedCode && previewUrl.value) {
+        appStore.setMode('app')
+      } else {
+        appStore.setMode('chat')
+      }
+
       // Auto-send initial prompt if new app with init prompt
       if (appStore.selectedApp?.initPrompt && isOwner.value && messages.value.length === 0) {
         await sendInitialMessage(appStore.selectedApp.initPrompt)
@@ -407,8 +415,23 @@ const checkAndResumeGeneration = () => {
   const generatingInfo = getGeneratingInfo()
   if (!generatingInfo) return
 
-  message.info('检测到未完成的任务，正在恢复生成...')
+  // 关键修复：检查最后一条 AI 消息是否已完整（有实质内容且不在加载中）
   const lastMessage = messages.value[messages.value.length - 1]
+  if (lastMessage?.type === 'ai' && lastMessage.content && lastMessage.content.length > 100 && !lastMessage.loading) {
+    // AI 消息已完整生成，清除过期的 localStorage 标记
+    console.log('检测到已完成的生成任务，清除过期标记')
+    markGeneratingEnd()
+    return
+  }
+
+  // 检查是否有预览 URL（说明代码已生成）
+  if (previewUrl.value) {
+    console.log('检测到已有预览 URL，清除过期标记')
+    markGeneratingEnd()
+    return
+  }
+
+  message.info('检测到未完成的任务，正在恢复生成...')
   let aiMessageIndex: number
 
   if (lastMessage?.type === 'ai') {

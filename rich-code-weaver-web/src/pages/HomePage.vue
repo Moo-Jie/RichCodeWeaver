@@ -103,6 +103,8 @@ const myAppsPage = reactive({
   pageSize: 6,
   total: 0
 })
+const loadingMyApps = ref(false)
+const myAppsError = ref<string | null>(null)
 
 // 星选应用数据
 const featuredApps = ref<API.AppVO[]>([])
@@ -163,6 +165,9 @@ const loadMyApps = async () => {
     return
   }
 
+  loadingMyApps.value = true
+  myAppsError.value = null
+
   try {
     const res = await listMyAppVoByPage({
       pageNum: myAppsPage.current,
@@ -174,9 +179,14 @@ const loadMyApps = async () => {
     if (res.data.code === 0 && res.data.data) {
       myApps.value = res.data.data.records || []
       myAppsPage.total = res.data.data.totalRow || 0
+    } else {
+      myAppsError.value = res.data.message || '加载失败'
     }
   } catch (error) {
     console.error('加载我的应用失败：', error)
+    myAppsError.value = '网络连接失败，请检查您的网络设置'
+  } finally {
+    loadingMyApps.value = false
   }
 }
 
@@ -206,6 +216,16 @@ const viewChat = (appId: string | number | undefined) => {
   }
 }
 
+// 判断应用是否已生成完毕（有对话记录或已部署）
+const isAppGenerated = (app: API.AppVO) => {
+  // 如果已部署，说明肯定生成完毕
+  if (app.deployKey) return true
+  // 如果有部署时间，说明生成完毕
+  if (app.deployedTime) return true
+  // 可以添加其他判断条件，比如检查是否有对话历史等
+  return false
+}
+
 // 查看作品
 const viewWork = (app: API.AppVO) => {
   if (app.deployKey) {
@@ -216,8 +236,13 @@ const viewWork = (app: API.AppVO) => {
 
 // 页面加载时获取数据
 onMounted(() => {
-  loadMyApps()
+  // Load featured apps (existing)
   loadFeaturedApps()
+  
+  // Load my apps if user is authenticated (NEW)
+  if (loginUserStore.loginUser.id) {
+    loadMyApps()
+  }
 })
 </script>
 
@@ -414,13 +439,24 @@ onMounted(() => {
           <div v-show="activeTab === 'my'" class="workspace-section my-workspace">
             <div class="app-grid-wrapper">
               <transition-group appear name="fade">
-                <AppCard
+                <div
                   v-for="app in myApps"
                   :key="app.id"
-                  :app="app"
-                  @view-chat="viewChat"
-                  @view-work="viewWork"
-                />
+                  :class="{ 'app-disabled': !isAppGenerated(app) }"
+                  class="app-wrapper"
+                >
+                  <AppCard
+                    :app="app"
+                    @view-chat="viewChat"
+                    @view-work="viewWork"
+                  />
+                  <div v-if="!isAppGenerated(app)" class="app-overlay-disabled">
+                    <div class="overlay-content">
+                      <a-spin size="small"/>
+                      <span>生成中...</span>
+                    </div>
+                  </div>
+                </div>
               </transition-group>
             </div>
             <div class="pagination-wrapper">
