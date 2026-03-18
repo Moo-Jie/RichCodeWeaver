@@ -389,58 +389,31 @@ onMounted(() => {
 
 <style lang="less" scoped>
 #userCenterPage {
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: 24px;
-  min-height: calc(100vh - 48px);
-  position: relative;
-  overflow: hidden;
-  color: #333333;
-}
-
-/* 美团风格背景 */
-#userCenterPage::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
+  padding: 32px;
   width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .page-header {
-  text-align: center;
-  margin-bottom: 30px;
-  padding: 10px 0;
-  position: relative;
-  z-index: 2;
+  margin-bottom: 28px;
 
   h1 {
-    font-family: 'Comic Neue', cursive;
-    font-size: 2.8rem;
+    font-size: 22px;
     font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 12px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    color: #1a1a1a;
+    margin: 0 0 6px;
   }
 
   p {
-    font-size: 1.3rem;
-    color: #7f8c8d;
-    max-width: 600px;
-    margin: 0 auto;
-    font-family: 'Comic Neue', cursive;
+    font-size: 14px;
+    color: #999;
+    margin: 0;
   }
 }
 
 .content-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 25px;
-  position: relative;
-  z-index: 2;
+  gap: 20px;
 
   @media (max-width: 992px) {
     grid-template-columns: 1fr;
@@ -448,37 +421,36 @@ onMounted(() => {
 }
 
 .info-card, .security-card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border: none;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-    transform: translateY(-3px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 
   h2 {
-    font-family: 'Comic Neue', cursive;
-    font-size: 1.6rem;
-    color: #2c3e50;
-    margin-bottom: 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 2px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 
     .anticon {
-      color: #1890ff;
+      color: #666;
+      font-size: 16px;
     }
   }
 }
 
 .info-card {
-  padding: 25px;
+  padding: 20px 24px;
 
   .card-header {
     display: flex;
@@ -511,23 +483,31 @@ onMounted(() => {
     gap: 15px;
 
     .user-avatar {
-      border: 4px solid #e6f7ff;
-      background: #f9f9f9;
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      border: 2px solid #f0f0f0;
+      background: #fafafa;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 
       .ant-avatar-icon {
-        color: #1890ff;
+        color: #999;
       }
     }
 
     .upload-btn {
-      border-radius: 12px;
-      font-size: 0.9rem;
-      padding: 0 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      padding: 0 16px;
       height: 36px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      background: #1a1a1a;
+      border-color: #1a1a1a;
+      color: #fff;
+
+      &:hover {
+        background: #333;
+        border-color: #333;
+      }
     }
   }
 
@@ -545,21 +525,21 @@ onMounted(() => {
 
       label {
         width: 100px;
-        color: #7f8c8d;
-        font-weight: 600;
+        color: #999;
+        font-weight: 500;
         text-align: right;
         padding-right: 15px;
-        font-family: 'Nunito', sans-serif;
+        font-size: 13px;
       }
 
       span {
         flex: 1;
-        color: #2c3e50;
-        font-family: 'Nunito', sans-serif;
+        color: #1a1a1a;
+        font-size: 14px;
 
         .anticon {
-          margin-right: 8px;
-          color: #1890ff;
+          margin-right: 6px;
+          color: #666;
         }
       }
     }
@@ -567,7 +547,7 @@ onMounted(() => {
 }
 
 .security-card {
-  padding: 25px;
+  padding: 20px 24px;
 
   .security-settings {
     margin-bottom: 30px;
@@ -585,22 +565,30 @@ onMounted(() => {
 
       h3 {
         margin: 0;
-        font-size: 1.1rem;
-        color: #2c3e50;
+        font-size: 15px;
+        color: #1a1a1a;
         font-weight: 600;
-        font-family: 'Nunito', sans-serif;
       }
 
       p {
-        margin: 6px 0 0;
-        font-size: 0.95rem;
-        color: #7f8c8d;
-        font-family: 'Nunito', sans-serif;
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #999;
       }
 
       button {
-        min-width: 120px;
-        border-radius: 12px;
+        min-width: 100px;
+        border-radius: 8px;
+        height: 36px;
+        font-size: 14px;
+        background: #1a1a1a;
+        border-color: #1a1a1a;
+        color: #fff;
+
+        &:hover {
+          background: #333;
+          border-color: #333;
+        }
       }
     }
   }
@@ -613,94 +601,96 @@ onMounted(() => {
 
     .logout-button {
       width: 50%;
-      border-radius: 12px;
-      height: 42px;
+      border-radius: 8px;
+      height: 36px;
       font-weight: 500;
-      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
 
       .anticon {
-        margin-right: 8px;
+        margin-right: 6px;
       }
     }
   }
 }
 
 .gradient-button {
-  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+  background: #1a1a1a;
   border: none;
-  color: white;
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  color: #fff;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
+    background: #333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   }
 }
 
 // 模态框样式优化
 :deep(.custom-modal) {
   .ant-modal {
-    border-radius: 20px;
+    border-radius: 12px;
     overflow: hidden;
   }
 
   .ant-modal-content {
-    background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
   }
 
   .ant-modal-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e6f7ff 100%);
+    background: #fff;
     border-bottom: 1px solid #f0f0f0;
-    padding: 22px 24px;
-    border-radius: 20px 20px 0 0;
+    padding: 16px 24px;
+    border-radius: 12px 12px 0 0;
 
     .ant-modal-title {
-      color: #2c3e50;
-      font-size: 1.4rem;
+      color: #1a1a1a;
+      font-size: 16px;
       font-weight: 600;
-      text-align: center;
-      font-family: 'Comic Neue', cursive;
     }
   }
 
   .ant-modal-body {
-    padding: 28px 24px;
+    padding: 20px 24px;
   }
 
   .ant-modal-footer {
     border-top: 1px solid #f0f0f0;
-    padding: 18px 24px;
+    padding: 16px 24px;
     text-align: center;
 
     .ant-btn {
-      border-radius: 12px;
-      padding: 0 22px;
-      height: 38px;
+      border-radius: 8px;
+      padding: 0 20px;
+      height: 36px;
       font-weight: 500;
+      font-size: 14px;
       transition: all 0.2s ease;
-      font-family: 'Nunito', sans-serif;
 
       &.ant-btn-default {
-        border-color: #d9d9d9;
-        color: #2c3e50;
+        border-color: #e5e5e5;
+        color: #666;
 
         &:hover {
-          border-color: #00c4ff;
-          color: #00c4ff;
+          border-color: #d0d0d0;
+          background: #fafafa;
+          color: #333;
         }
       }
 
       &.ant-btn-primary {
-        background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+        background: #1a1a1a;
         border: none;
-        color: white;
+        color: #fff;
 
         &:hover {
+          background: #333;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(116, 235, 213, 0.3);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
       }
     }
@@ -708,32 +698,32 @@ onMounted(() => {
 
   .ant-form {
     .ant-form-item {
-      margin-bottom: 22px;
+      margin-bottom: 16px;
 
       .ant-form-item-label {
         label {
-          color: #2c3e50;
-          font-weight: 600;
-          font-size: 0.95rem;
-          font-family: 'Nunito', sans-serif;
+          color: #1a1a1a;
+          font-weight: 500;
+          font-size: 14px;
         }
       }
 
       .ant-input, .ant-input-textarea {
-        border-radius: 12px;
-        border: 1px solid #d9d9d9;
-        padding: 10px 14px;
-        font-size: 0.95rem;
+        border-radius: 8px;
+        border: 1px solid #f0f0f0;
+        background: #fafafa;
+        padding: 8px 12px;
+        font-size: 14px;
         transition: all 0.2s ease;
-        font-family: 'Nunito', sans-serif;
 
         &:focus {
-          border-color: #00c4ff;
-          box-shadow: 0 0 0 2px rgba(116, 235, 213, 0.2);
+          border-color: #1a1a1a;
+          background: #fff;
+          box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
         }
 
         &::placeholder {
-          color: #a8a8a8;
+          color: #bbb;
         }
       }
 
@@ -747,18 +737,22 @@ onMounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  #userCenterPage {
+    padding: 16px;
+  }
+
   .page-header {
     h1 {
-      font-size: 2.2rem;
+      font-size: 20px;
     }
 
     p {
-      font-size: 1.1rem;
+      font-size: 13px;
     }
   }
 
   .info-card, .security-card {
-    padding: 20px;
+    padding: 16px;
   }
 
   .security-card .logout-section .logout-button {

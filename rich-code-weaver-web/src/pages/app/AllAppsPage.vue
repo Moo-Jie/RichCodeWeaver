@@ -112,8 +112,6 @@ onMounted(() => {
 <style scoped>
 .all-apps-page {
   padding: 32px;
-  max-width: 960px;
-  margin: 0 auto;
   width: 100%;
 }
 

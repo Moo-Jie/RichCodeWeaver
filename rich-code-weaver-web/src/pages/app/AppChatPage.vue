@@ -192,7 +192,7 @@
               :maxlength="1000"
               :rows="4"
               class="creative-textarea"
-              placeholder="✨ 描述越详尽，创作越符合您的预期 ✨"
+              placeholder="✨  描述越详尽，创作越符合您的预期"
               @keydown.enter.prevent="sendMessage"
             />
             <br>
@@ -765,7 +765,7 @@ const fetchChatHistory = async (loadMore = false) => {
       scrollToBottom()
       // 加载历史消息后更新预览
       updatePreview()
-      
+
       // 检测是否有未完成的生成任务（基于 localStorage 标记）
       if (!loadMore) {
         checkAndResumeGeneration()
@@ -779,31 +779,34 @@ const fetchChatHistory = async (loadMore = false) => {
 // 检测并恢复未完成的生成任务（基于 localStorage 标记，而非内容猜测）
 const checkAndResumeGeneration = () => {
   if (!isOwner.value) return
-  
+
   const generatingInfo = getGeneratingInfo()
   if (!generatingInfo) return // localStorage 中没有正在进行的任务
-  
-  // 关键修复：检查最后一条 AI 消息是否已完整（有实质内容且不在加载中）
+
   const lastMessage = messages.value[messages.value.length - 1]
-  if (lastMessage?.type === 'ai' && lastMessage.content && lastMessage.content.length > 100 && !lastMessage.loading) {
-    // AI 消息已完整生成，清除过期的 localStorage 标记
-    console.log('检测到已完成的生成任务，清除过期标记')
+
+  // 检查是否已部署（deployKey 存在说明生成肯定已完成）
+  if (appInfo.value?.deployKey) {
+    console.log('检测到已部署应用，清除过期标记')
     markGeneratingEnd()
     return
   }
-  
-  // 检查是否有预览 URL（说明代码已生成）
-  if (previewUrl.value) {
-    console.log('检测到已有预览 URL，清除过期标记')
-    markGeneratingEnd()
-    return
+
+  // 检查最后一条 AI 消息是否包含工作流完成/错误标记（分步执行模式的可靠完成判断）
+  if (lastMessage?.type === 'ai' && lastMessage.content && !lastMessage.loading) {
+    const content = lastMessage.content
+    if (content.includes('WORKFLOW_COMPLETE') || content.includes('WORKFLOW_ERROR') || content.includes('代码生成任务完成')) {
+      console.log('检测到已完成的生成任务（含完成标记），清除过期标记')
+      markGeneratingEnd()
+      return
+    }
   }
-  
+
   console.log('检测到未完成的生成任务（来自 localStorage），准备恢复...', generatingInfo.message.substring(0, 50))
   message.info('检测到未完成的任务，正在恢复生成...')
-  
+
   let aiMessageIndex: number
-  
+
   if (lastMessage?.type === 'ai') {
     // 已有 AI 消息（可能是半截的），复用它
     aiMessageIndex = messages.value.length - 1
@@ -817,7 +820,7 @@ const checkAndResumeGeneration = () => {
       loading: true
     })
   }
-  
+
   isGenerating.value = true
   generateCode(generatingInfo.message, aiMessageIndex, true)
 }
@@ -940,13 +943,15 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       messages.value[aiMessageIndex].content = fullContent
     }
     messages.value[aiMessageIndex].loading = false
-    // 延迟更新预览，确保后端已完成处理
+    // 延迟后刷新应用信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
     setTimeout(async () => {
       await refreshAppInfoOnly()
       if (previewIframe.value) {
         previewIframe.value.src = previewIframe.value.src
       }
-    }, 5000)
+      // 重新加载对话历史，用 DB 持久化数据替换内存中的流式数据，保证数据一致性
+      await fetchChatHistory()
+    }, 3000)
   }
 
   let reconnectMode = isReconnect

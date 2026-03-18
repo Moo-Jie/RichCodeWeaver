@@ -80,7 +80,7 @@
       </div>
 
       <!-- Mode switcher -->
-      <ModeSwitch :mode="appStore.currentMode" @update:mode="appStore.setMode" />
+      <ModeSwitch :mode="appStore.currentMode" @update:mode="handleModeSwitch" />
 
       <!-- Body: content + right panel side by side -->
       <div class="workspace-body">
@@ -100,7 +100,7 @@
             :is-owner="isOwner"
             :selected-element="selectedElement"
             :sending="isGenerating"
-            placeholder="✨ 描述越详尽，创作越符合您的预期 ✨"
+            placeholder="✨  描述越详尽，创作越符合您的预期"
             @clear-selection="clearSelection"
             @send="sendMessage"
           />
@@ -341,12 +341,14 @@ const fetchAppInfo = async () => {
       await fetchChatHistory()
       updatePreview()
 
-      // 智能判断默认模式：如果已生成完毕（有预览URL），默认打开应用模式；否则打开对话模式
-      const hasGeneratedCode = !!res.data.data.deployKey || messages.value.length >= 2
-      if (hasGeneratedCode && previewUrl.value) {
-        appStore.setMode('app')
-      } else {
+      // 智能判断默认模式：检测是否有正在传输的SSE流
+      const hasActiveSSE = !!getGeneratingInfo()
+      if (hasActiveSSE) {
+        // 有正在传输的SSE流，进入对话模式
         appStore.setMode('chat')
+      } else {
+        // 没有正在传输的SSE流，展示应用模式
+        appStore.setMode('app')
       }
 
       // Auto-send initial prompt if new app with init prompt
@@ -421,22 +423,26 @@ const checkAndResumeGeneration = () => {
   const generatingInfo = getGeneratingInfo()
   if (!generatingInfo) return
 
-  // 关键修复：检查最后一条 AI 消息是否已完整（有实质内容且不在加载中）
   const lastMessage = messages.value[messages.value.length - 1]
-  if (lastMessage?.type === 'ai' && lastMessage.content && lastMessage.content.length > 100 && !lastMessage.loading) {
-    // AI 消息已完整生成，清除过期的 localStorage 标记
-    console.log('检测到已完成的生成任务，清除过期标记')
+
+  // 检查是否已部署（deployKey 存在说明生成肯定已完成）
+  if (appStore.selectedApp?.deployKey) {
+    console.log('检测到已部署应用，清除过期标记')
     markGeneratingEnd()
     return
   }
 
-  // 检查是否有预览 URL（说明代码已生成）
-  if (previewUrl.value) {
-    console.log('检测到已有预览 URL，清除过期标记')
-    markGeneratingEnd()
-    return
+  // 检查最后一条 AI 消息是否包含工作流完成/错误标记（分步执行模式的可靠完成判断）
+  if (lastMessage?.type === 'ai' && lastMessage.content && !lastMessage.loading) {
+    const content = lastMessage.content
+    if (content.includes('WORKFLOW_COMPLETE') || content.includes('WORKFLOW_ERROR') || content.includes('代码生成任务完成')) {
+      console.log('检测到已完成的生成任务（含完成标记），清除过期标记')
+      markGeneratingEnd()
+      return
+    }
   }
 
+  console.log('检测到未完成的生成任务（来自 localStorage），准备恢复...', generatingInfo.message.substring(0, 50))
   message.info('检测到未完成的任务，正在恢复生成...')
   let aiMessageIndex: number
 
@@ -524,10 +530,13 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       messages.value[aiMessageIndex].content = fullContent
     }
     messages.value[aiMessageIndex].loading = false
+    // 延迟后刷新应用信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
     setTimeout(async () => {
       await refreshAppInfoOnly()
       appPreviewRef.value?.refresh()
-    }, 5000)
+      // 重新加载对话历史，用 DB 持久化数据替换内存中的流式数据，保证数据一致性
+      await fetchChatHistory()
+    }, 3000)
   }
 
   // Agent mode from route query
@@ -651,6 +660,16 @@ const toggleEditMode = () => {
   }
 }
 
+const handleModeSwitch = (newMode: 'chat' | 'app') => {
+  // Auto-exit visual edit mode when switching to chat mode
+  if (newMode === 'chat' && isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+    clearSelection()
+  }
+  appStore.setMode(newMode)
+}
+
 const clearSelection = () => {
   selectedElement.value = null
   visualEditor.value?.clearSelection()
@@ -660,6 +679,13 @@ const clearSelection = () => {
 const deployApp = async () => {
   if (!appId.value) return
   if (isDeployed.value) return
+
+  // Auto-exit visual edit mode
+  if (isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+    clearSelection()
+  }
 
   deploying.value = true
   try {
@@ -680,6 +706,13 @@ const deployApp = async () => {
 }
 
 const confirmReDeploy = async () => {
+  // Auto-exit visual edit mode
+  if (isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+    clearSelection()
+  }
+
   Modal.confirm({
     title: '重复部署警告',
     content: '请勿频繁部署，若违反则系统自动封号处理！确定要继续部署吗？',
@@ -709,6 +742,14 @@ const confirmReDeploy = async () => {
 // === Download ===
 const downloadCode = async () => {
   if (!appId.value) return
+
+  // Auto-exit visual edit mode
+  if (isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+    clearSelection()
+  }
+
   downloading.value = true
   try {
     const res = await request.get(`/download/code/zip/${appId.value}`, {responseType: 'blob'})
@@ -735,15 +776,36 @@ const downloadCode = async () => {
 
 // === Actions ===
 const openInNewTab = () => {
+  // Auto-exit visual edit mode
+  if (isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+    clearSelection()
+  }
+
   if (previewUrl.value) window.open(previewUrl.value, '_blank')
 }
 
 const visitDeployedSite = () => {
+  // Auto-exit visual edit mode
+  if (isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+    clearSelection()
+  }
+
   if (deployedSiteUrl.value) window.open(deployedSiteUrl.value, '_blank')
   else if (deployUrl.value) window.open(deployUrl.value, '_blank')
 }
 
 const showAppDetail = () => {
+  // Auto-exit visual edit mode
+  if (isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+    clearSelection()
+  }
+
   appDetailVisible.value = true
 }
 
@@ -809,6 +871,14 @@ onMounted(() => {
   visualEditor.value = new visualEditorUtil({
     onElementSelected: (elementInfo: ElementInfo) => {
       selectedElement.value = elementInfo
+      // Auto-switch to chat mode when element is selected
+      if (appStore.currentMode === 'app') {
+        appStore.setMode('chat')
+      }
+      // Prompt user to input modification requirements
+      nextTick(() => {
+        message.info('已选中元素，请在下方输入框中描述您想要的修改需求', 3)
+      })
     }
   })
   window.addEventListener('message', handleIframeMessage)

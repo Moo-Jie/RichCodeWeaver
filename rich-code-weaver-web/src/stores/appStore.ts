@@ -50,7 +50,7 @@ export const useAppStore = defineStore('app', () => {
     hotPanelVisible.value = true
   }
 
-  async function loadMyApps(page = 1, pageSize = 50) {
+  async function loadMyApps(page = 1, pageSize = 10) {
     try {
       const res = await listMyAppVoByPage({
         pageNum: page,

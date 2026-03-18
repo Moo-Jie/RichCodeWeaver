@@ -33,6 +33,7 @@ public class TestStreamHandler {
         // 用于收集 AI 响应内容的 StringBuilder
         StringBuilder aiResponseBuilder = new StringBuilder();
         // 处理 AI 响应流
+        // 注意：不要在此处添加 doOnComplete 保存对话历史，CommonStreamHandler.doFinally 已统一处理保存逻辑
         return commonStreamHandler.handleStream(
                 // 直接收集 AI 响应内容的数据块，用于保存到对话历史
                 stringFlux.map(strBlock -> {
@@ -40,16 +41,7 @@ public class TestStreamHandler {
                             return strBlock;
                         })
                         // 过滤空字串
-                        .filter(StrUtil::isNotEmpty)
-                        // 流结束后，保存 AI 响应到对话历史
-                        .doOnComplete(() -> {
-                            String aiResponse = aiResponseBuilder.toString();
-                            if (StrUtil.isNotBlank(aiResponse)) {
-                                chatHistoryService.addChatMessage(appId, aiResponse,
-                                        ChatHistoryTypeEnum.AI.getValue(),
-                                        userId);
-                            }
-                        }),
+                        .filter(StrUtil::isNotEmpty),
                 chatHistoryService,
                 appId,
                 userId,

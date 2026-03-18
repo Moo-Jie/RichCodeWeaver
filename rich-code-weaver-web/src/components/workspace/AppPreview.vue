@@ -209,13 +209,13 @@ defineExpose({
   background: none;
   border: none;
   cursor: pointer;
-  color: #999;
+  color: #606060;
   font-size: 13px;
   transition: color 0.15s;
 }
 
 .tips-btn:hover {
-  color: #666;
+  color: #2e2e2e;
 }
 
 .arrow {
@@ -234,7 +234,7 @@ defineExpose({
 .tips-content p {
   margin: 0 0 4px;
   font-size: 12px;
-  color: #bbb;
+  color: #616161;
   line-height: 1.6;
 }
 

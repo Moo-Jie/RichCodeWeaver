@@ -69,57 +69,69 @@ const handleClose = () => {
 <style scoped>
 .deploy-success {
   text-align: center;
-  padding: 32px;
-  background: linear-gradient(135deg, rgba(250, 248, 216, 0.09) 0%, rgba(250, 248, 216, 0.68) 100%);
-  border-radius: 8px;
+  padding: 24px;
 }
 
 .success-icon {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .deploy-success h3 {
-  margin: 0 0 20px;
-  font-size: 24px;
-  font-weight: 700;
-  color: #62d591;
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 
 .deploy-success p {
-  margin: 0 0 28px;
-  color: #595959;
-  font-size: 16px;
+  margin: 0 0 20px;
+  color: #666;
+  font-size: 14px;
 }
 
 .deploy-url {
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 
 .deploy-url :deep(.ant-input) {
-  border-radius: 6px;
-  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  background: #fafafa;
+  font-size: 14px;
 }
 
 .deploy-actions {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   justify-content: center;
 }
 
 .deploy-actions :deep(.ant-btn) {
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 0 20px;
   height: 36px;
   font-weight: 500;
+  font-size: 14px;
+}
+
+.deploy-actions :deep(.ant-btn-primary) {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+.deploy-actions :deep(.ant-btn-primary:hover) {
+  background: #333;
+  border-color: #333;
 }
 
 .deploy-actions :deep(.ant-btn-default) {
-  border-color: #ffffff;
-  color: #000000;
+  border-color: #e5e5e5;
+  color: #666;
 }
 
 .deploy-actions :deep(.ant-btn-default:hover) {
-  background-color: #c2cbff;
-  color: white;
+  background: #fafafa;
+  border-color: #d0d0d0;
+  color: #333;
 }
 </style>

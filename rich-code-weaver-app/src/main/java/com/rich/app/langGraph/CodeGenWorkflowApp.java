@@ -353,21 +353,11 @@ public class CodeGenWorkflowApp {
             });
         });
         // 处理流，把收集 AI 响应内容保存到对话历史，并进一步处理为响应给前端的最终内容
+        // 注意：不要在此处添加 doOnComplete 保存对话历史，CommonStreamHandler.doFinally 已统一处理保存逻辑
         return commonStreamHandler.handleStream(
                 fluxStream
                         // 过滤空字串
-                        .filter(StrUtil::isNotEmpty)
-                        // 流结束后，保存 AI 响应到对话历史
-                        .doOnComplete(() -> {
-                            // 保存 AI 响应到对话历史
-                            String aiResponse = aiResponseBuilder.toString();
-                            if (StrUtil.isNotBlank(aiResponse)) {
-                                chatHistoryService.addChatMessage(appId,
-                                        aiResponse,
-                                        ChatHistoryTypeEnum.AI.getValue(),
-                                        userId);
-                            }
-                        }),
+                        .filter(StrUtil::isNotEmpty),
                 chatHistoryService, appId, userId, aiResponseBuilder);
     }
 
@@ -379,15 +369,17 @@ public class CodeGenWorkflowApp {
      * @param text            需要输出的文本
      */
     private void emitStreamText(FluxSink<String> sink, StringBuilder aiResponseBuilder, String text) {
-        for (char c : text.toCharArray()) {
+        // 使用 codePoints() 遍历，正确处理 emoji 等 Unicode 补充字符（避免 surrogate pair 被拆分导致乱码）
+        text.codePoints().forEach(codePoint -> {
             try {
                 Thread.sleep(STREAM_CHAR_DELAY_MS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-            sink.next(String.valueOf(c));
-            aiResponseBuilder.append(c);
-        }
+            String ch = new String(Character.toChars(codePoint));
+            sink.next(ch);
+            aiResponseBuilder.append(ch);
+        });
     }
 
     /**

@@ -2,8 +2,27 @@
   <div class="chat-input-wrap">
     <!-- Selected element hint -->
     <div v-if="selectedElement" class="selected-hint">
-      <span class="hint-tag">已选择元素: {{ selectedElement.tagName }}</span>
-      <button class="hint-close" @click="$emit('clearSelection')">✕</button>
+      <div class="hint-content">
+        <div class="hint-title">
+          <span class="hint-icon">✓</span>
+          <span class="hint-label">已选中元素</span>
+        </div>
+        <div class="hint-details">
+          <span class="detail-item">
+            <span class="detail-label">标签:</span>
+            <code class="detail-value">{{ selectedElement.tagName }}</code>
+          </span>
+          <span v-if="selectedElement.className" class="detail-item">
+            <span class="detail-label">类名:</span>
+            <code class="detail-value">{{ selectedElement.className }}</code>
+          </span>
+          <span class="detail-item">
+            <span class="detail-label">选择器:</span>
+            <code class="detail-value detail-selector">{{ selectedElement.selector }}</code>
+          </span>
+        </div>
+      </div>
+      <button class="hint-close" @click="$emit('clearSelection')" title="取消选择">✕</button>
     </div>
 
     <!-- Not owner tip -->
@@ -123,20 +142,82 @@ defineExpose({focus: () => inputRef.value?.focus()})
 
 .selected-hint {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 8px 14px;
-  margin-bottom: 8px;
-  background: #f9f9f9;
-  border: 1px solid #e8e8e8;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: #f0f9ff;
+  border: 1px solid #bae7ff;
   border-radius: 10px;
   font-size: 13px;
-  color: #666;
+  gap: 12px;
 }
 
-.hint-tag {
-  color: #52c41a;
-  font-weight: 500;
+.hint-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hint-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.hint-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: #52c41a;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.hint-label {
+  font-size: 14px;
+}
+
+.hint-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.detail-label {
+  color: #666;
+  min-width: 50px;
+}
+
+.detail-value {
+  background: #fff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 11px;
+  color: #1a1a1a;
+}
+
+.detail-selector {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hint-close {
@@ -144,10 +225,12 @@ defineExpose({focus: () => inputRef.value?.focus()})
   border: none;
   cursor: pointer;
   color: #999;
-  font-size: 14px;
+  font-size: 16px;
   padding: 2px 6px;
   border-radius: 4px;
-  transition: background 0.15s;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .hint-close:hover {

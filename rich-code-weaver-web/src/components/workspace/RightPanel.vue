@@ -19,18 +19,13 @@
           </div>
         </div>
 
-        <!-- Chat Mode Actions -->
-        <div v-if="mode === 'chat'" class="panel-section">
-          <div class="section-label">对话操作</div>
+        <!-- App Mode Actions -->
+        <div v-if="mode === 'app'" class="panel-section">
+          <div class="section-label">应用操作</div>
           <button class="panel-btn" @click="$emit('toggleEdit')">
             <EditOutlined />
             <span>{{ isEditMode ? '退出编辑' : '可视化编辑' }}</span>
           </button>
-        </div>
-
-        <!-- App Mode Actions -->
-        <div v-if="mode === 'app'" class="panel-section">
-          <div class="section-label">应用操作</div>
           <button v-if="previewUrl" class="panel-btn" @click="$emit('previewFullscreen')">
             <ExpandOutlined />
             <span>全屏预览</span>
@@ -38,6 +33,16 @@
           <button :disabled="isGenerating" class="panel-btn" @click="$emit('download')">
             <DownloadOutlined />
             <span>{{ downloading ? '下载中...' : '下载代码' }}</span>
+          </button>
+          <template v-if="isDeployed">
+            <button :disabled="isGenerating" class="panel-btn" @click="$emit('reDeploy')">
+              <CloudUploadOutlined />
+              <span>{{ deploying ? '部署中...' : '重新部署' }}</span>
+            </button>
+          </template>
+          <button v-else :disabled="isGenerating" class="panel-btn" @click="$emit('deploy')">
+            <CloudUploadOutlined />
+            <span>{{ deploying ? '部署中...' : '部署网站' }}</span>
           </button>
         </div>
 
@@ -48,19 +53,9 @@
             <InfoCircleOutlined />
             <span>应用详情</span>
           </button>
-          <template v-if="isDeployed">
-            <button :disabled="isGenerating" class="panel-btn" @click="$emit('reDeploy')">
-              <CloudUploadOutlined />
-              <span>{{ deploying ? '部署中...' : '重新部署' }}</span>
-            </button>
-            <button class="panel-btn" @click="$emit('visitSite')">
-              <ExportOutlined />
-              <span>访问网站</span>
-            </button>
-          </template>
-          <button v-else :disabled="isGenerating" class="panel-btn" @click="$emit('deploy')">
-            <CloudUploadOutlined />
-            <span>{{ deploying ? '部署中...' : '部署网站' }}</span>
+          <button v-if="isDeployed" class="panel-btn" @click="$emit('visitSite')">
+            <ExportOutlined />
+            <span>访问网站</span>
           </button>
         </div>
       </div>

@@ -501,12 +501,7 @@ const doDeleteApp = async (id: number | undefined) => {
 <style lang="less" scoped>
 #appManagePage {
   padding: 32px;
-  background: #f8f9fa;
-  min-height: calc(100vh - 48px);
-  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #1a1a1a;
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .page-header {

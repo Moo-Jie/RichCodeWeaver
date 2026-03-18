@@ -227,26 +227,24 @@ const handleDelete = () => {
 <style lang="less" scoped>
 .app-detail-modal {
   :deep(.ant-modal-content) {
-    background: linear-gradient(135deg, rgba(255, 248, 206, 0.95) 0%, rgba(147, 203, 255, 0.95) 100%);
-    border-radius: 16px;
+    background: #fff;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(204, 230, 255, 0.3);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
   }
 
   :deep(.ant-modal-header) {
-    background: rgba(255, 255, 255, 0.85);
-    border-bottom: 1px solid rgba(204, 230, 255, 0.5);
-    border-radius: 16px 16px 0 0;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 12px 12px 0 0;
     padding: 16px 24px;
   }
 
   :deep(.ant-modal-title) {
-    font-family: 'Comic Neue', cursive;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #2c3e50;
-    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
   }
 
   :deep(.ant-modal-body) {
@@ -255,101 +253,109 @@ const handleDelete = () => {
 }
 
 .app-detail-content {
-  padding: 20px;
-  font-family: 'Nunito', sans-serif;
+  padding: 20px 24px;
 }
 
 .meta-grid {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(204, 230, 255, 0.3);
-  margin-bottom: 20px;
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid #f0f0f0;
+  margin-bottom: 16px;
 }
 
 :deep(.ant-descriptions-item) {
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(204, 230, 255, 0.3);
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+:deep(.ant-descriptions-item:last-child) {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 :deep(.ant-descriptions-item-label) {
   width: 100px;
-  color: #7f8c8d;
-  font-weight: 600;
-  padding-right: 20px;
+  color: #999;
+  font-weight: 500;
+  padding-right: 16px;
   vertical-align: top;
+  font-size: 13px;
 }
 
 :deep(.ant-descriptions-item-content) {
-  font-weight: 500;
-  color: #2c3e50;
+  font-weight: 400;
+  color: #1a1a1a;
+  font-size: 14px;
 }
 
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 5px 0;
+  gap: 8px;
+  padding: 2px 0;
 
   .anticon {
-    font-size: 16px;
-    color: #00c4ff;
+    font-size: 14px;
+    color: #666;
     flex-shrink: 0;
   }
 }
 
 .app-name {
-  font-weight: 600;
-  color: #2c3e50;
+  font-weight: 500;
+  color: #1a1a1a;
 }
 
 .cover-img {
-  max-width: 150px;
+  max-width: 120px;
   height: auto;
   border-radius: 8px;
   border: 1px solid #f0f0f0;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .app-actions {
-  padding-top: 20px;
-  border-top: 1px solid rgba(204, 230, 255, 0.5);
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
   display: flex;
   justify-content: center;
+  gap: 8px;
 }
 
 .edit-btn {
-  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+  background: #1a1a1a;
   border: none;
-  color: white;
-  border-radius: 12px;
-  height: 40px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 6px 12px rgba(116, 235, 213, 0.25);
+  color: #fff;
+  border-radius: 10px;
+  height: 36px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  padding: 0 20px;
 
   &:hover {
-    background: linear-gradient(135deg, #5adbc8 0%, #8b9de6 100%);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 16px rgba(116, 235, 213, 0.35);
+    background: #333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   }
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 4px 8px rgba(116, 235, 213, 0.3);
   }
 }
 
 .delete-btn {
-  border-radius: 12px;
-  height: 40px;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  border-radius: 10px;
+  height: 36px;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border-color: #ff4d4f;
 
   &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 16px rgba(255, 77, 79, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(255, 77, 79, 0.15);
   }
 
   &:active {

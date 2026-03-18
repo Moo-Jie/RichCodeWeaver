@@ -21,7 +21,7 @@
     <!-- Navigation -->
     <nav class="sidebar-nav">
       <div
-        v-for="item in visibleNavItems"
+        v-for="item in baseNavItems"
         :key="item.path"
         :class="['nav-item', { active: isActive(item.path) }]"
         @click="navigateTo(item.path)"
@@ -31,7 +31,49 @@
           <span v-show="!appStore.sidebarCollapsed" class="nav-label">{{ item.label }}</span>
         </transition>
       </div>
+
+      <!-- Admin Menu -->
+      <template v-if="isAdmin">
+        <div
+          :class="['nav-item', 'nav-item-expandable', { active: route.path.startsWith('/admin') }]"
+          @click="toggleAdminMenu"
+        >
+          <SettingOutlined class="nav-icon" />
+          <transition name="fade-text">
+            <span v-show="!appStore.sidebarCollapsed" class="nav-label">系统管理</span>
+          </transition>
+          <transition name="fade-text">
+            <DownOutlined v-show="!appStore.sidebarCollapsed" :class="['nav-arrow', { expanded: adminMenuExpanded }]" />
+          </transition>
+        </div>
+        <transition name="submenu-slide">
+          <div v-show="adminMenuExpanded && !appStore.sidebarCollapsed" class="nav-submenu">
+            <div
+              v-for="subItem in adminNavItems"
+              :key="subItem.path"
+              :class="['nav-subitem', { active: isActive(subItem.path) }]"
+              @click.stop="navigateTo(subItem.path)"
+            >
+              <component :is="subItem.icon" class="nav-icon" />
+              <span class="nav-label">{{ subItem.label }}</span>
+            </div>
+          </div>
+        </transition>
+      </template>
     </nav>
+
+    <!-- Other Menu -->
+    <div
+      v-for="item in otherNavItems"
+      :key="item.path"
+      :class="['nav-item', { active: isActive(item.path) }]"
+      @click="navigateTo(item.path)"
+    >
+      <component :is="item.icon" class="nav-icon" />
+      <transition name="fade-text">
+        <span v-show="!appStore.sidebarCollapsed" class="nav-label">{{ item.label }}</span>
+      </transition>
+    </div>
 
     <!-- Divider -->
     <div class="sidebar-divider"></div>
@@ -88,7 +130,7 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, watch} from 'vue'
+import {computed, onMounted, ref, watch} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {message} from 'ant-design-vue'
 import {useAppStore} from '@/stores/appStore'
@@ -98,6 +140,7 @@ import SidebarAppList from './SidebarAppList.vue'
 import {
   AppstoreOutlined,
   AuditOutlined,
+  DownOutlined,
   FileTextOutlined,
   GlobalOutlined,
   HomeOutlined,
@@ -106,6 +149,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   PlusOutlined,
+  SettingOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
 
@@ -113,25 +157,29 @@ const appStore = useAppStore()
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
 const route = useRoute()
+const adminMenuExpanded = ref(false)
 
-const navItems = [
+const baseNavItems = [
   {path: '/', label: '主页', icon: HomeOutlined},
   {path: '/my/apps', label: '我的应用', icon: AppstoreOutlined},
   {path: '/all/apps', label: '全部应用', icon: GlobalOutlined},
-  {path: '/admin/userManage', label: '用户管理', icon: UserOutlined, admin: true},
-  {path: '/admin/appManage', label: '应用管理', icon: AppstoreOutlined, admin: true},
-  {path: '/admin/chatHistory', label: '对话历史', icon: FileTextOutlined, admin: true},
+]
+
+const otherNavItems = [
   {path: '/other/about', label: '关于', icon: AuditOutlined}
 ]
 
-const visibleNavItems = computed(() => {
-  return navItems.filter(item => {
-    if (item.admin) {
-      return loginUserStore.loginUser?.userRole === 'admin'
-    }
-    return true
-  })
-})
+const adminNavItems = [
+  {path: '/admin/userManage', label: '用户管理', icon: UserOutlined},
+  {path: '/admin/appManage', label: '应用管理', icon: AppstoreOutlined},
+  {path: '/admin/chatHistory', label: '对话历史', icon: FileTextOutlined}
+]
+
+const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')
+
+const toggleAdminMenu = () => {
+  adminMenuExpanded.value = !adminMenuExpanded.value
+}
 
 const isActive = (path: string) => {
   if (path === '/') return route.path === '/'
@@ -408,5 +456,66 @@ const doLogout = async () => {
 .fade-text-enter-from,
 .fade-text-leave-to {
   opacity: 0;
+}
+
+/* Admin Submenu */
+.nav-item-expandable {
+  position: relative;
+}
+
+.nav-arrow {
+  position: absolute;
+  right: 16px;
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.nav-arrow.expanded {
+  transform: rotate(180deg);
+}
+
+.nav-submenu {
+  overflow: hidden;
+}
+
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 36px;
+  margin: 1px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #666;
+  font-size: 13px;
+}
+
+.nav-subitem:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.nav-subitem.active {
+  background: #f0f0f0;
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.submenu-slide-enter-active,
+.submenu-slide-leave-active {
+  transition: all 0.2s ease;
+}
+
+.submenu-slide-enter-from,
+.submenu-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.submenu-slide-enter-to,
+.submenu-slide-leave-from {
+  max-height: 200px;
+  opacity: 1;
 }
 </style>
