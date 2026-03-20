@@ -2,14 +2,14 @@
   <div id="appHistoryPage" class="history-management">
     <div class="page-header">
       <h1>对话历史管理</h1>
-      <p>管理应用历史对话记录</p>
+      <p>管理数字产物历史对话记录</p>
     </div>
 
     <div class="main-content">
       <div class="app-section">
         <div class="section-header">
           <div class="decorative-line"></div>
-          <h2 class="section-title">应用列表</h2>
+          <h2 class="section-title">数字产物列表</h2>
           <div class="decorative-line"></div>
         </div>
 
@@ -18,20 +18,20 @@
             v-model:value="appSearch"
             allow-clear
             class="search-input"
-            placeholder="搜索应用..."
+            placeholder="搜索数字产物..."
             @search="handleSearch"
-            aria-label="搜索应用"
+            aria-label="搜索数字产物"
           />
         </a-card>
 
         <div v-if="loadingApps" class="loading-container">
-          <a-spin size="large" tip="加载应用列表中..."/>
+          <a-spin size="large" tip="加载数字产物列表中..."/>
         </div>
 
         <a-empty
           v-else-if="!appList.length"
           class="empty-container"
-          description="暂无应用数据"
+          description="暂无数字产物数据"
         >
           <template #image>
             <div class="magic-pattern">
@@ -51,7 +51,7 @@
             class="app-item"
             tabindex="0"
             role="button"
-            :aria-label="`选择应用 ${app.appName}`"
+            :aria-label="`选择数字产物 ${app.appName}`"
             @click="selectApp(app)"
             @keydown.enter="selectApp(app)"
             @keydown.space.prevent="selectApp(app)"
@@ -71,7 +71,7 @@
         <div v-if="selectedApp" class="detail-content">
           <div class="section-header">
             <div class="decorative-line"></div>
-            <h2 class="section-title">应用 &lt;{{ selectedApp.appName }}&gt; 的对话记录</h2>
+            <h2 class="section-title">数字产物 &lt;{{ selectedApp.appName }}&gt; 的对话记录</h2>
             <div class="decorative-line"></div>
           </div>
 
@@ -90,7 +90,7 @@
                 <a-button
                   type="default"
                   @click="navigateToApp(selectedApp.id)"
-                  aria-label="查看应用详情"
+                  aria-label="查看数字产物详情"
                 >
                   <template #icon>
                     <ArrowRightOutlined/>
@@ -186,7 +186,7 @@
         </div>
 
         <div v-else class="detail-empty">
-          <a-empty class="empty-container" description="请从左侧选择一个应用">
+          <a-empty class="empty-container" description="请从左侧选择一个数字产物">
             <template #image>
               <div class="magic-pattern">
                 <div class="pattern-element pattern-1"></div>
@@ -242,7 +242,7 @@ const deleteMessage = async (messageId: number) => {
   }
 }
 
-// 应用列表相关状态
+// 数字产物列表相关状态
 const appList = ref<any[]>([])
 const appSearch = ref('')
 const selectedApp = ref<any>(null)
@@ -254,7 +254,7 @@ const loadingHistory = ref(true)
 const currentPage = ref(1)
 const contentLengthLimit = ref(5000) // 每页内容长度限制（字符数）
 
-// 获取应用列表
+// 获取数字产物列表
 const loadApps = async () => {
   try {
     loadingApps.value = true
@@ -270,14 +270,14 @@ const loadApps = async () => {
       appList.value = res.data.data.records || []
     }
   } catch (error) {
-    console.error('加载应用列表失败:', error)
-    message.error('加载应用列表失败:' + res.data.message)
+    console.error('加载数字产物列表失败:', error)
+    message.error('加载数字产物列表失败:' + res.data.message)
   } finally {
     loadingApps.value = false
   }
 }
 
-// 选择应用
+// 选择数字产物
 const selectApp = async (app: any) => {
   selectedApp.value = app
   currentPage.value = 1 // 重置到第一页
@@ -403,14 +403,14 @@ const handleSearch = (value: string) => {
   appSearch.value = value
 }
 
-// 导航到应用详情
+// 导航到数字产物详情
 const navigateToApp = (appId: string) => {
   if (appId) {
     router.push(`/app/chat/${appId}`)
   }
 }
 
-// 应用列表过滤
+// 数字产物列表过滤
 const filteredAppList = computed(() => {
   if (!appSearch.value) return appList.value
   const searchLower = appSearch.value.toLowerCase()

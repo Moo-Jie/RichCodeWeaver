@@ -11,7 +11,7 @@
         :class="['switch-item', { active: mode === 'app' }]"
         @click="$emit('update:mode', 'app')"
       >
-        应用模式
+        产物模式
       </div>
       <div :class="['switch-indicator', { right: mode === 'app' }]"></div>
     </div>

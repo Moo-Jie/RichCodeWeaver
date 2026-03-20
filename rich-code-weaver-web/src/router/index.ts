@@ -35,22 +35,22 @@ const router = createRouter({
         },
         {
           path: 'app/chat/:id',
-          name: '应用对话',
+          name: '数字产物对话',
           component: WorkspacePage
         },
         {
           path: 'app/edit/:id',
-          name: '编辑应用',
+          name: '编辑数字产物',
           component: AppEditPage
         },
         {
           path: 'my/apps',
-          name: '我的应用',
+          name: '我的产物',
           component: MyAppsPage
         },
         {
           path: 'all/apps',
-          name: '全部应用',
+          name: '全部产物',
           component: AllAppsPage
         },
         {
@@ -65,7 +65,7 @@ const router = createRouter({
         },
         {
           path: 'admin/appManage',
-          name: '应用管理',
+          name: '产物管理',
           component: AppManagePage
         },
         {

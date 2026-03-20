@@ -2,15 +2,15 @@
   <div id="appEditPage">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h1>应用编辑中心</h1>
-      <p>管理应用的详细信息与配置</p>
+      <h1>数字产物编辑中心</h1>
+      <p>管理数字产物的详细信息与配置</p>
     </div>
 
     <!-- 编辑面板 -->
     <div class="edit-panel">
       <a-card :loading="loading" class="info-card">
         <div class="card-header">
-          <h2>应用信息</h2>
+          <h2>数字产物信息</h2>
           <a-button class="view-chat" type="link" @click="goToChat">
             <MessageOutlined/>
             <span>进入对话</span>
@@ -24,12 +24,12 @@
           layout="vertical"
           @finish="handleSubmit"
         >
-          <a-form-item class="form-item" label="应用名称" name="appName">
+          <a-form-item class="form-item" label="数字产物名称" name="appName">
             <a-input
               v-model:value="formData.appName"
               :maxlength="50"
               allow-clear
-              placeholder="为您的应用输入一个有意义的名称"
+              placeholder="为您的数字产物输入一个有意义的名称"
             >
               <template #prefix>
                 <TagOutlined/>
@@ -39,7 +39,7 @@
               </template>
             </a-input>
             <div class="form-tip">
-              好的应用名称应该简洁明确，能准确反映应用的核心功能
+              好的数字产物名称应该简洁明确，能准确反映数字产物的核心功能
             </div>
           </a-form-item>
 
@@ -48,7 +48,7 @@
             <a-form-item
               class="form-item"
               extra="支持外部图片链接或上传本地图片，建议尺寸：400x300"
-              label="应用封面"
+              label="数字产物封面"
               name="cover"
             >
               <div class="cover-input-group">
@@ -95,13 +95,13 @@
             <template v-if="isAdmin">
               <a-form-item
                 class="form-item"
-                extra="设置为99可标记为星选应用"
-                label="应用优先级"
+                extra="设置为99可标记为星选数字产物"
+                label="数字产物优先级"
                 name="priority"
               >
                 <a-tooltip
                   placement="right"
-                  title="星选应用会展示在首页供所有用户查看"
+                  title="星选数字产物会展示在首页供所有用户查看"
                 >
                   <a-input-number
                     v-model:value="formData.priority"
@@ -117,7 +117,7 @@
                     </template>
                     <template #addonAfter>
                     <span v-if="formData.priority === 99" style="color: #d48806">
-                      (星选应用)
+                      (星选数字产物)
                     </span>
                     </template>
                   </a-input-number>
@@ -133,10 +133,10 @@
               :maxlength="1000"
               :rows="5"
               disabled
-              placeholder="应用的初始生成提示词"
+              placeholder="数字产物的初始生成提示词"
             />
             <div class="form-tip">
-              此字段为应用的初始生成指令，创建后不可修改
+              此字段为数字产物的初始生成指令，创建后不可修改
             </div>
           </a-form-item>
 
@@ -150,7 +150,7 @@
               }}
             </a-tag>
             <div class="form-tip">
-              生成类型决定了应用的框架和技术栈，创建后不可变更
+              生成类型决定了数字产物的框架和技术栈，创建后不可变更
             </div>
           </a-form-item>
 
@@ -162,7 +162,7 @@
           >
             <a-input v-model:value="formData.deployKey" disabled/>
             <div class="form-tip">
-              此密钥用于应用部署，请勿随意分享给他人
+              此密钥用于数字产物部署，请勿随意分享给他人
             </div>
           </a-form-item>
 
@@ -205,7 +205,7 @@
         </div>
         <div class="card-header">
         <span class="app-id">
-            应用ID：<a-tag color="blue">{{ appInfo?.id || '--' }}</a-tag>
+            数字产物ID：<a-tag color="blue">{{ appInfo?.id || '--' }}</a-tag>
           </span>
         </div>
         <a-descriptions :column="1" class="meta-grid">
@@ -286,7 +286,7 @@ const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const formRef = ref<FormInstance>()
 
-// 应用信息
+// 数字产物信息
 const appInfo = ref<API.AppVO>()
 const loading = ref(false)
 const submitting = ref(false)
@@ -309,7 +309,7 @@ const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
 })
 
-// 判断应用是否已部署
+// 判断数字产物是否已部署
 const isDeployed = computed(() => {
   return !!appInfo.value?.deployKey
 })
@@ -325,7 +325,7 @@ const deployedSiteUrl = computed(() => {
 // 表单验证规则
 const rules = {
   appName: [
-    {required: true, message: '请填写应用名称', trigger: 'blur'},
+    {required: true, message: '请填写数字产物名称', trigger: 'blur'},
     {min: 1, max: 50, message: '名称长度应为1-50个字符', trigger: 'blur'}
   ],
   cover: [{type: 'url', message: '请提供有效的图片URL', trigger: 'blur'}],
@@ -346,11 +346,11 @@ const getTypeColor = (type: string) => {
   return colors[type] || 'blue'
 }
 
-// 获取应用信息
+// 获取数字产物信息
 const fetchAppInfo = async () => {
   const id = route.params.id as string
   if (!id) {
-    message.error('应用ID无效:' + res.data.message)
+    message.error('数字产物ID无效:' + res.data.message)
     await router.push('/')
     return
   }
@@ -363,7 +363,7 @@ const fetchAppInfo = async () => {
 
       // 检查权限
       if (!isAdmin.value && appInfo.value.userId !== loginUserStore.loginUser.id) {
-        message.error('您没有权限编辑此应用:' + res.data.message)
+        message.error('您没有权限编辑此数字产物:' + res.data.message)
         router.push('/')
         return
       }
@@ -376,12 +376,12 @@ const fetchAppInfo = async () => {
       formData.codeGenType = appInfo.value.codeGenType || ''
       formData.deployKey = appInfo.value.deployKey || ''
     } else {
-      message.error('获取应用信息失败: ' + res.data.message)
+      message.error('获取数字产物信息失败: ' + res.data.message)
       router.push('/')
     }
   } catch (error) {
-    console.error('获取应用信息失败:', error)
-    message.error('获取应用信息失败:' + res.data.message)
+    console.error('获取数字产物信息失败:', error)
+    message.error('获取数字产物信息失败:' + res.data.message)
     router.push('/')
   } finally {
     loading.value = false
@@ -485,7 +485,7 @@ const goToChat = () => {
   }
 }
 
-// 页面加载时获取应用信息
+// 页面加载时获取数字产物信息
 onMounted(() => {
   fetchAppInfo()
 })

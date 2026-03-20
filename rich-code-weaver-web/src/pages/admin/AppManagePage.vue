@@ -2,21 +2,21 @@
   <div id="appManagePage">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h1>应用管理中心</h1>
-      <p>管理应用作品</p>
+      <h1>产物管理中心</h1>
+      <p>管理数字产物作品</p>
     </div>
 
     <!-- 搜索面板 -->
     <a-card class="search-panel">
-      <h2>筛选应用</h2>
+      <h2>筛选数字产物</h2>
       <a-form :model="searchParams" layout="inline" @finish="doSearch">
-        <a-form-item class="search-item" label="应用名称">
+        <a-form-item class="search-item" label="数字产物名称">
           <a-input
             v-model:value="searchParams.appName"
             allow-clear
-            placeholder="输入应用名称关键词"
+            placeholder="输入数字产物名称关键词"
             suffix-icon="search"
-            aria-label="搜索应用名称"
+            aria-label="搜索数字产物名称"
           />
         </a-form-item>
 
@@ -69,20 +69,20 @@
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button html-type="submit" aria-label="搜索应用">搜索</a-button>
+          <a-button html-type="submit" aria-label="搜索数字产物">搜索</a-button>
           &nbsp;
           <a-button @click="resetSearch" aria-label="重置搜索条件">重置</a-button>
         </a-form-item>
       </a-form>
     </a-card>
 
-    <!-- 应用列表表格 -->
+    <!-- 数字产物列表表格 -->
     <a-card class="app-table">
       <div class="table-header">
-        <h2>应用列表</h2>
+        <h2>数字产物列表</h2>
         <span class="table-tips">
-          共 {{ pagination.total }} 个应用 |
-          <a-tag class="featured-tag" color="gold">金色星标为星选应用</a-tag>
+          共 {{ pagination.total }} 个数字产物 |
+          <a-tag class="featured-tag" color="gold">金色星标为星选数字产物</a-tag>
         </span>
       </div>
 
@@ -150,9 +150,9 @@
           <template v-else-if="column.dataIndex === 'priority'">
             <a-tag v-if="record.priority === 99" color="gold">
               <star-filled/>
-              星选应用
+              星选数字产物
             </a-tag>
-            <span v-else>普通应用</span>
+            <span v-else>普通数字产物</span>
           </template>
 
           <template v-else-if="column.dataIndex === 'deployedTime'">
@@ -182,12 +182,12 @@
 
           <template v-else-if="column.key === 'action'">
             <a-space class="action-buttons">
-              <!-- 进入应用按钮 -->
+              <!-- 进入数字产物按钮 -->
               <a-button
                 size="small"
                 type="default"
                 @click="enterApp(record)"
-                :aria-label="`进入应用 ${record.appName}`"
+                :aria-label="`进入数字产物 ${record.appName}`"
               >
                 <template #icon>
                   <ArrowRightOutlined/>
@@ -198,7 +198,7 @@
                 size="small"
                 type="default"
                 @click="editApp(record)"
-                :aria-label="`编辑应用 ${record.appName}`"
+                :aria-label="`编辑数字产物 ${record.appName}`"
               >
                 编辑
               </a-button>
@@ -207,7 +207,7 @@
                 size="small"
                 type="default"
                 @click="showAppDetail(record)"
-                :aria-label="`查看应用 ${record.appName} 详情`"
+                :aria-label="`查看数字产物 ${record.appName} 详情`"
               >
                 <template #icon>
                   <InfoCircleOutlined/>
@@ -220,7 +220,7 @@
                 size="small"
                 type="default"
                 @click="toggleFeatured(record)"
-                :aria-label="record.priority === 99 ? `取消星选应用 ${record.appName}` : `设为星选应用 ${record.appName}`"
+                :aria-label="record.priority === 99 ? `取消星选数字产物 ${record.appName}` : `设为星选数字产物 ${record.appName}`"
               >
                 <template v-if="record.priority === 99">
                   <star-filled/>
@@ -233,10 +233,10 @@
               </a-button>
 
               <a-popconfirm
-                title="确定要删除这个应用吗？此操作不可恢复"
+                title="确定要删除这个数字产物吗？此操作不可恢复"
                 @confirm="doDeleteApp(record.id)"
               >
-                <a-button danger size="small" :aria-label="`删除应用 ${record.appName}`">删除</a-button>
+                <a-button danger size="small" :aria-label="`删除数字产物 ${record.appName}`">删除</a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -244,7 +244,7 @@
       </a-table>
     </a-card>
 
-    <!-- 应用详情弹窗 -->
+    <!-- 数字产物详情弹窗 -->
     <AppInfo
       v-model:open="appDetailVisible"
       :app="currentApp"
@@ -277,7 +277,7 @@ import UserInfo from '@/components/UserInfo.vue'
 import AppInfo from '@/components/AppInfo.vue'
 
 const router = useRouter()
-// 查看应用详情
+// 查看数字产物详情
 const appDetailVisible = ref(false)
 const currentApp = ref<API.AppVO | null>(null)
 
@@ -286,7 +286,7 @@ const showAppDetail = (app: API.AppVO) => {
   appDetailVisible.value = true
 }
 
-// 进入应用
+// 进入数字产物
 const enterApp = (app: API.AppVO) => {
   if (app.id) {
     router.push(`/app/chat/${app.id}`)
@@ -303,7 +303,7 @@ const columns = [
     sorter: true
   },
   {
-    title: '应用名称',
+    title: '数字产物名称',
     dataIndex: 'appName',
     width: 150,
     ellipsis: true
@@ -358,7 +358,7 @@ const columns = [
   }
 ]
 
-// 应用数据
+// 数字产物数据
 const data = ref<API.AppVO[]>([])
 const total = ref(0)
 
@@ -444,13 +444,13 @@ const doTableChange = (page: { current: number; pageSize: number }) => {
   fetchData()
 }
 
-// 搜索应用
+// 搜索数字产物
 const doSearch = () => {
   searchParams.pageNum = 1
   fetchData()
 }
 
-// 编辑应用
+// 编辑数字产物
 const editApp = (app: API.AppVO) => {
   router.push(`/app/edit/${app.id}`)
 }
@@ -468,7 +468,7 @@ const toggleFeatured = async (app: API.AppVO) => {
     })
 
     if (res.data.code === 0) {
-      message.success(newPriority === 99 ? '已设为星选应用' : '已取消星选')
+      message.success(newPriority === 99 ? '已设为星选数字产物' : '已取消星选')
       fetchData()
     } else {
       message.error('操作失败：' + res.data.message)
@@ -479,7 +479,7 @@ const toggleFeatured = async (app: API.AppVO) => {
   }
 }
 
-// 删除应用
+// 删除数字产物
 const doDeleteApp = async (id: number | undefined) => {
   if (!id) return
 

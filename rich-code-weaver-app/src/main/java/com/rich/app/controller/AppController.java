@@ -1,6 +1,7 @@
 package com.rich.app.controller;
 
 import com.mybatisflex.core.paginate.Page;
+import com.rich.ai.service.AiPromptOptimizationService;
 import com.rich.app.service.AppService;
 import com.rich.client.innerService.InnerFileService;
 import com.rich.client.innerService.InnerUserService;
@@ -41,6 +42,9 @@ public class AppController {
 
     @Resource
     private AppService appService;
+
+    @Resource
+    private AiPromptOptimizationService aiPromptOptimizationService;
 
     // 注入外部文件上传服务的代理对象
     @DubboReference
@@ -318,5 +322,23 @@ public class AppController {
         appService.updateById(app);
         // 返回图片URL
         return ResultUtils.success(url);
+    }
+
+    /**
+     * 优化用户提示词
+     *
+     * @param userPrompt 用户原始提示词
+     * @return 优化后的提示词
+     * @author DuRuiChi
+     * @create 2025/3/20
+     **/
+    @PostMapping("/optimize/prompt")
+    public BaseResponse<String> optimizePrompt(@RequestBody String userPrompt) {
+        // 参数校验
+        ThrowUtils.throwIf(userPrompt == null || userPrompt.trim().isEmpty(), ErrorCode.PARAMS_ERROR, "提示词不能为空");
+        // 调用 AI 优化服务
+        String optimizedPrompt = aiPromptOptimizationService.optimizePrompt(userPrompt.trim());
+        // 返回优化后的提示词
+        return ResultUtils.success(optimizedPrompt);
     }
 }

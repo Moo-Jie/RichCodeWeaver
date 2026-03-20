@@ -81,7 +81,7 @@
     <!-- App List -->
     <div class="sidebar-apps">
       <transition name="fade-text">
-        <div v-show="!appStore.sidebarCollapsed" class="apps-header">我的应用</div>
+        <div v-show="!appStore.sidebarCollapsed" class="apps-header">我的产物</div>
       </transition>
       <SidebarAppList />
     </div>
@@ -161,8 +161,8 @@ const adminMenuExpanded = ref(false)
 
 const baseNavItems = [
   {path: '/', label: '主页', icon: HomeOutlined},
-  {path: '/my/apps', label: '我的应用', icon: AppstoreOutlined},
-  {path: '/all/apps', label: '全部应用', icon: GlobalOutlined},
+  {path: '/my/apps', label: '我的产物', icon: AppstoreOutlined},
+  {path: '/all/apps', label: '全部产物', icon: GlobalOutlined},
 ]
 
 const otherNavItems = [
@@ -171,7 +171,7 @@ const otherNavItems = [
 
 const adminNavItems = [
   {path: '/admin/userManage', label: '用户管理', icon: UserOutlined},
-  {path: '/admin/appManage', label: '应用管理', icon: AppstoreOutlined},
+  {path: '/admin/appManage', label: '产物管理', icon: AppstoreOutlined},
   {path: '/admin/chatHistory', label: '对话历史', icon: FileTextOutlined},
   {path: '/admin/promptTemplate', label: '模板管理', icon: FileTextOutlined}
 ]

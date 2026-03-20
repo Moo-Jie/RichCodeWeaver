@@ -13,7 +13,7 @@
             <img v-if="app.cover" :src="app.cover" alt="" class="brief-cover" />
             <img v-else alt="" class="brief-cover brief-cover--default" src="@/assets/logo.png" />
             <div class="brief-info">
-              <span class="brief-name">{{ app.appName || '未命名应用' }}</span>
+              <span class="brief-name">{{ app.appName || '未命名数字产物' }}</span>
               <span class="brief-type">{{ typeLabel }}</span>
             </div>
           </div>
@@ -21,7 +21,7 @@
 
         <!-- App Mode Actions -->
         <div v-if="mode === 'app'" class="panel-section">
-          <div class="section-label">应用操作</div>
+          <div class="section-label">数字产物操作</div>
           <button class="panel-btn" @click="$emit('toggleEdit')">
             <EditOutlined />
             <span>{{ isEditMode ? '退出编辑' : '可视化编辑' }}</span>
@@ -51,7 +51,7 @@
           <div class="section-label">通用操作</div>
           <button v-if="isOwner || isAdmin" class="panel-btn" @click="$emit('showDetail')">
             <InfoCircleOutlined />
-            <span>应用详情</span>
+            <span>数字产物详情</span>
           </button>
           <button v-if="isDeployed" class="panel-btn" @click="$emit('visitSite')">
             <ExportOutlined />

@@ -28,25 +28,25 @@ const tourCurrent = ref(0)
 const tourSteps = ref<TourProps['steps']>([
   {
     title: '创意输入',
-    description: '在这里输入您的应用创意描述，系统会根据描述生成完整应用',
+    description: '在这里输入您的数字产物创意描述，系统会根据描述生成完整数字产物',
     target: () => document.querySelector('.prompt-input') as HTMLElement,
     placement: 'bottom'
   },
   {
     title: '热门提示词',
-    description: '点击这里可以选择热门应用的提示词模板，快速开始创作',
+    description: '点击这里可以选择热门数字产物的提示词模板，快速开始创作',
     target: () => document.querySelector('.rich-select-button') as HTMLElement,
     placement: 'bottom'
   },
   {
     title: '创建作品',
-    description: '输入创意后点击这里创建您的应用作品',
+    description: '输入创意后点击这里创建您的数字产物作品',
     target: () => document.querySelector('.create-button') as HTMLElement,
     placement: 'bottom'
   },
   {
     title: '我的创作空间',
-    description: '这里展示您已创建的所有应用作品，可以随时查看和编辑',
+    description: '这里展示您已创建的所有数字产物作品，可以随时查看和编辑',
     target: () => document.querySelector('.my-workspace') as HTMLElement,
     placement: 'top'
   }
@@ -85,18 +85,18 @@ const generatorType = ref<API.AppAddRequest['generatorType']>('AI_STRATEGY')
 const useAgentMode = ref(true)
 const agentModeOptions = ref([
   {
-    label: '分步执行模式',
+    label: '系统分步执行模式',
     value: true,
-    desc: '基于一套工作流的分步执行模式会让 AI 有更强的分析和决策能力，构建出的应用更加完善、稳定'
+    desc: '基于一套工作流的系统分步执行模式会让 AI 有更强的分析和决策能力，构建出的数字产物更加完善、稳定'
   },
   {
     label: 'Agent智能生成模式',
     value: false,
-    desc: '基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善'
+    desc: '基于训练后的 AI 模型直接构建数字产物，速度更快但可能不够完善'
   }
 ])
 
-// 我的应用数据
+// 我的产物数据
 const myApps = ref<API.AppVO[]>([])
 const myAppsPage = reactive({
   current: 1,
@@ -106,7 +106,7 @@ const myAppsPage = reactive({
 const loadingMyApps = ref(false)
 const myAppsError = ref<string | null>(null)
 
-// 星选应用数据
+// 星选数字产物数据
 const featuredApps = ref<API.AppVO[]>([])
 const featuredAppsPage = reactive({
   current: 1,
@@ -119,10 +119,10 @@ const setPrompt = (prompt: string) => {
   userPrompt.value = prompt
 }
 
-// 创建应用
+// 创建数字产物
 const createApp = async () => {
   if (!userPrompt.value.trim()) {
-    message.warning('请输入应用描述')
+    message.warning('请输入数字产物描述')
     return
   }
 
@@ -140,7 +140,7 @@ const createApp = async () => {
     })
 
     if (res.data.code === 0 && res.data.data) {
-      message.success('应用创建成功')
+      message.success('数字产物创建成功')
       // 跳转到对话页面，确保ID是字符串类型
       const appId = String(res.data.data)
       // 传递Agent模式参数
@@ -152,14 +152,14 @@ const createApp = async () => {
       message.error('创建失败：' + res.data.message)
     }
   } catch (error) {
-    console.error('创建应用失败：', error)
+    console.error('创建数字产物失败：', error)
     message.error('创建失败，请重试:' + res.data.message)
   } finally {
     creating.value = false
   }
 }
 
-// 加载我的应用
+// 加载我的产物
 const loadMyApps = async () => {
   if (!loginUserStore.loginUser.id) {
     return
@@ -183,14 +183,14 @@ const loadMyApps = async () => {
       myAppsError.value = res.data.message || '加载失败'
     }
   } catch (error) {
-    console.error('加载我的应用失败：', error)
+    console.error('加载我的产物失败：', error)
     myAppsError.value = '网络连接失败，请检查您的网络设置'
   } finally {
     loadingMyApps.value = false
   }
 }
 
-// 加载星选应用
+// 加载星选数字产物
 const loadFeaturedApps = async () => {
   try {
     const res = await listStarAppVoByPage({
@@ -205,7 +205,7 @@ const loadFeaturedApps = async () => {
       featuredAppsPage.total = res.data.data.totalRow || 0
     }
   } catch (error) {
-    console.error('加载星选应用失败：', error)
+    console.error('加载星选数字产物失败：', error)
   }
 }
 
@@ -216,7 +216,7 @@ const viewChat = (appId: string | number | undefined) => {
   }
 }
 
-// 判断应用是否已生成完毕（有对话记录或已部署）
+// 判断数字产物是否已生成完毕（有对话记录或已部署）
 const isAppGenerated = (app: API.AppVO) => {
   // 如果已部署，说明肯定生成完毕
   if (app.deployKey) return true
@@ -252,7 +252,7 @@ onMounted(() => {
       <!-- 网站标题和描述 -->
       <div class="hero-section">
         <h1 class="hero-title">RichCodeWeaver - 织码睿奇</h1>
-        <p class="hero-description">< 只需一句话，让创意触手可及 ></p>
+        <p class="hero-description">< 工作大幅提效，成果触手可及 ></p>
       </div>
 
       <!-- 用户提示词输入框 -->
@@ -351,8 +351,8 @@ onMounted(() => {
             <a-tooltip placement="top">
               <template #title>
                 <div style="max-width: 300px">
-                  分步执行模式会让 AI 有更强的分析和决策能力，构建出的应用更加完善、稳定；
-                  Agent智能生成模式基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善。
+                  系统分步执行模式会让 AI 有更强的分析和决策能力，构建出的数字产物更加完善、稳定；
+                  Agent智能生成模式基于训练后的 AI 模型直接构建数字产物，速度更快但可能不够完善。
                 </div>
               </template>
               <question-circle-outlined class="help-icon"/>

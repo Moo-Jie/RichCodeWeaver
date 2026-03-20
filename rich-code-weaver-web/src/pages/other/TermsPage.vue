@@ -27,13 +27,13 @@
               <div class="service-icon">
                 <code-outlined/>
               </div>
-              <p>基于用户描述生成应用原型</p>
+              <p>基于用户描述生成数字产物原型</p>
             </div>
             <div class="service-card">
               <div class="service-icon">
                 <edit-outlined/>
               </div>
-              <p>提供应用编辑和管理功能</p>
+              <p>提供数字产物编辑和管理功能</p>
             </div>
             <div class="service-card">
               <div class="service-icon">
@@ -45,7 +45,7 @@
               <div class="service-icon">
                 <share-alt-outlined/>
               </div>
-              <p>提供应用部署和分享功能</p>
+              <p>提供数字产物部署和分享功能</p>
             </div>
           </div>
         </section>

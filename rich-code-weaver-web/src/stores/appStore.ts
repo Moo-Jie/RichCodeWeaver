@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { getAppVoById, listMyAppVoByPage, listStarAppVoByPage } from '@/api/appController'
 
 /**
- * 应用全局状态管理
+ * 数字产物全局状态管理
  */
 export const useAppStore = defineStore('app', () => {
   const selectedApp = ref<API.AppVO | null>(null)

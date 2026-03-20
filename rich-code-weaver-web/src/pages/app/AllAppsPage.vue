@@ -1,7 +1,7 @@
 <template>
   <div class="all-apps-page">
     <div class="page-header">
-      <h2 class="page-title">全部应用</h2>
+      <h2 class="page-title">全部产物</h2>
       <p class="page-desc">探索社区中的热门创作</p>
     </div>
 
@@ -11,7 +11,7 @@
 
     <div v-else-if="apps.length === 0" class="empty-wrap">
       <div class="empty-icon">🌍</div>
-      <p class="empty-text">暂无热门应用</p>
+      <p class="empty-text">暂无热门数字产物</p>
     </div>
 
     <template v-else>
@@ -27,7 +27,7 @@
             <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
           </div>
           <div class="card-body">
-            <span class="card-name">{{ app.appName || '未命名应用' }}</span>
+            <span class="card-name">{{ app.appName || '未命名数字产物' }}</span>
             <div class="card-meta">
               <span class="card-user">{{ app.user?.userName || '--' }}</span>
               <span class="card-time">{{ formatTime(app.createTime) }}</span>

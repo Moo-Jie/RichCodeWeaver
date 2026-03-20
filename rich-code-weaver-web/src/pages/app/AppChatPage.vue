@@ -25,7 +25,7 @@
             名称：
             <a-tag :color="getTypeColor(appInfo?.codeGenType)">
               {{
-                appInfo?.appName?.substring(0, 10) + '...' || '待命名应用'
+                appInfo?.appName?.substring(0, 10) + '...' || '待命名数字产物'
               }}
             </a-tag>
           </div>
@@ -42,25 +42,25 @@
           </div>
         </template>
         &nbsp;
-        <!-- 星选应用  -->
+        <!-- 星选数字产物  -->
         <template v-if="appInfo">
           推广级别：
           <a-tag v-if="appInfo.priority === 99" class="app-tag2" color="gold">
             <star-filled/>
-            星选应用
+            星选数字产物
           </a-tag>
-          <span v-else class="app-tag">普通应用</span>
+          <span v-else class="app-tag">普通数字产物</span>
         </template>
       </div>
       &nbsp;&nbsp;
       <!-- 功能按钮  -->
       <div class="header-right">
-        <!-- 查看/编辑 应用信息  -->
+        <!-- 查看/编辑 数字产物信息  -->
         <a-button class="detail-btn" type="primary" @click="showAppDetail">
           <template #icon>
             <InfoCircleOutlined/>
           </template>
-          查看/编辑 应用信息
+          查看/编辑 数字产物信息
         </a-button>
         <!-- 全屏查看预览  -->
         <a-button v-if="previewUrl" :disabled="isGenerating" :loading="deploying" class="detail-btn"
@@ -326,7 +326,7 @@
               <template #description>
                 <div>
                   <p>1.预览为静态页面效果，部署后可体验完整功能;</p>
-                  <p>2.应用封面将在部署后自动生成（本应用首页），请在部署后静待 1-5s 即可;</p>
+                  <p>2.数字产物封面将在部署后自动生成（本数字产物首页），请在部署后静待 1-5s 即可;</p>
                   <p>3.若未生成预览页面请刷新页面;</p>
                   <p>4.请勿频繁部署，若违反则系统自动封号处理。</p>
                 </div>
@@ -338,7 +338,7 @@
     </div>
   </div>
 
-  <!-- 应用详情弹窗 -->
+  <!-- 数字产物详情弹窗 -->
   <AppInfo
     v-model:open="appDetailVisible"
     :app="appInfo"
@@ -436,8 +436,8 @@ const tourSteps = ref<TourProps['steps']>([
     placement: 'top'
   },
   {
-    title: '部署应用',
-    description: '生成完成后点击这里将应用部署到线上，获得可访问的网址',
+    title: '部署数字产物',
+    description: '生成完成后点击这里将数字产物部署到线上，获得可访问的网址',
     target: () => document.querySelector('.detail-btn') as HTMLElement,
     placement: 'top'
   }
@@ -492,7 +492,7 @@ const getGeneratingInfo = (): { message: string; timestamp: number } | null => {
 }
 
 
-// 应用信息
+// 数字产物信息
 const appInfo = ref<API.AppVO>()
 const appId = ref<string>()
 
@@ -563,7 +563,7 @@ const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
 })
 
-// 应用详情相关
+// 数字产物详情相关
 const appDetailVisible = ref(false)
 
 // 可视化编辑相关
@@ -572,12 +572,12 @@ const isEditMode = ref(false)
 const selectedElement = ref<ElementInfo | null>(null)
 
 
-// 显示应用详情
+// 显示数字产物详情
 const showAppDetail = () => {
   appDetailVisible.value = true
 }
 
-// 判断应用是否已部署
+// 判断数字产物是否已部署
 const isDeployed = computed(() => {
   return !!appInfo.value?.deployKey
 })
@@ -590,11 +590,11 @@ const deployedSiteUrl = computed(() => {
   return ''
 })
 
-// 获取应用信息
+// 获取数字产物信息
 const fetchAppInfo = async () => {
   const id = route.params.id as string
   if (!id) {
-    message.error('应用ID不存在:' + res.data.message)
+    message.error('数字产物ID不存在:' + res.data.message)
     await router.push('/')
     return
   }
@@ -620,10 +620,10 @@ const fetchAppInfo = async () => {
         updatePreview()
       }
     } else {
-      message.error('获取应用信息失败：' + (res.data.message || '请稍后重试'))
+      message.error('获取数字产物信息失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (error) {
-    console.error('获取应用信息失败：', error)
+    console.error('获取数字产物信息失败：', error)
   }
 }
 
@@ -679,7 +679,7 @@ const clearSelection = () => {
 // 下载代码
 const downloadCode = async () => {
   if (!appId.value) {
-    message.error('应用ID不存在:' + res.data.message)
+    message.error('数字产物ID不存在:' + res.data.message)
     return
   }
   downloading.value = true
@@ -787,12 +787,12 @@ const checkAndResumeGeneration = () => {
 
   // 检查是否已部署（deployKey 存在说明生成肯定已完成）
   if (appInfo.value?.deployKey) {
-    console.log('检测到已部署应用，清除过期标记')
+    console.log('检测到已部署数字产物，清除过期标记')
     markGeneratingEnd()
     return
   }
 
-  // 检查最后一条 AI 消息是否包含工作流完成/错误标记（分步执行模式的可靠完成判断）
+  // 检查最后一条 AI 消息是否包含工作流完成/错误标记（系统分步执行模式的可靠完成判断）
   if (lastMessage?.type === 'ai' && lastMessage.content && !lastMessage.loading) {
     const content = lastMessage.content
     if (content.includes('WORKFLOW_COMPLETE') || content.includes('WORKFLOW_ERROR') || content.includes('代码生成任务完成')) {
@@ -943,7 +943,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       messages.value[aiMessageIndex].content = fullContent
     }
     messages.value[aiMessageIndex].loading = false
-    // 延迟后刷新应用信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
+    // 延迟后刷新数字产物信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
     setTimeout(async () => {
       await refreshAppInfoOnly()
       if (previewIframe.value) {
@@ -1062,7 +1062,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   isGenerating.value = false
 }
 
-// 仅刷新应用信息（不重载对话历史、不自动发送消息）
+// 仅刷新数字产物信息（不重载对话历史、不自动发送消息）
 const refreshAppInfoOnly = async () => {
   if (!appId.value) return
   try {
@@ -1072,7 +1072,7 @@ const refreshAppInfoOnly = async () => {
       updatePreview()
     }
   } catch (error) {
-    console.error('刷新应用信息失败：', error)
+    console.error('刷新数字产物信息失败：', error)
   }
 }
 
@@ -1108,10 +1108,10 @@ const scrollToBottom = () => {
   }
 }
 
-// 部署应用
+// 部署数字产物
 const deployApp = async () => {
   if (!appId.value) {
-    message.error('应用ID不存在:' + res.data.message)
+    message.error('数字产物ID不存在:' + res.data.message)
     return
   }
 
@@ -1131,7 +1131,7 @@ const deployApp = async () => {
       deployUrl.value = res.data.data
       deployModalVisible.value = true
       message.success('部署成功')
-      // 仅刷新应用信息（不重载对话历史）
+      // 仅刷新数字产物信息（不重载对话历史）
       await refreshAppInfoOnly()
     } else {
       message.error('部署失败：' + res.data.message)
@@ -1162,7 +1162,7 @@ const confirmReDeploy = async () => {
           deployUrl.value = res.data.data
           deployModalVisible.value = true
           message.success('重新部署成功')
-          // 仅刷新应用信息（不重载对话历史）
+          // 仅刷新数字产物信息（不重载对话历史）
           await refreshAppInfoOnly()
         } else {
           message.error('重新部署失败：' + res.data.message)
@@ -1206,14 +1206,14 @@ const onIframeLoad = () => {
   }
 }
 
-// 编辑应用
+// 编辑数字产物
 const editApp = () => {
   if (appInfo.value?.id) {
     router.push(`/app/edit/${appInfo.value.id}`)
   }
 }
 
-// 删除应用
+// 删除数字产物
 const deleteApp = async () => {
   if (!appInfo.value?.id) return
 
@@ -1232,7 +1232,7 @@ const deleteApp = async () => {
   }
 }
 
-// 页面加载时获取应用信息
+// 页面加载时获取数字产物信息
 onMounted(() => {
   fetchAppInfo()
 })

@@ -28,7 +28,7 @@
               <ul>
                 <li><strong>账户信息</strong>：用户名、电子邮箱地址和密码</li>
                 <li><strong>个人资料</strong>：个人头像、昵称和联系信息</li>
-                <li><strong>应用内容</strong>：创建的应用描述和配置信息</li>
+                <li><strong>数字产物内容</strong>：创建的数字产物描述和配置信息</li>
               </ul>
             </div>
             <div class="info-card">

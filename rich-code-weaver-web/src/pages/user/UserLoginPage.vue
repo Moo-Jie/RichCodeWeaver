@@ -17,7 +17,7 @@
             </div>
             <div>
               <h3>无需编程经验</h3>
-              <p>用自然语言描述您的应用想法，我们将自动生成完整解决方案</p>
+              <p>用自然语言描述您的数字产物想法，我们将自动生成完整解决方案</p>
             </div>
           </div>
 
@@ -30,7 +30,7 @@
               </svg>
             </div>
             <div>
-              <h3>多样化应用模板</h3>
+              <h3>多样化数字产物模板</h3>
               <p>从数字艺术画廊到互动小说平台，丰富的创意模板供您选择</p>
             </div>
           </div>
@@ -60,7 +60,7 @@
       <div class="glass-container">
         <div class="header">
           <h1 class="title">织码睿奇 -登录</h1>
-          <p class="desc">不写一行代码，生成完整应用</p>
+          <p class="desc">不写一行代码，生成完整数字产物</p>
         </div>
         <a-form :model="formState" autocomplete="off" name="basic" @finish="handleSubmit">
           <a-form-item :rules="[{ required: true, message: '请输入账号' }]" name="userAccount">

@@ -3,19 +3,19 @@
     v-model:open="visible"
     :footer="null"
     class="app-detail-modal"
-    title="应用详情"
+    title="数字产物详情"
     width="600px"
   >
     <div class="app-detail-content">
       <!-- 基础信息 -->
       <a-descriptions :column="1" class="meta-grid">
-        <a-descriptions-item label="应用ID">
+        <a-descriptions-item label="数字产物ID">
           <div class="meta-item">
             <a-tag color="blue">{{ app?.id || '--' }}</a-tag>
           </div>
         </a-descriptions-item>
 
-        <a-descriptions-item label="应用名称">
+        <a-descriptions-item label="数字产物名称">
           <div class="meta-item">
             <AppstoreOutlined/>
             <span class="app-name">{{ app?.appName || '--' }}</span>
@@ -83,10 +83,10 @@
           </div>
         </a-descriptions-item>
 
-        <a-descriptions-item label="应用封面">
+        <a-descriptions-item label="数字产物封面">
           <div class="meta-item">
             <PictureOutlined/>
-            <img v-if="app?.cover" :src="app.cover" alt="应用封面" class="cover-img"/>
+            <img v-if="app?.cover" :src="app.cover" alt="数字产物封面" class="cover-img"/>
             <span v-else>--</span>
           </div>
         </a-descriptions-item>
@@ -119,19 +119,19 @@
             <template #icon>
               <EditOutlined/>
             </template>
-            前往完善应用信息
+            前往完善数字产物信息
           </a-button>
           <a-popconfirm
             cancel-text="取消"
             ok-text="确定"
-            title="警告：确定要删除这个应用吗？（删除后将无法恢复）"
+            title="警告：确定要删除这个数字产物吗？（删除后将无法恢复）"
             @confirm="handleDelete"
           >
             <a-button class="delete-btn" danger>
               <template #icon>
                 <DeleteOutlined/>
               </template>
-              删除当前应用
+              删除当前数字产物
             </a-button>
           </a-popconfirm>
         </a-space>

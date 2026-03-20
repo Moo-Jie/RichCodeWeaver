@@ -139,4 +139,25 @@ public class CommonChatModelConfig {
                 .logResponses(logResponses)
                 .build();
     }
+
+    /**
+     * 提示词优化模型（支持多例模式）
+     *
+     * @return dev.langchain4j.model.chat.ChatModel
+     * @author DuRuiChi
+     * @create 2025/3/20
+     * @Scope("prototype") 原型模式，每次调用都创建一个新的实例
+     **/
+    @Bean
+    @Scope("prototype")
+    public ChatModel promptOptimizationChatModel() {
+        return OpenAiChatModel.builder()
+                .modelName(modelName)
+                .apiKey(apiKey)
+                .baseUrl(baseUrl)
+                .maxTokens(maxTokens)
+                .logRequests(logRequests)
+                .logResponses(logResponses)
+                .build();
+    }
 }

@@ -217,3 +217,15 @@ export async function viewApp(
     ...(options || {}),
   })
 }
+
+/** 优化用户提示词 POST /app/optimize/prompt */
+export async function optimizePrompt(userPrompt: string, options?: { [key: string]: any }) {
+  return request<API.BaseResponseString>('/app/optimize/prompt', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: userPrompt,
+    ...(options || {}),
+  })
+}

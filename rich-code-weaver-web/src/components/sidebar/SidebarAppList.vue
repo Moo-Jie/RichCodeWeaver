@@ -13,12 +13,12 @@
         </div>
         <transition name="fade-text">
           <span v-show="!appStore.sidebarCollapsed" class="app-name">
-            {{ app.appName || '未命名应用' }}
+            {{ app.appName || '未命名数字产物' }}
           </span>
         </transition>
       </div>
       <div v-if="appStore.myApps.length === 0 && !appStore.sidebarCollapsed" class="empty-tip">
-        暂无应用
+        暂无数字产物
       </div>
     </div>
     <transition name="fade-text">

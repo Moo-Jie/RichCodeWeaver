@@ -121,8 +121,8 @@ const originItems = [
       {
         key: '/admin/appManage',
         icon: () => h(BorderlessTableOutlined),
-        label: '应用管理',
-        title: '应用管理'
+        label: '产物管理',
+        title: '产物管理'
       },
       {
         key: '/admin/chatHistory',

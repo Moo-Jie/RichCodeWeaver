@@ -7,14 +7,14 @@
           <!-- Greeting -->
           <div class="greeting">
             <img alt="Logo" class="greeting-logo" src="@/assets/logo.png" />
-            <h1 class="greeting-title">织码睿奇</h1>
-            <p class="greeting-sub">只需一句话，让创意触手可及</p>
+            <h1 class="greeting-title">RichCodeWeaver - 织码睿奇</h1>
+            <p class="greeting-sub">工作大幅提效，成果触手可及</p>
           </div>
 
-          <!-- 热门应用 horizontal scrollable cards -->
+          <!-- 热门数字产物 horizontal scrollable cards -->
           <div v-if="appStore.hotApps.length > 0" class="section">
             <div class="section-header">
-              <span class="section-title">热门应用</span>
+              <span class="section-title">热门数字产物</span>
               <button class="section-more" @click="router.push('/all/apps')">查看更多 <RightOutlined /></button>
             </div>
             <div class="app-scroll-wrap">
@@ -29,7 +29,7 @@
                     <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
                     <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
                   </div>
-                  <span class="app-card-name">{{ app.appName || '未命名应用' }}</span>
+                  <span class="app-card-name">{{ app.appName || '未命名数字产物' }}</span>
                 </div>
               </div>
             </div>
@@ -57,12 +57,16 @@
 
         <!-- Chat Input at bottom -->
         <ChatInput
+          ref="chatInputRef"
           v-model="userPrompt"
           :generator-mode="useAgentMode"
           :sending="creating"
+          :optimizing="optimizing"
           :show-mode-selector="true"
-          placeholder="描述您想要创建的应用..."
+          :show-optimize-button="true"
+          placeholder="描述您想要创建的数字产物..."
           @send="handleCreate"
+          @optimize="handleOptimizePrompt"
           @update:generator-mode="useAgentMode = $event"
         />
       </div>
@@ -180,7 +184,8 @@ import {
   addApp,
   deleteApp as deleteAppApi,
   deployApp as deployAppApi,
-  getAppVoById
+  getAppVoById,
+  optimizePrompt
 } from '@/api/appController'
 import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum } from '@/enums/codeGenTypes'
@@ -212,6 +217,8 @@ const loginUserStore = useLoginUserStore()
 const userPrompt = ref('')
 const useAgentMode = ref(true)
 const creating = ref(false)
+const optimizing = ref(false)
+const chatInputRef = ref()
 
 // === Dynamic Template State ===
 const matchedTemplates = ref<API.PromptTemplateVO[]>([])
@@ -245,6 +252,9 @@ const openTemplateDialog = (tpl: API.PromptTemplateVO) => {
 
 const handleTemplateConfirm = (prompt: string) => {
   userPrompt.value = prompt
+  nextTick(() => {
+    chatInputRef.value?.resetHeight()
+  })
 }
 
 // === App Chat State ===
@@ -351,7 +361,7 @@ const goToApp = (app: API.AppVO) => {
 // === Create App ===
 const handleCreate = async () => {
   if (!userPrompt.value.trim()) {
-    message.warning('请输入应用描述')
+    message.warning('请输入数字产物描述')
     return
   }
   if (!loginUserStore.loginUser.id) {
@@ -360,25 +370,60 @@ const handleCreate = async () => {
     return
   }
 
-  creating.value = true
+  // 确认提示词
+  Modal.confirm({
+    title: '确认创建',
+    content: '请确认您的提示词是否已经检查完毕？',
+    okText: '确认创建',
+    cancelText: '再检查一下',
+    onOk: async () => {
+      creating.value = true
+      try {
+        const res = await addApp({
+          initPrompt: userPrompt.value.trim(),
+          generatorType: 'HTML'
+        })
+        if (res.data.code === 0 && res.data.data) {
+          const newAppId = res.data.data
+          message.success('数字产物创建成功')
+          userPrompt.value = ''
+          await router.push(`/app/chat/${newAppId}?useAgent=${useAgentMode.value}`)
+          await appStore.loadMyApps()
+        } else {
+          message.error('创建失败：' + (res.data.message || '请稍后重试'))
+        }
+      } catch (e: any) {
+        message.error('创建失败：' + (e.message || '请稍后重试'))
+      } finally {
+        creating.value = false
+      }
+    }
+  })
+}
+
+// === Optimize Prompt ===
+const handleOptimizePrompt = async () => {
+  if (!userPrompt.value.trim()) {
+    message.warning('请先输入提示词')
+    return
+  }
+
+  optimizing.value = true
   try {
-    const res = await addApp({
-      initPrompt: userPrompt.value.trim(),
-      generatorType: 'HTML'
-    })
+    const res = await optimizePrompt(userPrompt.value.trim())
     if (res.data.code === 0 && res.data.data) {
-      const newAppId = res.data.data
-      message.success('应用创建成功')
-      userPrompt.value = ''
-      await router.push(`/app/chat/${newAppId}?useAgent=${useAgentMode.value}`)
-      await appStore.loadMyApps()
+      userPrompt.value = res.data.data
+      nextTick(() => {
+        chatInputRef.value?.resetHeight()
+      })
+      message.success('提示词优化成功')
     } else {
-      message.error('创建失败：' + (res.data.message || '请稍后重试'))
+      message.error('优化失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (e: any) {
-    message.error('创建失败：' + (e.message || '请稍后重试'))
+    message.error('优化失败：' + (e.message || '请稍后重试'))
   } finally {
-    creating.value = false
+    optimizing.value = false
   }
 }
 
@@ -404,7 +449,7 @@ const fetchAppInfo = async () => {
         // 有正在传输的SSE流，进入对话模式
         appStore.setMode('chat')
       } else {
-        // 没有正在传输的SSE流，展示应用模式
+        // 没有正在传输的SSE流，展示数字产物模式
         appStore.setMode('app')
       }
 
@@ -416,10 +461,10 @@ const fetchAppInfo = async () => {
         updatePreview()
       }
     } else {
-      message.error('获取应用信息失败：' + (res.data.message || '请稍后重试'))
+      message.error('获取数字产物信息失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (error) {
-    console.error('获取应用信息失败：', error)
+    console.error('获取数字产物信息失败：', error)
   }
 }
 
@@ -484,12 +529,12 @@ const checkAndResumeGeneration = () => {
 
   // 检查是否已部署（deployKey 存在说明生成肯定已完成）
   if (appStore.selectedApp?.deployKey) {
-    console.log('检测到已部署应用，清除过期标记')
+    console.log('检测到已部署数字产物，清除过期标记')
     markGeneratingEnd()
     return
   }
 
-  // 检查最后一条 AI 消息是否包含工作流完成/错误标记（分步执行模式的可靠完成判断）
+  // 检查最后一条 AI 消息是否包含工作流完成/错误标记（系统分步执行模式的可靠完成判断）
   if (lastMessage?.type === 'ai' && lastMessage.content && !lastMessage.loading) {
     const content = lastMessage.content
     if (content.includes('WORKFLOW_COMPLETE') || content.includes('WORKFLOW_ERROR') || content.includes('代码生成任务完成')) {
@@ -587,7 +632,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       messages.value[aiMessageIndex].content = fullContent
     }
     messages.value[aiMessageIndex].loading = false
-    // 延迟后刷新应用信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
+    // 延迟后刷新数字产物信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
     setTimeout(async () => {
       await refreshAppInfoOnly()
       appPreviewRef.value?.refresh()
@@ -683,7 +728,7 @@ const refreshAppInfoOnly = async () => {
       updatePreview()
     }
   } catch (error) {
-    console.error('刷新应用信息失败：', error)
+    console.error('刷新数字产物信息失败：', error)
   }
 }
 
@@ -1010,8 +1055,8 @@ const handleIframeMessage = (event: MessageEvent) => {
 .greeting { text-align: center; }
 
 .greeting-logo {
-  width: 56px;
-  height: 56px;
+  width: 100px;
+  height: 100px;
   border-radius: 14px;
   margin-bottom: 16px;
 }

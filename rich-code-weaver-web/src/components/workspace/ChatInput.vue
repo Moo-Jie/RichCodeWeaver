@@ -37,7 +37,7 @@
         <button
           :class="['capsule-item', { active: generatorMode }]"
           @click="$emit('update:generatorMode', true)"
-        >分步执行</button>
+        >系统分步执行</button>
         <button
           :class="['capsule-item', { active: !generatorMode }]"
           @click="$emit('update:generatorMode', false)"
@@ -45,17 +45,36 @@
       </div>
 
       <div class="input-row">
-        <textarea
-          ref="inputRef"
-          :disabled="sending"
-          :placeholder="placeholder"
-          :value="modelValue"
-          class="chat-textarea"
-          rows="1"
-          @input="handleInput"
-          @keydown.enter.exact.prevent="handleSend"
-        ></textarea>
-        <button :class="['send-btn', { disabled: sending || !modelValue?.trim() }]" :disabled="sending" @click="handleSend">
+        <div class="textarea-wrapper">
+          <div class="textarea-container">
+            <textarea
+              ref="inputRef"
+              :disabled="sending || optimizing"
+              :placeholder="placeholder"
+              :value="modelValue"
+              class="chat-textarea"
+              :class="{ optimizing: optimizing }"
+              rows="1"
+              @input="handleInput"
+            ></textarea>
+            <div v-if="optimizing" class="mist-overlay"></div>
+          </div>
+        </div>
+        <button
+          v-if="showOptimizeButton"
+          :class="['optimize-btn', { disabled: optimizing || !modelValue?.trim() }]"
+          :disabled="optimizing || !modelValue?.trim()"
+          @click="$emit('optimize')"
+          title="AI 优化提示词"
+        >
+          <template v-if="optimizing">
+            <a-spin :indicator="indicator" size="small" />
+          </template>
+          <template v-else>
+            <img :class="['optimize-btn', { disabled: optimizing || !modelValue?.trim() }]" src="@/assets/AiOptimize.png"/>
+          </template>
+        </button>
+        <button :class="['send-btn', { disabled: sending || !modelValue?.trim() }]" :disabled="sending || optimizing" @click="handleSend">
           <template v-if="sending">
             <a-spin :indicator="indicator" size="small" />
           </template>
@@ -87,6 +106,8 @@ interface Props {
   showModeSelector?: boolean
   generatorMode?: boolean
   placeholder?: string
+  showOptimizeButton?: boolean
+  optimizing?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -95,10 +116,12 @@ const props = withDefaults(defineProps<Props>(), {
   isAppMode: false,
   showModeSelector: false,
   generatorMode: true,
-  placeholder: '描述您想要创建的应用...'
+  placeholder: '描述您想要创建的数字产物...',
+  showOptimizeButton: false,
+  optimizing: false
 })
 
-const emit = defineEmits(['update:modelValue', 'send', 'clearSelection', 'update:generatorMode'])
+const emit = defineEmits(['update:modelValue', 'send', 'clearSelection', 'update:generatorMode', 'optimize'])
 
 const inputRef = ref<HTMLTextAreaElement>()
 const baseHeight = ref(0)
@@ -118,7 +141,7 @@ const handleInput = (e: Event) => {
 
 const autoResize = (el: HTMLTextAreaElement) => {
   el.style.height = 'auto'
-  const maxH = (baseHeight.value || 22) * 2
+  const maxH = (baseHeight.value || 22) * 5
   el.style.height = Math.min(el.scrollHeight, maxH) + 'px'
 }
 
@@ -131,7 +154,20 @@ const handleSend = () => {
   })
 }
 
-defineExpose({focus: () => inputRef.value?.focus()})
+const resetHeight = () => {
+  if (inputRef.value) {
+    nextTick(() => {
+      if (inputRef.value) {
+        autoResize(inputRef.value)
+      }
+    })
+  }
+}
+
+defineExpose({
+  focus: () => inputRef.value?.focus(),
+  resetHeight
+})
 </script>
 
 <style scoped>
@@ -306,10 +342,27 @@ defineExpose({focus: () => inputRef.value?.focus()})
   box-shadow: 0 0 0 3px rgba(0,0,0,0.03);
 }
 
+.textarea-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.textarea-wrapper:focus-within {
+  border-color: #1a1a1a;
+}
+
 .chat-textarea {
   flex: 1;
   border: none;
   outline: none;
+  padding: 0;
   background: transparent;
   font-size: 14px;
   line-height: 1.5;
@@ -318,6 +371,9 @@ defineExpose({focus: () => inputRef.value?.focus()})
   font-family: inherit;
   min-height: 22px;
   overflow-y: auto;
+  position: relative;
+  z-index: 2;
+  transition: height 0.3s ease;
 }
 
 .chat-textarea::placeholder {
@@ -325,6 +381,88 @@ defineExpose({focus: () => inputRef.value?.focus()})
 }
 
 .chat-textarea:disabled {
+  opacity: 0.5;
+}
+
+.textarea-container {
+  position: relative;
+  flex: 1;
+  display: flex;
+}
+
+.mist-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 50%, rgba(147, 197, 253, 0.25) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(196, 181, 253, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(253, 186, 116, 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(134, 239, 172, 0.15) 0%, transparent 50%);
+  background-size: 200% 200%;
+  animation: mistMove 6s ease-in-out infinite, mistFlow 3s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: 12px;
+  z-index: 1;
+}
+
+@keyframes mistMove {
+  0% {
+    background-position: 0% 50%, 100% 50%, 50% 100%, 20% 30%;
+    opacity: 0.5;
+  }
+  33% {
+    background-position: 100% 30%, 0% 70%, 30% 0%, 80% 50%;
+    opacity: 0.6;
+  }
+  66% {
+    background-position: 50% 100%, 50% 0%, 100% 50%, 0% 80%;
+    opacity: 0.55;
+  }
+  100% {
+    background-position: 0% 50%, 100% 50%, 50% 100%, 20% 30%;
+    opacity: 0.5;
+  }
+}
+
+@keyframes mistFlow {
+  0%, 100% {
+    filter: brightness(1) saturate(1);
+  }
+  50% {
+    filter: brightness(0.99) saturate(1.05);
+  }
+}
+
+.optimize-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e5e5e5;
+  background: #fafafa;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
+.optimize-btn:hover:not(.disabled) {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+  transform: scale(1.04);
+}
+
+.optimize-btn.disabled {
+  background: #fafafa;
+  border-color: #f0f0f0;
+  color: #bbb;
+  cursor: not-allowed;
   opacity: 0.5;
 }
 

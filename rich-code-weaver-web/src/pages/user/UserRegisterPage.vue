@@ -3,7 +3,7 @@
     <div class="glass-container">
       <div class="header">
         <h1 class="title">织码睿奇 -注册</h1>
-        <p class="desc">不写一行代码，生成完整应用</p>
+        <p class="desc">不写一行代码，生成完整数字产物</p>
       </div>
       <a-form :model="formState" autocomplete="off" name="basic" @finish="handleSubmit">
         <a-form-item :rules="[{ required: true, message: '请输入账号' }]" name="userAccount">

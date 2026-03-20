@@ -1,8 +1,8 @@
 <template>
   <div class="my-apps-page">
     <div class="page-header">
-      <h2 class="page-title">我的应用</h2>
-      <p class="page-desc">管理您创建的所有应用</p>
+      <h2 class="page-title">我的产物</h2>
+      <p class="page-desc">管理您创建的所有数字产物</p>
     </div>
 
     <div v-if="loading" class="loading-wrap">
@@ -11,9 +11,9 @@
 
     <div v-else-if="appStore.myApps.length === 0" class="empty-wrap">
       <div class="empty-icon">📦</div>
-      <p class="empty-text">暂无应用，快去创建一个吧</p>
+      <p class="empty-text">暂无数字产物，快去创建一个吧</p>
       <button class="create-btn" @click="router.push('/')">
-        <PlusOutlined /> 新建应用
+        <PlusOutlined /> 新建数字产物
       </button>
     </div>
 
@@ -30,7 +30,7 @@
             <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
           </div>
           <div class="card-body">
-            <span class="card-name">{{ app.appName || '未命名应用' }}</span>
+            <span class="card-name">{{ app.appName || '未命名数字产物' }}</span>
             <span class="card-time">{{ formatTime(app.createTime) }}</span>
           </div>
           <div class="card-badge" v-if="app.deployKey">已部署</div>

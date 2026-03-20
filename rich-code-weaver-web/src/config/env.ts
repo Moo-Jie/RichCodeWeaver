@@ -2,7 +2,7 @@
  * 环境 URL 变量配置
  */
 
-// 应用部署域名
+// 数字产物部署域名
 export const DEPLOY_DOMAIN = import.meta.env.VITE_DEPLOY_DOMAIN || 'http://localhost'
 
 // API 基础地址
@@ -11,7 +11,7 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 // 静态资源地址
 export const STATIC_BASE_URL = `${API_BASE_URL}/app/view`
 
-// 获取部署应用的完整URL
+// 获取部署数字产物的完整URL
 export const getDeployUrl = (deployKey: string) => {
   return `${DEPLOY_DOMAIN}/${deployKey}`
 }
