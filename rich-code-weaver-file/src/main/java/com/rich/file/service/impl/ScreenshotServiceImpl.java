@@ -54,7 +54,6 @@ public class ScreenshotServiceImpl implements ScreenshotService {
 
         log.info("网页截图生成并上传成功: {} -> {}", webUrl, cosUrl);
         return cosUrl;
-
     }
 
     /**

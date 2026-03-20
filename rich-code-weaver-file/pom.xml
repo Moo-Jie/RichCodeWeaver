@@ -47,23 +47,17 @@
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo-nacos-spring-boot-starter</artifactId>
         </dependency>
-        <!-- Selenium 网页截图 -->
+        <!-- Playwright 网页截图 - 相比 Selenium 性能更好、跨平台能力更强 -->
         <dependency>
-            <groupId>org.seleniumhq.selenium</groupId>
-            <artifactId>selenium-java</artifactId>
-            <version>4.33.0</version>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.48.0</version>
         </dependency>
         <!-- httpmime 处理多部件 POST 请求等功能的组件 -->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpmime</artifactId>
             <version>4.5.8</version>
-        </dependency>
-        <!-- WebDriverManager 库, 用于自动管理浏览器驱动,供自动检测本地浏览器版本并下载对应的驱动版本 -->
-        <dependency>
-            <groupId>io.github.bonigarcia</groupId>
-            <artifactId>webdrivermanager</artifactId>
-            <version>6.1.0</version>
         </dependency>
         <!-- Spring Boot Admin Client -->
         <dependency>

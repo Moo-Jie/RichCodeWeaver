@@ -44,3 +44,5 @@ build/
 /rich-code-weaver-app/src/main/resources/application-prod.yml
 /rich-code-weaver-file/src/main/resources/application-prod.yml
 /rich-code-weaver-user/src/main/resources/application-prod.yml
+/sysCache/
+/logs/
