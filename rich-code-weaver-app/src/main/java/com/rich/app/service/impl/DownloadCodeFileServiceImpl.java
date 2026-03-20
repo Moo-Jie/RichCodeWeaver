@@ -51,7 +51,7 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
      */
     private static final Set<String> IGNORED_EXTENSIONS = Set.of(
             ".log",
-            ".tmp",
+            ".template",
             ".cache",
             // Vue项目特有过滤项
             ".map",            // Source map 文件

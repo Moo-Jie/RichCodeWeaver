@@ -1,6 +1,5 @@
-package com.rich.user;
+package com.rich.template;
 
-import com.rich.file.FileApplication;
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
@@ -9,13 +8,13 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 
 @SpringBootApplication
-@MapperScan("com.rich.user.mapper")
+@MapperScan("com.rich.template.mapper")
 @ComponentScan(value = "com.rich", excludeFilters = {
-        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {FileApplication.class})
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = {TmpApplication.class})
 })
 @EnableDubbo
-public class UserApplication {
+public class TmpApplication {
     public static void main(String[] args) {
-        SpringApplication.run(UserApplication.class, args);
+        SpringApplication.run(TmpApplication.class, args);
     }
 }

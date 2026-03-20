@@ -15,80 +15,79 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 用户 实体类
+ * 提示词模板 实体类
  *
  * @author DuRuiChi
- * @create 2025/8/5
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("user")
-public class User implements Serializable {
+@Table("prompt_template")
+public class PromptTemplate implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
     /**
-     * id （雪花）
+     * id（雪花）
      */
     @Id(keyType = KeyType.Generator, value = KeyGenerators.snowFlakeId)
     private Long id;
 
     /**
-     * 账号
+     * 模板名称
      */
-    @Column("userAccount")
-    private String userAccount;
+    @Column("templateName")
+    private String templateName;
 
     /**
-     * 密码
+     * 匹配身份（individual/merchant/enterprise），NULL表示不限
      */
-    @Column("userPassword")
-    private String userPassword;
+    @Column("matchIdentity")
+    private String matchIdentity;
 
     /**
-     * 用户昵称
+     * 匹配行业领域，NULL表示不限
      */
-    @Column("userName")
-    private String userName;
+    @Column("matchIndustry")
+    private String matchIndustry;
 
     /**
-     * 用户头像
+     * 模板描述
      */
-    @Column("userAvatar")
-    private String userAvatar;
+    @Column("description")
+    private String description;
 
     /**
-     * 用户简介
+     * 提示词内容（含占位符 {{key}}）
      */
-    @Column("userProfile")
-    private String userProfile;
+    @Column("promptContent")
+    private String promptContent;
 
     /**
-     * 用户角色：user/admin
+     * 模板可编辑字段定义（JSON数组）
      */
-    @Column("userRole")
-    private String userRole;
+    @Column("templateFields")
+    private String templateFields;
 
     /**
-     * 用户身份：individual(个体)/merchant(商户)/enterprise(企业)
+     * 排序权重（越小越靠前）
      */
-    @Column("userIdentity")
-    private String userIdentity;
+    @Column("sortOrder")
+    private Integer sortOrder;
 
     /**
-     * 用户行业领域
+     * 是否启用
      */
-    @Column("userIndustry")
-    private String userIndustry;
+    @Column("isEnabled")
+    private Integer isEnabled;
 
     /**
-     * 编辑时间
+     * 创建人id
      */
-    @Column("editTime")
-    private LocalDateTime editTime;
+    @Column("userId")
+    private Long userId;
 
     /**
      * 创建时间
@@ -107,5 +106,4 @@ public class User implements Serializable {
      */
     @Column(value = "isDelete", isLogicDelete = true)
     private Integer isDelete;
-
 }

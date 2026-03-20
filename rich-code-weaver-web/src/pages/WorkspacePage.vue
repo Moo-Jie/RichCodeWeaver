@@ -35,20 +35,21 @@
             </div>
           </div>
 
-          <!-- Prompt suggestions -->
-          <div class="section">
+          <!-- Dynamic prompt templates -->
+          <div v-if="matchedTemplates.length > 0" class="section">
             <div class="section-header">
-              <span class="section-title">快速开始</span>
+              <span class="section-title">推荐模板</span>
+              <span v-if="loginUserStore.loginUser.userIndustry" class="section-tag">{{ loginUserStore.loginUser.userIndustry }}</span>
             </div>
             <div class="prompt-grid">
               <div
-                v-for="item in promptOptions"
-                :key="item.label"
+                v-for="tpl in matchedTemplates.slice(0, 8)"
+                :key="tpl.id"
                 class="prompt-card"
-                @click="userPrompt = item.value"
+                @click="openTemplateDialog(tpl)"
               >
-                <span class="prompt-label">{{ item.label }}</span>
-                <span class="prompt-desc">{{ item.desc }}</span>
+                <span class="prompt-label">{{ tpl.templateName }}</span>
+                <span class="prompt-desc">{{ tpl.description }}</span>
               </div>
             </div>
           </div>
@@ -155,6 +156,16 @@
       :deploy-url="deployUrl"
       @open-site="visitDeployedSite"
     />
+
+    <!-- Identity setup modal -->
+    <IdentitySetupModal />
+
+    <!-- Prompt template edit dialog -->
+    <PromptTemplateDialog
+      v-model:open="templateDialogOpen"
+      :template="selectedTemplate"
+      @confirm="handleTemplateConfirm"
+    />
   </div>
 </template>
 
@@ -180,7 +191,7 @@ import {
   getWebProjectStaticPreviewUrl
 } from '@/config/env'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
-import { promptOptions } from '@/constants/prompts'
+import { listMatchedTemplates } from '@/api/promptTemplateController'
 import request from '@/request'
 import ChatInput from '@/components/workspace/ChatInput.vue'
 import ChatMessages from '@/components/workspace/ChatMessages.vue'
@@ -189,6 +200,8 @@ import AppPreview from '@/components/workspace/AppPreview.vue'
 import RightPanel from '@/components/workspace/RightPanel.vue'
 import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
+import IdentitySetupModal from '@/components/IdentitySetupModal.vue'
+import PromptTemplateDialog from '@/components/PromptTemplateDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -199,6 +212,40 @@ const loginUserStore = useLoginUserStore()
 const userPrompt = ref('')
 const useAgentMode = ref(true)
 const creating = ref(false)
+
+// === Dynamic Template State ===
+const matchedTemplates = ref<API.PromptTemplateVO[]>([])
+const templateDialogOpen = ref(false)
+const selectedTemplate = ref<API.PromptTemplateVO | null>(null)
+const loadingTemplates = ref(false)
+
+const fetchMatchedTemplates = async () => {
+  const user = loginUserStore.loginUser
+  if (!user?.id) return
+  loadingTemplates.value = true
+  try {
+    const res = await listMatchedTemplates({
+      userIdentity: user.userIdentity || undefined,
+      userIndustry: user.userIndustry || undefined
+    })
+    if (res.data.code === 0 && res.data.data) {
+      matchedTemplates.value = res.data.data
+    }
+  } catch (e) {
+    console.error('Failed to load templates:', e)
+  } finally {
+    loadingTemplates.value = false
+  }
+}
+
+const openTemplateDialog = (tpl: API.PromptTemplateVO) => {
+  selectedTemplate.value = tpl
+  templateDialogOpen.value = true
+}
+
+const handleTemplateConfirm = (prompt: string) => {
+  userPrompt.value = prompt
+}
 
 // === App Chat State ===
 const appId = ref<string>(route.params.id as string || '')
@@ -901,9 +948,20 @@ onMounted(() => {
   // Load user's apps and hot apps
   if (loginUserStore.loginUser.id) {
     appStore.loadMyApps()
+    fetchMatchedTemplates()
   }
   appStore.loadHotApps()
 })
+
+// Re-fetch templates when user identity/industry changes
+watch(
+  () => [loginUserStore.loginUser.userIdentity, loginUserStore.loginUser.userIndustry],
+  () => {
+    if (loginUserStore.loginUser.id) {
+      fetchMatchedTemplates()
+    }
+  }
+)
 
 onUnmounted(() => {
   window.removeEventListener('message', handleIframeMessage)
@@ -989,6 +1047,15 @@ const handleIframeMessage = (event: MessageEvent) => {
   font-size: 15px;
   font-weight: 600;
   color: #1a1a1a;
+}
+
+.section-tag {
+  font-size: 12px;
+  color: #666;
+  background: #f0f0f0;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 500;
 }
 
 .section-more {

@@ -172,7 +172,8 @@ const otherNavItems = [
 const adminNavItems = [
   {path: '/admin/userManage', label: '用户管理', icon: UserOutlined},
   {path: '/admin/appManage', label: '应用管理', icon: AppstoreOutlined},
-  {path: '/admin/chatHistory', label: '对话历史', icon: FileTextOutlined}
+  {path: '/admin/chatHistory', label: '对话历史', icon: FileTextOutlined},
+  {path: '/admin/promptTemplate', label: '模板管理', icon: FileTextOutlined}
 ]
 
 const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')

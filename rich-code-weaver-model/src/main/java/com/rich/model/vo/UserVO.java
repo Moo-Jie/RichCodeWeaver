@@ -37,6 +37,14 @@ public class UserVO implements Serializable {
      */
     private String userRole;
     /**
+     * 用户身份：individual(个体)/merchant(商户)/enterprise(企业)
+     */
+    private String userIdentity;
+    /**
+     * 用户行业领域
+     */
+    private String userIndustry;
+    /**
      * 创建时间
      */
     private LocalDateTime createTime;

@@ -10,6 +10,7 @@ import MyAppsPage from '@/pages/app/MyAppsPage.vue'
 import AllAppsPage from '@/pages/app/AllAppsPage.vue'
 import UserCenterPage from '@/pages/user/UserCenterPage.vue'
 import ChatHistoryManagePage from '@/pages/admin/ChatHistoryManagePage.vue'
+import PromptTemplateManagePage from '@/pages/admin/PromptTemplateManagePage.vue'
 import DocsPage from '@/pages/other/DocsPage.vue'
 import AboutPage from '@/pages/other/AboutPage.vue'
 import PrivacyPage from '@/pages/other/PrivacyPage.vue'
@@ -71,6 +72,11 @@ const router = createRouter({
           path: 'admin/chatHistory',
           name: '对话历史管理',
           component: ChatHistoryManagePage
+        },
+        {
+          path: 'admin/promptTemplate',
+          name: '提示词模板管理',
+          component: PromptTemplateManagePage
         },
         {
           path: 'other/docs',

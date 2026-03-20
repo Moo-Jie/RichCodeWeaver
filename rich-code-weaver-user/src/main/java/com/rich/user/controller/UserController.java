@@ -158,9 +158,14 @@ public class UserController {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = new User();
-        BeanUtil.copyProperties(userUpdateRequest, user);
-        boolean result = userService.updateById(user);
+        // Fetch existing user first to avoid null fields
+        User existingUser = userService.getById(userUpdateRequest.getId());
+        ThrowUtils.throwIf(existingUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        
+        // Copy only non-null properties from request
+        BeanUtil.copyProperties(userUpdateRequest, existingUser, "id");
+        
+        boolean result = userService.updateById(existingUser);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }
@@ -174,9 +179,14 @@ public class UserController {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        User user = new User();
-        BeanUtil.copyProperties(userUpdateRequest, user);
-        boolean result = userService.updateById(user);
+        // Fetch existing user first to avoid null fields
+        User existingUser = userService.getById(userUpdateRequest.getId());
+        ThrowUtils.throwIf(existingUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        
+        // Copy only non-null properties from request
+        BeanUtil.copyProperties(userUpdateRequest, existingUser, "id");
+        
+        boolean result = userService.updateById(existingUser);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
     }

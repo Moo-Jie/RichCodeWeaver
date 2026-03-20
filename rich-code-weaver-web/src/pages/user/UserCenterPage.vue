@@ -63,6 +63,14 @@
               </a-tag>
             </div>
             <div class="detail-row">
+              <label>用户身份</label>
+              <span>{{ identityLabelMap[userInfo.userIdentity] || userInfo.userIdentity || '未设置' }}</span>
+            </div>
+            <div class="detail-row">
+              <label>行业领域</label>
+              <span>{{ userInfo.userIndustry || '未设置' }}</span>
+            </div>
+            <div class="detail-row">
               <label>注册时间</label>
               <span>
                 <CalendarOutlined/>
@@ -151,6 +159,21 @@
             placeholder="介绍一下你自己..."
           />
         </a-form-item>
+        <a-form-item label="用户身份">
+          <a-select
+            v-model:value="editForm.userIdentity"
+            placeholder="请选择您的身份"
+            :options="identitySelectOptions"
+          />
+        </a-form-item>
+        <a-form-item label="行业领域">
+          <a-auto-complete
+            v-model:value="editForm.userIndustry"
+            :options="industryAutoOptions"
+            placeholder="请选择或输入您的行业领域"
+            :filter-option="filterIndustry"
+          />
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -199,6 +222,7 @@ import {
   updateUserPassword,
   userLogout
 } from '@/api/userController'
+import { identityOptions, industryOptions, identityLabelMap } from '@/constants/identityOptions'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -210,6 +234,8 @@ const userInfo = reactive({
   userRole: 'user',
   userAvatar: '',
   userProfile: '',
+  userIdentity: '',
+  userIndustry: '',
   email: '',
   phone: '',
   createTime: new Date().toISOString()
@@ -222,8 +248,23 @@ const passwordVisible = ref(false)
 // 编辑表单
 const editForm = reactive({
   userName: '',
-  userProfile: ''
+  userProfile: '',
+  userIdentity: '',
+  userIndustry: ''
 })
+
+const identitySelectOptions = identityOptions.map(item => ({
+  value: item.value,
+  label: item.label
+}))
+
+const industryAutoOptions = industryOptions.map(item => ({
+  value: item
+}))
+
+const filterIndustry = (input: string, option: { value: string }) => {
+  return option.value.toLowerCase().includes(input.toLowerCase())
+}
 
 // 密码表单
 const passwordForm = reactive({
@@ -240,7 +281,9 @@ const fetchUserInfo = async () => {
       Object.assign(userInfo, res.data.data)
       Object.assign(editForm, {
         userName: res.data.data.userName,
-        userProfile: res.data.data.userProfile
+        userProfile: res.data.data.userProfile,
+        userIdentity: res.data.data.userIdentity || '',
+        userIndustry: res.data.data.userIndustry || ''
       })
     } else {
       message.error('获取用户信息失败:' + res.data.message)

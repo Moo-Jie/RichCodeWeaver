@@ -36,7 +36,7 @@ public class FileDirReadTool extends BaseTool {
      * 需要忽略的文件扩展名
      */
     private static final Set<String> IGNORED_EXTENSIONS = Set.of(
-            ".log", ".tmp", ".cache", ".lock"
+            ".log", ".template", ".cache", ".lock"
     );
 
     @Override

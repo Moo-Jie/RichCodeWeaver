@@ -26,6 +26,7 @@
         <module>rich-code-weaver-ai</module>
         <!-- 文件模块 -->
         <module>rich-code-weaver-file</module>
+        <module>rich-code-weaver-tmp</module>
     </modules>
 
     <!-- 全局属性配置 -->

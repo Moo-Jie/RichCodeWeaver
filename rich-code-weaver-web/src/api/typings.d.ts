@@ -190,6 +190,8 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    userIdentity?: string
+    userIndustry?: string
     createTime?: string
     updateTime?: string
   }
@@ -239,6 +241,8 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    userIdentity?: string
+    userIndustry?: string
     editTime?: string
     createTime?: string
     updateTime?: string
@@ -288,6 +292,8 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    userIdentity?: string
+    userIndustry?: string
   }
 
   type UserVO = {
@@ -297,10 +303,102 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    userIdentity?: string
+    userIndustry?: string
     createTime?: string
   }
 
   type viewAppParams = {
     appId: number
+  }
+
+  // ===== PromptTemplate Types =====
+
+  type PromptTemplateVO = {
+    id?: number
+    templateName?: string
+    matchIdentity?: string
+    matchIndustry?: string
+    description?: string
+    promptContent?: string
+    templateFields?: string
+    sortOrder?: number
+    isEnabled?: number
+    userId?: number
+    createTime?: string
+    updateTime?: string
+  }
+
+  type PromptTemplateAddRequest = {
+    templateName?: string
+    matchIdentity?: string
+    matchIndustry?: string
+    description?: string
+    promptContent?: string
+    templateFields?: string
+    sortOrder?: number
+    isEnabled?: number
+  }
+
+  type PromptTemplateUpdateRequest = {
+    id?: number
+    templateName?: string
+    matchIdentity?: string
+    matchIndustry?: string
+    description?: string
+    promptContent?: string
+    templateFields?: string
+    sortOrder?: number
+    isEnabled?: number
+  }
+
+  type PromptTemplateQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    templateName?: string
+    matchIdentity?: string
+    matchIndustry?: string
+    isEnabled?: number
+  }
+
+  type BaseResponsePromptTemplateVO = {
+    code?: number
+    data?: PromptTemplateVO
+    message?: string
+  }
+
+  type BaseResponseListPromptTemplateVO = {
+    code?: number
+    data?: PromptTemplateVO[]
+    message?: string
+  }
+
+  type PagePromptTemplateVO = {
+    records?: PromptTemplateVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePagePromptTemplateVO = {
+    code?: number
+    data?: PagePromptTemplateVO
+    message?: string
+  }
+
+  // ===== PromptTemplate Field Definition =====
+
+  type TemplateField = {
+    type: 'select' | 'text' | 'switch'
+    key: string
+    label: string
+    options?: string[]
+    defaultValue?: any
+    trueText?: string
+    falseText?: string
   }
 }
