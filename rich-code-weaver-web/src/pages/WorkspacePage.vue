@@ -48,6 +48,15 @@
                 class="prompt-card"
                 @click="openTemplateDialog(tpl)"
               >
+                <div v-if="getColorSchemePreview(tpl)" class="prompt-color-preview">
+                  <div
+                    v-for="(color, idx) in getColorSchemePreview(tpl)"
+                    :key="idx"
+                    class="color-dot"
+                    :style="{ background: color }"
+                    :title="color"
+                  />
+                </div>
                 <span class="prompt-label">{{ tpl.templateName }}</span>
                 <span class="prompt-desc">{{ tpl.description }}</span>
               </div>
@@ -255,6 +264,27 @@ const handleTemplateConfirm = (prompt: string) => {
   nextTick(() => {
     chatInputRef.value?.resetHeight()
   })
+}
+
+const getColorSchemePreview = (tpl: API.PromptTemplateVO): string[] => {
+  if (!tpl.templateFields) return []
+  try {
+    const fields = JSON.parse(tpl.templateFields)
+    const colorSchemeField = fields.find((f: any) => f.key === 'colorScheme' && f.type === 'select')
+    if (!colorSchemeField?.options) return []
+    
+    // Extract colors from options like "天空蓝(#0288d1+#e1f5fe)"
+    const colors: string[] = []
+    for (const option of colorSchemeField.options.slice(0, 3)) {
+      const match = option.match(/\((.+?)\+(.+?)\)/)
+      if (match) {
+        colors.push(match[1], match[2])
+      }
+    }
+    return colors.slice(0, 6) // Max 6 colors
+  } catch {
+    return []
+  }
 }
 
 // === App Chat State ===
@@ -1207,6 +1237,24 @@ const handleIframeMessage = (event: MessageEvent) => {
   background: #f5f5f5;
   border-color: #e5e5e5;
   transform: translateY(-1px);
+}
+
+.prompt-color-preview {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.color-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s;
+}
+
+.color-dot:hover {
+  transform: scale(1.2);
 }
 
 .prompt-label {

@@ -22,6 +22,13 @@
               :options="buildSelectOptions(field.options)"
               placeholder="请选择"
             />
+            <!-- Color scheme visual preview -->
+            <div v-if="field.key === 'colorScheme' && fieldValues[field.key]" class="color-scheme-visual-preview">
+              <div class="preview-card-demo" :style="getColorSchemeStyle(fieldValues[field.key])">
+                <div class="demo-header"/>
+                <div class="demo-body"/>
+              </div>
+            </div>
           </a-form-item>
 
           <!-- 文本输入 -->
@@ -111,6 +118,20 @@ const handleConfirm = () => {
   emit('confirm', generatedPrompt.value)
   emit('update:open', false)
 }
+
+const getColorSchemeStyle = (colorScheme: string) => {
+  // Parse color scheme like "天空蓝(#0288d1+#e1f5fe)"
+  const match = colorScheme.match(/\((.+?)\+(.+?)\)/)
+  if (!match) return {}
+
+  const primary = match[1]
+  const secondary = match[2]
+
+  return {
+    '--primary-color': primary,
+    '--secondary-color': secondary
+  }
+}
 </script>
 
 <style scoped>
@@ -170,4 +191,59 @@ const handleConfirm = () => {
 
 .preview-content::-webkit-scrollbar { width: 3px; }
 .preview-content::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+
+.color-scheme-visual-preview {
+  margin-top: 12px;
+  padding: 16px;
+  background: #f9f9f9;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+}
+
+.preview-card-demo {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--primary-color, #0288d1);
+  background: white;
+  transition: all 0.3s;
+}
+
+.demo-header {
+  background: var(--primary-color, #0288d1);
+  color: white;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+  min-height: 50px;
+}
+
+.demo-body {
+  background: var(--secondary-color, #e1f5fe);
+  padding: 20px;
+  text-align: center;
+  min-height: 50px;
+}
+
+.demo-body p {
+  margin: 0 0 12px;
+  color: var(--primary-color, #0288d1);
+  font-size: 13px;
+}
+
+.demo-button {
+  background: var(--primary-color, #0288d1);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.demo-button:hover {
+  opacity: 0.85;
+}
 </style>

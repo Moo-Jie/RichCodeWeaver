@@ -109,10 +109,11 @@
     <a-modal
       v-model:open="modalVisible"
       :title="isEdit ? '编辑模板' : '新增模板'"
-      width="720px"
+      width="900px"
       :ok-text="'提交'"
       :cancel-text="'取消'"
       @ok="handleSubmit"
+      :body-style="{ maxHeight: '70vh', overflowY: 'auto' }"
     >
       <a-form :model="formData" :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }" style="margin-top: 16px;">
         <a-form-item label="模板名称" required>
@@ -136,18 +137,16 @@
         <a-form-item label="模板描述">
           <a-textarea v-model:value="formData.description" :rows="2" placeholder="模板的简短描述" />
         </a-form-item>
-        <a-form-item label="提示词内容" required>
-          <a-textarea
-            v-model:value="formData.promptContent"
-            :rows="5"
-            placeholder="提示词内容，使用 {{key}} 作为可替换占位符"
+        <a-form-item label="字段定义">
+          <FieldDefinitionEditor
+            v-model="formData.templateFields"
+            @fields-updated="handleFieldsUpdated"
           />
         </a-form-item>
-        <a-form-item label="字段定义">
-          <a-textarea
-            v-model:value="formData.templateFields"
-            :rows="6"
-            placeholder='JSON数组，如 [{"type":"select","key":"colorScheme","label":"UI色系","options":["蓝","绿"],"defaultValue":"蓝"}]'
+        <a-form-item label="提示词内容" required>
+          <PromptContentEditor
+            v-model="formData.promptContent"
+            :fields="currentFields"
           />
         </a-form-item>
         <a-form-item label="排序权重">
@@ -172,6 +171,8 @@ import {
   updatePromptTemplate
 } from '@/api/promptTemplateController'
 import { identityOptions, industryOptions, identityLabelMap } from '@/constants/identityOptions'
+import PromptContentEditor from '@/components/admin/PromptContentEditor.vue'
+import FieldDefinitionEditor from '@/components/admin/FieldDefinitionEditor.vue'
 
 const loading = ref(false)
 const dataList = ref<API.PromptTemplateVO[]>([])
@@ -206,6 +207,12 @@ const formData = reactive({
   sortOrder: 0,
   isEnabled: 1
 })
+
+const currentFields = ref<API.TemplateField[]>([])
+
+const handleFieldsUpdated = (fields: API.TemplateField[]) => {
+  currentFields.value = fields
+}
 
 const formEnabled = computed({
   get: () => formData.isEnabled === 1,
@@ -276,6 +283,7 @@ const resetForm = () => {
   formData.templateFields = ''
   formData.sortOrder = 0
   formData.isEnabled = 1
+  currentFields.value = []
 }
 
 const showAddModal = () => {
@@ -295,6 +303,18 @@ const showEditModal = (record: API.PromptTemplateVO) => {
   formData.templateFields = record.templateFields || ''
   formData.sortOrder = record.sortOrder || 0
   formData.isEnabled = record.isEnabled ?? 1
+  
+  // Parse fields for editor
+  try {
+    if (record.templateFields) {
+      currentFields.value = JSON.parse(record.templateFields)
+    } else {
+      currentFields.value = []
+    }
+  } catch {
+    currentFields.value = []
+  }
+  
   modalVisible.value = true
 }
 

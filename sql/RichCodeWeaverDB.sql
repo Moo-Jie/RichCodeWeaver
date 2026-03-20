@@ -49,7 +49,7 @@ CREATE TABLE `app` (
 
 LOCK TABLES `app` WRITE;
 /*!40000 ALTER TABLE `app` DISABLE KEYS */;
-INSERT INTO `app` VALUES (391758088325152768,'制作前端知识学习单页应用，采用卡片式布局展示HTML、CSS','https://rich-tams.oss-cn-beijing.aliyuncs.com/logo.png','制作前端知识学习单页应用，采用卡片式布局展示HTML、CSS、JavaScript的示例和说明，包含代码高亮和实时预览功能。','single_html','d7lbpEaA','2026-03-18 17:12:59',99,390705603766513664,'2026-03-18 14:28:12','2026-03-18 14:07:46','2026-03-18 17:12:58',0),(391835539583537152,'创建一个现代风格计算器页面，支持基础数学运算和科学计算功能，','https://rich-tams.oss-cn-beijing.aliyuncs.com/logo.png','创建一个现代风格计算器页面，支持基础数学运算和科学计算功能，包含清晰的按钮布局和实时结果显示区域，支持明暗主题切换。','single_html','UJdBq9fh','2026-03-18 19:23:11',0,390705603766513664,'2026-03-18 19:15:32','2026-03-18 19:15:32','2026-03-18 19:23:26',1),(391839724840443904,'创建一个现代风格计算器页面，支持基础数学运算和科学计算功能，','https://rich-tams.oss-cn-beijing.aliyuncs.com/logo.png','创建一个现代风格计算器页面，支持基础数学运算和科学计算功能，包含清晰的按钮布局和实时结果。显示区域，支持明暗主题切换。','single_html','OlA8xmoo','2026-03-18 19:49:16',99,390705603766513664,'2026-03-18 19:35:27','2026-03-18 19:32:10','2026-03-18 19:49:16',0);
+INSERT INTO `app` VALUES (391758088325152768,'制作前端知识学习单页应用，采用卡片式布局展示HTML、CSS','https://rich-tams.oss-cn-beijing.aliyuncs.com/richcodeweaver/2026/03/20/44b9ce93e6eb403198a4726a708f1171.jpg','制作前端知识学习单页应用，采用卡片式布局展示HTML、CSS、JavaScript的示例和说明，包含代码高亮和实时预览功能。','single_html','d7lbpEaA','2026-03-20 16:10:45',99,390705603766513664,'2026-03-18 14:28:12','2026-03-18 14:07:46','2026-03-20 16:10:53',0),(391835539583537152,'创建一个现代风格计算器页面，支持基础数学运算和科学计算功能，','https://rich-tams.oss-cn-beijing.aliyuncs.com/logo.png','创建一个现代风格计算器页面，支持基础数学运算和科学计算功能，包含清晰的按钮布局和实时结果显示区域，支持明暗主题切换。','single_html','UJdBq9fh','2026-03-18 19:23:11',0,390705603766513664,'2026-03-18 19:15:32','2026-03-18 19:15:32','2026-03-18 19:23:26',1),(391839724840443904,'创建一个现代风格计算器页面，支持基础数学运算和科学计算功能，','https://rich-tams.oss-cn-beijing.aliyuncs.com/richcodeweaver/2026/03/20/70692a05057e48b287bea0a02edc42a2.jpg','创建一个现代风格计算器页面，支持基础数学运算和科学计算功能，包含清晰的按钮布局和实时结果。显示区域，支持明暗主题切换。','single_html','OlA8xmoo','2026-03-20 16:11:04',99,390705603766513664,'2026-03-18 19:35:27','2026-03-18 19:32:10','2026-03-20 16:11:08',0);
 /*!40000 ALTER TABLE `app` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -73,7 +73,7 @@ CREATE TABLE `chat_history` (
   KEY `idx_appId` (`appId`),
   KEY `idx_createTime` (`createTime`),
   KEY `idx_appId_createTime` (`appId`,`createTime`)
-) ENGINE=InnoDB AUTO_INCREMENT=391840191884582913 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对话历史';
+) ENGINE=InnoDB AUTO_INCREMENT=392483273537794049 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对话历史';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -157,7 +157,7 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (310192815309332480,'user01','9e73f8f59706793106601290f307aaeb','普通用户001','https://rich-tams.oss-cn-beijing.aliyuncs.com/LOGO.jpg','普通用户，用于测试普通权限下的项目功能。','user','individual','互联网/IT','2025-08-05 12:16:30','2025-08-05 12:16:30','2026-03-20 12:11:04',0),(310192815309332481,'MOJIE','d6a877d493087b2fef665c5902bc1481','管理员用户','https://rich-tams.oss-cn-beijing.aliyuncs.com/RichInterview/68287d91edb5c5b7e1d9ad29.png','管理员用户，用于测试管理员权限下的项目功能','admin','enterprise','互联网/IT','2025-08-08 14:07:01','2025-08-08 14:07:03','2026-03-20 12:11:04',0),(390705603766513664,'admin','a18e78233df17622f4f90938936ac95c','管理员','https://rich-tams.oss-cn-beijing.aliyuncs.com/LOGO.jpg','管理员用户，用于测试管理员权限下的项目功能','admin','enterprise','互联网/IT','2026-03-15 16:25:34','2026-03-15 16:25:34','2026-03-20 12:43:37',0);
+INSERT INTO `user` VALUES (310192815309332480,'user01','9e73f8f59706793106601290f307aaeb','普通用户001','https://rich-tams.oss-cn-beijing.aliyuncs.com/LOGO.jpg','普通用户，用于测试普通权限下的项目功能。','user','individual','互联网/IT','2025-08-05 12:16:30','2025-08-05 12:16:30','2026-03-20 12:11:04',0),(310192815309332481,'MOJIE','d6a877d493087b2fef665c5902bc1481','管理员用户','https://rich-tams.oss-cn-beijing.aliyuncs.com/RichInterview/68287d91edb5c5b7e1d9ad29.png','管理员用户，用于测试管理员权限下的项目功能','admin','enterprise','互联网/IT','2025-08-08 14:07:01','2025-08-08 14:07:03','2026-03-20 12:11:04',0),(390705603766513664,'admin','a18e78233df17622f4f90938936ac95c','管理员','https://rich-tams.oss-cn-beijing.aliyuncs.com/LOGO.jpg','管理员用户，用于测试管理员权限下的项目功能','admin','enterprise','教育/培训','2026-03-15 16:25:34','2026-03-15 16:25:34','2026-03-20 12:43:37',0);
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -170,4 +170,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-03-20 12:45:16
+-- Dump completed on 2026-03-20 19:38:51
