@@ -244,7 +244,7 @@
       </a-table>
     </a-card>
 
-    <!-- 数字产物详情弹窗 -->
+    <!-- 产物详情弹窗 -->
     <AppInfo
       v-model:open="appDetailVisible"
       :app="currentApp"
@@ -277,7 +277,7 @@ import UserInfo from '@/components/UserInfo.vue'
 import AppInfo from '@/components/AppInfo.vue'
 
 const router = useRouter()
-// 查看数字产物详情
+// 查看产物详情
 const appDetailVisible = ref(false)
 const currentApp = ref<API.AppVO | null>(null)
 

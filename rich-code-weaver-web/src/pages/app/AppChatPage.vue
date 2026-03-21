@@ -338,7 +338,7 @@
     </div>
   </div>
 
-  <!-- 数字产物详情弹窗 -->
+  <!-- 产物详情弹窗 -->
   <AppInfo
     v-model:open="appDetailVisible"
     :app="appInfo"
@@ -563,7 +563,7 @@ const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
 })
 
-// 数字产物详情相关
+// 产物详情相关
 const appDetailVisible = ref(false)
 
 // 可视化编辑相关
@@ -572,7 +572,7 @@ const isEditMode = ref(false)
 const selectedElement = ref<ElementInfo | null>(null)
 
 
-// 显示数字产物详情
+// 显示产物详情
 const showAppDetail = () => {
   appDetailVisible.value = true
 }

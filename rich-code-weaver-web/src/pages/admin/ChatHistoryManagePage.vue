@@ -90,7 +90,7 @@
                 <a-button
                   type="default"
                   @click="navigateToApp(selectedApp.id)"
-                  aria-label="查看数字产物详情"
+                  aria-label="查看产物详情"
                 >
                   <template #icon>
                     <ArrowRightOutlined/>
@@ -403,7 +403,7 @@ const handleSearch = (value: string) => {
   appSearch.value = value
 }
 
-// 导航到数字产物详情
+// 导航到产物详情
 const navigateToApp = (appId: string) => {
   if (appId) {
     router.push(`/app/chat/${appId}`)

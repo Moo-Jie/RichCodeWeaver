@@ -51,7 +51,7 @@
           <div class="section-label">通用操作</div>
           <button v-if="isOwner || isAdmin" class="panel-btn" @click="$emit('showDetail')">
             <InfoCircleOutlined />
-            <span>数字产物详情</span>
+            <span>产物详情</span>
           </button>
           <button v-if="isDeployed" class="panel-btn" @click="$emit('visitSite')">
             <ExportOutlined />

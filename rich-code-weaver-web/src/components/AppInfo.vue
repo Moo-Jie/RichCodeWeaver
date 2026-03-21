@@ -3,7 +3,7 @@
     v-model:open="visible"
     :footer="null"
     class="app-detail-modal"
-    title="数字产物详情"
+    title="产物详情"
     width="600px"
   >
     <div class="app-detail-content">
