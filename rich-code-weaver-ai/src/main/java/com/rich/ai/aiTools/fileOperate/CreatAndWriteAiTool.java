@@ -38,15 +38,8 @@ public class CreatAndWriteAiTool extends BaseTool {
     @Override
     public String getResultMsg(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
-        String suffix = FileUtil.getSuffix(relativeFilePath);
-        String content = arguments.getStr("content");
-        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "" : "\n[\n" + relativeFilePath + "\n]\n";
-        return String.format("""
-                [工具调用结束]  %s %s
-                ```%s
-                %s
-                ```
-                """, "成功创建并写入以下文件", relativeFilePath, suffix, content);
+        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "未知文件" : relativeFilePath;
+        return String.format("[工具调用结束] 成功创建文件 %s", relativeFilePath);
     }
 
 

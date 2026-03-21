@@ -52,8 +52,8 @@ public class FileDirReadTool extends BaseTool {
     @Override
     public String getResultMsg(JSONObject arguments) {
         String relativeDirPath = arguments.getStr("relativeDirPath");
-        relativeDirPath = relativeDirPath == null || relativeDirPath.isEmpty() ? "" : "\n[\n" + relativeDirPath + "\n]\n";
-        return String.format("[工具调用结束] %s %s", "成功读取目录下的所有文件和子目录信息", relativeDirPath);
+        relativeDirPath = relativeDirPath == null || relativeDirPath.isEmpty() ? "未知目录" : relativeDirPath;
+        return String.format("[工具调用结束] 成功读取目录 %s", relativeDirPath);
     }
 
     @Tool("读取目录结构，获取指定目录下的所有文件和子目录信息")

@@ -49,7 +49,7 @@ public class PromptEnhancerNode {
         StringBuilder enhancedPromptBuilder = new StringBuilder();
         enhancedPromptBuilder.append(context.getOriginalPrompt());
         // 添加图片信息
-        if (StrUtil.isNotBlank(imageListStr)) {
+        if (StrUtil.isNotBlank(imageListStr) && !"无".equals(imageListStr.trim())) {
             enhancedPromptBuilder.append("\n\n## 可用素材资源\n");
             enhancedPromptBuilder.append("在生成网站时，推荐使用以下图片资源（不必再调用图片搜索工具和图片生成工具）：\n");
             // 拼接 AI 获取到的图片资源
@@ -57,7 +57,7 @@ public class PromptEnhancerNode {
         }
         // 补充整理后的网络资源文档
         String webResourceListStr = context.getWebResourceListStr();
-        if (StrUtil.isNotBlank(webResourceListStr)) {
+        if (StrUtil.isNotBlank(webResourceListStr) && !"无".equals(webResourceListStr.trim())) {
             enhancedPromptBuilder.append("\n\n## 可用素材\n");
             enhancedPromptBuilder.append("在生成网站时，可以参考以下素材，或调用联网搜索工具和网页抓取工具作补充：\n");
             // 拼接 AI 获取到的网络资源

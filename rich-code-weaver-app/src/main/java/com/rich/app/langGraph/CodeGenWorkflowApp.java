@@ -6,6 +6,7 @@ import com.rich.app.langGraph.node.*;
 import com.rich.app.langGraph.state.WorkflowContext;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.app.utils.streamHandle.CommonStreamHandler;
+import com.rich.app.utils.streamHandle.JsonStreamHandler;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.model.enums.CodeGeneratorTypeEnum;
@@ -22,7 +23,9 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static org.bsc.langgraph4j.StateGraph.END;
 import static org.bsc.langgraph4j.StateGraph.START;
@@ -63,6 +66,9 @@ public class CodeGenWorkflowApp {
     @Resource
     private CommonStreamHandler commonStreamHandler;
 
+    @Resource
+    private JsonStreamHandler jsonStreamHandler;
+
     /**
      * 创建完整的工作流
      * 工作流包含以下步骤：网络资源整理 → 图片资源采集 → 提示词增强 → 代码类型策略 → 代码生成 → AI代码审查 → 项目构建(条件性)
@@ -98,6 +104,7 @@ public class CodeGenWorkflowApp {
                     .addEdge("prompt_enhancer", "ai_code_generator_type_strategy")  // 提示词增强到类型策略
                     .addEdge("ai_code_generator_type_strategy", "code_generator")  // 类型策略到代码生成
                     .addEdge("code_generator", "ai_code_reviewer")  // 代码生成到代码审查
+
                     // 条件边：根据代码生成类型决定是否执行项目构建
                     .addConditionalEdges("ai_code_reviewer",
                             // 异步执行路由判断逻辑
@@ -164,6 +171,29 @@ public class CodeGenWorkflowApp {
                     GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);
                     log.info("\n工作流图:\n{}", graph.content());
 
+                    // 注册流式输出发射器，使代码生成节点能将 AI 流式内容实时转发到前端
+                    // VUE_PROJECT 模式下，AI 输出的是 JSON 格式的消息块（含 ai_response / tool_request / tool_executed 类型），
+                    // 需要通过 JsonStreamHandler 解析后再发射，与非工作流模式保持一致的解析行为
+                    if (type == CodeGeneratorTypeEnum.VUE_PROJECT) {
+                        Set<String> seenToolIds = new HashSet<>();
+                        CodeGeneratorNode.registerStreamEmitter(appId, chunk -> {
+                            String parsed = jsonStreamHandler.parseJsonChunk(chunk, seenToolIds);
+                            if (StrUtil.isNotEmpty(parsed)) {
+                                sink.next(parsed);
+                                aiResponseBuilder.append(parsed);
+                            }
+                        });
+                    } else {
+                        Set<String> seenToolIdsOther = new HashSet<>();
+                        CodeGeneratorNode.registerStreamEmitter(appId, chunk -> {
+                            String parsed = jsonStreamHandler.parseJsonChunk(chunk, seenToolIdsOther);
+                            if (StrUtil.isNotEmpty(parsed)) {
+                                sink.next(parsed);
+                                aiResponseBuilder.append(parsed);
+                            }
+                        });
+                    }
+
                     emitStreamText(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_EXECUTION_START -->\n\n" +
                             "## 📋 工作流执行计划\n\n" +
                             "<div class='workflow-steps'>\n\n" +
@@ -197,8 +227,9 @@ public class CodeGenWorkflowApp {
                             switch (nodeName) {
                                 case "web_resource_organizer":
                                     stepInfo.append("**🌐 网络资源整理节点**\n\n");
-                                    if (StrUtil.isNotBlank(currentContext.getWebResourceListStr())) {
-                                        int length = currentContext.getWebResourceListStr().length();
+                                    String webResource = currentContext.getWebResourceListStr();
+                                    if (StrUtil.isNotBlank(webResource) && !"无".equals(webResource.trim())) {
+                                        int length = webResource.length();
                                         stepInfo.append(String.format("- ✓ 整理完成：收集到 **%d** 字符的网络资源\n", length));
                                         stepInfo.append("- ✓ 资源类型：文本素材、URL链接等\n");
                                         stepInfo.append("- ✓ 状态：已整合到工作流上下文\n");
@@ -209,9 +240,10 @@ public class CodeGenWorkflowApp {
                                     
                                 case "image_collector":
                                     stepInfo.append("**🖼️ 图片资源收集节点**\n\n");
-                                    if (currentContext.getImageList() != null && !currentContext.getImageList().isEmpty()) {
-                                        int count = currentContext.getImageList().size();
-                                        stepInfo.append(String.format("- ✓ 收集完成：获取到 **%d** 张图片资源\n", count));
+                                    String imageResource = currentContext.getImageListStr();
+                                    if (StrUtil.isNotBlank(imageResource) && !"无".equals(imageResource.trim())) {
+                                        int length = imageResource.length();
+                                        stepInfo.append(String.format("- ✓ 收集完成：获取到 **%d** 字符的图片资源信息\n", length));
                                         stepInfo.append("- ✓ 资源来源：AI生成 + 网络搜索\n");
                                         stepInfo.append("- ✓ 状态：已准备用于代码生成\n");
                                     } else {
@@ -231,8 +263,8 @@ public class CodeGenWorkflowApp {
                                     
                                 case "ai_code_generator_type_strategy":
                                     stepInfo.append("**🎯 代码类型策略节点**\n\n");
-                                    if (currentContext.getCodeGenType() != null) {
-                                        String codeType = currentContext.getCodeGenType().getValue();
+                                    if (currentContext.getGenerationType() != null) {
+                                        String codeType = currentContext.getGenerationType().getValue();
                                         stepInfo.append(String.format("- ✓ 策略确定：选择 **%s** 生成模式\n", codeType));
                                         stepInfo.append("- ✓ AI分析：基于需求自动选择最优方案\n");
                                         stepInfo.append("- ✓ 准备就绪：开始代码生成流程\n");
@@ -348,6 +380,9 @@ public class CodeGenWorkflowApp {
 
                     emitStreamText(sink, aiResponseBuilder, errorInfo);
                     sink.error(e);
+                } finally {
+                    // 确保流式输出发射器被注销，防止内存泄漏
+                    CodeGeneratorNode.unregisterStreamEmitter(appId);
                 }
             });
         });

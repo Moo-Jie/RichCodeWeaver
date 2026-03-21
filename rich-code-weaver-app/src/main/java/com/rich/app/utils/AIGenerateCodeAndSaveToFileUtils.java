@@ -69,7 +69,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
                 }
                 case VUE_PROJECT -> {
                     MultiFileCodeResponse result = aiCodeGeneratorService.generateVueProjectCode(userMessage, appId);
-                    yield CodeResultSaveExecutor.executeSaver(result, MULTI_FILE, appId);
+                    yield CodeResultSaveExecutor.executeSaver(result, codeGenTypeEnum, appId);
                 }
                 default -> {
                     String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();

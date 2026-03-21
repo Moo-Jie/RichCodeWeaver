@@ -48,8 +48,8 @@ public class CodeParseExecutor {
             return switch (codeGeneratorTypeEnum) {
                 // 单文件 HTML 模式
                 case HTML -> aiResToHtmlCodeResultParser.parseCode(codeContent);
-                // 多文件模式
-                case MULTI_FILE -> aiResToMultiFileCodeResultParser.parseCode(codeContent);
+                // 多文件模式 / Vue 项目模式（均使用多文件解析器）
+                case MULTI_FILE, VUE_PROJECT -> aiResToMultiFileCodeResultParser.parseCode(codeContent);
                 // TODO 其他策略模式
                 default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码解析类型: " + codeContent);
             };

@@ -70,14 +70,14 @@ public class JsonStreamHandler {
     }
 
     /**
-     * 处理 AI响应流（TokenStream）中的 JSON 消息块，根据消息类型执行不同的消息处理逻辑
+     * 解析 AI 响应流（TokenStream）中的 JSON 消息块，根据消息类型提取有效内容
+     * （公共方法，供外部调用，如工作流模式下的流式输出发射器）
      *
-     * @param chunk             AI 响应内容的 TokenStream 数据块
-     * @param aiResponseBuilder 对话历史字符串构建器
-     * @param seenToolIds       已经见过的工具 ID 集合
-     * @return java.lang.String
+     * @param chunk       AI 响应内容的 TokenStream 数据块
+     * @param seenToolIds 已经见过的工具 ID 集合
+     * @return java.lang.String 解析后的有效文本内容
      **/
-    private String handleJsonChunk(String chunk, StringBuilder aiResponseBuilder, Set<String> seenToolIds) {
+    public String parseJsonChunk(String chunk, Set<String> seenToolIds) {
         // 移除可能的空白字符并检查是否为空
         String trimmedChunk = StrUtil.trim(chunk);
         if (StrUtil.isEmpty(trimmedChunk)) {
@@ -110,10 +110,7 @@ public class JsonStreamHandler {
             case AI_RESPONSE -> {
                 // 转为用于 【AI 回复内容信息】 的响应结果类
                 StreamAiChatMsgResponse streamAiChatMsgResponse = JSONUtil.toBean(chunk, StreamAiChatMsgResponse.class);
-                String data = streamAiChatMsgResponse.getData();
-                // 直接将 AI 回复内容加入到对话历史
-                aiResponseBuilder.append(data);
-                return data;
+                return streamAiChatMsgResponse.getData();
             }
             // 工具请求信息
             case TOOL_REQUEST -> {
@@ -129,10 +126,7 @@ public class JsonStreamHandler {
                     seenToolIds.add(toolId);
                     // 构建输出结果
                     BaseTool tool = toolsManager.getToolByName(streamToolInvocMsgResponse.getName());
-                    String data = tool.getResponseMsg();
-                    // 加入到对话历史
-                    aiResponseBuilder.append(data);
-                    return data;
+                    return tool.getResponseMsg();
                 } else {
                     // 非首次调用，返回空字符串避免重复提示
                     return "";
@@ -147,15 +141,28 @@ public class JsonStreamHandler {
                 // 解析 Arguments 属性为 JSON 对象
                 JSONObject argumentsJson = JSONUtil.parseObj(streamToolExecutedMsgResponse.getArguments());
                 // 获取工具执行结果
-                String data = String.format("\n\n%s\n\n", tool.getResultMsg(argumentsJson));
-                // 将 AI 回复内容加入到对话历史
-                aiResponseBuilder.append(data);
-                return data;
+                return String.format("\n\n%s\n\n", tool.getResultMsg(argumentsJson));
             }
             default -> {
                 log.error("不支持的消息类型: {}", type);
                 return "";
             }
         }
+    }
+
+    /**
+     * 处理 AI响应流（TokenStream）中的 JSON 消息块，根据消息类型执行不同的消息处理逻辑
+     *
+     * @param chunk             AI 响应内容的 TokenStream 数据块
+     * @param aiResponseBuilder 对话历史字符串构建器
+     * @param seenToolIds       已经见过的工具 ID 集合
+     * @return java.lang.String
+     **/
+    private String handleJsonChunk(String chunk, StringBuilder aiResponseBuilder, Set<String> seenToolIds) {
+        String result = parseJsonChunk(chunk, seenToolIds);
+        if (StrUtil.isNotEmpty(result)) {
+            aiResponseBuilder.append(result);
+        }
+        return result;
     }
 }

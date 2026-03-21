@@ -24,8 +24,12 @@
           <div class="msg-bubble msg-bubble--ai">
             <MarkdownRenderer v-if="msg.content" :content="msg.content" />
             <div v-if="msg.loading" class="msg-loading">
-              <a-spin size="small" />
-              <span>AI 正在编织灵感...</span>
+              <div class="loading-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+              <span class="loading-text">AI 正在编织灵感...</span>
             </div>
           </div>
         </div>
@@ -61,14 +65,22 @@ defineEmits(['loadMore'])
 
 const containerRef = ref<HTMLElement>()
 
-const scrollToBottom = () => {
-  if (containerRef.value) {
+const scrollToBottom = (force = false) => {
+  if (!containerRef.value) return
+  if (force) {
     containerRef.value.scrollTop = containerRef.value.scrollHeight
+    return
+  }
+  // 智能滚动：仅当用户已在底部附近时自动滚动，避免流式输出时强制拉回底部
+  const { scrollTop, scrollHeight, clientHeight } = containerRef.value
+  const isNearBottom = scrollHeight - scrollTop - clientHeight < 150
+  if (isNearBottom) {
+    containerRef.value.scrollTop = scrollHeight
   }
 }
 
 watch(() => props.messages.length, () => {
-  nextTick(scrollToBottom)
+  nextTick(() => scrollToBottom(true))
 })
 
 defineExpose({scrollToBottom})
@@ -179,10 +191,51 @@ defineExpose({scrollToBottom})
 .msg-loading {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   color: #999;
   font-size: 13px;
   margin-top: 4px;
+}
+
+.loading-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loading-dots .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #999;
+  animation: dotPulse 1.4s infinite ease-in-out;
+}
+
+.loading-dots .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dots .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%, 60%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  30% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+.loading-text {
+  color: #999;
 }
 
 .empty-messages {

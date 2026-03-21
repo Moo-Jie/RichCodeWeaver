@@ -399,6 +399,7 @@ import {
   StarFilled
 } from '@ant-design/icons-vue'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
+import { StreamChunkParserContext } from '@/utils/streamChunkParser'
 
 const route = useRoute()
 const router = useRouter()
@@ -921,6 +922,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   let fullContent = ''
   // 保存已有内容长度，用于重连时避免 UI 闪烁
   const existingContentLength = isReconnect ? (messages.value[aiMessageIndex]?.content?.length || 0) : 0
+  // 创建流式 JSON 消息块解析上下文，用于解析 VUE_PROJECT 模式下的 ai_response / tool_request / tool_executed 类型
+  const chunkParser = new StreamChunkParserContext()
 
   // 仅新建生成时标记 localStorage（重连时已有标记）
   if (!isReconnect) {
@@ -964,7 +967,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       const params = new URLSearchParams({
         appId: appId.value || '',
         message: userMessage,
-        isAgent: String(useAgentMode.value),
+        isWorkflow: String(useAgentMode.value),
         reconnect: String(reconnectMode)
       })
       // 如果有 lastEventId，传递给后端
@@ -990,16 +993,20 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
 
         try {
           const parsed = JSON.parse(event.data)
-          const content = parsed.b
+          const rawContent = parsed.b
 
-          if (content !== undefined && content !== null) {
-            fullContent += content
-            // 重连时：只有当重建内容追上已有内容时才更新 UI（避免闪烁）
-            if (fullContent.length >= existingContentLength) {
-              messages.value[aiMessageIndex].content = fullContent
-              messages.value[aiMessageIndex].loading = false
+          if (rawContent !== undefined && rawContent !== null) {
+            // 解析 JSON 消息块（ai_response / tool_request / tool_executed），提取有效展示内容
+            const content = chunkParser.parseChunk(rawContent)
+            if (content) {
+              fullContent += content
+              // 重连时：只有当重建内容追上已有内容时才更新 UI（避免闪烁）
+              if (fullContent.length >= existingContentLength) {
+                messages.value[aiMessageIndex].content = fullContent
+                messages.value[aiMessageIndex].loading = false
+              }
+              scrollToBottom()
             }
-            scrollToBottom()
           }
         } catch (error) {
           console.error('解析消息失败:', error)

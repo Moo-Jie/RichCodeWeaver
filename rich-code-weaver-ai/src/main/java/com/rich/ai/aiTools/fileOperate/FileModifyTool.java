@@ -38,23 +38,8 @@ public class FileModifyTool extends BaseTool {
     @Override
     public String getResultMsg(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
-        String oldContent = arguments.getStr("oldContent");
-        String newContent = arguments.getStr("newContent");
-        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "" : "\n[\n" + relativeFilePath + "\n]\n";
-        // 显示对比内容
-        return String.format("""
-                [工具调用结束] %s %s
-                
-                替换前内容：
-                ```
-                %s
-                ```
-                
-                替换后内容：
-                ```
-                %s
-                ```
-                """, "成功替换以下文件目录", relativeFilePath, oldContent, newContent);
+        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "未知文件" : relativeFilePath;
+        return String.format("[工具调用结束] 成功修改文件 %s", relativeFilePath);
     }
 
     @Tool("修改文件内容，用新内容替换指定的旧内容")

@@ -52,17 +52,20 @@ public class AppController {
 
     /**
      * 执行 AI 生成应用代码（SSE 流式，支持断线重连）
+     * 使用工作流分布执行节点模式
      *
      * @param appId   应用id
      * @param message 用户消息
-     * @param isAgent 是否开启 Agent 模式
+     * @param isWorkflow 是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
+     * @param reconnect 是否为重连请求
+     * @param lastEventId 最后接收到的事件ID
      * @param request 请求对象
      * @return 生成结果流
      */
     @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId,
                                                              @RequestParam String message,
-                                                             @RequestParam(defaultValue = "false") Boolean isAgent,
+                                                             @RequestParam(defaultValue = "false") Boolean isWorkflow,
                                                              @RequestParam(defaultValue = "false") Boolean reconnect,
                                                              @RequestParam(required = false) String lastEventId,
                                                              HttpServletRequest request) {
@@ -70,7 +73,7 @@ public class AppController {
         Long userId = InnerUserService.getLoginUser(request).getId();
         ThrowUtils.throwIf(appId == null || userId == null || message == null, ErrorCode.PARAMS_ERROR);
         // 执行 AI 生成应用代码（支持断线重连）
-        return appService.aiChatAndGenerateCodeStreamWithReconnect(appId, userId, message, isAgent, lastEventId, reconnect);
+        return appService.aiChatAndGenerateCodeStreamWithReconnect(appId, userId, message, isWorkflow, lastEventId, reconnect);
     }
 
     /**

@@ -1,6 +1,9 @@
 package com.rich.app.langGraph.state;
 
 import com.rich.ai.model.CodeReviewResponse;
+import com.rich.app.service.AppService;
+import com.rich.common.utils.SpringContextUtil;
+import com.rich.model.entity.App;
 import com.rich.model.entity.ImageResource;
 import com.rich.model.enums.CodeGeneratorTypeEnum;
 import lombok.AllArgsConstructor;
@@ -97,5 +100,25 @@ public class WorkflowContext implements Serializable {
      */
     public static Map<String, Object> saveContext(WorkflowContext context) {
         return Map.of(WORKFLOW_CONTEXT_KEY, context);
+    }
+
+    /**
+     * 更新数据库中的 app codeGenType 字段
+     * 用于 AI 判断后将 AI_STRATEGY 转换为实际的生成类型（HTML/MULTI_FILE/VUE_PROJECT）
+     */
+    public void updateAppCodeGenType(CodeGeneratorTypeEnum finalType) {
+        if (this.appId == null || finalType == null) {
+            return;
+        }
+        try {
+            AppService appService = SpringContextUtil.getBean(com.rich.app.service.AppService.class);
+            App app = new App();
+            app.setId(this.appId);
+            app.setCodeGenType(finalType.getValue());
+            appService.updateById(app);
+        } catch (Exception e) {
+            // 记录日志但不中断流程
+            System.err.println("更新 app codeGenType 失败: " + e.getMessage());
+        }
     }
 }

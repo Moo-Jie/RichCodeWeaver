@@ -1,5 +1,6 @@
 package com.rich.app.utils;
 
+import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.rich.ai.model.msgResponse.StreamAiChatMsgResponse;
 import com.rich.ai.model.msgResponse.StreamToolExecutedMsgResponse;
@@ -14,6 +15,9 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.rich.common.exception.ErrorCode.OPERATION_ERROR;
 
@@ -42,6 +46,9 @@ public class ConvertTokenStreamToFluxUtils {
     public Flux<String> convertTokenStreamToFlux(TokenStream tokenStream, Long appId) {
         // 创建 Flux 流，使用 sink 发射器处理 TokenStream 事件
         return Flux.create(sink -> {
+            // 用于跟踪已见过的工具 ID，只发射每个工具的首次调用请求，跳过后续的参数碎片（含大量文件内容）
+            Set<String> seenToolIds = new HashSet<>();
+
             // 转换的主要逻辑 ：在 tokenStream 事件处理的回调函数中，使用 sink.next() 发射器，把 AI 输出的信息转 ——> 自定义封装类 ——> JSON 格式，最后发射出去
             // 注：在事件处理的回调函数中，当前稳定版本并不支持对 Tool 调用信息的输出功能，故直接拿新版本的代码进行了覆盖（https://github.com/langchain4j/langchain4j/pull/3303）
             tokenStream
@@ -50,14 +57,28 @@ public class ConvertTokenStreamToFluxUtils {
                         StreamAiChatMsgResponse streamAiChatMsgResponse = new StreamAiChatMsgResponse(partialResponse);
                         sink.next(JSONUtil.toJsonStr(streamAiChatMsgResponse));
                     })
-                    // 处理工具调用请求
+                    // 处理工具调用请求（只发射每个工具 ID 的首次请求，跳过后续含文件内容的参数碎片）
                     .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
-                        StreamToolInvocMsgResponse streamToolInvocMsgResponse = new StreamToolInvocMsgResponse(toolExecutionRequest);
-                        sink.next(JSONUtil.toJsonStr(streamToolInvocMsgResponse));
+                        String toolId = toolExecutionRequest.id();
+                        if (toolId != null && !seenToolIds.contains(toolId)) {
+                            seenToolIds.add(toolId);
+                            StreamToolInvocMsgResponse streamToolInvocMsgResponse = new StreamToolInvocMsgResponse(toolExecutionRequest);
+                            sink.next(JSONUtil.toJsonStr(streamToolInvocMsgResponse));
+                        }
                     })
-                    // 处理工具执行完成事件
+                    // 处理工具执行完成事件（剥离大体积的文件内容字段，只保留路径等摘要信息）
                     .onToolExecuted((ToolExecution toolExecution) -> {
                         StreamToolExecutedMsgResponse streamToolExecutedMsgResponse = new StreamToolExecutedMsgResponse(toolExecution);
+                        // 从 arguments 中移除大体积字段（文件内容），只保留路径等摘要信息
+                        try {
+                            JSONObject argsJson = JSONUtil.parseObj(streamToolExecutedMsgResponse.getArguments());
+                            argsJson.remove("content");
+                            argsJson.remove("oldContent");
+                            argsJson.remove("newContent");
+                            streamToolExecutedMsgResponse.setArguments(argsJson.toString());
+                        } catch (Exception e) {
+                            log.debug("剥离工具参数内容字段失败，使用原始参数", e);
+                        }
                         sink.next(JSONUtil.toJsonStr(streamToolExecutedMsgResponse));
                     })
                     // 处理完成事件
@@ -72,8 +93,23 @@ public class ConvertTokenStreamToFluxUtils {
                     })
                     // 处理错误事件
                     .onError((Throwable error) -> {
-                        log.error("TokenStream 转换为 Flux 流时发生错误", error);
-                        sink.error(error);
+                        // JsonEOFException：AI 响应流被截断，但工具调用（文件写入等）可能已成功执行
+                        // 此时代码已生成完毕，只是最终的 JSON 响应聚合失败，可以优雅地完成流
+                        String errorMsg = error.getMessage() != null ? error.getMessage() : "";
+                        if (errorMsg.contains("JsonEOFException") || errorMsg.contains("Unexpected end-of-input")) {
+                            log.warn("TokenStream JSON 解析异常（AI 响应可能被截断），尝试正常完成流: {}", errorMsg);
+                            try {
+                                String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
+                                buildWebProjectExecutor.buildProjectAsync(projectPath);
+                                log.info("尽管流异常截断，项目构建已启动。");
+                            } catch (Exception buildError) {
+                                log.warn("流截断后尝试构建项目失败: {}", buildError.getMessage());
+                            }
+                            sink.complete();
+                        } else {
+                            log.error("TokenStream 转换为 Flux 流时发生错误", error);
+                            sink.error(error);
+                        }
                     })
                     // 启动 TokenStream
                     .start();

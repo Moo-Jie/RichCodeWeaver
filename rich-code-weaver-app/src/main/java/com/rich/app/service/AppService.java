@@ -110,27 +110,29 @@ public interface AppService extends IService<App> {
 
     /**
      * 执行 AI 对话并并生成代码(流式)
+     * 使用工作流分布执行节点模式
      *
      * @param appId   AI 应用id
      * @param userId  用户id
      * @param message 对话消息
-     * @param isAgent 是否开启 Agent 模式
+     * @param isWorkflow 是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
      * @return 代码流
      */
-    Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isAgent);
+    Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isWorkflow);
 
     /**
      * 执行 AI 对话并并生成代码(流式，支持断线重连)
+     * 使用工作流分布执行节点模式
      *
      * @param appId       AI 应用id
      * @param userId      用户id
      * @param message     对话消息
-     * @param isAgent     是否开启 Agent 模式
+     * @param isWorkflow     是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
      * @param lastEventId 最后接收到的事件ID（用于断线重连）
      * @param reconnect   是否为重连请求
      * @return 代码流
      */
-    Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, Boolean isAgent, String lastEventId, Boolean reconnect);
+    Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, Boolean isWorkflow, String lastEventId, Boolean reconnect);
 
     /**
      * 执行 AI 对话并并生成代码(非流式)

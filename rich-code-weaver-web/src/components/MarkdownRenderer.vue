@@ -1,5 +1,5 @@
 <template>
-  <div class="markdown-content" v-html="renderedMarkdown"></div>
+  <div class="markdown-content" v-html="renderedMarkdown" @click="handleToolCardClick"></div>
 </template>
 
 <script lang="ts" setup>
@@ -73,24 +73,10 @@ const preprocessMarkdown = (content: string): string => {
     '<div class="node-end-marker" data-node="$1"></div>'
   )
 
-  // 识别并包裹工具调用开始标记
-  content = content.replace(
-    /\[开始调用系统工具\]/g,
-    '<div class="tool-call-start">[开始调用系统工具]</div>'
-  )
-
-  // 识别并包裹工具调用结束标记
-  content = content.replace(
-    /\[工具调用结束\]/g,
-    '<div class="tool-call-end">[工具调用结束]</div>'
-  )
-
-  // 包裹工具调用之间的内容
-  content = content.replace(
-    /<div class="tool-call-start">[^<]*<\/div>([\s\S]*?)<div class="tool-call-end">[^<]*<\/div>/g,
-    (_, toolContent) =>
-      `<div class="tool-call">${toolContent}</div>`
-  )
+  // ====== 工具调用处理 ======
+  // 核心问题：并行工具调用时，所有 [开始调用系统工具] 先出现，然后所有 [工具调用结束] 再出现，
+  // 因此不能用简单的「开始+结束」配对正则，需要按顺序 1:1 匹配。
+  content = processToolCallMarkers(content)
 
   // 修复代码块格式
   content = content.replace(/( {4}```[\s\S]*? {4}```)/g, (match) => {
@@ -99,6 +85,112 @@ const preprocessMarkdown = (content: string): string => {
 
   // 确保代码块有正确的换行
   content = content.replace(/```(\w+)\s*\n([\s\S]*?)```/g, '```$1\n$2```')
+
+  return content
+}
+
+// 处理工具调用标记：按出现顺序收集所有 starts 和 ends，1:1 配对，生成 HTML
+const processToolCallMarkers = (content: string): string => {
+  // 收集所有标记及其位置
+  interface Marker {
+    type: 'start' | 'end'
+    text: string        // 工具名 或 结果描述
+    detail?: string     // [\n...\n] 中的附加详情（如搜索关键词）
+    index: number
+    endIndex: number
+  }
+
+  const markers: Marker[] = []
+
+  // 匹配 [开始调用系统工具] toolName
+  const startRegex = /\[开始调用系统工具\]\s*(.+)/g
+  let m
+  while ((m = startRegex.exec(content)) !== null) {
+    markers.push({
+      type: 'start',
+      text: m[1].trim(),
+      index: m.index,
+      endIndex: m.index + m[0].length
+    })
+  }
+
+  // 匹配 [工具调用结束] result，可能后跟 [\n detail \n]
+  const endRegex = /\[工具调用结束\]\s*([^\n]+?)(?:\s*\[\s*\n([\s\S]*?)\n\s*\])?(?=\s*(?:\[|$|\n))/g
+  while ((m = endRegex.exec(content)) !== null) {
+    markers.push({
+      type: 'end',
+      text: m[1].trim(),
+      detail: m[2] ? m[2].trim() : undefined,
+      index: m.index,
+      endIndex: m.index + m[0].length
+    })
+  }
+
+  if (markers.length === 0) return content
+
+  // 按位置排序
+  markers.sort((a, b) => a.index - b.index)
+
+  // 从后往前替换，避免索引偏移
+  const starts: Marker[] = []
+  const ends: Marker[] = []
+  markers.forEach(mk => {
+    if (mk.type === 'start') starts.push(mk)
+    else ends.push(mk)
+  })
+
+  // 1:1 配对：第 i 个 start 对应第 i 个 end
+  const pairedStartCount = Math.min(starts.length, ends.length)
+
+  // 构建替换列表（从后往前替换）
+  interface Replacement {
+    index: number
+    endIndex: number
+    html: string
+  }
+  const replacements: Replacement[] = []
+
+  // 处理已完成的 ends（每个 end 生成一个完成卡片）
+  ends.forEach((end) => {
+    let html = `<div class="tool-call-item tool-call-done">`
+    html += `<span class="tci-icon">✅</span>`
+    html += `<span class="tci-label">完成</span>`
+    html += `<span class="tci-text">${end.text}</span>`
+    html += `</div>`
+    if (end.detail) {
+      html += `<div class="tool-call-item tool-call-detail">`
+      html += `<span class="tci-icon">📄</span>`
+      html += `<span class="tci-text">${end.detail}</span>`
+      html += `</div>`
+    }
+    replacements.push({ index: end.index, endIndex: end.endIndex, html })
+  })
+
+  // 处理已配对的 starts（隐藏，因为 end 卡片已包含完成信息）
+  for (let i = 0; i < pairedStartCount; i++) {
+    const start = starts[i]
+    replacements.push({
+      index: start.index,
+      endIndex: start.endIndex,
+      html: `<div class="tool-call-item tool-call-paired"><span class="tci-icon">⚙️</span><span class="tci-label">调用</span><span class="tci-text">${start.text}</span></div>`
+    })
+  }
+
+  // 处理未配对的 starts（流式传输中，还没有对应的 end）→ 显示为加载中
+  for (let i = pairedStartCount; i < starts.length; i++) {
+    const start = starts[i]
+    replacements.push({
+      index: start.index,
+      endIndex: start.endIndex,
+      html: `<div class="tool-call-item tool-call-loading"><span class="tci-icon">⚙️</span><span class="tci-label">调用中</span><span class="tci-text">${start.text}</span></div>`
+    })
+  }
+
+  // 按位置从后往前替换
+  replacements.sort((a, b) => b.index - a.index)
+  replacements.forEach(r => {
+    content = content.substring(0, r.index) + r.html + content.substring(r.endIndex)
+  })
 
   return content
 }
@@ -117,6 +209,12 @@ watch(() => props.content, () => {
     highlightCode()
   })
 })
+
+// 处理工具卡片点击事件（用于展开/折叠）
+const handleToolCardClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  // 事件委托已通过 onclick 处理，这里保留以防需要额外逻辑
+}
 
 const highlightCode = () => {
   requestAnimationFrame(() => {
@@ -306,58 +404,108 @@ const highlightCode = () => {
   font-weight: 600;
 }
 
-/* 工具调用样式 */
-.markdown-content :deep(.tool-call-start) {
-  display: inline-block;
-  background-color: #e6f7ff;
-  color: #1890ff;
-  padding: 0.2em 0.5em;
-  border-radius: 4px;
-  margin: 0.5em 0;
-  font-weight: bold;
-  font-family: monospace;
+/* ====== 工具调用项 - 扁平化独立行样式 ====== */
+.markdown-content :deep(.tool-call-item) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  margin: 2px 0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
-.markdown-content :deep(.tool-call-end) {
-  display: inline-block;
-  background-color: #f6ffed;
-  color: #52c41a;
-  padding: 0.2em 0.5em;
-  border-radius: 4px;
-  margin: 0.5em 0;
-  font-weight: bold;
-  font-family: monospace;
+.markdown-content :deep(.tool-call-item .tci-icon) {
+  font-size: 15px;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
 }
 
-.markdown-content :deep(.tool-call) {
-  background-color: #f0f7ff;
-  border-left: 4px solid #1890ff;
-  padding: 0.8em 1.2em;
-  margin: 1.2em 0;
-  border-radius: 0 6px 6px 0;
-  font-family: monospace;
+.markdown-content :deep(.tool-call-item .tci-label) {
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: #666;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.markdown-content :deep(.tool-call-item .tci-text) {
+  color: #1a1a1a;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  word-break: break-all;
+}
+
+/* 已配对的调用项（灰色调表示已完成调用阶段） */
+.markdown-content :deep(.tool-call-paired) {
+  background: #fafafa;
+  opacity: 0.7;
+}
+
+.markdown-content :deep(.tool-call-paired .tci-label) {
+  background: #e8e8e8;
+  color: #999;
+}
+
+/* 完成项 */
+.markdown-content :deep(.tool-call-done) {
+  background: #f6ffed;
+}
+
+.markdown-content :deep(.tool-call-done .tci-label) {
+  background: #d9f7be;
+  color: #389e0d;
+}
+
+.markdown-content :deep(.tool-call-done .tci-text) {
+  color: #1a1a1a;
+}
+
+/* 详情项（如搜索关键词） */
+.markdown-content :deep(.tool-call-detail) {
+  background: #fafafa;
+  padding-left: 44px;
+}
+
+.markdown-content :deep(.tool-call-detail .tci-text) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12.5px;
+  color: #555;
+}
+
+/* 加载中项（流式传输未完成） */
+.markdown-content :deep(.tool-call-loading) {
+  background: #f5f5f5;
   position: relative;
+  overflow: hidden;
 }
 
-.markdown-content :deep(.tool-call:before) {
-  content: "< 工具调用 >";
+.markdown-content :deep(.tool-call-loading .tci-label) {
+  background: #e0e0e0;
+  color: #888;
+}
+
+.markdown-content :deep(.tool-call-loading::after) {
+  content: '';
   position: absolute;
-  top: -0.8em;
+  bottom: 0;
   left: 0;
-  background: #1890ff;
-  color: white;
-  font-size: 0.8em;
-  padding: 0.2em 0.8em;
-  border-radius: 4px 4px 0 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #1a1a1a, transparent);
+  background-size: 200% 100%;
+  animation: toolItemProgress 1.5s ease-in-out infinite;
 }
 
-.markdown-content :deep(.tool-call pre) {
-  background-color: #e6f7ff;
-  border: 1px solid #91d5ff;
-}
-
-.markdown-content :deep(.tool-call code) {
-  background-color: transparent;
+@keyframes toolItemProgress {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
 }
 
 /* 工作流标记样式 */

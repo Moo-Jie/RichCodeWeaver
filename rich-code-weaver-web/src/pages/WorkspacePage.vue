@@ -206,6 +206,7 @@ import {
 } from '@/config/env'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { listMatchedTemplates } from '@/api/promptTemplateController'
+import { StreamChunkParserContext } from '@/utils/streamChunkParser'
 import request from '@/request'
 import ChatInput from '@/components/workspace/ChatInput.vue'
 import ChatMessages from '@/components/workspace/ChatMessages.vue'
@@ -272,7 +273,7 @@ const getColorSchemePreview = (tpl: API.PromptTemplateVO): string[] => {
     const fields = JSON.parse(tpl.templateFields)
     const colorSchemeField = fields.find((f: any) => f.key === 'colorScheme' && f.type === 'select')
     if (!colorSchemeField?.options) return []
-    
+
     // Extract colors from options like "天空蓝(#0288d1+#e1f5fe)"
     const colors: string[] = []
     for (const option of colorSchemeField.options.slice(0, 3)) {
@@ -411,7 +412,7 @@ const handleCreate = async () => {
       try {
         const res = await addApp({
           initPrompt: userPrompt.value.trim(),
-          generatorType: 'HTML'
+          generatorType: 'AI_STRATEGY'
         })
         if (res.data.code === 0 && res.data.data) {
           const newAppId = res.data.data
@@ -478,6 +479,9 @@ const fetchAppInfo = async () => {
       if (hasActiveSSE) {
         // 有正在传输的SSE流，进入对话模式
         appStore.setMode('chat')
+      } else if (appStore.selectedApp?.initPrompt && messages.value.length === 0) {
+        // 新创建的应用（有初始提示词但无消息历史），即将自动发送初始消息，进入对话模式
+        appStore.setMode('chat')
       } else {
         // 没有正在传输的SSE流，展示数字产物模式
         appStore.setMode('app')
@@ -538,7 +542,7 @@ const fetchChatHistory = async (loadMore = false) => {
       }
 
       await nextTick()
-      chatMessagesRef.value?.scrollToBottom()
+      chatMessagesRef.value?.scrollToBottom(true)
       updatePreview()
 
       if (!loadMore) {
@@ -602,7 +606,7 @@ const sendInitialMessage = async (prompt: string) => {
   const aiMessageIndex = messages.value.length
   messages.value.push({type: 'ai', content: '', loading: true})
   await nextTick()
-  chatMessagesRef.value?.scrollToBottom()
+  chatMessagesRef.value?.scrollToBottom(true)
   isGenerating.value = true
   await generateCode(prompt, aiMessageIndex)
 }
@@ -622,7 +626,7 @@ const sendMessage = async () => {
   const aiMessageIndex = messages.value.length
   messages.value.push({type: 'ai', content: '', loading: true})
   await nextTick()
-  chatMessagesRef.value?.scrollToBottom()
+  chatMessagesRef.value?.scrollToBottom(true)
 
   if (selectedElement.value) clearSelection()
   if (isEditMode.value) {
@@ -645,6 +649,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   let streamCompleted = false
   let fullContent = ''
   const existingContentLength = isReconnect ? (messages.value[aiMessageIndex]?.content?.length || 0) : 0
+  // 创建流式 JSON 消息块解析上下文，用于解析 VUE_PROJECT 模式下的 ai_response / tool_request / tool_executed 类型
+  const chunkParser = new StreamChunkParserContext()
 
   if (!isReconnect) markGeneratingStart(userMessage)
 
@@ -681,7 +687,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       const params = new URLSearchParams({
         appId: appId.value || '',
         message: userMessage,
-        isAgent: String(useAgent),
+        isWorkflow: String(useAgent),
         reconnect: String(reconnectMode)
       })
       if (lastEventId.value) {
@@ -695,14 +701,18 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
         if (event.lastEventId) lastEventId.value = event.lastEventId
         try {
           const parsed = JSON.parse(event.data)
-          const content = parsed.b
-          if (content !== undefined && content !== null) {
-            fullContent += content
-            if (fullContent.length >= existingContentLength) {
-              messages.value[aiMessageIndex].content = fullContent
-              messages.value[aiMessageIndex].loading = false
+          const rawContent = parsed.b
+          if (rawContent !== undefined && rawContent !== null) {
+            // 解析 JSON 消息块（ai_response / tool_request / tool_executed），提取有效展示内容
+            const content = chunkParser.parseChunk(rawContent)
+            if (content) {
+              fullContent += content
+              if (fullContent.length >= existingContentLength) {
+                messages.value[aiMessageIndex].content = fullContent
+                messages.value[aiMessageIndex].loading = false
+              }
+              chatMessagesRef.value?.scrollToBottom()
             }
-            chatMessagesRef.value?.scrollToBottom()
           }
         } catch (error) {
           console.error('解析消息失败:', error)

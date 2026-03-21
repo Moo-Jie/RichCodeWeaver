@@ -36,8 +36,8 @@ public class FileDeleteTool extends BaseTool {
     @Override
     public String getResultMsg(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
-        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "" : "\n[\n" + relativeFilePath + "\n]\n";
-        return String.format("[工具调用结束] %s %s", "成功删除以下文件", relativeFilePath);
+        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "未知文件" : relativeFilePath;
+        return String.format("[工具调用结束] 成功删除文件 %s", relativeFilePath);
     }
 
     @Tool("删除指定路径的文件")

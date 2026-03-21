@@ -17,7 +17,6 @@ import com.rich.app.service.AppService;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.app.service.StreamSessionService;
 import com.rich.app.utils.AIGenerateCodeAndSaveToFileUtils;
-import com.rich.app.utils.streamHandle.StreamHandlerExecutor;
 import com.rich.client.innerService.InnerScreenshotService;
 import com.rich.client.innerService.InnerUserService;
 import com.rich.common.constant.AppConstant;
@@ -83,9 +82,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private ChatHistoryService chatHistoryService;
 
-    @Resource
-    private StreamHandlerExecutor streamHandlerExecutor;
-
     // 注入外部截图服务的代理对象
     @DubboReference
     private InnerScreenshotService screenshotService;
@@ -105,17 +101,18 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     /**
      * 管理员执行 AI 对话并并生成代码(流式)
+     * 使用工作流分布执行节点模式
      *
      * @param appId   AI 应用id
      * @param userId  用户id
      * @param message 对话消息
-     * @param isAgent 是否开启 Agent 模式
+     * @param isWorkflow 是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
      * @return 代码流
      * @author DuRuiChi
      * @create 2025/8/8
      **/
     @Override
-    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isAgent) {
+    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isWorkflow) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
         // 为当前线程分配监控上下文
@@ -139,19 +136,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 保存用户消息
         boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
-        Flux<ServerSentEvent<String>> resultFlux;
-        // 调用 AI 响应流
-        if (isAgent) {
-            // 通过工作流执行对话，输出 Agent 风格的响应内容：
-            // 步骤：搜索图片资源——>提示词强化——>代码生成类型规划——>代码生成——>代码保存——>项目构建——>持久化——>响应前端
-            resultFlux = codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
-        } else {
-            // 直接执行对话，输出 AI 的真实响应内容：
-            // 步骤1：代码生成类型规划——>代码生成——>代码保存
-            Flux<String> stringFlux = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
-            // 步骤2：处理 AI 响应流：数据块处理——>持久化——>项目构建——>响应前端
-            resultFlux = streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
-        }
+        
+        // 通过工作流执行对话：
+        // 步骤：搜索图片资源——>提示词强化——>代码生成类型规划——>代码生成——>代码保存——>项目构建——>持久化——>响应前端
+        // TODO: 后续增加 Agent 自主规划模式
+        Flux<ServerSentEvent<String>> resultFlux = codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
         // 清空当前线程的监控上下文
 //        SysMonitorContextHolder.clearContext();
         // 返回处理后的响应流
@@ -160,18 +149,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     /**
      * 执行 AI 对话并并生成代码(流式，支持断线重连)
+     * 使用工作流分布执行节点模式
      *
      * @param appId       AI 应用id
      * @param userId      用户id
      * @param message     对话消息
-     * @param isAgent     是否开启 Agent 模式
+     * @param isWorkflow     是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
      * @param lastEventId 最后接收到的事件ID（用于断线重连）
      * @return 代码流
      * @author DuRuiChi
      * @create 2025/8/27
      **/
     @Override
-    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, Boolean isAgent, String lastEventId, Boolean reconnect) {
+    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, Boolean isWorkflow, String lastEventId, Boolean reconnect) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
         
@@ -222,13 +212,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         
         Flux<ServerSentEvent<String>> resultFlux;
         
-        // 调用 AI 响应流
-        if (isAgent) {
-            resultFlux = codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
-        } else {
-            Flux<String> stringFlux = aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCodeStream(message, type, appId);
-            resultFlux = streamHandlerExecutor.executeStreamHandler(stringFlux, chatHistoryService, appId, userId, type);
-        }
+        // 通过工作流执行对话
+        // TODO: 后续增加 Agent 自主规划模式
+        resultFlux = codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
         
         // 独立订阅生成流：AI 生成与客户端连接解耦
         // 客户端断开不影响生成过程，事件全部缓存到会话中
@@ -656,11 +642,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 30)));
         // 设置生成策略
         CodeGeneratorTypeEnum codeGeneratorTypeEnum = appAddRequest.getGeneratorType();
-        // 是否 AI 自主规划生成策略
-        if (CodeGeneratorTypeEnum.AI_STRATEGY.equals(codeGeneratorTypeEnum)) {
-            // 自动规划生成策略
-            codeGeneratorTypeEnum = aiCodeGeneratorTypeStrategyService.getCodeGenStrategy(initPrompt);
-        }
+        // 保存用户选择的生成策略（包括 AI_STRATEGY），不在此处预先解析
+        // 让工作流的策略节点根据增强后的提示词（含网络资源、图片等）智能选择最优方案
         app.setCodeGenType(codeGeneratorTypeEnum.getValue());
         // 设置默认封面
         app.setCover(AppConstant.APP_COVER);

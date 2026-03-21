@@ -26,12 +26,24 @@ public abstract class CodeResultSaveToFileTemplate<T> {
      * @throws IllegalArgumentException 如果输入参数为空
      */
     public final File saveCodeResult(T result, Long appId) {
+        return saveCodeResult(result, appId, getCodeGeneratorTypeEnumValue());
+    }
+
+    /**
+     * 保存代码封装类至文件（支持自定义目录类型前缀）
+     *
+     * @param result  代码封装类对象
+     * @param appId   应用id
+     * @param bizType 目录类型前缀（如 vue_project、multi_file 等）
+     * @return 生成的目录File对象
+     */
+    public final File saveCodeResult(T result, Long appId, String bizType) {
         // 校验参数
         if (result == null) {
             throw new IllegalArgumentException("代码封装参数不能为空。");
         }
         // 生成唯一目录
-        String baseDirPath = buildUniqueDir(getCodeGeneratorTypeEnumValue(), appId);
+        String baseDirPath = buildUniqueDir(bizType, appId);
         // 保存文件
         doSaveCodeResult(result, baseDirPath);
         // 返沪文件

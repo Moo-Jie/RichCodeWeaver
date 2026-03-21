@@ -110,14 +110,14 @@ public class StreamSessionServiceImpl implements StreamSessionService {
                 }
             }
         }
-        
-        if (events.isEmpty()) {
-            log.debug("获取重连事件: sessionId={}, lastEventId={}, eventsCount=0", 
-                    sessionId, lastEventId);
-        } else {
-            log.info("获取重连事件: sessionId={}, lastEventId={}, eventsCount={}", 
-                    sessionId, lastEventId, events.size());
-        }
+        // 输出频率过高，不再输出
+//        if (events.isEmpty()) {
+//            log.debug("获取重连事件: sessionId={}, lastEventId={}, eventsCount=0",
+//                    sessionId, lastEventId);
+//        } else {
+//            log.info("获取重连事件: sessionId={}, lastEventId={}, eventsCount={}",
+//                    sessionId, lastEventId, events.size());
+//        }
         return events;
     }
 

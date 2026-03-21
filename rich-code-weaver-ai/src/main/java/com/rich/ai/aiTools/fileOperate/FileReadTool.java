@@ -34,11 +34,8 @@ public class FileReadTool extends BaseTool {
     @Override
     public String getResultMsg(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
-        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "" : "\n[\n" + relativeFilePath + "\n]\n";
-        String content = arguments.getStr("content");
-        return String.format("""
-                [工具调用结束] %s %s
-                """, "成功读取以下目录", relativeFilePath, content);
+        relativeFilePath = relativeFilePath == null || relativeFilePath.isEmpty() ? "未知文件" : relativeFilePath;
+        return String.format("[工具调用结束] 成功读取文件 %s", relativeFilePath);
     }
 
     @Tool("读取指定路径的文件内容")

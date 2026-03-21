@@ -494,24 +494,9 @@ onMounted(() => {
 <style lang="less" scoped>
 #appEditPage {
   padding: 24px;
-  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
+  background: #fff;
   min-height: calc(100vh - 48px);
   position: relative;
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><path fill="none" stroke="rgba(180,200,220,0.05)" stroke-width="1" d="M0,400 Q200,300 400,400 M0,0 Q200,100 400,0"/></svg>');
-    background-size: 400px;
-    opacity: 0.3;
-    pointer-events: none;
-    z-index: 0;
-  }
 }
 
 .page-header {
@@ -519,18 +504,15 @@ onMounted(() => {
   margin-bottom: 40px;
 
   h1 {
-    font-family: 'Comic Neue', cursive;
-    font-size: 2.6rem;
-    font-weight: 700;
-    color: #2c3e50;
+    font-size: 28px;
+    font-weight: 600;
+    color: #1a1a1a;
     margin-bottom: 8px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   p {
-    font-family: 'Nunito', sans-serif;
-    font-size: 1.1rem;
-    color: #7f8c8d;
+    font-size: 14px;
+    color: #999;
     max-width: 600px;
     margin: 0 auto;
   }
@@ -548,17 +530,17 @@ onMounted(() => {
 }
 
 .info-card, .meta-card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(204, 230, 255, 0.2);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
   overflow: hidden;
   position: relative;
   z-index: 1;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -575,16 +557,15 @@ onMounted(() => {
     margin-bottom: 25px;
 
     h2 {
-      font-family: 'Comic Neue', cursive;
-      font-size: 1.3rem;
-      color: #2c3e50;
+      font-size: 18px;
+      color: #1a1a1a;
       margin: 0;
-      font-weight: 700;
+      font-weight: 600;
     }
 
     .app-id {
-      color: #7f8c8d;
-      font-size: 0.95rem;
+      color: #999;
+      font-size: 14px;
 
       .ant-tag {
         margin-left: 8px;
@@ -595,12 +576,12 @@ onMounted(() => {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.95rem;
-      color: #2c3e50;
+      font-size: 14px;
+      color: #1a1a1a;
       transition: all 0.2s ease;
 
       &:hover {
-        color: #00c4ff;
+        color: #666;
       }
     }
   }
@@ -609,18 +590,18 @@ onMounted(() => {
     margin-bottom: 25px;
 
     :deep(.ant-form-item-label) {
-      font-weight: 600;
-      color: #2c3e50;
+      font-weight: 500;
+      color: #1a1a1a;
       padding-bottom: 5px;
     }
 
     .ant-input-prefix, .ant-input-suffix {
-      color: #00c4ff;
+      color: #999;
     }
 
     .max-length {
-      font-size: 0.85rem;
-      color: #7f8c8d;
+      font-size: 12px;
+      color: #999;
       padding-right: 8px;
     }
 
@@ -631,9 +612,8 @@ onMounted(() => {
   }
 
   .form-tip {
-    font-family: 'Nunito', sans-serif;
-    font-size: 0.85rem;
-    color: #7f8c8d;
+    font-size: 12px;
+    color: #999;
     margin-top: 8px;
     padding: 0 3px;
   }
@@ -671,12 +651,12 @@ onMounted(() => {
     gap: 6px;
     height: 32px;
     padding: 0 12px;
-    background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+    background: #1a1a1a;
     border: none;
     color: white;
 
     &:hover {
-      background: linear-gradient(135deg, #5adbc8 0%, #8b9de6 100%);
+      background: #333;
       transform: translateY(-1px);
     }
   }
@@ -690,8 +670,8 @@ onMounted(() => {
   border: 1px dashed #e6e1da;
 
   .preview-title {
-    font-size: 0.95rem;
-    color: #7f8c8d;
+    font-size: 14px;
+    color: #999;
     margin-bottom: 10px;
   }
 
@@ -705,12 +685,12 @@ onMounted(() => {
     display: block;
     margin-top: 10px;
     text-align: center;
-    color: #00c4ff;
-    font-size: 0.95rem;
+    color: #1a1a1a;
+    font-size: 14px;
     transition: all 0.2s ease;
 
     &:hover {
-      color: #5adbc8;
+      color: #666;
     }
   }
 }
@@ -732,11 +712,10 @@ onMounted(() => {
     margin-bottom: 25px;
 
     h2 {
-      font-family: 'Comic Neue', cursive;
-      font-size: 1.3rem;
-      color: #2c3e50;
+      font-size: 18px;
+      color: #1a1a1a;
       margin: 0;
-      font-weight: 700;
+      font-weight: 600;
     }
   }
 
@@ -747,15 +726,15 @@ onMounted(() => {
     }
 
     :deep(.ant-descriptions-item-label) {
-      font-weight: 600;
-      color: #7f8c8d;
+      font-weight: 500;
+      color: #999;
       width: 100px;
       padding-right: 20px;
     }
 
     :deep(.ant-descriptions-item-content) {
-      font-weight: 500;
-      color: #2c3e50;
+      font-weight: 400;
+      color: #1a1a1a;
     }
   }
 
@@ -766,56 +745,55 @@ onMounted(() => {
     padding: 5px 0;
 
     .anticon {
-      font-size: 1.1rem;
-      color: #00c4ff;
+      font-size: 16px;
+      color: #999;
     }
 
     .time {
       margin-left: 10px;
-      font-size: 0.95rem;
-      color: #7f8c8d;
+      font-size: 14px;
+      color: #999;
     }
   }
 }
 
 /* 按钮样式 */
 .submit-btn {
-  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+  background: #1a1a1a;
   border: none;
   color: white;
-  box-shadow: 0 8px 16px rgba(116, 235, 213, 0.25);
 
   &:hover {
-    background: linear-gradient(135deg, #5adbc8 0%, #8b9de6 100%);
-    transform: translateY(-3px);
-    box-shadow: 0 12px 20px rgba(116, 235, 213, 0.35);
+    background: #333;
+    transform: translateY(-1px);
   }
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 4px 8px rgba(116, 235, 213, 0.3);
   }
 }
 
 .reset-btn {
-  background: #f0f2f5;
-  border-color: #d9d9d9;
+  background: #fff;
+  border-color: #e0e0e0;
+  color: #666;
 
   &:hover {
-    background: #e6f7ff;
-    border-color: #00c4ff;
-    color: #00c4ff;
+    background: #f5f5f5;
+    border-color: #d0d0d0;
+    color: #1a1a1a;
   }
 }
 
 .detail-btn {
-  background: #f0f2f5;
-  border-color: #d9d9d9;
+  background: #fff;
+  border-color: #e0e0e0;
+  color: #666;
 
   &:hover {
-    background: #e6f7ff;
-    border-color: #00c4ff;
-    color: #00c4ff;
+    background: #f5f5f5;
+    border-color: #d0d0d0;
+    color: #1a1a1a;
   }
 }
 </style>
