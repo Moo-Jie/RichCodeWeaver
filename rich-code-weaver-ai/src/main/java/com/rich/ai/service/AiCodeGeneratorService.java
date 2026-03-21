@@ -6,6 +6,7 @@ import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 import reactor.core.publisher.Flux;
 
 /**
@@ -22,7 +23,8 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/html-system-prompt.txt")
-    Flux<String> generateHtmlCodeStream(String userMessage);
+    @UserMessage("{{userMessage}}")
+    Flux<String> generateHtmlCodeStream(@V("userMessage") String userMessage);
 
     /**
      * AI 流式生成多文件代码
@@ -31,7 +33,8 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/multi-file-system-prompt.txt")
-    Flux<String> generateMultiFileCodeStream(String userMessage);
+    @UserMessage("{{userMessage}}")
+    Flux<String> generateMultiFileCodeStream(@V("userMessage") String userMessage);
 
     /**
      * AI 流式推理生成 Vue 项目工程代码
@@ -41,7 +44,8 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/vue-project-system-prompt.txt")
-    TokenStream generateVueProjectCodeStream(@UserMessage String userMessage, @MemoryId Long appId);
+    @UserMessage("{{userMessage}}")
+    TokenStream generateVueProjectCodeStream(@V("userMessage") String userMessage, @MemoryId Long appId);
 
     /**
      * AI 生成 HTML 代码
@@ -50,7 +54,8 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/html-system-prompt.txt")
-    HtmlCodeResponse generateHtmlCode(String userMessage);
+    @UserMessage("{{userMessage}}")
+    HtmlCodeResponse generateHtmlCode(@V("userMessage") String userMessage);
 
     /**
      * AI 生成多文件代码
@@ -59,7 +64,8 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/multi-file-system-prompt.txt")
-    MultiFileCodeResponse generateMultiFileCode(String userMessage);
+    @UserMessage("{{userMessage}}")
+    MultiFileCodeResponse generateMultiFileCode(@V("userMessage") String userMessage);
 
     /**
      * AI 生成 Vue 项目工程代码
@@ -69,5 +75,6 @@ public interface AiCodeGeneratorService {
      * @return AI 的输出结果
      */
     @SystemMessage(fromResource = "/aiPrompt/vue-project-system-prompt.txt")
-    MultiFileCodeResponse generateVueProjectCode(@UserMessage String userMessage, @MemoryId Long appId);
+    @UserMessage("{{userMessage}}")
+    MultiFileCodeResponse generateVueProjectCode(@V("userMessage") String userMessage, @MemoryId Long appId);
 }

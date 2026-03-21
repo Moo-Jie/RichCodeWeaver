@@ -399,7 +399,7 @@ import {
   StarFilled
 } from '@ant-design/icons-vue'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
-import { StreamChunkParserContext } from '@/utils/streamChunkParser'
+import { StreamChunkParserContext, parseBatchContent } from '@/utils/streamChunkParser'
 
 const route = useRoute()
 const router = useRouter()
@@ -741,7 +741,7 @@ const fetchChatHistory = async (loadMore = false) => {
       const historyData = res.data.data.records.slice().reverse() || []
       const newMessages = historyData.map(item => ({
         type: item.messageType === 'user' ? 'user' : 'ai',
-        content: item.message,
+        content: item.messageType === 'user' ? item.message : parseBatchContent(item.message),
         createTime: item.createTime
       }))
 

@@ -44,6 +44,18 @@
             <a-switch v-model:checked="fieldValues[field.key]" />
           </a-form-item>
         </div>
+
+        <!-- 额外内容输入框 -->
+        <a-form-item label="网站展示内容">
+          <a-textarea
+            v-model:value="additionalContent"
+            placeholder="请输入需要在网站中展示的具体信息，例如：个人简介、产品列表、服务项目等"
+            :rows="4"
+            :maxlength="500"
+            show-count
+          />
+          <div class="field-hint">此内容将自动添加到生成的提示词末尾，用于补充具体展示信息</div>
+        </a-form-item>
       </a-form>
 
       <div class="template-preview">
@@ -55,7 +67,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 const props = defineProps<{
   open: boolean
@@ -68,6 +80,7 @@ const emit = defineEmits<{
 }>()
 
 const fieldValues = reactive<Record<string, any>>({})
+const additionalContent = ref('')
 
 const buildSelectOptions = (options?: string[]) => {
   return (options || []).map(o => ({ value: o, label: o }))
@@ -93,6 +106,8 @@ watch(() => [props.open, props.template], () => {
         fieldValues[field.key] = field.defaultValue ?? ''
       }
     }
+    // Reset additional content
+    additionalContent.value = ''
   }
 }, { immediate: true })
 
@@ -109,6 +124,11 @@ const generatedPrompt = computed(() => {
     }
 
     content = content.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value ?? '')
+  }
+
+  // Append additional content if provided
+  if (additionalContent.value.trim()) {
+    content += '\n\n网站需要展示的具体内容：' + additionalContent.value.trim()
   }
 
   return content
@@ -161,8 +181,16 @@ const getColorSchemeStyle = (colorScheme: string) => {
 }
 
 .template-form :deep(.ant-select-selector),
-.template-form :deep(.ant-input) {
+.template-form :deep(.ant-input),
+.template-form :deep(.ant-input-textarea-show-count .ant-input) {
   border-radius: 8px !important;
+}
+
+.field-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #999;
+  line-height: 1.4;
 }
 
 .template-preview {

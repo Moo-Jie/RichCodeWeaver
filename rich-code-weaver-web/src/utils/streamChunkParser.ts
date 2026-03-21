@@ -67,7 +67,17 @@ export class StreamChunkParserContext {
 
     try {
       const obj = JSON.parse(trimmed)
-      if (!obj || !obj.type) return content
+      if (!obj) return content
+
+      // 如果没有 type 字段，检查是否为工具调用原始格式（包含 id/name/arguments）
+      if (!obj.type) {
+        // 过滤掉工具调用的原始 JSON 格式，避免显示在界面上
+        if (obj.id && obj.name && 'arguments' in obj) {
+          return ''
+        }
+        // 其他没有 type 字段的 JSON，原样返回
+        return content
+      }
 
       switch (obj.type) {
         case 'ai_response':
@@ -132,4 +142,114 @@ export class StreamChunkParserContext {
     this.seenToolIds.clear()
     this.toolCallCount = 0
   }
+}
+
+/**
+ * 解析从数据库加载的 VUE_PROJECT 模式对话历史内容
+ * 数据库中存储的是多个 JSON 消息块的拼接字符串，需要拆分并逐个解析
+ * 仅对包含 ai_response / tool_request / tool_executed 类型标记的内容生效，
+ * 不会影响 HTML 单页面模式和多文件模式的内容
+ *
+ * @param content 数据库中存储的原始消息内容
+ * @returns 解析后的可展示文本内容
+ */
+export function parseBatchContent(content: string): string {
+  if (!content) return content
+
+  // 快速判断：是否为 VUE_PROJECT 模式的 JSON 消息块格式
+  // 必须包含至少一个类型标记，避免误解析 HTML/多文件模式的代码内容
+  if (!content.includes('"type":"ai_response"') &&
+      !content.includes('"type":"tool_request"') &&
+      !content.includes('"type":"tool_executed"')) {
+    return content
+  }
+
+  const parser = new StreamChunkParserContext()
+  let result = ''
+  let i = 0
+
+  while (i < content.length) {
+    // 查找下一个 JSON 对象的起始位置
+    const jsonStart = content.indexOf('{', i)
+    if (jsonStart === -1) {
+      // 没有更多 JSON 对象，保留剩余纯文本
+      result += content.substring(i)
+      break
+    }
+
+    // 保留 JSON 对象之前的纯文本
+    if (jsonStart > i) {
+      result += content.substring(i, jsonStart)
+    }
+
+    // 提取完整的 JSON 对象（正确处理字符串中的花括号）
+    const jsonEnd = findJsonObjectEnd(content, jsonStart)
+    if (jsonEnd === -1) {
+      // 未找到完整的 JSON 对象，保留剩余内容
+      result += content.substring(jsonStart)
+      break
+    }
+
+    const chunk = content.substring(jsonStart, jsonEnd + 1)
+    try {
+      // 验证是否为合法 JSON，再交给 parseChunk 解析
+      JSON.parse(chunk)
+      const parsed = parser.parseChunk(chunk)
+      if (parsed) {
+        result += parsed
+      }
+    } catch {
+      // 非法 JSON，跳过
+    }
+
+    i = jsonEnd + 1
+  }
+
+  return result || content
+}
+
+/**
+ * 查找 JSON 对象的结束位置（正确处理字符串边界）
+ * @param content 完整内容
+ * @param start JSON 对象的起始位置（'{' 的位置）
+ * @returns 结束位置（'}' 的位置），未找到返回 -1
+ */
+function findJsonObjectEnd(content: string, start: number): number {
+  let depth = 0
+  let inString = false
+  let escapeNext = false
+
+  for (let i = start; i < content.length; i++) {
+    const char = content[i]
+
+    if (escapeNext) {
+      escapeNext = false
+      continue
+    }
+
+    if (char === '\\' && inString) {
+      escapeNext = true
+      continue
+    }
+
+    if (char === '"') {
+      inString = !inString
+      continue
+    }
+
+    if (inString) {
+      continue
+    }
+
+    if (char === '{') {
+      depth++
+    } else if (char === '}') {
+      depth--
+      if (depth === 0) {
+        return i
+      }
+    }
+  }
+
+  return -1
 }

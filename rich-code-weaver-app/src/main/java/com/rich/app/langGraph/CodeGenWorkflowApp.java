@@ -184,13 +184,10 @@ public class CodeGenWorkflowApp {
                             }
                         });
                     } else {
-                        Set<String> seenToolIdsOther = new HashSet<>();
+                        // 非 VUE_PROJECT 类型（如 SINGLE_HTML）输出的是纯文本，直接转发原始内容
                         CodeGeneratorNode.registerStreamEmitter(appId, chunk -> {
-                            String parsed = jsonStreamHandler.parseJsonChunk(chunk, seenToolIdsOther);
-                            if (StrUtil.isNotEmpty(parsed)) {
-                                sink.next(parsed);
-                                aiResponseBuilder.append(parsed);
-                            }
+                            sink.next(chunk);
+                            aiResponseBuilder.append(chunk);
                         });
                     }
 

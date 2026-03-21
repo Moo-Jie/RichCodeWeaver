@@ -206,7 +206,7 @@ import {
 } from '@/config/env'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { listMatchedTemplates } from '@/api/promptTemplateController'
-import { StreamChunkParserContext } from '@/utils/streamChunkParser'
+import { StreamChunkParserContext, parseBatchContent } from '@/utils/streamChunkParser'
 import request from '@/request'
 import ChatInput from '@/components/workspace/ChatInput.vue'
 import ChatMessages from '@/components/workspace/ChatMessages.vue'
@@ -524,7 +524,7 @@ const fetchChatHistory = async (loadMore = false) => {
       const historyData = (res.data.data.records || []).slice().reverse()
       const newMessages: Message[] = historyData.map((item: any) => ({
         type: item.messageType === 'user' ? 'user' : 'ai',
-        content: item.message,
+        content: item.messageType === 'user' ? item.message : parseBatchContent(item.message),
         createTime: item.createTime
       }))
 
