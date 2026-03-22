@@ -79,84 +79,84 @@ public class AiCodeGeneratorServiceFactory {
     private ChatHistoryService chatHistoryService;
 
     /**
-     * 在 Caffeine 缓存中创建 AI 服务实例
+     * 在 Caffeine 缓存中获取或创建 AI 服务实例
+     * 通过 appId 从缓存中获取已存在的实例，若不存在则创建新实例并加入缓存
      *
-     * @return com.rich.app.service.aiChatService.AiCodeGeneratorService
+     * @param appId          产物ID
+     * @param codeGenTypeEnum 代码生成类型枚举
+     * @return AiCodeGeneratorService AI 代码生成服务实例
      * @author DuRuiChi
-     * @create 2025/8/5
-     **/
+     */
     public AiCodeGeneratorService getAiCodeGeneratorService(Long appId, CodeGeneratorTypeEnum codeGenTypeEnum) {
-        // 从缓存中获取或创建 AI 服务实例:
-        // 每次通过 AppId 来获取 AI 服务实例，加入 Caffeine 缓存
-        // 若 appId 相同，会从缓存中获取已构建的实例，从而避免重复从数据库查询历史对话记录构建实例
+        // 从 Caffeine 缓存中获取或创建 AI 服务实例
+        // 缓存策略：相同 appId 会复用已构建的实例，避免重复从数据库加载历史对话记录
+        // 缓存未命中时，会自动调用 createAiCodeGeneratorService 方法创建新实例
         return caffeineService.get(appId, (key) -> this.createAiCodeGeneratorService(appId, codeGenTypeEnum));
     }
 
     /**
-     * 根据 appId 实现创建不同的独立 AI 服务，并从数据库加载对话历史
+     * 根据 appId 创建独立的 AI 服务实例，并从数据库加载对话历史
+     * 根据代码生成类型选择不同的 AI 模型和配置（普通流式模型或推理流式模型）
      *
-     * @param appId
-     * @return com.rich.app.service.aiChatService.AiCodeGeneratorService
+     * @param appId          产物ID
+     * @param codeGenTypeEnum 代码生成类型枚举
+     * @return AiCodeGeneratorService AI 代码生成服务实例
      * @author DuRuiChi
-     * @create 2025/8/18
-     **/
+     */
     private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeGeneratorTypeEnum codeGenTypeEnum) {
-        log.info("为 appId: {} 创建新的 AI 服务实例", appId);
-        // 根据 appId 创建独立的 chatMemory
+        log.info("为 appId: {} 创建新的 AI 服务实例，代码生成类型: {}", appId, codeGenTypeEnum);
+        
+        // 步骤1：根据 appId 创建独立的对话记忆（ChatMemory）
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory
                 .builder()
-                .id(appId)
-                // 指定为 Redis 类型的 ChatMemory
-                .chatMemoryStore(redisChatMemoryStore)
-                // 最大消息数
-                .maxMessages(50)
+                .id(appId)  // 使用 appId 作为唯一标识
+                .chatMemoryStore(redisChatMemoryStore)  // 指定为 Redis 类型的存储
+                .maxMessages(50)  // 最大保留50条消息（滑动窗口）
                 .build();
-        // 从数据库中加载对话历史到 Redis 类型的 chatMemory 中
+        
+        // 步骤2：从数据库中加载对话历史到 Redis 类型的 chatMemory 中
         Boolean isSave = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 10);
-        // 若加载失败，记录日志
         if (!isSave) {
+            // 若加载失败，添加提示消息并记录日志
             chatMemory.add(UserMessage.from("历史记录加载失败，可能已经过期。"));
-            log.info("为 appId: {} 加载历史记录失败", appId);
+            log.warn("为 appId: {} 加载历史记录失败", appId);
         }
-        // 分模式构建 AI 服务实例
+        
+        // 步骤3：构建 AI 服务实例的基础配置
         AiServices<AiCodeGeneratorService> aiCodeGenServices = AiServices.builder(AiCodeGeneratorService.class)
-                // 配置基础 AI 模型
-                .chatModel(chatModel)
-                // 配置提示词护轨规则
+                .chatModel(chatModel)  // 配置基础 AI 模型
+                // TODO 配置提示词护轨规则，目前规则不够完善，容易导致误判
 //                .inputGuardrails(new PromptSafetyInputGuardrail())
-                // 最大调用工具数
-                .maxSequentialToolsInvocations(25)
-                // 配置 chatMemory
-                .chatMemory(chatMemory);
+                .maxSequentialToolsInvocations(25)  // 最大连续调用工具次数（防止无限循环）
+                .chatMemory(chatMemory);  // 配置对话记忆
+        
+        // 步骤4：根据代码生成类型选择不同的 AI 模型和配置
         switch (codeGenTypeEnum) {
-            // 单文件模式、多文件模式
+            // 单文件模式、多文件模式：使用普通流式模型
             case HTML, MULTI_FILE -> {
-                // 取出自定义的多例模式下的普通流式 AI 模型
+                // 从 Spring 容器中获取普通流式 AI 模型（多例模式）
                 StreamingChatModel streamingChatModel = SpringContextUtil.getBean("streamingChatModel", StreamingChatModel.class);
                 return aiCodeGenServices
-                        // 配置流式模型
-                        .streamingChatModel(streamingChatModel)
+                        .streamingChatModel(streamingChatModel)  // 配置流式模型
                         .build();
             }
-            // Vue 项目工程模式
+            // Vue 项目工程模式：使用推理流式模型（支持工具调用）
             case VUE_PROJECT -> {
-                // 取出自定义的多例模式下的推理流式 AI 模型
+                // 从 Spring 容器中获取推理流式 AI 模型（多例模式）
                 StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean("reasoningStreamingChatModel", StreamingChatModel.class);
                 return aiCodeGenServices
-                        // 配置自定义推理流式模型
-                        .streamingChatModel(reasoningStreamingChatModel)
-                        // 当前模式使用了 memoryId ,强制要求指定 chatMemoryProvider
-                        .chatMemoryProvider(id -> chatMemory)
-                        // 指定供 AI 调用的自定义工具包
-                        .tools(toolsManager.getAllTools())
-                        // 当幻觉调用工具名称时，使用自定义策略
-                        // 参考 ：https://blog.csdn.net/qq_52155674/article/details/147238250
+                        .streamingChatModel(reasoningStreamingChatModel)  // 配置推理流式模型
+                        .chatMemoryProvider(id -> chatMemory)  // 强制指定 chatMemoryProvider（推理模式要求）
+                        .tools(toolsManager.getAllTools())  // 指定供 AI 调用的自定义工具包
+                        // 当 AI 幻觉调用不存在的工具时，返回错误提示（防止异常）
+                        // 参考：https://blog.csdn.net/qq_52155674/article/details/147238250
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()))
-
                         .build();
             }
+            // 默认模式：使用基础配置
             default -> {
+                log.warn("未知的代码生成类型: {}，使用默认配置", codeGenTypeEnum);
                 return aiCodeGenServices.build();
             }
         }

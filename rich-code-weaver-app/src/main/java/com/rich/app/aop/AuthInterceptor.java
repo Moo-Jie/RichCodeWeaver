@@ -50,7 +50,7 @@ public class AuthInterceptor {
         // 将角色字符串转换为枚举类型
         UserRoleEnum mustRoleEnum = UserRoleEnum.getEnumByValue(mustRole);
 
-        // 如果不需要特定权限，直接放行
+        // 如果不需要特定权限（注解未指定角色），直接放行
         if (mustRoleEnum == null) {
             return joinPoint.proceed();
         }
@@ -58,17 +58,17 @@ public class AuthInterceptor {
         // 获取当前用户的角色枚举
         UserRoleEnum userRoleEnum = UserRoleEnum.getEnumByValue(loginUser.getUserRole());
 
-        // 用户角色无效时拒绝访问
+        // 用户角色无效时拒绝访问（防止非法角色值）
         if (userRoleEnum == null) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "用户角色无效");
         }
 
-        // 管理员权限校验：当需要管理员权限但用户不是管理员时
+        // 管理员权限校验：当需要管理员权限但用户不是管理员时，拒绝访问
         if (UserRoleEnum.ADMIN.equals(mustRoleEnum) && !UserRoleEnum.ADMIN.equals(userRoleEnum)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "需要管理员权限");
         }
 
-        // 通过
+        // 权限校验通过，执行目标方法
         return joinPoint.proceed();
     }
 }

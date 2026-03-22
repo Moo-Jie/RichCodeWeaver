@@ -13,12 +13,16 @@ public class HtmlCodeSaver extends CodeResultSaveToFileTemplate<HtmlCodeResponse
 
     @Override
     protected String getCodeGeneratorTypeEnumValue() {
+        // 返回 HTML 代码生成类型的枚举值，用于构建保存目录路径
         return CodeGeneratorTypeEnum.HTML.getValue();
     }
 
     @Override
     protected void doSaveCodeResult(HtmlCodeResponse result, String baseDirPath) {
-        // 重写保存逻辑，直接调用单文件写入模板方法
+        // 将 HTML 代码保存为单个 index.html 文件
+        // baseDirPath: 基础目录路径
+        // "index.html": 文件名
+        // result.getHtmlCode(): HTML 代码内容
         writeSingleToFile(baseDirPath, "index.html", result.getHtmlCode());
     }
 }

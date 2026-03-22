@@ -11,11 +11,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 图片收集 AI 服务实例工厂
+ * 网络资源整理 AI 服务实例创建工厂
+ * 负责创建用于网络资源搜索和抓取的 AI 服务实例
  *
  * @author DuRuiChi
- * @create 2025/8/5
- **/
+ * @since 2025-08-05
+ */
 @Slf4j
 @Configuration
 public class AiWebResourceOrganizeServiceFactory {
@@ -40,12 +41,16 @@ public class AiWebResourceOrganizeServiceFactory {
 
     /**
      * 创建网络资源整理 AI 服务实例
+     * 集成网络搜索和网页抓取工具，用于为代码项目收集和整理网络资源
+     *
+     * @return AiWebResourceOrganizeService 网络资源整理 AI 服务实例
+     * @author DuRuiChi
      */
     @Bean
     public AiWebResourceOrganizeService createAiWebResourceOrganizeService() {
         return AiServices.builder(AiWebResourceOrganizeService.class)
                 .chatModel(webResourceOrganizeChatModel)
-                // 配置提示词护轨规则
+                // TODO 配置提示词护轨规则，目前规则不够完善，容易导致误判
 //                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .tools(
                         aiWebScrapingTool,

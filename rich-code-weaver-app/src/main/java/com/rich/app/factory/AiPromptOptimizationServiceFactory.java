@@ -10,11 +10,11 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * AI 提示词优化服务实例创建工厂
+ * 负责创建用于优化用户输入提示词的 AI 服务实例
  *
  * @author DuRuiChi
- * @return
- * @create 2025/3/20
- **/
+ * @since 2025-03-20
+ */
 @Slf4j
 @Configuration
 public class AiPromptOptimizationServiceFactory {
@@ -26,15 +26,19 @@ public class AiPromptOptimizationServiceFactory {
     private ChatModel promptOptimizationChatModel;
 
     /**
-     * AI 提示词优化服务实例
+     * 创建 AI 提示词优化服务实例
+     * 使用专用的提示词优化模型，将用户的简单描述优化为更详细、更准确的代码生成提示词
      *
-     * @return AI 提示词优化服务实例
+     * @return AiPromptOptimizationService AI 提示词优化服务实例
+     * @author DuRuiChi
      */
     @Bean
     public AiPromptOptimizationService aiPromptOptimizationService() {
+        // 构建 AI 提示词优化服务实例
         return AiServices.builder(AiPromptOptimizationService.class)
+                // 配置专用的提示词优化 AI 模型
                 .chatModel(promptOptimizationChatModel)
-                // 配置提示词护轨规则
+                // TODO 配置提示词护轨规则，目前规则不够完善，容易导致误判
 //                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .build();
     }

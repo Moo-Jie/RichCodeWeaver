@@ -36,10 +36,12 @@ public class RedisUtils {
      * @return MD5哈希后的缓存key
      */
     public static String genKey(Object obj) {
+        // 处理空对象的情况
         if (obj == null) {
             return DigestUtil.md5Hex("null");
         }
-        // 先转换为 JSON 字符串，再加密为 MD5，保证唯一性
+        // 先将对象转换为 JSON 字符串，再通过 MD5 加密生成唯一的缓存key
+        // 格式：rcw-{MD5哈希值}，确保key的唯一性和可读性
         return "rcw-" + DigestUtil.md5Hex(JSONUtil.toJsonStr(obj));
     }
 
@@ -51,9 +53,11 @@ public class RedisUtils {
      * @return 完整的缓存key
      */
     public static String genKeyWithPrefix(String prefix, Object... keys) {
+        // 将多个键值部分用冒号连接成字符串
         String keyStr = Arrays.stream(keys)
                 .map(Object::toString)
                 .collect(Collectors.joining(":"));
+        // 如果前缀为空，直接返回键值字符串；否则拼接前缀
         return StrUtil.isBlank(prefix) ? keyStr : prefix + ":" + keyStr;
     }
 
@@ -66,9 +70,10 @@ public class RedisUtils {
      * @return 完整的缓存key
      */
     public static String generateNamespacedKey(String namespace, String business, Object key) {
+        // 生成带命名空间的缓存key，格式：namespace:business:key
+        // 便于按业务和命名空间进行缓存管理和隔离
         return String.format("%s:%s:%s", namespace, business, key.toString());
     }
-
 
     /**
      * 指定缓存失效时间
@@ -79,6 +84,7 @@ public class RedisUtils {
      */
     public boolean expire(String key, long time) {
         try {
+            // 只有当时间大于0时才设置过期时间
             if (time > 0) {
                 redisTemplate.expire(key, time, TimeUnit.SECONDS);
             }
@@ -96,6 +102,8 @@ public class RedisUtils {
      * @return 时间(秒) 返回0代表为永久有效
      */
     public long getExpire(String key) {
+        // 获取key的剩余过期时间（秒）
+        // 返回值：-1表示永久有效，-2表示key不存在，其他值表示剩余秒数
         return redisTemplate.getExpire(key, TimeUnit.SECONDS);
     }
 
@@ -107,6 +115,7 @@ public class RedisUtils {
      */
     public boolean hasKey(String key) {
         try {
+            // 检查Redis中是否存在指定的key
             return redisTemplate.hasKey(key);
         } catch (Exception e) {
             e.printStackTrace();
@@ -122,9 +131,11 @@ public class RedisUtils {
     @SuppressWarnings("unchecked")
     public void del(String... key) {
         if (key != null && key.length > 0) {
+            // 如果只有一个key，直接删除
             if (key.length == 1) {
                 redisTemplate.delete(key[0]);
             } else {
+                // 如果有多个key，批量删除（提高性能）
                 redisTemplate.delete(Arrays.stream(key).collect(Collectors.toList()));
             }
         }
@@ -145,7 +156,9 @@ public class RedisUtils {
      * @param pattern 匹配模式，如 "user:*"
      */
     public void deleteByPattern(String pattern) {
+        // 根据模式匹配查找所有符合条件的key
         Set<String> keys = redisTemplate.keys(pattern);
+        // 如果找到匹配的key，批量删除
         if (!CollectionUtils.isEmpty(keys)) {
             redisTemplate.delete(keys);
         }
@@ -238,20 +251,24 @@ public class RedisUtils {
      * @return 数据
      */
     public <T> T getWithFallback(String key, Supplier<T> dbSupplier, long time) {
+        // 第一次检查：尝试从缓存中获取数据
         T value = (T) get(key);
         if (value != null) {
-            return value;
+            return value;  // 缓存命中，直接返回
         }
 
-        // 使用双重检查锁防止缓存击穿
+        // 使用双重检查锁防止缓存击穿（多个线程同时查询数据库）
         synchronized (this) {
+            // 第二次检查：再次尝试从缓存中获取（可能已被其他线程设置）
             value = (T) get(key);
             if (value != null) {
-                return value;
+                return value;  // 缓存命中，直接返回
             }
 
+            // 缓存未命中，从数据库查询数据
             value = dbSupplier.get();
             if (value != null) {
+                // 将查询结果设置到缓存中
                 set(key, value, time);
             }
         }
@@ -267,9 +284,9 @@ public class RedisUtils {
      */
     public boolean updateWithCacheAside(String key, Runnable updateTask) {
         try {
-            // 先更新数据库
+            // 先更新数据库（确保数据一致性）
             updateTask.run();
-            // 再删除缓存
+            // 再删除缓存（采用Cache-Aside模式，下次读取时重新加载）
             del(key);
             return true;
         } catch (Exception e) {
@@ -377,6 +394,8 @@ public class RedisUtils {
      * @return 是否获取成功
      */
     public boolean tryLock(String key, String value, long expireTime) {
+        // 使用 setIfAbsent (SET NX) 实现分布式锁
+        // 只有当key不存在时才设置成功，同时设置过期时间防止死锁
         Boolean result = redisTemplate.opsForValue().setIfAbsent(key, value, expireTime, TimeUnit.SECONDS);
         return Boolean.TRUE.equals(result);
     }
@@ -389,6 +408,8 @@ public class RedisUtils {
      * @return 是否释放成功
      */
     public boolean releaseLock(String key, String value) {
+        // 使用 Lua 脚本保证释放锁的原子性
+        // 只有当锁的值匹配时才删除，防止误删其他线程的锁
         String luaScript = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
         RedisScript<Long> script = new DefaultRedisScript<>(luaScript, Long.class);
         Long result = redisTemplate.execute(script, Collections.singletonList(key), value);
@@ -402,7 +423,9 @@ public class RedisUtils {
      * @return 自增ID
      */
     public long generateId(String key) {
+        // 生成分布式自增ID的key
         String idKey = "id_generator:" + key;
+        // 使用 Redis 的 INCR 命令生成全局唯一的自增ID
         return redisTemplate.opsForValue().increment(idKey);
     }
 

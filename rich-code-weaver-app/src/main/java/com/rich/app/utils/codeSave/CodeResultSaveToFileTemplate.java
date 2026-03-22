@@ -46,7 +46,7 @@ public abstract class CodeResultSaveToFileTemplate<T> {
         String baseDirPath = buildUniqueDir(bizType, appId);
         // 保存文件
         doSaveCodeResult(result, baseDirPath);
-        // 返沪文件
+        // 返回文件
         return new File(baseDirPath);
     }
 

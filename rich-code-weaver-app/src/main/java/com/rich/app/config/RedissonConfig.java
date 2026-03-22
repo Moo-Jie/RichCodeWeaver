@@ -71,22 +71,30 @@ public class RedissonConfig {
      */
     @Bean
     public RedissonClient redissonClient() {
+        // 创建 Redisson 配置对象
         Config config = new Config();
+        
+        // 构建 Redis 服务器地址（格式：redis://host:port）
         String address = "redis://" + redisHost + ":" + redisPort;
+        
+        // 配置单机模式的 Redis 服务器参数
         SingleServerConfig singleServerConfig = config.useSingleServer()
-                .setAddress(address)
-                .setDatabase(redisDatabase)
-                .setConnectionMinimumIdleSize(connectionMinimumIdleSize)
-                .setConnectionPoolSize(connectionPoolSize)
-                .setIdleConnectionTimeout(idleConnectionTimeout)
-                .setConnectTimeout(connectTimeout)
-                .setTimeout(timeout)
-                .setRetryAttempts(retryAttempts)
-                .setRetryInterval(retryInterval);
-        // 如果有密码则设置密码
-        if (redisPassword != null && !redisPassword.isEmpty()) {
+                .setAddress(address)  // 设置 Redis 服务器地址
+                .setDatabase(redisDatabase)  // 设置数据库索引
+                .setConnectionMinimumIdleSize(connectionMinimumIdleSize)  // 最小空闲连接数
+                .setConnectionPoolSize(connectionPoolSize)  // 连接池大小
+                .setIdleConnectionTimeout(idleConnectionTimeout)  // 空闲连接超时时间
+                .setConnectTimeout(connectTimeout)  // 连接超时时间
+                .setTimeout(timeout)  // 命令执行超时时间
+                .setRetryAttempts(retryAttempts)  // 命令重试次数
+                .setRetryInterval(retryInterval);  // 命令重试间隔时间
+        
+        // 如果配置了 Redis 密码，则设置密码（排除 null、空字符串和纯空白字符串）
+        if (redisPassword != null && !redisPassword.trim().isEmpty()) {
             singleServerConfig.setPassword(redisPassword);
         }
+        
+        // 创建并返回 Redisson 客户端实例
         return Redisson.create(config);
     }
 }

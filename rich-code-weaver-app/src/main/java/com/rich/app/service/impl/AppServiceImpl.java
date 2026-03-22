@@ -101,54 +101,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private StreamSessionService streamSessionService;
 
     /**
-     * 管理员执行 AI 对话并并生成代码(流式)
-     * 使用工作流分布执行节点模式
-     *
-     * @param appId   AI 产物id
-     * @param userId  用户id
-     * @param message 对话消息
-     * @param isWorkflow 是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
-     * @return 代码流
-     * @author DuRuiChi
-     * @create 2025/8/8
-     **/
-    @Override
-    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStream(Long appId, Long userId, String message, Boolean isWorkflow) {
-        // 参数校验
-        ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
-        // 为当前线程分配监控上下文
-//        SysMonitorContextHolder.setContext(SysMonitorContext.builder()
-//                // 监控产物id
-//                .appId(String.valueOf(appId))
-//                // 监控用户id
-//                .userId(String.valueOf(userId))
-//                .build());
-        // 查询 AI 产物
-        App app = appService.getById(appId);
-        // 校验 AI 产物是否存在
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
-        // 是否为当前用户所属 AI 产物
-        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
-        // 获取生成类型
-        CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
-        if (type == null) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成类型为空");
-        }
-        // 保存用户消息
-        boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
-        ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
-        
-        // 通过工作流执行对话：
-        // 步骤：搜索图片资源——>提示词强化——>代码生成类型规划——>代码生成——>代码保存——>项目构建——>持久化——>响应前端
-        // TODO: 后续增加 Agent 自主规划模式
-        Flux<ServerSentEvent<String>> resultFlux = codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
-        // 清空当前线程的监控上下文
-//        SysMonitorContextHolder.clearContext();
-        // 返回处理后的响应流
-        return resultFlux;
-    }
-
-    /**
      * 执行 AI 对话并并生成代码(流式，支持断线重连)
      * 使用工作流分布执行节点模式
      *
@@ -163,89 +115,96 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      **/
     @Override
     public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, Boolean isWorkflow, String lastEventId, Boolean reconnect) {
-        // 参数校验
-        ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
+        // 参数校验：确保必要参数有效
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID无效");
+        ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "消息内容不能为空");
         
-        // 生成会话ID（基于 appId + userId + message hash）
+        // 生成会话密钥（基于 appId + userId + message hash，确保相同请求复用同一会话）
         String sessionKey = generateSessionKey(appId, userId, message);
         StreamSession existingSession = streamSessionService.getSession(sessionKey);
         
         // ========== 重连模式：仅跟随已有会话，绝不创建新的生成任务 ==========
         if (Boolean.TRUE.equals(reconnect)) {
             if (existingSession != null) {
+                // 会话存在，返回跟随流（从lastEventId之后继续推送）
+                int eventQueueSize = existingSession.getEventQueue() != null ? existingSession.getEventQueue().size() : 0;
                 log.info("重连到现有会话: sessionKey={}, completed={}, hasError={}, eventCount={}", 
-                        sessionKey, existingSession.isCompleted(), existingSession.isHasError(),
-                        existingSession.getEventQueue().size());
+                        sessionKey, existingSession.isCompleted(), existingSession.isHasError(), eventQueueSize);
                 return createFollowFlux(sessionKey, lastEventId);
             } else {
                 // 会话不存在（已过期或已被清理），通知前端生成已结束
-                log.info("重连时未找到会话（可能已过期）: sessionKey={}", sessionKey);
+                log.warn("重连时未找到会话（可能已过期或被清理）: sessionKey={}", sessionKey);
                 return Flux.just(ServerSentEvent.<String>builder().event("end").data("").build());
             }
         }
         
-        // ========== 新建模式 ==========
-        
-        // 如果已有活跃会话（未完成且无错误），直接跟随，避免重复生成
+        // 如果已有活跃会话（未完成且无错误），直接跟随，避免重复生成（幂等性保证）
         if (existingSession != null && !existingSession.isCompleted() && !existingSession.isHasError()) {
-            log.info("发现活跃的未完成会话，直接跟随: sessionKey={}", sessionKey);
+            log.info("发现活跃的未完成会话，直接跟随（避免重复生成）: sessionKey={}", sessionKey);
             return createFollowFlux(sessionKey, lastEventId);
         }
         
-        // 创建新会话
+        // 创建新会话（首次请求或会话已完成/出错）
         streamSessionService.createSession(sessionKey, appId, userId);
-        log.info("创建新的流式会话: sessionKey={}", sessionKey);
+        log.info("创建新的流式会话: sessionKey={}, appId={}, userId={}", sessionKey, appId, userId);
         
-        // 查询 AI 产物
+        // 查询 AI 产物并进行权限校验
         App app = appService.getById(appId);
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
-        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR, "无权访问该产物");
         
-        // 获取生成类型
-        CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
-        if (type == null) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成类型为空");
-        }
+        // 获取代码生成类型并校验
+        String codeGenTypeValue = app.getCodeGenType();
+        ThrowUtils.throwIf(StrUtil.isBlank(codeGenTypeValue), ErrorCode.SYSTEM_ERROR, "产物的代码生成类型为空");
         
-        // 保存用户消息（仅新建会话时保存，重连不保存）
-        boolean isSaveMsg = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
-        ThrowUtils.throwIf(!isSaveMsg, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
+        CodeGeneratorTypeEnum codeGenType = CodeGeneratorTypeEnum.getEnumByValue(codeGenTypeValue);
+        ThrowUtils.throwIf(codeGenType == null, ErrorCode.SYSTEM_ERROR, "代码生成类型不合法: " + codeGenTypeValue);
         
-        Flux<ServerSentEvent<String>> resultFlux;
+        // 保存用户消息到对话历史（仅新建会话时保存，重连不保存）
+        boolean isSaveMsgSuccess = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
+        ThrowUtils.throwIf(!isSaveMsgSuccess, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
         
-        // 通过工作流执行对话
-        // TODO: 后续增加 Agent 自主规划模式
-        resultFlux = codeGenWorkflowApp.executeWorkflow(message, type, appId, chatHistoryService, userId);
+        // 通过工作流执行代码生成对话
+        // TODO: 后续增加 Agent 自主规划模式（根据isWorkflow参数选择执行模式）
+        Flux<ServerSentEvent<String>> generationFlux = codeGenWorkflowApp.executeWorkflow(
+                message, codeGenType, appId, chatHistoryService, userId);
         
-        // 独立订阅生成流：AI 生成与客户端连接解耦
-        // 客户端断开不影响生成过程，事件全部缓存到会话中
-        resultFlux.subscribe(
+        // 独立订阅生成流：AI 生成与客户端连接解耦（核心设计）
+        // 客户端断开不影响生成过程，所有事件缓存到会话中，支持断线重连
+        generationFlux.subscribe(
                 event -> {
-                    // 跳过 end/error 事件，这些状态通过会话标记来追踪
+                    // 跳过 end/error 事件，这些状态通过会话标记来追踪（避免重复处理）
                     if ("end".equals(event.event()) || "error".equals(event.event())) {
                         return;
                     }
-                    // 生成事件ID并缓存
+                    
+                    // 生成唯一事件ID并构建事件对象
                     String eventId = streamSessionService.generateEventId(sessionKey);
                     StreamEvent streamEvent = StreamEvent.builder()
                             .eventId(eventId)
-                            .eventType(event.event() != null ? event.event() : "message")
+                            .eventType(event.event() != null ? event.event() : "message")  // 默认类型为message
                             .data(event.data())
-                            .timestamp(System.currentTimeMillis())
+                            .timestamp(System.currentTimeMillis())  // 记录事件时间戳
                             .build();
+                    
+                    // 将事件缓存到会话中（线程安全）
                     streamSessionService.addEvent(sessionKey, streamEvent);
                 },
                 error -> {
-                    streamSessionService.markError(sessionKey, error.getMessage());
-                    log.error("流式会话生成错误: sessionKey={}, error={}", sessionKey, error.getMessage());
+                    // 生成过程出错，标记会话错误状态
+                    String errorMessage = error.getMessage() != null ? error.getMessage() : "未知错误";
+                    streamSessionService.markError(sessionKey, errorMessage);
+                    log.error("流式会话生成错误: sessionKey={}, error={}", sessionKey, errorMessage, error);
                 },
                 () -> {
+                    // 生成过程完成，标记会话完成状态
                     streamSessionService.markCompleted(sessionKey);
                     log.info("流式会话生成完成: sessionKey={}", sessionKey);
                 }
         );
         
-        // 返回跟随 Flux（从会话缓存中实时读取事件推送给客户端）
+        // 返回跟随 Flux（从会话缓存中实时读取事件推送给客户端，支持断线重连）
         return createFollowFlux(sessionKey, lastEventId);
     }
     
@@ -258,27 +217,34 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @return 跟随 Flux
      */
     private Flux<ServerSentEvent<String>> createFollowFlux(String sessionKey, String lastEventId) {
+        // 使用原子引用跟踪最后发送的事件ID（线程安全）
         AtomicReference<String> lastSentEventId = new AtomicReference<>(lastEventId);
         
+        // 每100毫秒轮询一次会话缓存，检查是否有新事件
         return Flux.interval(Duration.ofMillis(100))
                 .flatMap(tick -> {
+                    // 获取会话对象
                     StreamSession session = streamSessionService.getSession(sessionKey);
                     if (session == null) {
-                        // 会话已被清理
+                        // 会话已被清理（可能已过期），发送结束事件
+                        log.debug("会话已被清理，发送结束事件: sessionKey={}", sessionKey);
                         return Flux.just(ServerSentEvent.<String>builder()
                                 .event("end").data("").build());
                     }
                     
-                    // 获取 lastSentEventId 之后的新事件
+                    // 获取 lastSentEventId 之后的新事件（支持断点续传）
                     List<StreamEvent> newEvents = streamSessionService.getEventsAfter(
                             sessionKey, lastSentEventId.get());
                     
                     if (!newEvents.isEmpty()) {
-                        // 更新最后发送的事件ID
-                        lastSentEventId.set(newEvents.get(newEvents.size() - 1).getEventId());
+                        // 更新最后发送的事件ID（记录当前批次最后一个事件）
+                        StreamEvent lastEvent = newEvents.get(newEvents.size() - 1);
+                        lastSentEventId.set(lastEvent.getEventId());
+                        
+                        // 将新事件转换为SSE格式并推送给客户端
                         return Flux.fromIterable(newEvents)
                                 .map(event -> ServerSentEvent.<String>builder()
-                                        .id(event.getEventId())
+                                        .id(event.getEventId())  // 设置事件ID，支持客户端断线重连
                                         .event(event.getEventType())
                                         .data(event.getData())
                                         .build());
@@ -286,11 +252,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                     
                     // 没有新事件时，检查会话是否已结束
                     if (session.isCompleted()) {
-                        // 再次检查是否有遗漏的事件（防止竞态条件）
+                        // 再次检查是否有遗漏的事件（防止竞态条件：完成标记和最后事件之间的时间差）
                         List<StreamEvent> remainingEvents = streamSessionService.getEventsAfter(
                                 sessionKey, lastSentEventId.get());
                         if (!remainingEvents.isEmpty()) {
-                            lastSentEventId.set(remainingEvents.get(remainingEvents.size() - 1).getEventId());
+                            // 发现遗漏事件，先推送这些事件
+                            StreamEvent lastRemaining = remainingEvents.get(remainingEvents.size() - 1);
+                            lastSentEventId.set(lastRemaining.getEventId());
                             return Flux.fromIterable(remainingEvents)
                                     .map(e -> ServerSentEvent.<String>builder()
                                             .id(e.getEventId())
@@ -298,21 +266,26 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                                             .data(e.getData())
                                             .build());
                         }
+                        // 所有事件已推送完毕，发送结束事件
+                        log.debug("会话已完成，发送结束事件: sessionKey={}", sessionKey);
                         return Flux.just(ServerSentEvent.<String>builder()
                                 .event("end").data("").build());
                     }
+                    
+                    // 检查会话是否出错
                     if (session.isHasError()) {
-                        String errMsg = session.getErrorMessage() != null ? session.getErrorMessage() : "未知错误";
+                        String errorMsg = session.getErrorMessage() != null ? session.getErrorMessage() : "未知错误";
+                        log.warn("会话出错，发送错误事件: sessionKey={}, error={}", sessionKey, errorMsg);
                         return Flux.just(ServerSentEvent.<String>builder()
                                 .event("error")
-                                .data(cn.hutool.json.JSONUtil.toJsonStr(Map.of("error", errMsg)))
+                                .data(cn.hutool.json.JSONUtil.toJsonStr(Map.of("error", errorMsg)))
                                 .build());
                     }
                     
-                    // 生成仍在进行中，暂无新事件
+                    // 生成仍在进行中，暂无新事件，返回空流（继续轮询）
                     return Flux.empty();
                 })
-                // 收到 end 或 error 事件后自动终止
+                // 收到 end 或 error 事件后自动终止流（避免无限轮询）
                 .takeUntil(event -> "end".equals(event.event()) || "error".equals(event.event()));
     }
 
@@ -321,33 +294,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * 确保相同的请求参数生成相同的会话 ID
      */
     private String generateSessionKey(Long appId, Long userId, String message) {
-        return String.format("session-%d-%d-%d", appId, userId, message.hashCode());
-    }
-
-    /**
-     * 管理员执行 AI 对话并并生成代码(非流式)
-     *
-     * @param appId   AI 产物id
-     * @param userId  用户id
-     * @param message 对话消息
-     * @return 代码流
-     * @author DuRuiChi
-     * @create 2025/8/8
-     **/
-    @Override
-    public File aiChatAndGenerateCode(Long appId, Long userId, String message) {
-        // 参数校验
-        ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
-        // 查询 AI 产物
-        App app = appService.getById(appId);
-        // 校验 AI 产物是否存在
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
-        // 是否为当前用户所属 AI 产物
-        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
-        // 获取生成类型
-        CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
-        // 调用 AI 响应代码流
-        return aiGenerateCodeAndSaveToFileUtils.aiGenerateAndSaveCode(message, type, appId);
+        // 参数校验（内部方法，双重保护）
+        if (appId == null || appId <= 0 || userId == null || userId <= 0 || StrUtil.isBlank(message)) {
+            log.error("生成会话密钥失败：参数无效 - appId={}, userId={}, message={}", appId, userId, 
+                    message != null ? message.substring(0, Math.min(message.length(), 20)) : "null");
+            throw new IllegalArgumentException("生成会话密钥的参数不能为空");
+        }
+        
+        // 生成会话密钥：基于 appId + userId + message.hashCode()
+        // 相同的请求参数生成相同的会话ID，实现幂等性（避免重复生成）
+        int messageHash = message.hashCode();
+        String sessionKey = String.format("session-%d-%d-%d", appId, userId, messageHash);
+        
+        log.debug("生成会话密钥: sessionKey={}, appId={}, userId={}, messageHash={}", 
+                sessionKey, appId, userId, messageHash);
+        return sessionKey;
     }
 
     /**
@@ -362,39 +323,71 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Override
     public ResponseEntity<FileSystemResource> serverStaticResource(Long appId, HttpServletRequest request) {
         try {
-            // 构建 viewKey，用于定位产物输出目录
+            // 参数校验：确保产物ID有效
+            if (appId == null || appId <= 0) {
+                log.warn("预览产物失败：产物ID无效 - appId={}", appId);
+                return ResponseEntity.badRequest().build();
+            }
+            
+            // 查询产物信息
             App app = appService.getById(appId);
+            if (app == null) {
+                log.warn("预览产物失败：产物不存在 - appId={}", appId);
+                return ResponseEntity.notFound().build();
+            }
+            
+            // 构建 viewKey，用于定位产物输出目录
             String codeGenType = app.getCodeGenType();
             String viewKey = codeGenType + "_" + appId;
-            // 获取原始请求路径
+            
+            // 获取原始请求路径（从请求属性中提取）
             String resourcePath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-            // 获取的资源文件后缀
-            resourcePath = resourcePath.substring(("/app/view/" + appId).length());
-            // 当路径为空时自动添加斜杠，避免路径解析问题
+            if (resourcePath == null) {
+                log.warn("预览产物失败：无法获取资源路径 - appId={}", appId);
+                return ResponseEntity.badRequest().build();
+            }
+            
+            // 提取资源文件路径（去除前缀 /app/view/{appId}）
+            String pathPrefix = "/app/view/" + appId;
+            resourcePath = resourcePath.substring(pathPrefix.length());
+            
+            // 当路径为空时自动添加斜杠，避免路径解析问题（重定向到根路径）
             if (resourcePath.isEmpty()) {
                 HttpHeaders headers = new HttpHeaders();
                 headers.add("Location", request.getRequestURI() + "/");
                 return new ResponseEntity<>(headers, HttpStatus.MOVED_PERMANENTLY);
             }
-            // 默认进入 index.html
-            if (resourcePath.equals("/")) {
+            
+            // 默认访问 index.html（根路径）
+            if ("/".equals(resourcePath)) {
                 resourcePath = "/index.html";
             }
-            // 拼装完整的路径
-            String filePath = CODE_OUTPUT_ROOT_DIR + "/" + viewKey + resourcePath;
-            File file = new File(filePath.replace("/", File.separator));
-            // 检查文件是否存在
-            if (!file.exists()) {
-                // 响应 notFound
-                return ResponseEntity.notFound()
-                        .build();
+            
+            // 拼装完整的文件路径（统一使用系统文件分隔符）
+            String filePath = CODE_OUTPUT_ROOT_DIR + File.separator + viewKey + resourcePath.replace("/", File.separator);
+            File file = new File(filePath);
+            
+            // 安全检查：防止路径穿越攻击
+            String canonicalPath = file.getCanonicalPath();
+            String expectedBasePath = new File(CODE_OUTPUT_ROOT_DIR + File.separator + viewKey).getCanonicalPath();
+            if (!canonicalPath.startsWith(expectedBasePath)) {
+                log.warn("预览产物失败：检测到路径穿越攻击 - appId={}, path={}", appId, resourcePath);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
+            
+            // 检查文件是否存在
+            if (!file.exists() || !file.isFile()) {
+                log.debug("预览产物失败：文件不存在 - appId={}, filePath={}", appId, filePath);
+                return ResponseEntity.notFound().build();
+            }
+            
             // 返回产物文件资源
             FileSystemResource fileSystemResource = new FileSystemResource(file);
             return ResponseEntity.ok()
                     .header("Content-Type", getContentTypeWithCharset(filePath))
                     .body(fileSystemResource);
         } catch (Exception e) {
+            log.error("预览产物失败：系统错误 - appId={}, error={}", appId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -411,50 +404,75 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      **/
     @Override
     public String deployApp(Long appId, User loginUser) {
-        // 参数校验
-        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物 ID 不能为空");
+        // 参数校验：确保产物ID和登录用户有效
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
-        // 产物信息校验
+        ThrowUtils.throwIf(loginUser.getId() == null || loginUser.getId() <= 0, ErrorCode.NOT_LOGIN_ERROR, "用户ID无效");
+        
+        // 查询产物信息并校验
         App app = this.getById(appId);
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "未检测到产物");
-        // 权限校验
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+        
+        // 权限校验：仅产物所有者可部署
         if (!app.getUserId().equals(loginUser.getId())) {
+            log.warn("部署产物失败：权限不足 - appId={}, userId={}, ownerId={}", 
+                    appId, loginUser.getId(), app.getUserId());
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "这不是您的产物，无法部署");
         }
-        // deployKey 校验
+        
+        // 获取或生成部署密钥（deployKey）
         String deployKey = app.getDeployKey();
-        // 生成 deployKey
         if (StrUtil.isBlank(deployKey)) {
+            // 首次部署，生成8位随机部署密钥
             deployKey = RandomUtil.randomString(8);
+            log.info("生成新的部署密钥: appId={}, deployKey={}", appId, deployKey);
         }
-        // 复制文件（ 生成目录 到 部署目录 ）
+        // 复制文件：从生成目录到部署目录
         try {
-            // 执行覆盖
-            // 构建代码输出文件夹
+            // 构建代码输出文件夹路径
             File outputDir = getOutputDir(app);
+            
             // 校验代码输出文件夹是否存在
-            if (!outputDir.exists() || !outputDir.isDirectory()) {
+            if (!outputDir.exists()) {
+                log.warn("部署产物失败：源码目录不存在 - appId={}, outputDir={}", appId, outputDir.getAbsolutePath());
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "未检测到源码，无法部署，请先生成源码");
             }
-            // 构建代码部署文件夹
+            if (!outputDir.isDirectory()) {
+                log.error("部署产物失败：源码路径不是目录 - appId={}, outputDir={}", appId, outputDir.getAbsolutePath());
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "源码路径异常，无法部署");
+            }
+            
+            // 构建代码部署文件夹路径
             File deployDir = getDeployDir(deployKey);
-            // 复制目录（执行覆盖）
+            
+            // 复制目录内容（执行覆盖，支持重复部署）
             FileUtil.copyContent(outputDir, deployDir, true);
+            log.info("产物文件复制成功: appId={}, from={}, to={}", 
+                    appId, outputDir.getAbsolutePath(), deployDir.getAbsolutePath());
+        } catch (BusinessException e) {
+            // 业务异常直接抛出
+            throw e;
         } catch (Exception e) {
+            // 其他异常包装为业务异常
+            log.error("部署产物失败：文件复制异常 - appId={}, error={}", appId, e.getMessage(), e);
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "产物转储失败：" + e.getMessage());
         }
-        // 更新产物信息
+        // 更新产物信息（记录部署密钥和部署时间）
         App updateApp = new App();
         updateApp.setId(appId);
         updateApp.setDeployKey(deployKey);
         updateApp.setDeployedTime(LocalDateTime.now());
+        
         boolean updateResult = this.updateById(updateApp);
-        // 部署 URL
+        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "产物信息更新失败");
+        
+        // 构建部署访问 URL
         String appUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
-        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "产物信息变更失败");
-        // 部署后对部署后的网站进行截图并保存为产物封面
+        log.info("产物部署成功: appId={}, deployKey={}, appUrl={}", appId, deployKey, appUrl);
+        
+        // 异步生成产物截图并更新封面（不阻塞部署流程）
         generateAppScreenshotAsync(appId, appUrl);
-        // 部署 URL
+        
         return appUrl;
     }
 
@@ -465,17 +483,35 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appUrl 产物访问URL
      */
     private void generateAppScreenshotAsync(Long appId, String appUrl) {
-        // 开启 JDK-21 的虚拟线程，避免阻塞主流程
+        // 开启 JDK-21 的虚拟线程，避免阻塞主流程（异步执行截图任务）
         Thread.ofVirtual().start(() -> {
-            // 调用截图服务生成截图并上传
-            String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
-            ThrowUtils.throwIf(screenshotUrl == null || screenshotUrl.isEmpty(), ErrorCode.OPERATION_ERROR, "更新产物封面字段失败");
-            // 更新产物封面字段
-            App updateApp = new App();
-            updateApp.setId(appId);
-            updateApp.setCover(screenshotUrl);
-            boolean updated = this.updateById(updateApp);
-            ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新产物封面字段失败");
+            try {
+                log.info("开始异步生成产物截图: appId={}, appUrl={}", appId, appUrl);
+                
+                // 调用截图服务生成截图并上传到云存储
+                String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
+                
+                // 校验截图URL是否有效
+                if (StrUtil.isBlank(screenshotUrl)) {
+                    log.error("生成产物截图失败：截图URL为空 - appId={}", appId);
+                    return;
+                }
+                
+                // 更新产物封面字段
+                App updateApp = new App();
+                updateApp.setId(appId);
+                updateApp.setCover(screenshotUrl);
+                
+                boolean updated = this.updateById(updateApp);
+                if (updated) {
+                    log.info("产物封面更新成功: appId={}, screenshotUrl={}", appId, screenshotUrl);
+                } else {
+                    log.error("产物封面更新失败: appId={}", appId);
+                }
+            } catch (Exception e) {
+                // 异步任务异常不影响主流程，仅记录日志
+                log.error("异步生成产物截图失败: appId={}, error={}", appId, e.getMessage(), e);
+            }
         });
     }
 
@@ -626,33 +662,49 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      **/
     @Override
     public Long addApp(AppAddRequest appAddRequest, HttpServletRequest request) {
-        // 校验初始化提示
+        // 参数校验：确保请求对象有效
+        ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR, "请求参数为空");
+        
+        // 校验初始化提示词
         String initPrompt = appAddRequest.getInitPrompt();
-        ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "用户 prompt 不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化提示词不能为空");
+        
+        // 校验代码生成类型
+        CodeGeneratorTypeEnum generatorType = appAddRequest.getGeneratorType();
+        ThrowUtils.throwIf(generatorType == null, ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
 
-        // 获取当前登录用户
+        // 获取当前登录用户并校验
         User loginUser = InnerUserService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null || loginUser.getId() == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
 
         // 创建 AI 产物实体
         App app = new App();
-        // 复制请求属性到实体
+        // 复制请求属性到实体（基础属性）
         BeanUtil.copyProperties(appAddRequest, app);
-        // 设置用户关联
+        
+        // 设置用户关联（产物所有者）
         app.setUserId(loginUser.getId());
-        // 生成 AI 产物名称（截取提示前 30 字符）
-        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 30)));
-        // 设置生成策略
-        CodeGeneratorTypeEnum codeGeneratorTypeEnum = appAddRequest.getGeneratorType();
+        
+        // 生成 AI 产物名称（截取提示词前30字符，避免名称过长）
+        int nameLength = Math.min(initPrompt.length(), 30);
+        String appName = initPrompt.substring(0, nameLength);
+        app.setAppName(appName);
+        
+        // 设置代码生成策略
         // 保存用户选择的生成策略（包括 AI_STRATEGY），不在此处预先解析
         // 让工作流的策略节点根据增强后的提示词（含网络资源、图片等）智能选择最优方案
-        app.setCodeGenType(codeGeneratorTypeEnum.getValue());
-        // 设置默认封面
+        app.setCodeGenType(generatorType.getValue());
+        
+        // 设置默认封面图片
         app.setCover(AppConstant.APP_COVER);
 
-        // 保存 AI 产物数据
-        boolean result = appService.save(app);
-        // 校验保存结果
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 保存 AI 产物数据到数据库
+        boolean saveSuccess = appService.save(app);
+        ThrowUtils.throwIf(!saveSuccess, ErrorCode.OPERATION_ERROR, "保存产物失败");
+        
+        log.info("创建AI产物成功: appId={}, userId={}, appName={}, codeGenType={}", 
+                app.getId(), loginUser.getId(), appName, generatorType.getValue());
+        
         return app.getId();
     }
 
@@ -667,49 +719,73 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      **/
     @Override
     public Boolean deleteApp(DeleteRequest deleteRequest, HttpServletRequest request) {
-        // 获取当前登录用户
+        // 参数校验：确保删除请求有效
+        ThrowUtils.throwIf(deleteRequest == null, ErrorCode.PARAMS_ERROR, "删除请求参数为空");
+        
+        // 获取当前登录用户并校验
         User loginUser = InnerUserService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null || loginUser.getId() == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        
         // 解析 AI 产物ID
-        long id = deleteRequest.getId();
+        long appId = deleteRequest.getId();
+        ThrowUtils.throwIf(appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
 
-        // 查询目标 AI 产物
-        App oldApp = appService.getById(id);
-        // 存在性校验
-        ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
+        // 查询目标 AI 产物并校验存在性
+        App targetApp = appService.getById(appId);
+        ThrowUtils.throwIf(targetApp == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
 
-        // 权限校验：所有者或管理员可删除
-        if (!oldApp.getUserId().equals(loginUser.getId()) &&
-                !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        // 权限校验：仅产物所有者或管理员可删除
+        boolean isOwner = targetApp.getUserId().equals(loginUser.getId());
+        boolean isAdmin = UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole());
+        if (!isOwner && !isAdmin) {
+            log.warn("删除产物失败：权限不足 - appId={}, userId={}, ownerId={}", 
+                    appId, loginUser.getId(), targetApp.getUserId());
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权删除该产物");
         }
 
-        // 删除关联历史对话消息记录
-        chatHistoryService.deleteByAppId(id);
+        // 删除关联的历史对话消息记录（级联删除）
+        boolean deleteChatHistory = chatHistoryService.deleteByAppId(appId);
+        log.info("删除产物对话历史: appId={}, success={}", appId, deleteChatHistory);
 
-        // 拼接输出目录路径
-        File outputDir = appService.getDelOutputDir(oldApp);
-        // 拼接部署目录路径
-        File deployDir = appService.getDeployDir(oldApp.getDeployKey());
-        // 校验输出目录
-        if (!outputDir.exists() || !outputDir.isDirectory()) {
-            log.info("当前产物仍未生成代码");
-        } else {
-            // 删除输出目录
+        // 构建输出目录路径
+        File outputDir = appService.getDelOutputDir(targetApp);
+        // 删除输出目录（如果存在）
+        if (outputDir.exists() && outputDir.isDirectory()) {
             boolean outputDirDeleted = FileUtils.deleteQuietly(outputDir);
-            // 校验输出目录删除结果
-            ThrowUtils.throwIf(!outputDirDeleted, ErrorCode.OPERATION_ERROR, "输出目录删除失败");
-        }
-        // 校验部署目录
-        if (!deployDir.exists() || !deployDir.isDirectory()) {
-            log.info("当前产物未部署");
+            if (outputDirDeleted) {
+                log.info("删除产物输出目录成功: appId={}, path={}", appId, outputDir.getAbsolutePath());
+            } else {
+                log.error("删除产物输出目录失败: appId={}, path={}", appId, outputDir.getAbsolutePath());
+                throw new BusinessException(ErrorCode.OPERATION_ERROR, "输出目录删除失败");
+            }
         } else {
-            // 删除部署目录
-            boolean deployDirDeleted = FileUtils.deleteQuietly(deployDir);
-            // 校验部署目录删除结果
-            ThrowUtils.throwIf(!deployDirDeleted, ErrorCode.OPERATION_ERROR, "部署目录删除失败");
+            log.info("产物输出目录不存在，跳过删除: appId={}", appId);
         }
-        // 删除产物
-        return appService.removeById(id);
+        
+        // 构建部署目录路径
+        String deployKey = targetApp.getDeployKey();
+        if (StrUtil.isNotBlank(deployKey)) {
+            File deployDir = appService.getDeployDir(deployKey);
+            // 删除部署目录（如果存在）
+            if (deployDir.exists() && deployDir.isDirectory()) {
+                boolean deployDirDeleted = FileUtils.deleteQuietly(deployDir);
+                if (deployDirDeleted) {
+                    log.info("删除产物部署目录成功: appId={}, path={}", appId, deployDir.getAbsolutePath());
+                } else {
+                    log.error("删除产物部署目录失败: appId={}, path={}", appId, deployDir.getAbsolutePath());
+                    throw new BusinessException(ErrorCode.OPERATION_ERROR, "部署目录删除失败");
+                }
+            } else {
+                log.info("产物部署目录不存在，跳过删除: appId={}", appId);
+            }
+        }
+        
+        // 删除产物数据库记录
+        boolean deleteSuccess = appService.removeById(appId);
+        ThrowUtils.throwIf(!deleteSuccess, ErrorCode.OPERATION_ERROR, "删除产物记录失败");
+        
+        log.info("删除AI产物成功: appId={}, userId={}", appId, loginUser.getId());
+        return true;
     }
 
     /**
@@ -723,34 +799,43 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      **/
     @Override
     public Boolean updateApp(AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
-        // 获取当前登录用户
+        // 参数校验：确保更新请求有效
+        ThrowUtils.throwIf(appUpdateRequest == null, ErrorCode.PARAMS_ERROR, "更新请求参数为空");
+        
+        // 获取当前登录用户并校验
         User loginUser = InnerUserService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null || loginUser.getId() == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        
         // 解析 AI 产物ID
-        long id = appUpdateRequest.getId();
+        long appId = appUpdateRequest.getId();
+        ThrowUtils.throwIf(appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+        
+        // 校验产物名称
+        String newAppName = appUpdateRequest.getAppName();
+        ThrowUtils.throwIf(StrUtil.isBlank(newAppName), ErrorCode.PARAMS_ERROR, "产物名称不能为空");
 
-        // 查询现有 AI 产物
-        App oldApp = appService.getById(id);
-        // 存在性校验
-        ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
+        // 查询现有 AI 产物并校验存在性
+        App existingApp = appService.getById(appId);
+        ThrowUtils.throwIf(existingApp == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
 
-        // 权限校验：仅所有者可更新
-        if (!oldApp.getUserId().equals(loginUser.getId())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        // 权限校验：仅产物所有者可更新
+        if (!existingApp.getUserId().equals(loginUser.getId())) {
+            log.warn("更新产物失败：权限不足 - appId={}, userId={}, ownerId={}", 
+                    appId, loginUser.getId(), existingApp.getUserId());
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权更新该产物");
         }
 
-        // 创建更新对象
-        App app = new App();
-        // 设置更新ID
-        app.setId(id);
-        // 设置新 AI 产物名称
-        app.setAppName(appUpdateRequest.getAppName());
-        // 记录更新时间
-        app.setEditTime(LocalDateTime.now());
+        // 创建更新对象（仅更新允许修改的字段）
+        App updateApp = new App();
+        updateApp.setId(appId);
+        updateApp.setAppName(newAppName);
+        updateApp.setEditTime(LocalDateTime.now());  // 记录更新时间
 
         // 执行更新操作
-        boolean result = appService.updateById(app);
-        // 校验更新结果
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        boolean updateSuccess = appService.updateById(updateApp);
+        ThrowUtils.throwIf(!updateSuccess, ErrorCode.OPERATION_ERROR, "更新产物失败");
+        
+        log.info("更新AI产物成功: appId={}, userId={}, newAppName={}", appId, loginUser.getId(), newAppName);
         return true;
     }
 

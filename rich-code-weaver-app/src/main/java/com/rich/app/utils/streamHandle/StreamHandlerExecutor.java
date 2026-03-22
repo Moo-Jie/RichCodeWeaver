@@ -34,14 +34,17 @@ public class StreamHandlerExecutor {
      * @return reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent < java.lang.String>>  处理后响应给前端的 AI 响应流
      **/
     public Flux<ServerSentEvent<String>> executeStreamHandler(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, CodeGeneratorTypeEnum codeGeneratorTypeEnum) {
+        // 根据代码生成类型选择对应的流处理策略
         return switch (codeGeneratorTypeEnum) {
-            // 处理 JSON 格式的 AI 响应流
-            // (用于推理构建 Vue 项目模式的 AI 响应流处理器，因为推理模型关于 【思考步骤】 和 【工具调用】 等信息，是用 JOSN 格式输出的)
+            // Vue 项目模式：使用 JSON 流处理器
+            // 推理模型输出的思考步骤、工具调用等信息都是 JSON 格式
             case VUE_PROJECT -> jsonStreamHandler.handleStream(stringFlux, chatHistoryService, appId, userId);
-            // 处理普通文本格式的 AI 响应流
-            // (用于 HTML 单文件模式、多文件模式的 AI 响应流处理器，用于处理纯文本流式输出)
+            // HTML 单文件模式、多文件模式：使用普通文本流处理器
+            // 用于处理纯文本流式输出（不含 JSON 结构）
             case HTML, MULTI_FILE -> testStreamHandler.handleStream(stringFlux, chatHistoryService, appId, userId);
-            default -> throw new BusinessException(ErrorCode.PARAMS_ERROR, "不支持的代码生成器类型");
+            // 默认情况：不支持的类型，抛出异常
+            default -> throw new BusinessException(ErrorCode.PARAMS_ERROR, 
+                    "不支持的代码生成器类型: " + codeGeneratorTypeEnum.getValue());
         };
     }
 }

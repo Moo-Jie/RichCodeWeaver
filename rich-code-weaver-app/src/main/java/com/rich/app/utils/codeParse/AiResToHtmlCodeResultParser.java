@@ -28,7 +28,9 @@ public class AiResToHtmlCodeResultParser implements CodeParser<HtmlCodeResponse>
      * @return 提取到的HTML代码，未找到时返回null
      */
     private static String extractHtmlCode(String content) {
+        // 使用正则表达式匹配 ```html ... ``` 代码块
         Matcher matcher = HTML_CODE_PATTERN.matcher(content);
+        // 如果找到匹配项，返回代码块内容（group(1)）；否则返回 null
         return matcher.find() ? matcher.group(1) : null;
     }
 
@@ -44,16 +46,18 @@ public class AiResToHtmlCodeResultParser implements CodeParser<HtmlCodeResponse>
      * 3. 自动去除代码前后的空白字符
      */
     public HtmlCodeResponse parseCode(String codeContent) {
+        // 创建 HTML 代码响应对象
         HtmlCodeResponse result = new HtmlCodeResponse();
 
-        // 解析 HTML 代码
+        // 步骤1：尝试从内容中提取标准 HTML 代码块（```html ... ```）
         String htmlCode = extractHtmlCode(codeContent);
 
         if (htmlCode != null && !htmlCode.trim().isEmpty()) {
-            // 成功提取代码块的情况
+            // 成功提取代码块的情况：使用提取到的 HTML 代码
             result.setHtmlCode(htmlCode.trim());
         } else {
-            // 未找到代码块的备用处理方案
+            // 未找到代码块的备用处理方案：将整个输入内容视为 HTML 代码
+            // 这种情况适用于 AI 直接返回 HTML 代码而不使用代码块标记的场景
             result.setHtmlCode(codeContent.trim());
         }
         return result;

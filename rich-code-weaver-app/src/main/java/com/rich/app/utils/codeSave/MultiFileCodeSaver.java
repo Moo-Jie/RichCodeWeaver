@@ -9,7 +9,7 @@ import com.rich.model.enums.CodeGeneratorTypeEnum;
  * @author DuRuiChi
  * @create 2025/8/10
  **/
-public class multiFileCodeSaver extends CodeResultSaveToFileTemplate<MultiFileCodeResponse> {
+public class MultiFileCodeSaver extends CodeResultSaveToFileTemplate<MultiFileCodeResponse> {
 
     @Override
     protected String getCodeGeneratorTypeEnumValue() {

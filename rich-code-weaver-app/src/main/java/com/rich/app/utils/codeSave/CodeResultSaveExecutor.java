@@ -19,7 +19,7 @@ public class CodeResultSaveExecutor {
 
     private static final HtmlCodeSaver htmlCodeFileSaver = new HtmlCodeSaver();
 
-    private static final multiFileCodeSaver multiFileCodeFileSaver = new multiFileCodeSaver();
+    private static final MultiFileCodeSaver multiFileCodeFileSaver = new MultiFileCodeSaver();
 
     /**
      * 执行代码保存
@@ -30,11 +30,18 @@ public class CodeResultSaveExecutor {
      * @return 保存的目录
      */
     public static File executeSaver(Object codeResult, CodeGeneratorTypeEnum codeGenType, Long appId) {
+        // 根据代码生成类型选择对应的保存策略
         return switch (codeGenType) {
+            // HTML 单文件模式：使用 HTML 代码保存器
             case HTML -> htmlCodeFileSaver.saveCodeResult((HtmlCodeResponse) codeResult, appId);
+            // 多文件模式：使用多文件代码保存器
             case MULTI_FILE -> multiFileCodeFileSaver.saveCodeResult((MultiFileCodeResponse) codeResult, appId);
-            case VUE_PROJECT -> multiFileCodeFileSaver.saveCodeResult((MultiFileCodeResponse) codeResult, appId, codeGenType.getValue());
-            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
+            // Vue 项目模式：使用多文件代码保存器，并指定项目类型
+            case VUE_PROJECT -> multiFileCodeFileSaver.saveCodeResult(
+                    (MultiFileCodeResponse) codeResult, appId, codeGenType.getValue());
+            // 默认情况：不支持的类型，抛出异常
+            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, 
+                    "不支持的代码生成类型: " + codeGenType.getValue());
         };
     }
 }

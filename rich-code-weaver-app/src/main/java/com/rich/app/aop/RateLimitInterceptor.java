@@ -100,35 +100,42 @@ public class RateLimitInterceptor {
      * @author DuRuiChi
      */
     private void executeRateLimiting(String key, RateLimit rateLimit, JoinPoint joinPoint) {
-        // 获取 Redission 分布式限流器
+        // 获取 Redisson 分布式限流器实例
         RRateLimiter rateLimiter = redissonClient.getRateLimiter(key);
 
         try {
-            // 设置限流器的过期时间
+            // 设置限流器的过期时间（防止Redis中的key永久存在）
             boolean expireSet = rateLimiter.expire(Duration.ofHours(DEFAULT_EXPIRE_HOURS));
             if (!expireSet) {
-                log.warn("未设置速率限制器的过期时间：{}", key);
+                log.warn("限流器过期时间设置失败: {}", key);
             }
 
-            // 设置限流规则: 作用范围,窗口时间内的最大请求速率, 窗口时间, 窗口时间单位
-            boolean rateSet = rateLimiter.trySetRate(RateType.OVERALL, rateLimit.rate(), rateLimit.window(), RateIntervalUnit.SECONDS);
+            // 设置限流规则：作用范围(OVERALL)、窗口时间内的最大请求数、窗口时间、时间单位(秒)
+            boolean rateSet = rateLimiter.trySetRate(
+                    RateType.OVERALL, 
+                    rateLimit.rate(), 
+                    rateLimit.window(), 
+                    RateIntervalUnit.SECONDS);
             if (!rateSet) {
-                log.warn("未设置速率限制器的速率或窗口时间，限流key: {}", key);
+                log.warn("限流规则设置失败，限流key: {}", key);
             }
 
             // 尝试获取一个令牌，设置超时时间避免长时间阻塞
             boolean available = rateLimiter.tryAcquire(1, ACQUIRE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             if (!available) {
-                log.warn("接口 {} 被限流了，限流key: {}", joinPoint.getSignature().getName(), key);
+                // 获取令牌失败，说明请求过于频繁，触发限流
+                log.warn("接口 {} 被限流，限流key: {}", joinPoint.getSignature().getName(), key);
                 throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "接口访问过于频繁，请稍后再试");
             }
 
         } catch (Exception e) {
-            // 处理Redisson操作异常
+            // 处理 Redisson 操作异常
             if (e instanceof BusinessException) {
+                // 业务异常直接向上抛出
                 throw (BusinessException) e;
             }
-            log.error("限流操作失败，使用降级限流key: {}, 错误: {}", key, e.getMessage(), e);
+            // 其他异常记录日志，但不阻断请求（限流降级）
+            log.error("限流操作失败，限流key: {}, 错误: {}", key, e.getMessage(), e);
         }
     }
 
@@ -140,12 +147,15 @@ public class RateLimitInterceptor {
      * @author DuRuiChi
      */
     private boolean validateRateLimitParams(RateLimit rateLimit) {
+        // 验证限流速率（必须大于0）
         if (rateLimit.rate() <= 0) {
             return false;
         }
+        // 验证窗口时间（必须大于0）
         if (rateLimit.window() <= 0) {
             return false;
         }
+        // 验证限流类型（不能为null）
         return rateLimit.type() != null;
     }
 
@@ -157,7 +167,9 @@ public class RateLimitInterceptor {
      * @author DuRuiChi
      */
     private String generateFallbackKey(JoinPoint joinPoint) {
+        // 获取目标方法
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        // 生成降级限流key：使用类名+方法名保证唯一性
         return "rate_limit:fallback:" + method.getDeclaringClass().getName() + ":" + method.getName();
     }
 
@@ -170,47 +182,54 @@ public class RateLimitInterceptor {
      * @author DuRuiChi
      */
     private String splicingCurrentLimitingKey(JoinPoint joinPoint, RateLimit rateLimit) {
-        // 拼接限流 key
+        // 初始化限流key的前缀
         StringBuilder key = new StringBuilder("rate_limit:");
 
         try {
-            // 分限流类型拼接
+            // 根据限流类型拼接不同的key
             switch (rateLimit.type()) {
-                // 针对用户限流
+                // 针对用户限流：基于用户ID
                 case USER:
                     User loginUser = getCurrentLoginUser();
                     if (loginUser != null && loginUser.getId() != null) {
+                        // 使用用户ID作为限流维度
                         key.append("user:").append(loginUser.getId());
                     } else {
-                        // 如果没有获取到登录用户，则降级为使用请求 IP 限流
-                        log.warn("无法获取登录用户，使用请求 IP 限流");
+                        // 如果没有获取到登录用户，则降级为使用请求IP限流
+                        log.warn("无法获取登录用户，降级为IP限流");
                         key.append("ip:").append(getClientIP());
                     }
                     break;
 
-                // 针对请求 IP 限流
+                // 针对请求IP限流：基于客户端IP地址
                 case IP:
-                    key.append("ip:").append(getClientIP());
+                    String clientIP = getClientIP();
+                    key.append("ip:").append(clientIP);
                     break;
 
-                // 针对 API 限流
+                // 针对API限流：基于接口方法
                 case API:
                     Method method = getTargetMethod(joinPoint);
                     if (method != null) {
-                        // 拼接类名 + 方法名保证唯一性
-                        key.append("api:").append(method.getDeclaringClass().getName()).append(":").append(method.getName());
+                        // 拼接类名 + 方法名保证接口的唯一性
+                        key.append("api:")
+                           .append(method.getDeclaringClass().getName())
+                           .append(":")
+                           .append(method.getName());
                     } else {
                         // 方法获取失败时的降级处理
-                        log.warn("无法获取目标方法，使用未知 API 限流");
-                        key.append(generateFallbackKey(joinPoint));
+                        log.warn("无法获取目标方法，使用降级key");
+                        return generateFallbackKey(joinPoint);
                     }
                     break;
                 default:
+                    // 不支持的限流类型
                     log.error("不支持的限流类型: {}", rateLimit.type());
                     throw new BusinessException(ErrorCode.OPERATION_ERROR, "不支持的限流类型");
             }
         } catch (Exception e) {
-            log.error("限流 key 拼接失败", e);
+            // key拼接失败时使用降级key
+            log.error("限流key拼接失败，使用降级key", e);
             return generateFallbackKey(joinPoint);
         }
 
@@ -225,9 +244,12 @@ public class RateLimitInterceptor {
      */
     private User getCurrentLoginUser() {
         try {
+            // 获取当前请求的属性
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
+                // 从请求属性中获取HttpServletRequest
                 HttpServletRequest request = attributes.getRequest();
+                // 通过用户服务获取当前登录用户
                 return InnerUserService.getLoginUser(request);
             }
         } catch (Exception e) {
@@ -245,9 +267,10 @@ public class RateLimitInterceptor {
      */
     private Method getTargetMethod(JoinPoint joinPoint) {
         try {
+            // 从连接点的签名中获取目标方法
             return ((MethodSignature) joinPoint.getSignature()).getMethod();
         } catch (Exception e) {
-            log.warn("方法获取失败： {}", e.getMessage());
+            log.warn("获取目标方法失败: {}", e.getMessage());
             return null;
         }
     }
@@ -261,6 +284,7 @@ public class RateLimitInterceptor {
      */
     private String getClientIP() {
         try {
+            // 获取当前请求的属性
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes == null) {
                 return "unknown";
@@ -269,9 +293,17 @@ public class RateLimitInterceptor {
             HttpServletRequest request = attributes.getRequest();
             String ip = null;
 
-            // 按优先级尝试不同的IP获取方式
-            String[] headerNames = {"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP", "WL-Proxy-Client-IP", "HTTP_CLIENT_IP", "HTTP_X_FORWARDED_FOR"};
+            // 按优先级尝试从不同的HTTP头中获取真实IP（支持代理场景）
+            String[] headerNames = {
+                "X-Forwarded-For",      // 标准的代理头
+                "X-Real-IP",            // Nginx代理头
+                "Proxy-Client-IP",      // Apache代理头
+                "WL-Proxy-Client-IP",   // WebLogic代理头
+                "HTTP_CLIENT_IP",       // 通用代理头
+                "HTTP_X_FORWARDED_FOR"  // 通用代理头
+            };
 
+            // 遍历所有可能的头信息，找到第一个有效的IP
             for (String header : headerNames) {
                 ip = request.getHeader(header);
                 if (isValidIP(ip)) {
@@ -284,7 +316,7 @@ public class RateLimitInterceptor {
                 ip = request.getRemoteAddr();
             }
 
-            // 处理多级代理的情况，取第一个有效IP
+            // 处理多级代理的情况（IP列表以逗号分隔），取第一个有效IP
             if (ip != null && ip.contains(",")) {
                 String[] ips = ip.split(",");
                 for (String singleIp : ips) {
@@ -299,7 +331,7 @@ public class RateLimitInterceptor {
             return isValidIP(ip) ? ip : "unknown";
 
         } catch (Exception e) {
-            log.warn("Failed to get client IP: {}", e.getMessage());
+            log.warn("获取客户端IP失败: {}", e.getMessage());
             return "unknown";
         }
     }
@@ -312,6 +344,11 @@ public class RateLimitInterceptor {
      * @author DuRuiChi
      */
     private boolean isValidIP(String ip) {
-        return ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip) && !"0:0:0:0:0:0:0:1".equals(ip) && !"127.0.0.1".equals(ip);
+        // 验证IP是否有效：排除null、空字符串、"unknown"、IPv6本地地址、IPv4本地地址
+        return ip != null 
+                && !ip.isEmpty() 
+                && !"unknown".equalsIgnoreCase(ip) 
+                && !"0:0:0:0:0:0:0:1".equals(ip)  // IPv6本地地址
+                && !"127.0.0.1".equals(ip);        // IPv4本地地址
     }
 }

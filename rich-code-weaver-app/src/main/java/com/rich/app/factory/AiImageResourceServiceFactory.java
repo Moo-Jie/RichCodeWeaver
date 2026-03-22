@@ -11,11 +11,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * 图片收集 AI 服务实例工厂
+ * 图片资源 AI 服务实例创建工厂
+ * 负责创建用于图片搜索和生成的 AI 服务实例
  *
  * @author DuRuiChi
- * @create 2025/8/5
- **/
+ * @since 2025-08-05
+ */
 @Slf4j
 @Configuration
 public class AiImageResourceServiceFactory {
@@ -39,13 +40,17 @@ public class AiImageResourceServiceFactory {
     private AiGeneratorImageTool aiGeneratorImageTool;
 
     /**
-     * 创建图片收集 AI 服务实例
+     * 创建图片资源 AI 服务实例
+     * 集成图片搜索和 AI 图片生成工具，用于为代码项目提供图片资源
+     *
+     * @return AiImageResourceService 图片资源 AI 服务实例
+     * @author DuRuiChi
      */
     @Bean
     public AiImageResourceService createAiImageGeneratorService() {
         return AiServices.builder(AiImageResourceService.class)
                 .chatModel(imageResourceChatModel)
-                // 配置提示词护轨规则
+                // TODO 配置提示词护轨规则，目前规则不够完善，容易导致误判
 //                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .tools(
                         imageSearchTool,

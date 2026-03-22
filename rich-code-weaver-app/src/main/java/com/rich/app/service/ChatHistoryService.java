@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 
 /**
  * 对话历史 服务层
+ * 提供对话历史的增删查改等业务逻辑处理
  *
  * @author DuRuiChi
- * @return
- * @create 2025/8/16
+ * @since 2026-03-10
  **/
 public interface ChatHistoryService extends IService<ChatHistory> {
 

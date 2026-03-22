@@ -10,11 +10,11 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * AI 代码生成策略选择服务实例创建工厂
+ * 负责创建用于选择代码生成策略的 AI 服务实例
  *
  * @author DuRuiChi
- * @return
- * @create 2025/9/5
- **/
+ * @since 2025-09-05
+ */
 @Slf4j
 @Configuration
 public class AiCodeGeneratorTypeStrategyServiceFactory {
@@ -26,15 +26,17 @@ public class AiCodeGeneratorTypeStrategyServiceFactory {
     private ChatModel codeGeneratorTypeStrategyChatModel;
 
     /**
-     * AI 代码生成策略选择服务实例
+     * 创建 AI 代码生成策略选择服务实例
+     * 使用专用的策略选择模型构建 AI 服务，用于智能选择最合适的代码生成类型
      *
-     * @return AI 代码生成策略选择服务实例
+     * @return AiCodeGeneratorTypeStrategyService AI 代码生成策略选择服务实例
+     * @author DuRuiChi
      */
     @Bean
     public AiCodeGeneratorTypeStrategyService aiCodeGeneratorTypeStrategyService() {
         return AiServices.builder(AiCodeGeneratorTypeStrategyService.class)
                 .chatModel(codeGeneratorTypeStrategyChatModel)
-                // 配置提示词护轨规则
+                // TODO 配置提示词护轨规则，目前规则不够完善，容易导致误判
 //                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .build();
     }

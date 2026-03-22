@@ -38,16 +38,18 @@ public class RedisCacheManagerConfig {
     @Bean
     public CacheManager cacheManager() {
         // 配置支持 Java 8 时间类型的 Jackson 对象映射器
+        // 确保 LocalDate、LocalDateTime 等类型能正确序列化到 Redis
         ObjectMapper objectMapper = createObjectMapperWithJavaTimeSupport();
 
         // 创建 Redis 缓存默认配置
+        // 包括序列化方式、过期时间等通用设置
         RedisCacheConfiguration defaultConfig = createDefaultCacheConfig(objectMapper);
 
         // 构建基于 Redis 的缓存管理器
         return RedisCacheManager.builder(redisConnectionFactory)
-                // 设置默认配置，指定缓存到 Redis 中
+                // 设置默认缓存配置（应用于所有未特别指定的缓存）
                 .cacheDefaults(defaultConfig)
-                // 设置针对特定键的配置
+                // 设置特定缓存的配置：星标产物缓存使用更短的过期时间
                 .withCacheConfiguration(STAR_APP_CACHE_NAME, defaultConfig.entryTtl(HOT_KEY_CACHE_TTL))
                 .build();
     }
@@ -60,9 +62,15 @@ public class RedisCacheManagerConfig {
      * @author DuRuiChi
      */
     private ObjectMapper createObjectMapperWithJavaTimeSupport() {
+        // 创建 Jackson 对象映射器
         ObjectMapper objectMapper = new ObjectMapper();
+        
+        // 注册 Java 8 时间模块，支持 LocalDate、LocalDateTime 等类型
         objectMapper.registerModule(new JavaTimeModule());
+        
+        // 禁用将日期写为时间戳，使用 ISO-8601 格式字符串（更可读）
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        
         return objectMapper;
     }
 
@@ -76,10 +84,14 @@ public class RedisCacheManagerConfig {
      */
     private RedisCacheConfiguration createDefaultCacheConfig(ObjectMapper objectMapper) {
         return RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(DEFAULT_CACHE_TTL) // 设置默认缓存过期时间
-                .disableCachingNullValues() // 禁止缓存空值，避免缓存穿透
+                // 设置默认缓存过期时间（防止缓存永久存在）
+                .entryTtl(DEFAULT_CACHE_TTL)
+                // 禁止缓存 null 值，避免缓存穿透攻击
+                .disableCachingNullValues()
+                // 配置 Key 的序列化方式：使用字符串序列化（可读性好）
                 .serializeKeysWith(RedisSerializationContext.SerializationPair
-                        .fromSerializer(new StringRedisSerializer())) // Key 使用字符串序列化
+                        .fromSerializer(new StringRedisSerializer()))
+                // 配置 Value 的序列化方式：使用 JSON 序列化（支持复杂对象）
                 .serializeValuesWith(RedisSerializationContext.SerializationPair
                         .fromSerializer(new GenericJackson2JsonRedisSerializer(objectMapper)));
     }

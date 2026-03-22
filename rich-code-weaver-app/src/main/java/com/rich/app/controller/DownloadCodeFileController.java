@@ -32,22 +32,28 @@ public class DownloadCodeFileController {
      * 下载代码文件
      *
      * @param appId    产物 ID
-     * @param response 响应
+     * @param response 响应对象
+     * @author DuRuiChi
      */
 //    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     @GetMapping("/code/zip/{appId}")
     public void downloadCodeZipFile(@PathVariable Long appId,
 //                                    HttpServletRequest request,
                                     HttpServletResponse response) {
-        // 参数校验
-        ThrowUtils.throwIf(appId == null, ErrorCode.PARAMS_ERROR, "产物ID不能为空");
-        // 产物校验
+        // 参数校验：验证产物ID有效性
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+        
+        // 查询产物信息
         App app = appService.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
-        // 权限校验 TODO 不允许下载其他用户的代码时打开
+        
+        // 权限校验（预留）
+        // TODO: 开启权限控制时，只允许下载自己的代码
 //        User loginUser = InnerUserService.getLoginUser(request);
-//        ThrowUtils.throwIf(loginUser.getId().equals(app.getUserId()), ErrorCode.NOT_FOUND_ERROR, "您无权下载此代码");
-        // 下载代码文件
+//        ThrowUtils.throwIf(!loginUser.getId().equals(app.getUserId()), 
+//                ErrorCode.NO_AUTH_ERROR, "您无权下载此代码");
+        
+        // 执行代码文件下载（打包为ZIP并通过HTTP响应返回）
         downloadCodeFileService.downloadCodeZipFile(app, response);
     }
 }

@@ -19,7 +19,11 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 /**
- * 对话历史 控制层。
+ * 对话历史 控制层
+ * 提供对话历史的查询、删除等接口
+ *
+ * @author DuRuiChi
+ * @since 2026-03-10
  */
 @RestController
 @RequestMapping("/chatHistory")
@@ -48,8 +52,15 @@ public class ChatHistoryController {
                                                                     @RequestParam(defaultValue = "10") int pageSize,
                                                                     @RequestParam(required = false) LocalDateTime lastCreateTime,
                                                                     HttpServletRequest request) {
-        Page<ChatHistory> result = chatHistoryService.listAppChatHistoryByPage(appId, pageSize, lastCreateTime, request);
-        return ResultUtils.success(result);
+        // 参数校验：验证产物ID有效性
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+        // 参数校验：验证分页参数合理性（限制最大100条防止数据量过大）
+        ThrowUtils.throwIf(pageSize <= 0 || pageSize > 100, ErrorCode.PARAMS_ERROR, "页面大小必须在1-100之间");
+        
+        // 查询指定产物的对话历史（支持游标分页）
+        Page<ChatHistory> chatHistoryPage = chatHistoryService.listAppChatHistoryByPage(
+                appId, pageSize, lastCreateTime, request);
+        return ResultUtils.success(chatHistoryPage);
     }
 
     /**
@@ -63,13 +74,24 @@ public class ChatHistoryController {
     @PostMapping("/admin/list/page/vo")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Page<ChatHistory>> listAppChatHistoryByPageAdmin(@RequestBody ChatHistoryQueryRequest chatHistoryQueryRequest) {
-        ThrowUtils.throwIf(chatHistoryQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        // 参数校验：验证查询请求不为空
+        ThrowUtils.throwIf(chatHistoryQueryRequest == null, ErrorCode.PARAMS_ERROR, "查询请求参数不能为空");
+        
+        // 提取分页参数
         long pageNum = chatHistoryQueryRequest.getPageNum();
         long pageSize = chatHistoryQueryRequest.getPageSize();
-        // 查询数据
+        
+        // 参数校验：验证分页参数合理性
+        ThrowUtils.throwIf(pageNum <= 0, ErrorCode.PARAMS_ERROR, "页码必须大于0");
+        ThrowUtils.throwIf(pageSize <= 0 || pageSize > 100, ErrorCode.PARAMS_ERROR, "页面大小必须在1-100之间");
+        
+        // 构建查询条件
         QueryWrapper queryWrapper = chatHistoryService.getQueryWrapper(chatHistoryQueryRequest);
-        Page<ChatHistory> result = chatHistoryService.page(Page.of(pageNum, pageSize), queryWrapper);
-        return ResultUtils.success(result);
+        
+        // 执行分页查询
+        Page<ChatHistory> chatHistoryPage = chatHistoryService.page(
+                Page.of(pageNum, pageSize), queryWrapper);
+        return ResultUtils.success(chatHistoryPage);
     }
 
     /**
@@ -83,11 +105,15 @@ public class ChatHistoryController {
     @DeleteMapping("/admin/delete/{id}")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> deleteById(@PathVariable Long id) {
-        // 参数校验
-        ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
+        // 参数校验：验证历史消息ID有效性
+        ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR, "历史消息ID无效");
+        
+        // 构建删除条件：根据ID删除
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("id", id);
-        // 删除对话历史
-        return ResultUtils.success(chatHistoryService.remove(queryWrapper));
+        
+        // 执行删除操作
+        boolean deleteResult = chatHistoryService.remove(queryWrapper);
+        return ResultUtils.success(deleteResult);
     }
 }
