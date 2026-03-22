@@ -25,7 +25,7 @@ import static com.rich.model.enums.CodeGeneratorTypeEnum.MULTI_FILE;
  * （门面设计模式：整合 AI 代码生成器服务 和 本地保存工具包，流式整合代码解析为封装类）
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @create 2025/12/5
  **/
 @Slf4j
 @Service
@@ -41,7 +41,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
      * @param appId           产物id
      * @return reactor.core.publisher.Flux<java.lang.String>    代码流
      * @author DuRuiChi
-     * @create 2025/8/6
+     * @create 2025/12/6
      **/
     public Flux<String> aiGenerateAndSaveCodeStream(String userMessage, CodeGeneratorTypeEnum codeGenTypeEnum, Long appId) {
         try {
@@ -107,7 +107,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
      * @param appId                 产物id
      * @return reactor.core.publisher.Flux<java.lang.String>    代码流
      * @author DuRuiChi
-     * @create 2025/8/6
+     * @create 2025/12/6
      **/
     private Flux<String> parseAndSaveCodeStream(Flux<String> resultStream, CodeGeneratorTypeEnum codeGeneratorTypeEnum, Long appId) {
         // 创建 StringBuilder 用于拼接代码流中的所有代码块

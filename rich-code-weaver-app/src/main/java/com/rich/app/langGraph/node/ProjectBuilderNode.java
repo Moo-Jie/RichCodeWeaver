@@ -17,7 +17,7 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
  * 项目构建节点
  *
  * @author DuRuiChi
- * @create 2025/9/11
+ * @create 2026/1/11
  **/
 @Slf4j
 public class ProjectBuilderNode {

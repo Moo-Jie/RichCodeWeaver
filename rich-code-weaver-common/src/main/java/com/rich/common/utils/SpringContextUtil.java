@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * 通过静态方法提供 Bean 获取能力
  *
  * @author DuRuiChi
- * @create 2025/9/14
+ * @create 2026/1/14
  **/
 @Component
 public class SpringContextUtil implements ApplicationContextAware {

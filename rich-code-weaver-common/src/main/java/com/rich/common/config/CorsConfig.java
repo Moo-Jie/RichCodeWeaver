@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * 全局跨域配置
  *
  * @author DuRuiChi
- * @create 2025/8/4
+ * @create 2025/12/4
  **/
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
@@ -18,7 +18,7 @@ public class CorsConfig implements WebMvcConfigurer {
      *
      * @param registry 跨域注册对象
      * @author DuRuiChi
-     * @create 2025/8/4
+     * @create 2025/12/4
      **/
     @Override
     public void addCorsMappings(CorsRegistry registry) {

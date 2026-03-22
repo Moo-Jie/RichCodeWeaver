@@ -36,7 +36,7 @@ import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
  * 负责构建和执行代码生成的完整工作流程，包括资源收集、提示词增强、代码生成和项目构建等步骤
  *
  * @author DuRuiChi
- * @create 2025/9/14
+ * @create 2026/1/14
  **/
 @Slf4j
 @Component
@@ -76,7 +76,7 @@ public class CodeGenWorkflowApp {
      * @return CompiledGraph<MessagesState < String>> 编译后的工作流实例
      * @throws BusinessException 当工作流创建失败时抛出
      * @author DuRuiChi
-     * @create 2025/9/14
+     * @create 2026/1/14
      **/
     public CompiledGraph<MessagesState<String>> createWorkflow() {
         try {
@@ -131,7 +131,7 @@ public class CodeGenWorkflowApp {
      * @param userId             用户ID，用于关联生成任务的用户
      * @return Flux<String> SSE事件流，包含工作流执行过程中的各种事件
      * @author DuRuiChi
-     * @create 2025/9/14
+     * @create 2026/1/14
      **/
     public Flux<ServerSentEvent<String>> executeWorkflow(String originalPrompt,
                                                          CodeGeneratorTypeEnum type,
@@ -419,7 +419,7 @@ public class CodeGenWorkflowApp {
      * @param state 消息状态，包含工作流上下文信息
      * @return String 自定义的路由结果参数
      * @author DuRuiChi
-     * @create 2025/9/14
+     * @create 2026/1/14
      **/
     private String nodeRouter(MessagesState<String> state) {
         // 获取工作流上下文

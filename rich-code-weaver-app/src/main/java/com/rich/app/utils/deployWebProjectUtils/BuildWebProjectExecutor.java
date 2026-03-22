@@ -16,7 +16,7 @@ import static com.rich.app.utils.deployWebProjectUtils.ExecuteSysCommandUtil.exe
  * 打包构建 web 工程项目执行器
  *
  * @author DuRuiChi
- * @create 2025/8/29
+ * @create 2025/12/29
  **/
 @Component
 @Slf4j

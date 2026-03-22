@@ -19,7 +19,7 @@ import java.util.Map;
  * 全局异常处理器
  *
  * @author DuRuiChi
- * @create 2025/8/4
+ * @create 2025/12/4
  **/
 @Hidden
 @RestControllerAdvice

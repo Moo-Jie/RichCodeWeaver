@@ -7,7 +7,7 @@ import lombok.Getter;
  * 对话历史消息枚举类型
  *
  * @author DuRuiChi
- * @create 2025/8/16
+ * @create 2025/12/16
  **/
 @Getter
 public enum ChatHistoryTypeEnum {
@@ -33,7 +33,7 @@ public enum ChatHistoryTypeEnum {
      * @param value 枚举值的value
      * @return com.rich.richcodeweaver.model.enums.ChatHistoryTypeEnum 枚举值
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     public static ChatHistoryTypeEnum getEnumByValue(String value) {
         if (ObjUtil.isEmpty(value)) {

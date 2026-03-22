@@ -12,7 +12,7 @@ import reactor.core.publisher.Flux;
  * (用于 HTML 单文件模式、多文件模式的 AI 响应流处理器，用于处理纯文本流式输出)
  *
  * @author DuRuiChi
- * @create 2025/8/27
+ * @create 2025/12/27
  **/
 @Component
 public class TestStreamHandler {

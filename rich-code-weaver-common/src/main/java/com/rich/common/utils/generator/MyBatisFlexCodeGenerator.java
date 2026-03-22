@@ -13,7 +13,7 @@ import java.util.Map;
  * 源：https://mybatis-flex.com/zh/others/codegen.html
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @create 2025/12/5
  **/
 public class MyBatisFlexCodeGenerator {
 

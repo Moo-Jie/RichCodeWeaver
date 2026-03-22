@@ -82,7 +82,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param user 用户实体对象
      * @return 登录用户VO对象，输入为空时返回null
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     @Override
     public LoginUserVO getLoginUserVO(User user) {
@@ -103,7 +103,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return 脱敏后的登录用户信息
      * @throws BusinessException 参数错误或认证失败
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     @Override
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
@@ -129,7 +129,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return 当前登录用户实体
      * @throws BusinessException 未登录或登录态无效
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     @Override
     public User getLoginUser(HttpServletRequest request) {
@@ -151,7 +151,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param user 用户实体
      * @return 脱敏后的用户VO，输入为空时返回null
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     @Override
     public UserVO getUserVO(User user) {
@@ -169,7 +169,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param userList 用户实体列表
      * @return 脱敏后的用户VO列表（永远非null）
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     @Override
     public List<UserVO> getUserVOList(List<User> userList) {
@@ -189,7 +189,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return 总是返回true
      * @throws BusinessException 用户未登录
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     @Override
     public boolean userLogout(HttpServletRequest request) {
@@ -209,7 +209,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return 查询条件包装器
      * @throws BusinessException 参数为空
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     @Override
     public QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest) {
@@ -259,7 +259,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return MD5加密后的密码
      * @throws BusinessException 密码为空
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     @Override
     public String getEncryptPassword(String userPassword) {
@@ -325,7 +325,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param account
      * @return void
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     private void validateAccount(String account) {
         if (StrUtil.isBlank(account)) {
@@ -344,7 +344,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param checkPassword
      * @return void
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     private void validatePassword(String password, String checkPassword) {
         if (StrUtil.hasBlank(password, checkPassword)) {
@@ -365,7 +365,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param account
      * @return void
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     private void checkAccountUnique(String account) {
         QueryWrapper queryWrapper = QueryWrapper.create()
@@ -383,7 +383,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param encryptedPassword
      * @return com.rich.richcodeweaver.model.entity.User
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     private User validateUserCredentials(String account, String encryptedPassword) {
         QueryWrapper queryWrapper = QueryWrapper.create()
@@ -399,7 +399,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param id
      * @return java.util.Optional<com.rich.richcodeweaver.model.entity.User>
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     private Optional<User> getByIdOptional(Long id) {
         return Optional.ofNullable(id)
@@ -412,7 +412,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param password
      * @return java.lang.String
      * @author DuRuiChi
-     * @create 2025/8/5
+     * @create 2025/12/7
      **/
     private String encryptPassword(String password) {
         if (StrUtil.isBlank(password)) {

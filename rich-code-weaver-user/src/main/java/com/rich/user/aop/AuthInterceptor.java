@@ -20,7 +20,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  * 权限校验的切面类（User模块）
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @create 2025/12/5
  **/
 @Aspect
 @Component("userAuthInterceptor")

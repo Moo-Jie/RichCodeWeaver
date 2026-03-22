@@ -15,7 +15,7 @@ import java.io.IOException;
  *
  * @author DuRuiChi
  * @return
- * @create 2025/7/6
+ * @create 2025/11/6
  **/
 @Slf4j
 @Component
@@ -33,22 +33,86 @@ public class AiWebScrapingTool extends BaseTool {
 
     @Override
     public String getResultMsg(JSONObject arguments) {
-        // 超长截取
+        // 从参数中提取网页URL
         String scrapUrl = arguments.getStr("ScrapUrl");
-        if (scrapUrl.length() > 100) {
-            scrapUrl = scrapUrl.substring(0, 100) + "(超长省略...)";
+        
+        // 处理URL为空的情况
+        if (scrapUrl == null || scrapUrl.trim().isEmpty()) {
+            return "[工具调用结束] 成功抓取网页内容";
         }
-        scrapUrl = scrapUrl == null || scrapUrl.isEmpty() ? "" : "\n[\n" + scrapUrl + "\n]\n";
-        return String.format("[工具调用结束] %s %s", "成功抓取以下网页内容", scrapUrl);
+        
+        // 对超长URL进行截取（避免日志过长）
+        String displayUrl = scrapUrl;
+        if (scrapUrl.length() > 100) {
+            displayUrl = scrapUrl.substring(0, 100) + "...(超长省略)";
+        }
+        
+        // 格式化显示文本
+        String formattedUrl = "\n[\n" + displayUrl + "\n]\n";
+        
+        return String.format("[工具调用结束] %s %s", "成功抓取以下网页内容", formattedUrl);
     }
 
+    /**
+     * 抓取指定URL的网页内容
+     * 使用Jsoup库进行网页抓取，返回HTML内容的前400个字符
+     *
+     * @param scrapUrl 要抓取的网页URL地址
+     * @return 网页HTML内容的前400个字符，失败时返回错误信息
+     */
     @Tool("抓取网页内容")
-    public String scrapeWebPage(@P("要抓取的网页的 URL") String ScrapUrl) {
+    public String scrapeWebPage(@P("要抓取的网页的 URL") String scrapUrl) {
+        // 参数校验：检查URL是否为空
+        if (scrapUrl == null || scrapUrl.trim().isEmpty()) {
+            String errorMsg = "错误：网页URL不能为空";
+            log.warn(errorMsg);
+            return errorMsg;
+        }
+        
+        // 参数校验：检查URL格式是否合法（简单验证）
+        String normalizedUrl = scrapUrl.trim();
+        if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+            String errorMsg = "错误：URL必须以http://或https://开头 - " + normalizedUrl;
+            log.warn(errorMsg);
+            return errorMsg;
+        }
+        
         try {
-            String doc = Jsoup.connect(ScrapUrl).get().html();
-            return doc.substring(0, Math.min(doc.length(), 400));
+            log.info("开始抓取网页: {}", normalizedUrl);
+            
+            // 使用Jsoup连接并获取网页内容
+            String htmlContent = Jsoup.connect(normalizedUrl)
+                    .timeout(10000)  // 设置10秒超时时间
+                    .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")  // 设置User-Agent
+                    .get()
+                    .html();
+            
+            // 检查抓取到的内容是否为空
+            if (htmlContent == null || htmlContent.trim().isEmpty()) {
+                String warningMsg = "警告：抓取到的网页内容为空 - " + normalizedUrl;
+                log.warn(warningMsg);
+                return warningMsg;
+            }
+            
+            // 截取前400个字符（避免返回过多内容）
+            int maxLength = 400;
+            String truncatedContent = htmlContent.substring(0, Math.min(htmlContent.length(), maxLength));
+            
+            log.info("成功抓取网页: {}, 内容长度: {} 字符（已截取至 {} 字符）", 
+                    normalizedUrl, htmlContent.length(), truncatedContent.length());
+            
+            return truncatedContent;
+            
         } catch (IOException e) {
-            return "网页 " + ScrapUrl + " 抓取失败: " + e.getMessage();
+            // 捕获IO异常（网络错误、连接超时、404等）
+            String errorMsg = String.format("网页抓取失败: %s, 错误: %s", normalizedUrl, e.getMessage());
+            log.error(errorMsg, e);
+            return errorMsg;
+        } catch (Exception e) {
+            // 捕获其他未预期的异常
+            String errorMsg = String.format("网页抓取时发生未知错误: %s, 错误: %s", normalizedUrl, e.getMessage());
+            log.error(errorMsg, e);
+            return errorMsg;
         }
     }
 }

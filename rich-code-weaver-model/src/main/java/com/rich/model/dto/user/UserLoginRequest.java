@@ -8,7 +8,7 @@ import java.io.Serializable;
  * 用户登录响应类
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @create 2025/12/5
  **/
 @Data
 public class UserLoginRequest implements Serializable {

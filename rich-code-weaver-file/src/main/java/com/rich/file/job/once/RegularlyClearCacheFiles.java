@@ -14,7 +14,7 @@ import static com.rich.common.constant.AppConstant.APP_SCREENSHOT_DIR;
  * 定期清空缓存文件
  *
  * @author DuRuiChi
- * @create 2025/9/3
+ * @create 2026/1/3
  **/
 @Component
 @Slf4j
@@ -24,7 +24,7 @@ public class RegularlyClearCacheFiles {
      *
      * @return void
      * @author DuRuiChi
-     * @create 2025/9/3
+     * @create 2026/1/3
      **/
     @Scheduled(fixedRate = 60 * 1000 * 60 * 12)
     public void run() {

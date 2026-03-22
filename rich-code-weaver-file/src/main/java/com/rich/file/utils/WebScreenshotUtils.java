@@ -24,7 +24,7 @@ import java.util.UUID;
  * 自带浏览器，无需安装 Chrome，零配置开箱即用
  *
  * @author DuRuiChi
- * @create 2025/8/31
+ * @create 2025/12/31
  **/
 @Slf4j
 @Component

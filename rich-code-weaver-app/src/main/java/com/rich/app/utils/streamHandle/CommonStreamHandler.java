@@ -15,7 +15,7 @@ import java.util.Map;
  * 通用流处理器，含 AI 响应流处理的通用逻辑
  *
  * @author DuRuiChi
- * @create 2025/8/27
+ * @create 2025/12/27
  **/
 @Component
 public class CommonStreamHandler {

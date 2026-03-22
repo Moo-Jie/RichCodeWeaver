@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * SSE 流式会话实体，用于支持断线重连
  *
  * @author DuRuiChi
- * @create 2025/8/27
+ * @create 2025/12/27
  **/
 @Data
 @Builder

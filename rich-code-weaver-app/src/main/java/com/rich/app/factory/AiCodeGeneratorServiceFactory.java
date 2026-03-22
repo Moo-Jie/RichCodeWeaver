@@ -25,7 +25,7 @@ import java.time.Duration;
  * （在 Caffeine 缓存中创建实例、历史消息存入 Redis）
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @create 2025/12/5
  **/
 @Slf4j
 @Configuration
@@ -37,7 +37,7 @@ public class AiCodeGeneratorServiceFactory {
      * @param appId 产物 id
      * @return com.rich.app.service.aiChatService.AiCodeGeneratorService
      * @author DuRuiChi
-     * @create 2025/8/18
+     * @create 2025/12/18
      **/
     private final Cache<Long, AiCodeGeneratorService> caffeineService = Caffeine.newBuilder()
             // 防止内存泄露的配置

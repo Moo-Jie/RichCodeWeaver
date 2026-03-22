@@ -28,7 +28,7 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      * @param userId      用户 id
      * @return boolean
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     boolean addChatMessage(Long appId, String message, String messageType, Long userId);
 
@@ -38,7 +38,7 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      * @param appId 产物 id
      * @return boolean
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     boolean deleteByAppId(Long appId);
 
@@ -51,7 +51,7 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      * @param request        请求对象
      * @return com.mybatisflex.core.paginate.Page<com.rich.app.model.entity.ChatHistory> 分页结果
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     Page<ChatHistory> listAppChatHistoryByPage(Long appId, int pageSize,
                                                LocalDateTime lastCreateTime,
@@ -63,7 +63,7 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      * @param chatHistoryQueryRequest 查询请求对象
      * @return com.mybatisflex.core.query.QueryWrapper  查询包装类
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     QueryWrapper getQueryWrapper(ChatHistoryQueryRequest chatHistoryQueryRequest);
 
@@ -75,7 +75,7 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      * @param maxCount   加载数量
      * @return Boolean 是否加载成功
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     Boolean loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount);
 }

@@ -23,7 +23,7 @@ import java.util.List;
  * 支持 AI 通过工具调用的方式根据描述生成设计图片
  *
  * @author DuRuiChi
- * @create 2025/9/11
+ * @create 2026/1/11
  **/
 @Slf4j
 @Component
@@ -61,24 +61,52 @@ public class AiGeneratorImageTool extends BaseTool {
 
     @Override
     public String getResultMsg(JSONObject arguments) {
+        // 从参数中提取图片类型和描述信息
         String type = arguments.getStr("type");
         String description = arguments.getStr("description");
-        type = type == null || type.isEmpty() ? "" : "\n[\n" + type + "\n]\n";
-        return String.format("[工具调用结束] %s %s\n\n描述信息：\n```\n%s\n```", "成功生成以下类型的图片", type, description);
+        
+        // 格式化类型显示文本
+        String displayType = (type == null || type.trim().isEmpty()) 
+                ? "" 
+                : "\n[\n" + type + "\n]\n";
+        
+        // 格式化描述显示文本，避免null值
+        String displayDescription = (description == null) ? "无" : description;
+        
+        return String.format("[工具调用结束] %s %s\n\n描述信息：\n```\n%s\n```", 
+                "成功生成以下类型的图片", displayType, displayDescription);
     }
 
     /**
      * 根据生成类型、描述生成图片
+     * 使用阿里云DashScope的万相文生图API进行AI图片生成
      *
-     * @param description 设计描述，如名称、行业、风格等，尽量详细
-     * @return 生成的设计图片列表
+     * @param type 图片类型描述，如Logo、图标、架构图、概念视觉图等
+     * @param description 设计描述，含主体、风格、色彩等要素，尽量详细
+     * @return 生成的设计图片列表（失败时返回空列表）
      */
     @Tool("根据描述让 AI 生成设计图片（不能指定生成文字）")
-    public List<ImageResource> aiGeneratorImage(@P("类型描述，如Logo、图标、架构图、概念视觉图等等") String type, @P("设计描述，含主体、风格、色彩等要素，尽量详细") String description) {
+    public List<ImageResource> aiGeneratorImage(
+            @P("类型描述，如Logo、图标、架构图、概念视觉图等等") String type, 
+            @P("设计描述，含主体、风格、色彩等要素，尽量详细") String description) {
+        
+        // 初始化图片列表（用于存储生成结果）
         List<ImageResource> imageList = new ArrayList<>();
         
-        // 检查API密钥配置
-        if (dashScopeApiKey == null || dashScopeApiKey.isEmpty()) {
+        // 参数校验：检查图片类型是否为空
+        if (type == null || type.trim().isEmpty()) {
+            log.warn("图片类型不能为空");
+            return imageList;
+        }
+        
+        // 参数校验：检查描述信息是否为空
+        if (description == null || description.trim().isEmpty()) {
+            log.warn("描述信息不能为空");
+            return imageList;
+        }
+        
+        // 配置校验：检查DashScope API密钥是否已配置
+        if (dashScopeApiKey == null || dashScopeApiKey.trim().isEmpty()) {
             log.error("DashScope API密钥未配置，无法生成图片");
             return imageList;
         }
@@ -86,7 +114,7 @@ public class AiGeneratorImageTool extends BaseTool {
         try {
             log.info("开始生成图片 - 类型: {}, 描述: {}", type, description);
             
-            // 构建设计提示词
+            // 构建AI图片生成提示词（包含类型、要求和详细描述）
             String imagePrompt = String.format("""
                     为我的网站生成 %s：
                     要求 - 符合介绍的风格;禁止包含任何文字
@@ -95,48 +123,67 @@ public class AiGeneratorImageTool extends BaseTool {
             
             log.info("生成提示词: {}", imagePrompt);
             
-            // 根据类型选择合适的尺寸（Logo使用小尺寸以加快生成速度）
-            String size = type.contains("Logo") || type.contains("图标") ? "512*512" : "1024*1024";
-            log.info("使用图片尺寸: {}", size);
+            // 根据图片类型选择合适的尺寸（Logo和图标使用小尺寸以加快生成速度）
+            String imageSize = (type.contains("Logo") || type.contains("图标")) 
+                    ? "512*512" 
+                    : "1024*1024";
+            log.info("使用图片尺寸: {}", imageSize);
 
-            // 步骤1: 创建异步任务
+            // 步骤1: 创建异步图片生成任务
+            // 构建请求体JSON对象
             JSONObject requestBody = new JSONObject();
-            requestBody.set("model", IMAGE_MODEL);
+            requestBody.set("model", IMAGE_MODEL);  // 设置使用的AI模型
             
+            // 构建输入参数（包含提示词）
             JSONObject input = new JSONObject();
             input.set("prompt", imagePrompt);
             requestBody.set("input", input);
             
+            // 构建生成参数（包含尺寸和数量）
             JSONObject parameters = new JSONObject();
-            parameters.set("size", size);
+            parameters.set("size", imageSize);  // 设置图片尺寸
             parameters.set("n", 1);  // 只生成1张图片
             requestBody.set("parameters", parameters);
             
             log.info("发送图片生成请求...");
+            
+            // 发送POST请求创建异步任务
             HttpResponse createResponse = HttpRequest.post(IMAGE_SYNTHESIS_URL)
-                    .header("Authorization", "Bearer " + dashScopeApiKey)
-                    .header("Content-Type", "application/json")
-                    .header("X-DashScope-Async", "enable")  // 异步调用必须设置
+                    .header("Authorization", "Bearer " + dashScopeApiKey)  // API认证
+                    .header("Content-Type", "application/json")  // 请求内容类型
+                    .header("X-DashScope-Async", "enable")  // 启用异步模式（必须设置）
                     .body(requestBody.toString())
-                    .timeout(30000)
+                    .timeout(30000)  // 设置30秒超时
                     .execute();
             
+            // 检查HTTP响应状态码
             if (!createResponse.isOk()) {
-                log.error("创建图片生成任务失败，状态码: {}, 响应: {}", createResponse.getStatus(), createResponse.body());
+                log.error("创建图片生成任务失败，状态码: {}, 响应: {}", 
+                        createResponse.getStatus(), createResponse.body());
                 return imageList;
             }
             
-            JSONObject createResult = JSONUtil.parseObj(createResponse.body());
+            // 解析响应体
+            String responseBody = createResponse.body();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                log.error("创建任务响应体为空");
+                return imageList;
+            }
             
-            // 检查是否有错误
+            JSONObject createResult = JSONUtil.parseObj(responseBody);
+            
+            // 检查API是否返回错误码
             if (createResult.containsKey("code")) {
-                log.error("创建任务失败: code={}, message={}", createResult.getStr("code"), createResult.getStr("message"));
+                String errorCode = createResult.getStr("code");
+                String errorMessage = createResult.getStr("message");
+                log.error("创建任务失败: code={}, message={}", errorCode, errorMessage);
                 return imageList;
             }
             
+            // 提取任务ID
             String taskId = createResult.getByPath("output.task_id", String.class);
-            if (taskId == null || taskId.isEmpty()) {
-                log.error("未获取到任务ID，响应: {}", createResponse.body());
+            if (taskId == null || taskId.trim().isEmpty()) {
+                log.error("未获取到任务ID，响应: {}", responseBody);
                 return imageList;
             }
             
@@ -144,69 +191,97 @@ public class AiGeneratorImageTool extends BaseTool {
             
             // 步骤2: 轮询查询任务结果（最多等待60秒）
             int maxAttempts = 12;  // 最多查询12次
-            int attemptInterval = 5000;  // 每次间隔5秒
+            int attemptInterval = 5000;  // 每次间隔5秒（5000毫秒）
             
+            // 轮询查询任务状态直到完成或超时
             for (int attempt = 1; attempt <= maxAttempts; attempt++) {
                 log.info("第 {}/{} 次查询任务状态...", attempt, maxAttempts);
                 
-                // 等待一段时间再查询
+                // 第一次查询前不等待，后续查询前等待指定间隔
                 if (attempt > 1) {
                     Thread.sleep(attemptInterval);
                 }
                 
+                // 发送GET请求查询任务状态
                 HttpResponse queryResponse = HttpRequest.get(TASK_QUERY_URL + taskId)
-                        .header("Authorization", "Bearer " + dashScopeApiKey)
-                        .timeout(15000)
+                        .header("Authorization", "Bearer " + dashScopeApiKey)  // API认证
+                        .timeout(15000)  // 设置15秒超时
                         .execute();
                 
+                // 检查HTTP响应状态
                 if (!queryResponse.isOk()) {
-                    log.warn("查询任务状态失败，状态码: {}", queryResponse.getStatus());
+                    log.warn("查询任务状态失败，状态码: {}, 将重试", queryResponse.getStatus());
+                    continue;  // 继续下一次查询
+                }
+                
+                // 解析查询结果
+                String queryBody = queryResponse.body();
+                if (queryBody == null || queryBody.trim().isEmpty()) {
+                    log.warn("查询任务响应体为空，将重试");
                     continue;
                 }
                 
-                JSONObject queryResult = JSONUtil.parseObj(queryResponse.body());
+                JSONObject queryResult = JSONUtil.parseObj(queryBody);
                 String taskStatus = queryResult.getByPath("output.task_status", String.class);
                 
                 log.info("任务状态: {}", taskStatus);
                 
+                // 根据任务状态进行不同处理
                 if ("SUCCEEDED".equals(taskStatus)) {
-                    // 任务成功，提取图片URL
+                    // 任务成功完成，提取生成的图片URL
                     JSONArray results = queryResult.getByPath("output.results", JSONArray.class);
+                    
                     if (results != null && !results.isEmpty()) {
+                        // 遍历所有生成的图片结果
                         for (int i = 0; i < results.size(); i++) {
                             JSONObject resultItem = results.getJSONObject(i);
                             String imageUrl = resultItem.getStr("url");
                             
+                            // 校验图片URL是否有效
                             if (StrUtil.isNotBlank(imageUrl)) {
                                 log.info("成功获取图片URL: {}", imageUrl);
-                                imageList.add(ImageResource.builder()
-                                        .category(ImageCategoryEnum.AI)
-                                        .description(description)
-                                        .url(imageUrl)
-                                        .build());
+                                
+                                // 构建图片资源对象并添加到列表
+                                ImageResource imageResource = ImageResource.builder()
+                                        .category(ImageCategoryEnum.AI)  // 设置分类为AI生成图片
+                                        .description(description)  // 使用原始描述作为图片描述
+                                        .url(imageUrl)  // 图片URL
+                                        .build();
+                                imageList.add(imageResource);
                             }
                         }
                     }
-                    break;
+                    break;  // 任务完成，退出轮询
+                    
                 } else if ("FAILED".equals(taskStatus)) {
-                    log.error("任务执行失败: {}", queryResponse.body());
-                    break;
+                    // 任务执行失败
+                    log.error("任务执行失败: {}", queryBody);
+                    break;  // 退出轮询
+                    
                 } else if ("PENDING".equals(taskStatus) || "RUNNING".equals(taskStatus)) {
-                    // 继续等待
-                    continue;
+                    // 任务还在进行中，继续等待
+                    log.debug("任务进行中，状态: {}", taskStatus);
+                    continue;  // 继续下一次查询
+                    
                 } else {
-                    log.warn("未知任务状态: {}", taskStatus);
-                    break;
+                    // 未知的任务状态
+                    log.warn("未知任务状态: {}, 响应: {}", taskStatus, queryBody);
+                    break;  // 退出轮询
                 }
             }
             
             log.info("图片生成完成，共生成 {} 张图片", imageList.size());
+            
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            // 捕获线程中断异常（在等待任务完成时可能发生）
+            Thread.currentThread().interrupt();  // 恢复中断状态
             log.error("图片生成被中断: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("图片生成失败: {}", e.getMessage(), e);
+            // 捕获所有其他异常并记录详细错误信息
+            log.error("图片生成失败，类型: {}, 描述: {}, 错误: {}", type, description, e.getMessage(), e);
         }
+        
+        // 返回生成的图片列表（可能为空列表）
         return imageList;
     }
 }

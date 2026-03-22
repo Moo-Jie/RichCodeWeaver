@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * 对话历史查询响应类
  *
  * @author DuRuiChi
- * @create 2025/8/16
+ * @create 2025/12/16
  **/
 @EqualsAndHashCode(callSuper = true)
 @Data

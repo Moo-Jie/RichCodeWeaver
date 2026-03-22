@@ -19,7 +19,7 @@ import java.util.concurrent.TimeoutException;
  * 执行系统命令工具
  *
  * @author DuRuiChi
- * @create 2025/8/29
+ * @create 2025/12/29
  **/
 @Slf4j
 public class ExecuteSysCommandUtil {

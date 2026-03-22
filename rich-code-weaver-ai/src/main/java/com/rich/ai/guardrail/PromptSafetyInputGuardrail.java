@@ -14,8 +14,8 @@ import java.util.regex.Pattern;
  * 实现全面的内容安全检测，包括恶意注入、敏感内容、政治敏感等多维度检测
  *
  * @author DuRuiChi
- * @create 2025/9/24
- * @update 2025/1/25 - 重构并扩充敏感词汇库
+ * @create 2026/1/24
+ * @update 2025/10/25 - 重构并扩充敏感词汇库
  **/
 @Slf4j
 public class PromptSafetyInputGuardrail implements InputGuardrail {

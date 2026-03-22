@@ -44,7 +44,7 @@ public class ChatHistoryController {
      * @param request        请求
      * @return BaseResponse<com.mybatisflex.core.paginate.Page < ChatHistory>> 对话历史分页
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     @GetMapping("/app/{appId}")
 //    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
@@ -69,7 +69,7 @@ public class ChatHistoryController {
      * @param chatHistoryQueryRequest 查询请求
      * @return com.rich.app.model.common.BaseResponse<com.mybatisflex.core.paginate.Page < com.rich.app.model.entity.ChatHistory>> 对话历史分页
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     @PostMapping("/admin/list/page/vo")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -100,7 +100,7 @@ public class ChatHistoryController {
      * @param id 历史消息 id
      * @return BaseResponse<Boolean> 删除结果
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     @DeleteMapping("/admin/delete/{id}")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)

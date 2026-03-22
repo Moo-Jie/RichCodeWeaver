@@ -52,7 +52,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
      * @param userId      用户ID
      * @return boolean
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     @Override
     public boolean addChatMessage(Long appId, String message, String messageType, Long userId) {
@@ -98,7 +98,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
      * @param appId 产物ID
      * @return boolean
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     @Override
     public boolean deleteByAppId(Long appId) {
@@ -131,7 +131,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
      * @param request        HTTP请求
      * @return Page<ChatHistory>
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     @Override
     public Page<ChatHistory> listAppChatHistoryByPage(Long appId, int pageSize,
@@ -182,7 +182,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
      * @param chatHistoryQueryRequest 对话历史查询请求
      * @return com.mybatisflex.core.query.QueryWrapper
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     @Override
     public QueryWrapper getQueryWrapper(ChatHistoryQueryRequest chatHistoryQueryRequest) {
@@ -238,7 +238,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
      * @param maxCount   加载数量
      * @return Boolean 是否加载成功
      * @author DuRuiChi
-     * @create 2025/8/16
+     * @create 2025/12/16
      **/
     @Override
     public Boolean loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {

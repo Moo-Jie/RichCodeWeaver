@@ -4,7 +4,7 @@ package com.rich.model.enums;
  * 限流类型枚举
  *
  * @author DuRuiChi
- * @create 2025/9/8
+ * @create 2026/1/8
  **/
 public enum RateLimitTypeEnum {
 

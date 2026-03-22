@@ -10,7 +10,7 @@ import org.apache.dubbo.config.annotation.DubboService;
  * （由 Dubbo 提供服务发现和调用）
  *
  * @author DuRuiChi
- * @create 2025/11/17
+ * @create 2025/10/17
  **/
 @DubboService
 public class InnerScreenshotServiceImpl implements InnerScreenshotService {

@@ -111,7 +111,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param lastEventId 最后接收到的事件ID（用于断线重连）
      * @return 代码流
      * @author DuRuiChi
-     * @create 2025/8/27
+     * @create 2025/12/27
      **/
     @Override
     public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, Boolean isWorkflow, String lastEventId, Boolean reconnect) {
@@ -318,7 +318,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param request 请求对象
      * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 产物资源
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public ResponseEntity<FileSystemResource> serverStaticResource(Long appId, HttpServletRequest request) {
@@ -400,7 +400,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param loginUser
      * @return java.lang.String
      * @author DuRuiChi
-     * @create 2025/8/27
+     * @create 2025/12/27
      **/
     @Override
     public String deployApp(Long appId, User loginUser) {
@@ -581,7 +581,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appList AI 产物列表
      * @return java.util.List<com.rich.app.model.vo.AppVO>
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public List<AppVO> getAppVOList(List<App> appList) {
@@ -615,7 +615,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appQueryRequest AI 产物查询请求
      * @return com.mybatisflex.core.query.QueryWrapper  查询条件
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest) {
@@ -658,7 +658,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param request       请求
      * @return java.lang.Long
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public Long addApp(AppAddRequest appAddRequest, HttpServletRequest request) {
@@ -715,7 +715,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param request       请求
      * @return java.lang.Boolean
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public Boolean deleteApp(DeleteRequest deleteRequest, HttpServletRequest request) {
@@ -795,7 +795,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param request          请求
      * @return java.lang.Boolean
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public Boolean updateApp(AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
@@ -845,7 +845,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appAdminUpdateRequest AI 产物管理员更新请求
      * @return java.lang.Boolean
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public Boolean updateAppByAdmin(AppAdminUpdateRequest appAdminUpdateRequest) {
@@ -876,7 +876,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appQueryRequest AI 产物查询请求
      * @return com.mybatisflex.core.paginate.Page<com.rich.app.model.vo.AppVO>
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public Page<AppVO> listAppVOByPageByAdmin(AppQueryRequest appQueryRequest) {
@@ -903,7 +903,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param request         请求
      * @return com.mybatisflex.core.paginate.Page<com.rich.app.model.vo.AppVO>
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public Page<AppVO> listMyAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request) {
@@ -938,7 +938,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appQueryRequest AI 产物查询请求
      * @return com.mybatisflex.core.paginate.Page<com.rich.app.model.vo.AppVO>
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public Page<AppVO> listStarAppVOByPage(AppQueryRequest appQueryRequest) {
@@ -970,7 +970,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param app AI 产物实体类
      * @return com.rich.app.model.vo.AppVO
      * @author DuRuiChi
-     * @create 2025/8/8
+     * @create 2025/12/8
      **/
     @Override
     public AppVO getAppVO(App app) {

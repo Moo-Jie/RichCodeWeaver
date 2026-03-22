@@ -26,7 +26,7 @@ import static com.rich.common.exception.ErrorCode.OPERATION_ERROR;
  * （用于推理模型的流式输出，因为推理模型的流式输出是一个个 Token 逐个输出 ，而不是一次输出完，此处处理为通用 Flux 流）
  *
  * @author DuRuiChi
- * @create 2025/8/25
+ * @create 2025/12/25
  **/
 @Slf4j
 @Component

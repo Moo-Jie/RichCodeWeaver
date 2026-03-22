@@ -13,7 +13,7 @@ import static com.rich.common.constant.AppConstant.APP_SCREENSHOT_DIR;
  * 项目启动时清空缓存文件
  *
  * @author DuRuiChi
- * @create 2025/9/3
+ * @create 2026/1/3
  **/
 @Component
 @Slf4j
@@ -25,7 +25,7 @@ public class ClearCacheFilesAtStartup implements CommandLineRunner {
      * @param args
      * @return void
      * @author DuRuiChi
-     * @create 2025/9/3
+     * @create 2026/1/3
      **/
     @Override
     public void run(String... args) {

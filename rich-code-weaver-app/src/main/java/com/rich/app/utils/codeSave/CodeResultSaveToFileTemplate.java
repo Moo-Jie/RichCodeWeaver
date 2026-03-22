@@ -14,7 +14,7 @@ import static com.rich.common.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
  * 代码封装类保存至文件模板类
  *
  * @author DuRuiChi
- * @create 2025/8/7
+ * @create 2025/12/7
  **/
 public abstract class CodeResultSaveToFileTemplate<T> {
     /**

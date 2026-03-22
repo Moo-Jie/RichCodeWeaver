@@ -11,7 +11,7 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
  * 全局 json 配置
  *
  * @author DuRuiChi
- * @create 2025/8/4
+ * @create 2025/12/4
  **/
 @JsonComponent
 public class JsonConfig {
@@ -22,7 +22,7 @@ public class JsonConfig {
      * @param builder
      * @return com.fasterxml.jackson.databind.ObjectMapper
      * @author DuRuiChi
-     * @create 2025/8/4
+     * @create 2025/12/4
      **/
     @Bean
     public ObjectMapper jacksonObjectMapper(Jackson2ObjectMapperBuilder builder) {

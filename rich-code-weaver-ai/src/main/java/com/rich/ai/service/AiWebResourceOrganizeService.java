@@ -7,7 +7,7 @@ import dev.langchain4j.service.UserMessage;
  * AI 网络资源整理服务接口
  *
  * @author DuRuiChi
- * @create 2025/9/14
+ * @create 2026/1/14
  **/
 public interface AiWebResourceOrganizeService {
     /**

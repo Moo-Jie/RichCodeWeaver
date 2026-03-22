@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
  * 敏感词汇和检测模式常量类，用于内容安全检测
  *
  * @author DuRuiChi
- * @create 2025/9/25
+ * @create 2026/1/25
  **/
 public class SensitiveWordsConstant {
 

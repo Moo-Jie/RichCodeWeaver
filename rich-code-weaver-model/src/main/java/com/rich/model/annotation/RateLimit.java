@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * 限制接口的请求速率的注解
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @create 2025/12/5
  **/
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

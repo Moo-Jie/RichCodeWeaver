@@ -13,7 +13,7 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
  * 更智能、准确的图片资源收集节点（单独调用专精于图片收集的 AI 模型）
  *
  * @author DuRuiChi
- * @create 2025/9/11
+ * @create 2026/1/11
  **/
 @Slf4j
 public class ImageResourceNode {

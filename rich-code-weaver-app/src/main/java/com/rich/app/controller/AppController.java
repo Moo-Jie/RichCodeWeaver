@@ -34,7 +34,7 @@ import java.io.File;
  * AI 产物相关接口
  *
  * @author DuRuiChi
- * @create 2025/8/7
+ * @create 2025/12/7
  **/
 @RestController
 @RequestMapping("/app")

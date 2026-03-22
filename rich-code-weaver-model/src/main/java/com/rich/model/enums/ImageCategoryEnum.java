@@ -7,7 +7,7 @@ import lombok.Getter;
  * 图片类别枚举
  *
  * @author DuRuiChi
- * @create 2025/9/8
+ * @create 2026/1/8
  **/
 @Getter
 public enum ImageCategoryEnum {

@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
  * 用于 AI 推理模型调用接口流式输出内容的响应结果
  *
  * @author DuRuiChi
- * @create 2025/8/25
+ * @create 2025/12/25
  **/
 @Data
 @AllArgsConstructor

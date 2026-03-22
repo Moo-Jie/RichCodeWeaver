@@ -6,7 +6,7 @@ import lombok.Getter;
  * 推理模型流式输出的枚举类型
  *
  * @author DuRuiChi
- * @create 2025/8/25
+ * @create 2025/12/25
  **/
 @Getter
 public enum ReasoningStreamMsgTypeEnum {
@@ -29,7 +29,7 @@ public enum ReasoningStreamMsgTypeEnum {
      * @param value 枚举值
      * @return com.rich.richcodeweaver.model.enums.ReasoningStreamMsgTypeEnum 枚举
      * @author DuRuiChi
-     * @create 2025/8/25
+     * @create 2025/12/25
      **/
     public static ReasoningStreamMsgTypeEnum getEnumByValue(String value) {
         for (ReasoningStreamMsgTypeEnum typeEnum : values()) {

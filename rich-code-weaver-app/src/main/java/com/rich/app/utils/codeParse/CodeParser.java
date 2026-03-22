@@ -7,7 +7,7 @@ package com.rich.app.utils.codeParse;
  *
  * @param <T> 解析后的代码对象类型
  * @author DuRuiChi
- * @create 2025/8/7
+ * @create 2025/12/7
  **/
 public interface CodeParser<T> {
     /**

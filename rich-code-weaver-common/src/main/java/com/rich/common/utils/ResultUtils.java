@@ -7,7 +7,7 @@ import com.rich.common.model.BaseResponse;
  * 响应构建工具类
  *
  * @author DuRuiChi
- * @create 2025/8/4
+ * @create 2025/12/4
  **/
 public class ResultUtils {
 
@@ -17,7 +17,7 @@ public class ResultUtils {
      * @param data 响应数据
      * @return com.rich.richcodeweaver.response.BaseResponse<T>
      * @author DuRuiChi
-     * @create 2025/8/4
+     * @create 2025/12/4
      **/
     public static <T> BaseResponse<T> success(T data) {
         return new BaseResponse<>(0, data, "ok");
@@ -29,7 +29,7 @@ public class ResultUtils {
      * @param errorCode 错误枚举
      * @return com.rich.richcodeweaver.response.BaseResponse<?>
      * @author DuRuiChi
-     * @create 2025/8/4
+     * @create 2025/12/4
      **/
     public static BaseResponse<?> error(ErrorCode errorCode) {
         return new BaseResponse<>(errorCode);
@@ -42,7 +42,7 @@ public class ResultUtils {
      * @param message 信息
      * @return com.rich.richcodeweaver.response.BaseResponse<?>
      * @author DuRuiChi
-     * @create 2025/8/4
+     * @create 2025/12/4
      **/
     public static BaseResponse<?> error(int code, String message) {
         return new BaseResponse<>(code, null, message);
@@ -55,7 +55,7 @@ public class ResultUtils {
      * @param message   信息
      * @return com.rich.richcodeweaver.response.BaseResponse<?>
      * @author DuRuiChi
-     * @create 2025/8/4
+     * @create 2025/12/4
      **/
     public static BaseResponse<?> error(ErrorCode errorCode, String message) {
         return new BaseResponse<>(errorCode.getCode(), null, message);

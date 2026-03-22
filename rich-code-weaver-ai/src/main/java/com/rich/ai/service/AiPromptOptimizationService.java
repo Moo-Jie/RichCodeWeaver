@@ -7,7 +7,7 @@ import dev.langchain4j.service.UserMessage;
  * AI 提示词优化服务接口
  *
  * @author DuRuiChi
- * @create 2025/3/20
+ * @create 2025/11/20
  **/
 public interface AiPromptOptimizationService {
     /**

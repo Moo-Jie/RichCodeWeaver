@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
  * SSE 流式事件实体
  *
  * @author DuRuiChi
- * @create 2025/8/27
+ * @create 2025/12/27
  **/
 @Data
 @Builder
