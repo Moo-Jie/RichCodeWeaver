@@ -13,9 +13,10 @@ import java.util.List;
 
 /**
  * 用户 服务层
+ * 提供用户注册、登录、信息管理等业务逻辑
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @since 2026-03-08
  */
 public interface UserService extends IService<User> {
 

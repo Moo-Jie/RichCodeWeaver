@@ -24,7 +24,11 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 提示词模板
+ * 提示词模板控制器
+ * 提供提示词模板的查询、创建、更新、删除等接口
+ *
+ * @author DuRuiChi
+ * @since 2026-03-12
  */
 @RestController
 @RequestMapping("/promptTemplate")
@@ -35,6 +39,11 @@ public class PromptTemplateController {
 
     /**
      * 根据用户身份和行业获取匹配的模板列表（前端主页调用）
+     *
+     * @param userIdentity 用户身份
+     * @param userIndustry 用户行业
+     * @return 匹配的模板列表
+     * @author DuRuiChi
      */
     @GetMapping("/list/matched")
     public BaseResponse<List<PromptTemplateVO>> listMatchedTemplates(
@@ -46,6 +55,10 @@ public class PromptTemplateController {
 
     /**
      * 根据id获取模板详情
+     *
+     * @param id 模板ID
+     * @return 模板详情
+     * @author DuRuiChi
      */
     @GetMapping("/get/vo")
     public BaseResponse<PromptTemplateVO> getPromptTemplateVOById(long id) {
@@ -59,6 +72,11 @@ public class PromptTemplateController {
 
     /**
      * 新增模板（管理员）
+     *
+     * @param addRequest 新增请求参数
+     * @param request HTTP请求对象
+     * @return 新增模板的ID
+     * @author DuRuiChi
      */
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -75,6 +93,10 @@ public class PromptTemplateController {
 
     /**
      * 更新模板（管理员）
+     *
+     * @param updateRequest 更新请求参数
+     * @return 是否更新成功
+     * @author DuRuiChi
      */
     @PostMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -91,6 +113,10 @@ public class PromptTemplateController {
 
     /**
      * 删除模板（管理员）
+     *
+     * @param deleteRequest 删除请求参数
+     * @return 是否删除成功
+     * @author DuRuiChi
      */
     @PostMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -104,6 +130,10 @@ public class PromptTemplateController {
 
     /**
      * 分页查询模板（管理员）
+     *
+     * @param queryRequest 查询请求参数
+     * @return 模板分页列表
+     * @author DuRuiChi
      */
     @PostMapping("/list/page/vo")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)

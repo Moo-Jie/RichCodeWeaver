@@ -24,7 +24,7 @@ public class CommonStreamHandler {
      *
      * @param stringFlux         AI 响应流
      * @param chatHistoryService 对话历史服务
-     * @param appId              应用 ID
+     * @param appId              产物 ID
      * @param userId             用户 ID
      * @return 处理后的 AI 响应流
      */

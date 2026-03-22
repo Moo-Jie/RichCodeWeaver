@@ -48,7 +48,7 @@ public class CreatAndWriteAiTool extends BaseTool {
      *
      * @param relativeFilePath 文件的相对路径
      * @param content          要写入文件的内容
-     * @param appId            应用 ID ,用于让 AI 主动唯一标识正在生成的应用
+     * @param appId            产物 ID ,用于让 AI 主动唯一标识正在生成的产物
      * @return 写入结果
      */
     @Tool("生成文件到指定路径")

@@ -21,7 +21,7 @@ public abstract class CodeResultSaveToFileTemplate<T> {
      * 保存代码封装类至文件
      *
      * @param result 代码封装类对象
-     * @param appId  应用id
+     * @param appId  产物id
      * @return 生成的目录File对象
      * @throws IllegalArgumentException 如果输入参数为空
      */
@@ -33,7 +33,7 @@ public abstract class CodeResultSaveToFileTemplate<T> {
      * 保存代码封装类至文件（支持自定义目录类型前缀）
      *
      * @param result  代码封装类对象
-     * @param appId   应用id
+     * @param appId   产物id
      * @param bizType 目录类型前缀（如 vue_project、multi_file 等）
      * @return 生成的目录File对象
      */

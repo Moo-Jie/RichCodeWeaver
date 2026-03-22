@@ -111,12 +111,12 @@ public class ImageSearchToolTest {
     }
 
     /**
-     * 测试前端学习应用相关图片搜索（模拟工作流场景）
+     * 测试前端学习产物相关图片搜索（模拟工作流场景）
      */
     @Test
     public void testFrontendLearningImageSearch() {
         log.info("========================================");
-        log.info("开始测试：前端学习应用图片搜索");
+        log.info("开始测试：前端学习产物图片搜索");
         log.info("========================================");
         
         String query = "HTML CSS JavaScript 教程";

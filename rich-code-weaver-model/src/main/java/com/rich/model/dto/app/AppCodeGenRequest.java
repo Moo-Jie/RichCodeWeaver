@@ -9,7 +9,7 @@ public class AppCodeGenRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
     /**
-     * 应用id
+     * 产物id
      */
     private Long appId;
     /**

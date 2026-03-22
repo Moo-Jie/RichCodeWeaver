@@ -15,7 +15,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 应用 实体类。
+ * 产物 实体类。
  */
 @Data
 @Builder
@@ -34,18 +34,18 @@ public class App implements Serializable {
     private Long id;
 
     /**
-     * 应用名称
+     * 产物名称
      */
     @Column("appName")
     private String appName;
 
     /**
-     * 应用封面
+     * 产物封面
      */
     private String cover;
 
     /**
-     * 应用初始化的 prompt
+     * 产物初始化的 prompt
      */
     @Column("initPrompt")
     private String initPrompt;

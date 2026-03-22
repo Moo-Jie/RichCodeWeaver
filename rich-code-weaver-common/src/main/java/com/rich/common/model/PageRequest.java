@@ -3,10 +3,10 @@ package com.rich.common.model;
 import lombok.Data;
 
 /**
- * 分页响应类
+ * 分页响应�?
  *
  * @author DuRuiChi
- * @create 2025/8/4
+ * @since 2026-03-08
  **/
 @Data
 public class PageRequest {

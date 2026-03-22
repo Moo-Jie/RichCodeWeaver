@@ -22,7 +22,7 @@ public interface ChatHistoryService extends IService<ChatHistory> {
     /**
      * 添加对话历史
      *
-     * @param appId       应用 id
+     * @param appId       产物 id
      * @param message     消息
      * @param messageType 消息类型
      * @param userId      用户 id
@@ -33,9 +33,9 @@ public interface ChatHistoryService extends IService<ChatHistory> {
     boolean addChatMessage(Long appId, String message, String messageType, Long userId);
 
     /**
-     * 根据应用 id 删除对话历史
+     * 根据产物 id 删除对话历史
      *
-     * @param appId 应用 id
+     * @param appId 产物 id
      * @return boolean
      * @author DuRuiChi
      * @create 2025/8/16
@@ -45,7 +45,7 @@ public interface ChatHistoryService extends IService<ChatHistory> {
     /**
      * 分页查询某 APP 的对话记录
      *
-     * @param appId          应用 id
+     * @param appId          产物 id
      * @param pageSize       页面大小
      * @param lastCreateTime 最后创建时间
      * @param request        请求对象
@@ -70,7 +70,7 @@ public interface ChatHistoryService extends IService<ChatHistory> {
     /**
      * 从数据库中加载对话历史到记忆中
      *
-     * @param appId      应用 id
+     * @param appId      产物 id
      * @param chatMemory 对话内存
      * @param maxCount   加载数量
      * @return Boolean 是否加载成功

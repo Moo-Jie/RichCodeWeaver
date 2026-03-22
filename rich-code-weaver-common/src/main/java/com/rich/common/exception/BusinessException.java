@@ -3,11 +3,12 @@ package com.rich.common.exception;
 import lombok.Getter;
 
 /**
- * 业务异常
+ * 业务异常类
+ * 用于封装业务逻辑中的异常信息
  *
  * @author DuRuiChi
- * @create 2025/8/4
- **/
+ * @since 2026-03-08
+ */
 @Getter
 public class BusinessException extends RuntimeException {
 

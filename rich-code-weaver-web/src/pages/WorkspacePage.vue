@@ -480,7 +480,7 @@ const fetchAppInfo = async () => {
         // 有正在传输的SSE流，进入对话模式
         appStore.setMode('chat')
       } else if (appStore.selectedApp?.initPrompt && messages.value.length === 0) {
-        // 新创建的应用（有初始提示词但无消息历史），即将自动发送初始消息，进入对话模式
+        // 新创建的产物（有初始提示词但无消息历史），即将自动发送初始消息，进入对话模式
         appStore.setMode('chat')
       } else {
         // 没有正在传输的SSE流，展示数字产物模式

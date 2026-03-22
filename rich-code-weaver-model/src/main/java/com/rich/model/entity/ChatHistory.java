@@ -45,7 +45,7 @@ public class ChatHistory implements Serializable {
     private String messageType;
 
     /**
-     * 应用id
+     * 产物id
      */
     @Column("appId")
     private Long appId;

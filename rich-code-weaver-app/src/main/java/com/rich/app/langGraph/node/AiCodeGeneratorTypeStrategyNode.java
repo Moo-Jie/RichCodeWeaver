@@ -27,7 +27,7 @@ public class AiCodeGeneratorTypeStrategyNode {
      * 用户提示词中明确指定 VUE 项目模式的关键词正则（不区分大小写）
      */
     private static final Pattern VUE_PROJECT_PATTERN = Pattern.compile(
-            "(?i)(vue\\s*项目|vue\\s*3?\\s*工程|vue\\s*project|组件化开发|SPA应用|单页应用框架|vue\\s*模式|VUE项目模式)",
+            "(?i)(vue\\s*项目|vue\\s*3?\\s*工程|vue\\s*project|组件化开发|SPA产物|单页产物框架|vue\\s*模式|VUE项目模式)",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -89,8 +89,8 @@ public class AiCodeGeneratorTypeStrategyNode {
                     // 更新数据库中的 codeGenType 为 AI 判断后的实际类型
                     context.updateAppCodeGenType(finalType);
                 } else {
-                    // 即使用户在创建应用时选择了固定类型，也要检查提示词中是否明确指定了不同的类型
-                    // 例如：应用创建时选了 single_html，但提示词写了 "VUE项目模式"
+                    // 即使用户在创建产物时选择了固定类型，也要检查提示词中是否明确指定了不同的类型
+                    // 例如：产物创建时选了 single_html，但提示词写了 "VUE项目模式"
                     CodeGeneratorTypeEnum promptExplicitType = detectExplicitTypeFromPrompt(context.getOriginalPrompt());
                     if (promptExplicitType != null && !promptExplicitType.equals(generationType)) {
                         log.info("检测到用户提示词中明确指定了 {} 模式，覆盖原配置的 {} 模式",

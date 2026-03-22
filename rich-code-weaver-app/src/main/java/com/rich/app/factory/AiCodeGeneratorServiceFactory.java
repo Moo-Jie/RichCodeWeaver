@@ -34,7 +34,7 @@ public class AiCodeGeneratorServiceFactory {
     /**
      * 创建 Caffeine 缓存服务，用于存储 AI 服务实例
      *
-     * @param appId 应用 id
+     * @param appId 产物 id
      * @return com.rich.app.service.aiChatService.AiCodeGeneratorService
      * @author DuRuiChi
      * @create 2025/8/18

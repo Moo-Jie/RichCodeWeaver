@@ -2,11 +2,11 @@ package com.rich.client.innerService;
 
 /**
  * Web 网页截图服务内部接口
- * （用于系统内部调用的客户端）
+ * 通过Dubbo提供网页截图服务的远程调用接口
  *
  * @author DuRuiChi
- * @create 2025/11/12
- **/
+ * @since 2026-03-11
+ */
 public interface InnerScreenshotService {
     /**
      * 生成并上传网页截图

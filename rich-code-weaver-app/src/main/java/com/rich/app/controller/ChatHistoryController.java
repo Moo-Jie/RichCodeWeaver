@@ -32,9 +32,9 @@ public class ChatHistoryController {
     private AppService appService;
 
     /**
-     * 分页查询登录用户所属的某个应用的对话历史消息
+     * 分页查询登录用户所属的某个产物的对话历史消息
      *
-     * @param appId          应用ID
+     * @param appId          产物ID
      * @param pageSize       页面大小
      * @param lastCreateTime 最后一条记录的创建时间
      * @param request        请求

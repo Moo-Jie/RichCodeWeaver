@@ -64,10 +64,11 @@ import static com.rich.common.constant.AppConstant.CODE_DEPLOY_ROOT_DIR;
 import static com.rich.common.constant.AppConstant.CODE_OUTPUT_ROOT_DIR;
 
 /**
- * AI 应用 服务层实现
+ * AI 产物 服务层实现
+ * 实现AI产物的核心业务逻辑，包括代码生成、部署、预览等功能
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @since 2026-03-10
  */
 @Service
 @Slf4j
@@ -103,7 +104,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * 管理员执行 AI 对话并并生成代码(流式)
      * 使用工作流分布执行节点模式
      *
-     * @param appId   AI 应用id
+     * @param appId   AI 产物id
      * @param userId  用户id
      * @param message 对话消息
      * @param isWorkflow 是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
@@ -117,16 +118,16 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
         // 为当前线程分配监控上下文
 //        SysMonitorContextHolder.setContext(SysMonitorContext.builder()
-//                // 监控应用id
+//                // 监控产物id
 //                .appId(String.valueOf(appId))
 //                // 监控用户id
 //                .userId(String.valueOf(userId))
 //                .build());
-        // 查询 AI 应用
+        // 查询 AI 产物
         App app = appService.getById(appId);
-        // 校验 AI 应用是否存在
+        // 校验 AI 产物是否存在
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
-        // 是否为当前用户所属 AI 应用
+        // 是否为当前用户所属 AI 产物
         ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
         // 获取生成类型
         CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
@@ -151,7 +152,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * 执行 AI 对话并并生成代码(流式，支持断线重连)
      * 使用工作流分布执行节点模式
      *
-     * @param appId       AI 应用id
+     * @param appId       AI 产物id
      * @param userId      用户id
      * @param message     对话消息
      * @param isWorkflow     是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
@@ -195,7 +196,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         streamSessionService.createSession(sessionKey, appId, userId);
         log.info("创建新的流式会话: sessionKey={}", sessionKey);
         
-        // 查询 AI 应用
+        // 查询 AI 产物
         App app = appService.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
@@ -326,7 +327,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     /**
      * 管理员执行 AI 对话并并生成代码(非流式)
      *
-     * @param appId   AI 应用id
+     * @param appId   AI 产物id
      * @param userId  用户id
      * @param message 对话消息
      * @return 代码流
@@ -337,11 +338,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public File aiChatAndGenerateCode(Long appId, Long userId, String message) {
         // 参数校验
         ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
-        // 查询 AI 应用
+        // 查询 AI 产物
         App app = appService.getById(appId);
-        // 校验 AI 应用是否存在
+        // 校验 AI 产物是否存在
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
-        // 是否为当前用户所属 AI 应用
+        // 是否为当前用户所属 AI 产物
         ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR);
         // 获取生成类型
         CodeGeneratorTypeEnum type = CodeGeneratorTypeEnum.getEnumByValue(app.getCodeGenType());
@@ -350,18 +351,18 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 预览指定应用
+     * 预览指定产物
      *
-     * @param appId   应用 ID
+     * @param appId   产物 ID
      * @param request 请求对象
-     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
+     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 产物资源
      * @author DuRuiChi
      * @create 2025/8/8
      **/
     @Override
     public ResponseEntity<FileSystemResource> serverStaticResource(Long appId, HttpServletRequest request) {
         try {
-            // 构建 viewKey，用于定位应用输出目录
+            // 构建 viewKey，用于定位产物输出目录
             App app = appService.getById(appId);
             String codeGenType = app.getCodeGenType();
             String viewKey = codeGenType + "_" + appId;
@@ -388,7 +389,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 return ResponseEntity.notFound()
                         .build();
             }
-            // 返回应用文件资源
+            // 返回产物文件资源
             FileSystemResource fileSystemResource = new FileSystemResource(file);
             return ResponseEntity.ok()
                     .header("Content-Type", getContentTypeWithCharset(filePath))
@@ -400,7 +401,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
 
     /**
-     * 部署应用
+     * 部署产物
      *
      * @param appId
      * @param loginUser
@@ -411,14 +412,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Override
     public String deployApp(Long appId, User loginUser) {
         // 参数校验
-        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物 ID 不能为空");
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
-        // 应用信息校验
+        // 产物信息校验
         App app = this.getById(appId);
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "未检测到应用");
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "未检测到产物");
         // 权限校验
         if (!app.getUserId().equals(loginUser.getId())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "这不是您的应用，无法部署");
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "这不是您的产物，无法部署");
         }
         // deployKey 校验
         String deployKey = app.getDeployKey();
@@ -440,9 +441,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             // 复制目录（执行覆盖）
             FileUtil.copyContent(outputDir, deployDir, true);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用转储失败：" + e.getMessage());
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "产物转储失败：" + e.getMessage());
         }
-        // 更新应用信息
+        // 更新产物信息
         App updateApp = new App();
         updateApp.setId(appId);
         updateApp.setDeployKey(deployKey);
@@ -450,31 +451,31 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean updateResult = this.updateById(updateApp);
         // 部署 URL
         String appUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
-        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "应用信息变更失败");
-        // 部署后对部署后的网站进行截图并保存为应用封面
+        ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "产物信息变更失败");
+        // 部署后对部署后的网站进行截图并保存为产物封面
         generateAppScreenshotAsync(appId, appUrl);
         // 部署 URL
         return appUrl;
     }
 
     /**
-     * 异步生成应用截图并更新封面
+     * 异步生成产物截图并更新封面
      *
-     * @param appId  应用ID
-     * @param appUrl 应用访问URL
+     * @param appId  产物ID
+     * @param appUrl 产物访问URL
      */
     private void generateAppScreenshotAsync(Long appId, String appUrl) {
         // 开启 JDK-21 的虚拟线程，避免阻塞主流程
         Thread.ofVirtual().start(() -> {
             // 调用截图服务生成截图并上传
             String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
-            ThrowUtils.throwIf(screenshotUrl == null || screenshotUrl.isEmpty(), ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
-            // 更新应用封面字段
+            ThrowUtils.throwIf(screenshotUrl == null || screenshotUrl.isEmpty(), ErrorCode.OPERATION_ERROR, "更新产物封面字段失败");
+            // 更新产物封面字段
             App updateApp = new App();
             updateApp.setId(appId);
             updateApp.setCover(screenshotUrl);
             boolean updated = this.updateById(updateApp);
-            ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+            ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新产物封面字段失败");
         });
     }
 
@@ -482,13 +483,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     /**
      * 构建代码输出文件夹
      *
-     * @param app 应用
+     * @param app 产物
      * @return java.io.File
      **/
     @Override
     public File getOutputDir(App app) {
         String codeGenType = app.getCodeGenType();
-        // 通过代码生成类型、应用 ID 构建生成目录名称
+        // 通过代码生成类型、产物 ID 构建生成目录名称
         String outputDirName = codeGenType + "_" + app.getId();
         if (codeGenType.equals(CodeGeneratorTypeEnum.VUE_PROJECT.getValue())) {
             outputDirName += File.separator + "dist";
@@ -500,13 +501,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     /**
      * 构建用于删除的代码输出文件夹（没有 dist 直接删除整个目录）
      *
-     * @param app 应用
+     * @param app 产物
      * @return java.io.File
      **/
     @Override
     public File getDelOutputDir(App app) {
         String codeGenType = app.getCodeGenType();
-        // 通过代码生成类型、应用 ID 构建生成目录名称
+        // 通过代码生成类型、产物 ID 构建生成目录名称
         String outputDirName = codeGenType + "_" + app.getId();
         // 拼接到绝对路径
         return new File(CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
@@ -539,9 +540,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 批量获取 AI 应用 VO 列表
+     * 批量获取 AI 产物 VO 列表
      *
-     * @param appList AI 应用列表
+     * @param appList AI 产物列表
      * @return java.util.List<com.rich.app.model.vo.AppVO>
      * @author DuRuiChi
      * @create 2025/8/8
@@ -561,7 +562,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         Map<Long, UserVO> userVOMap = userService.listByIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, userService::getUserVO));
 
-        // 转换 AI 应用实体为VO对象
+        // 转换 AI 产物实体为VO对象
         return appList.stream().map(app -> {
             // 获取基础VO信息
             AppVO appVO = getAppVO(app);
@@ -573,9 +574,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 构造 AI 应用查询条件
+     * 构造 AI 产物查询条件
      *
-     * @param appQueryRequest AI 应用查询请求
+     * @param appQueryRequest AI 产物查询请求
      * @return com.mybatisflex.core.query.QueryWrapper  查询条件
      * @author DuRuiChi
      * @create 2025/8/8
@@ -615,9 +616,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 添加 AI 应用
+     * 添加 AI 产物
      *
-     * @param appAddRequest AI 应用添加请求
+     * @param appAddRequest AI 产物添加请求
      * @param request       请求
      * @return java.lang.Long
      * @author DuRuiChi
@@ -632,13 +633,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 获取当前登录用户
         User loginUser = InnerUserService.getLoginUser(request);
 
-        // 创建 AI 应用实体
+        // 创建 AI 产物实体
         App app = new App();
         // 复制请求属性到实体
         BeanUtil.copyProperties(appAddRequest, app);
         // 设置用户关联
         app.setUserId(loginUser.getId());
-        // 生成 AI 应用名称（截取提示前 30 字符）
+        // 生成 AI 产物名称（截取提示前 30 字符）
         app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 30)));
         // 设置生成策略
         CodeGeneratorTypeEnum codeGeneratorTypeEnum = appAddRequest.getGeneratorType();
@@ -648,7 +649,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 设置默认封面
         app.setCover(AppConstant.APP_COVER);
 
-        // 保存 AI 应用数据
+        // 保存 AI 产物数据
         boolean result = appService.save(app);
         // 校验保存结果
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
@@ -656,7 +657,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 删除 AI 应用
+     * 删除 AI 产物
      *
      * @param deleteRequest 删除请求
      * @param request       请求
@@ -668,10 +669,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public Boolean deleteApp(DeleteRequest deleteRequest, HttpServletRequest request) {
         // 获取当前登录用户
         User loginUser = InnerUserService.getLoginUser(request);
-        // 解析 AI 应用ID
+        // 解析 AI 产物ID
         long id = deleteRequest.getId();
 
-        // 查询目标 AI 应用
+        // 查询目标 AI 产物
         App oldApp = appService.getById(id);
         // 存在性校验
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
@@ -691,7 +692,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         File deployDir = appService.getDeployDir(oldApp.getDeployKey());
         // 校验输出目录
         if (!outputDir.exists() || !outputDir.isDirectory()) {
-            log.info("当前应用仍未生成代码");
+            log.info("当前产物仍未生成代码");
         } else {
             // 删除输出目录
             boolean outputDirDeleted = FileUtils.deleteQuietly(outputDir);
@@ -700,21 +701,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         // 校验部署目录
         if (!deployDir.exists() || !deployDir.isDirectory()) {
-            log.info("当前应用未部署");
+            log.info("当前产物未部署");
         } else {
             // 删除部署目录
             boolean deployDirDeleted = FileUtils.deleteQuietly(deployDir);
             // 校验部署目录删除结果
             ThrowUtils.throwIf(!deployDirDeleted, ErrorCode.OPERATION_ERROR, "部署目录删除失败");
         }
-        // 删除应用
+        // 删除产物
         return appService.removeById(id);
     }
 
     /**
-     * 更新 AI 应用
+     * 更新 AI 产物
      *
-     * @param appUpdateRequest AI 应用更新请求
+     * @param appUpdateRequest AI 产物更新请求
      * @param request          请求
      * @return java.lang.Boolean
      * @author DuRuiChi
@@ -724,10 +725,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public Boolean updateApp(AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
         // 获取当前登录用户
         User loginUser = InnerUserService.getLoginUser(request);
-        // 解析 AI 应用ID
+        // 解析 AI 产物ID
         long id = appUpdateRequest.getId();
 
-        // 查询现有 AI 应用
+        // 查询现有 AI 产物
         App oldApp = appService.getById(id);
         // 存在性校验
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
@@ -741,7 +742,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         App app = new App();
         // 设置更新ID
         app.setId(id);
-        // 设置新 AI 应用名称
+        // 设置新 AI 产物名称
         app.setAppName(appUpdateRequest.getAppName());
         // 记录更新时间
         app.setEditTime(LocalDateTime.now());
@@ -754,19 +755,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 管理员更新 AI 应用
+     * 管理员更新 AI 产物
      *
-     * @param appAdminUpdateRequest AI 应用管理员更新请求
+     * @param appAdminUpdateRequest AI 产物管理员更新请求
      * @return java.lang.Boolean
      * @author DuRuiChi
      * @create 2025/8/8
      **/
     @Override
     public Boolean updateAppByAdmin(AppAdminUpdateRequest appAdminUpdateRequest) {
-        // 解析 AI 应用ID
+        // 解析 AI 产物ID
         long id = appAdminUpdateRequest.getId();
 
-        // 查询现有 AI 应用
+        // 查询现有 AI 产物
         App oldApp = appService.getById(id);
         // 存在性校验
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
@@ -785,9 +786,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 管理员获取 AI 应用分页
+     * 管理员获取 AI 产物分页
      *
-     * @param appQueryRequest AI 应用查询请求
+     * @param appQueryRequest AI 产物查询请求
      * @return com.mybatisflex.core.paginate.Page<com.rich.app.model.vo.AppVO>
      * @author DuRuiChi
      * @create 2025/8/8
@@ -811,9 +812,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 获取我的 AI 应用分页
+     * 获取我的 AI 产物分页
      *
-     * @param appQueryRequest AI 应用查询请求
+     * @param appQueryRequest AI 产物查询请求
      * @param request         请求
      * @return com.mybatisflex.core.paginate.Page<com.rich.app.model.vo.AppVO>
      * @author DuRuiChi
@@ -827,7 +828,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 分页参数处理
         long pageSize = appQueryRequest.getPageSize();
         // 分页大小限制
-        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个 AI 应用");
+        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个 AI 产物");
         long pageNum = appQueryRequest.getPageNum();
 
         // 设置用户ID过滤条件
@@ -847,9 +848,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 获取星标 AI 应用分页
+     * 获取星标 AI 产物分页
      *
-     * @param appQueryRequest AI 应用查询请求
+     * @param appQueryRequest AI 产物查询请求
      * @return com.mybatisflex.core.paginate.Page<com.rich.app.model.vo.AppVO>
      * @author DuRuiChi
      * @create 2025/8/8
@@ -859,10 +860,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 分页参数处理
         long pageSize = appQueryRequest.getPageSize();
         // 分页大小限制
-        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个 AI 应用");
+        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个 AI 产物");
         long pageNum = appQueryRequest.getPageNum();
 
-        // 设置星标 AI 应用过滤条件
+        // 设置星标 AI 产物过滤条件
         appQueryRequest.setPriority(AppConstant.STAR_APP_PRIORITY);
 
         // 构建查询条件
@@ -879,9 +880,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
-     * 获取 AI 应用 VO 封装类
+     * 获取 AI 产物 VO 封装类
      *
-     * @param app AI 应用实体类
+     * @param app AI 产物实体类
      * @return com.rich.app.model.vo.AppVO
      * @author DuRuiChi
      * @create 2025/8/8

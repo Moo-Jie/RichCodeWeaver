@@ -4,9 +4,10 @@ import lombok.Getter;
 
 /**
  * 错误信息枚举
+ * 定义系统中所有错误码和错误信息
  *
  * @author DuRuiChi
- * @create 2025/8/4
+ * @since 2026-03-08
  **/
 @Getter
 public enum ErrorCode {

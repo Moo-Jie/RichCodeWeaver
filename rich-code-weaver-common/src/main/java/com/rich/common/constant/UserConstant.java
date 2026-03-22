@@ -2,9 +2,10 @@ package com.rich.common.constant;
 
 /**
  * 用户相关常量
+ * 定义用户模块相关的常量配置
  *
  * @author DuRuiChi
- * @create 2025/8/4
+ * @since 2026-03-08
  **/
 public interface UserConstant {
     /**

@@ -27,12 +27,12 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.rich.common.constant.UserConstant.*;
-
 /**
  * 用户服务层实现
+ * 实现用户注册、登录、信息管理等核心业务逻辑
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @since 2026-03-08
  */
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {

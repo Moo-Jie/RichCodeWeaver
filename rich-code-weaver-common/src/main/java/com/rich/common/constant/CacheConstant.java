@@ -15,7 +15,7 @@ public class CacheConstant {
     public static final Duration HOT_KEY_CACHE_TTL = Duration.ofMinutes(100);
 
     /**
-     * 星标应用接口的缓存名称
+     * 星标产物接口的缓存名称
      **/
     public static final String STAR_APP_CACHE_NAME = "star_app_page";
 }

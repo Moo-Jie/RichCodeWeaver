@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Scope;
 import java.time.Duration;
 
 /**
- * 支持多例模式的普通流式模型（用于构建简单的应用，如：构建单文件应用、多文件应用等）
+ * 支持多例模式的普通流式模型（用于构建简单的产物，如：构建单文件产物、多文件产物等）
  *
  * @author DuRuiChi
  * @create 2025/8/24

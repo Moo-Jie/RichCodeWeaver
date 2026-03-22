@@ -20,7 +20,7 @@
         <module>rich-code-weaver-client</module>
         <!-- 用户模块 -->
         <module>rich-code-weaver-user</module>
-        <!-- 应用模块 -->
+        <!-- 产物模块 -->
         <module>rich-code-weaver-app</module>
         <!-- AI模块 -->
         <module>rich-code-weaver-ai</module>

@@ -7,16 +7,28 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.scheduling.annotation.EnableScheduling;
+
+/**
+ * 应用模块启动类
+ * 负责启动应用服务，提供应用管理、代码生成、聊天历史等核心功能
+ * 
+ * @author DuRuiChi
+ * @since 2026-03-10
+ */
 @SpringBootApplication(
-        // 扫描所有 "com.rich" 包下的组件
         scanBasePackages = "com.rich",
-        // 排除 RedisEmbeddingStoreAutoConfiguration，避免与 Redis 相关的自动配置冲突
         exclude = {RedisEmbeddingStoreAutoConfiguration.class})
 @MapperScan("com.rich.app.mapper")
 @EnableCaching
 @EnableDubbo
 @EnableScheduling
 public class AppApplication {
+    
+    /**
+     * 应用启动入口方法
+     * 
+     * @param args 命令行参数
+     */
     public static void main(String[] args) {
         SpringApplication.run(AppApplication.class, args);
     }

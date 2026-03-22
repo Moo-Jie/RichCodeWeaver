@@ -25,11 +25,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 /**
- * 用户
+ * 用户控制器
+ * 提供用户注册、登录、信息管理等接口
  *
  * @author DuRuiChi
- * @create 2025/8/5
- **/
+ * @since 2026-03-08
+ */
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -194,11 +195,11 @@ public class UserController {
     /**
      * 更新头像
      *
-     * @param file
-     * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.Boolean>
+     * @param file 头像文件
+     * @param request 请求对象
+     * @return 更新结果
      * @author DuRuiChi
-     * @create 2025/9/7
-     **/
+     */
 //    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     @PostMapping("/update/avatar")
     public BaseResponse<Boolean> updateUserAvatar(@RequestParam("file") MultipartFile file, HttpServletRequest request) {

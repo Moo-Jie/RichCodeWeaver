@@ -25,7 +25,7 @@
 - index.html 未包含 `<script type="module" src="/src/main.js"></script>` 引用
 - 缺少 package.json 或 package.json 中缺少 vue、vue-router 依赖
 - 缺少 vite.config.js 或未正确配置 vue 插件
-- 缺少 src/main.js（Vue 应用入口文件）
+- 缺少 src/main.js（Vue 产物入口文件）
 - vite.config.js 未配置 `base: './'`（导致部署路径问题）
 - 路由未使用 hash 模式（createWebHashHistory）
 

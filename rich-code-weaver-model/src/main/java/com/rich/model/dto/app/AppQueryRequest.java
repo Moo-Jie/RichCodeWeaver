@@ -16,15 +16,15 @@ public class AppQueryRequest extends PageRequest implements Serializable {
      */
     private Long id;
     /**
-     * 应用名称
+     * 产物名称
      */
     private String appName;
     /**
-     * 应用封面
+     * 产物封面
      */
     private String cover;
     /**
-     * 应用初始化的 prompt
+     * 产物初始化的 prompt
      */
     private String initPrompt;
     /**

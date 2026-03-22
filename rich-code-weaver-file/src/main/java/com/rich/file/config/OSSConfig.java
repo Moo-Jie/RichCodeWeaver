@@ -6,11 +6,11 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * OSS配置类
- * （仅在配置文件中配置了 aliyun.oss 相关属性时生效）
+ * 从配置文件中读取阿里云OSS相关配置属性
  *
  * @author DuRuiChi
- * @create 2025/9/3
- **/
+ * @since 2026-03-11
+ */
 @ConfigurationProperties(prefix = "aliyun.oss")
 @Configuration
 @Data

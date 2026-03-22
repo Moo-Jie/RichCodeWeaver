@@ -12,6 +12,13 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * 文件控制器
+ * 提供文件上传等接口
+ *
+ * @author DuRuiChi
+ * @since 2026-03-11
+ */
 @RestController
 @RequestMapping("/file")
 public class FileController {
@@ -23,10 +30,9 @@ public class FileController {
      * 文件上传接口
      *
      * @param file 上传的文件
-     * @return com.rich.richcodeweaver.model.common.BaseResponse<java.lang.String>  文件上传成功后的 URL
+     * @return 文件上传成功后的URL
      * @author DuRuiChi
-     * @create 2025/9/3
-     **/
+     */
 //    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     @PostMapping("/upload")
     public BaseResponse<String> upload(@RequestPart("file") MultipartFile file) {

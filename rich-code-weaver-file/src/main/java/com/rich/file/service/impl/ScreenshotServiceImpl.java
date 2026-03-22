@@ -20,10 +20,11 @@ import static com.rich.file.utils.MultipartFileUtils.getMultipartFile;
 
 /**
  * Web 网页截图服务实现类
+ * 实现网页截图生成和上传到OSS的具体逻辑
  *
  * @author DuRuiChi
- * @create 2025/8/31
- **/
+ * @since 2026-03-11
+ */
 @Service
 @Slf4j
 public class ScreenshotServiceImpl implements ScreenshotService {

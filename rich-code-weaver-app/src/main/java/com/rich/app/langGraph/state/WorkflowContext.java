@@ -36,7 +36,7 @@ public class WorkflowContext implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
     /**
-     * 应用 ID
+     * 产物 ID
      */
     private Long appId;
     /**

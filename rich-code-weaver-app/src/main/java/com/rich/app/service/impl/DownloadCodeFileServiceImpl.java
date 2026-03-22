@@ -144,7 +144,7 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
     /**
      * 构建代码绝对路径
      *
-     * @param app 应用
+     * @param app 产物
      * @return 代码绝对路径
      */
     private String BuildCodeAbsolutePath(App app) {

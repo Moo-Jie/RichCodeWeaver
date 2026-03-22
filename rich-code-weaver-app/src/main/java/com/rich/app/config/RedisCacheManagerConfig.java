@@ -21,8 +21,8 @@ import static com.rich.common.constant.CacheConstant.*;
  * 将 Redis 配置为 Spring Cache 的默认缓存实现，替代默认的内存缓存
  *
  * @author DuRuiChi
- * @create 2025/9/22
- **/
+ * @since 2026-03-09
+ */
 @Configuration
 public class RedisCacheManagerConfig {
 
@@ -33,6 +33,7 @@ public class RedisCacheManagerConfig {
      * 创建基于 Redis 缓存管理器 Bean，否则将使用默认的内存缓存管理器
      *
      * @return 配置完成的 CacheManager 实例
+     * @author DuRuiChi
      */
     @Bean
     public CacheManager cacheManager() {
@@ -56,6 +57,7 @@ public class RedisCacheManagerConfig {
      * 确保 LocalDate、LocalDateTime 等类型能正确序列化/反序列化
      *
      * @return 配置好的 ObjectMapper 实例
+     * @author DuRuiChi
      */
     private ObjectMapper createObjectMapperWithJavaTimeSupport() {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -70,6 +72,7 @@ public class RedisCacheManagerConfig {
      *
      * @param objectMapper 配置好的 Jackson 对象映射器
      * @return 默认缓存配置实例
+     * @author DuRuiChi
      */
     private RedisCacheConfiguration createDefaultCacheConfig(ObjectMapper objectMapper) {
         return RedisCacheConfiguration.defaultCacheConfig()

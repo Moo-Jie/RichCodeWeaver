@@ -21,12 +21,16 @@ import java.io.File;
 import java.util.List;
 
 /**
- * AI 应用 服务层。
+ * AI 产物 服务层
+ * 提供AI产物的业务逻辑处理，包括代码生成、部署、预览等功能
+ *
+ * @author DuRuiChi
+ * @since 2026-03-10
  */
 public interface AppService extends IService<App> {
 
     /**
-     * 获取 AI 应用封装类
+     * 获取 AI 产物封装类
      *
      * @param app
      * @return
@@ -34,7 +38,7 @@ public interface AppService extends IService<App> {
     AppVO getAppVO(App app);
 
     /**
-     * 获取 AI 应用封装类列表
+     * 获取 AI 产物封装类列表
      *
      * @param appList
      * @return
@@ -42,7 +46,7 @@ public interface AppService extends IService<App> {
     List<AppVO> getAppVOList(List<App> appList);
 
     /**
-     * 构造 AI 应用查询条件
+     * 构造 AI 产物查询条件
      *
      * @param appQueryRequest
      * @return
@@ -50,24 +54,24 @@ public interface AppService extends IService<App> {
     QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest);
 
     /**
-     * 添加 AI 应用
+     * 添加 AI 产物
      *
-     * @param appAddRequest AI 应用添加请求
+     * @param appAddRequest AI 产物添加请求
      * @param request       请求
-     * @return AI 应用id
+     * @return AI 产物id
      */
     Long addApp(AppAddRequest appAddRequest, HttpServletRequest request);
 
     /**
-     * 更新 AI 应用
+     * 更新 AI 产物
      *
-     * @param appUpdateRequest AI 应用更新请求
+     * @param appUpdateRequest AI 产物更新请求
      * @return 是否更新成功
      */
     Boolean updateApp(AppUpdateRequest appUpdateRequest, HttpServletRequest request);
 
     /**
-     * 删除 AI 应用
+     * 删除 AI 产物
      *
      * @param deleteRequest 删除请求
      * @param request       请求
@@ -76,35 +80,35 @@ public interface AppService extends IService<App> {
     Boolean deleteApp(DeleteRequest deleteRequest, HttpServletRequest request);
 
     /**
-     * 分页获取我的 AI 应用列表
+     * 分页获取我的 AI 产物列表
      *
-     * @param appQueryRequest AI 应用查询请求
+     * @param appQueryRequest AI 产物查询请求
      * @param request         请求
-     * @return AI 应用视图对象分页
+     * @return AI 产物视图对象分页
      */
     Page<AppVO> listMyAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request);
 
     /**
-     * 分页获取星标 AI 应用列表
+     * 分页获取星标 AI 产物列表
      *
-     * @param appQueryRequest AI 应用查询请求
-     * @return AI 应用视图对象分页
+     * @param appQueryRequest AI 产物查询请求
+     * @return AI 产物视图对象分页
      */
     Page<AppVO> listStarAppVOByPage(AppQueryRequest appQueryRequest);
 
     /**
-     * 管理员更新 AI 应用
+     * 管理员更新 AI 产物
      *
-     * @param appAdminUpdateRequest AI 应用管理员更新请求
+     * @param appAdminUpdateRequest AI 产物管理员更新请求
      * @return 是否更新成功
      */
     Boolean updateAppByAdmin(AppAdminUpdateRequest appAdminUpdateRequest);
 
     /**
-     * 管理员分页获取 AI 应用列表
+     * 管理员分页获取 AI 产物列表
      *
-     * @param appQueryRequest AI 应用查询请求
-     * @return AI 应用视图对象分页
+     * @param appQueryRequest AI 产物查询请求
+     * @return AI 产物视图对象分页
      */
     Page<AppVO> listAppVOByPageByAdmin(AppQueryRequest appQueryRequest);
 
@@ -112,7 +116,7 @@ public interface AppService extends IService<App> {
      * 执行 AI 对话并并生成代码(流式)
      * 使用工作流分布执行节点模式
      *
-     * @param appId   AI 应用id
+     * @param appId   AI 产物id
      * @param userId  用户id
      * @param message 对话消息
      * @param isWorkflow 是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
@@ -124,7 +128,7 @@ public interface AppService extends IService<App> {
      * 执行 AI 对话并并生成代码(流式，支持断线重连)
      * 使用工作流分布执行节点模式
      *
-     * @param appId       AI 应用id
+     * @param appId       AI 产物id
      * @param userId      用户id
      * @param message     对话消息
      * @param isWorkflow     是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
@@ -137,7 +141,7 @@ public interface AppService extends IService<App> {
     /**
      * 执行 AI 对话并并生成代码(非流式)
      *
-     * @param appId   AI 应用id
+     * @param appId   AI 产物id
      * @param userId  用户id
      * @param message 对话消息
      * @return 代码文件
@@ -145,27 +149,27 @@ public interface AppService extends IService<App> {
     File aiChatAndGenerateCode(Long appId, Long userId, String message);
 
     /**
-     * 预览指定应用
+     * 预览指定产物
      *
-     * @param appId   应用 ID
+     * @param appId   产物 ID
      * @param request 请求对象
-     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
+     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 产物资源
      */
     ResponseEntity<FileSystemResource> serverStaticResource(Long appId, HttpServletRequest request);
 
     /**
-     * 部署应用
+     * 部署产物
      *
-     * @param appId     应用id
+     * @param appId     产物id
      * @param loginUser 登录用户
-     * @return 部署后的应用访问url
+     * @return 部署后的产物访问url
      */
     String deployApp(Long appId, User loginUser);
 
     /**
      * 构建代码输出文件夹
      *
-     * @param app 应用
+     * @param app 产物
      * @return java.io.File
      **/
     public File getOutputDir(App app);
@@ -181,7 +185,7 @@ public interface AppService extends IService<App> {
     /**
      * 构建用于删除的代码输出文件夹（没有 dist 直接删除整个目录）
      *
-     * @param app 应用
+     * @param app 产物
      * @return java.io.File
      **/
     public File getDelOutputDir(App app);

@@ -93,7 +93,7 @@ public class AiWebSearchToolTest {
     @Test
     public void testFrontendSearch() {
         log.info("========================================");
-        log.info("开始测试：前端知识学习应用搜索");
+        log.info("开始测试：前端知识学习产物搜索");
         log.info("========================================");
         
         String query = "frontend educational SPA HTML CSS JS cards code highlight live preview";

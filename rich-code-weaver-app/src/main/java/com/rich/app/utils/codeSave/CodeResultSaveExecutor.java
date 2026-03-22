@@ -26,7 +26,7 @@ public class CodeResultSaveExecutor {
      *
      * @param codeResult  代码结果对象
      * @param codeGenType 代码生成类型
-     * @param appId       应用id
+     * @param appId       产物id
      * @return 保存的目录
      */
     public static File executeSaver(Object codeResult, CodeGeneratorTypeEnum codeGenType, Long appId) {

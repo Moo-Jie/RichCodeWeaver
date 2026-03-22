@@ -227,7 +227,7 @@ public class CustomMailNotifier extends AbstractStatusChangeNotifier {
         // 页脚
         content.append("<div class='footer'>");
         content.append("<p>这是一封自动发送的邮件，请勿直接回复。</p>");
-        content.append("<p>RichCodeWeaver AI智能应用生成平台 - 服务监控系统</p>");
+        content.append("<p>RichCodeWeaver AI智能产物生成平台 - 服务监控系统</p>");
         content.append("</div>");
         
         content.append("</div>");

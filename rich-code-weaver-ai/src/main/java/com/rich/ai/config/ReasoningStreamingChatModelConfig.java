@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Scope;
 import java.time.Duration;
 
 /**
- * 支持多例模式的推理流式模型（用于构建复杂的应用，如：构建工程化项目等）
+ * 支持多例模式的推理流式模型（用于构建复杂的产物，如：构建工程化项目等）
  *
  * @author DuRuiChi
  * @create 2025/8/24

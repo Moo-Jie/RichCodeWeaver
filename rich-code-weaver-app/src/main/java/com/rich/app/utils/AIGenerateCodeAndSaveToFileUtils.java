@@ -38,7 +38,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
      *
      * @param userMessage     用户提示词
      * @param codeGenTypeEnum 代码生成类型
-     * @param appId           应用id
+     * @param appId           产物id
      * @return java.io.File
      * @author DuRuiChi
      * @create 2025/8/5
@@ -91,7 +91,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
      *
      * @param userMessage     用户提示词
      * @param codeGenTypeEnum 代码生成类型
-     * @param appId           应用id
+     * @param appId           产物id
      * @return reactor.core.publisher.Flux<java.lang.String>    代码流
      * @author DuRuiChi
      * @create 2025/8/6
@@ -145,7 +145,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
      *
      * @param resultStream          代码流
      * @param codeGeneratorTypeEnum 代码类型
-     * @param appId                 应用id
+     * @param appId                 产物id
      * @return reactor.core.publisher.Flux<java.lang.String>    代码流
      * @author DuRuiChi
      * @create 2025/8/6

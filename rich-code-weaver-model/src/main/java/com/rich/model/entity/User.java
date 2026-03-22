@@ -16,9 +16,10 @@ import java.time.LocalDateTime;
 
 /**
  * 用户 实体类
+ * 对应数据库user表，存储用户基本信息
  *
  * @author DuRuiChi
- * @create 2025/8/5
+ * @since 2026-03-08
  */
 @Data
 @Builder

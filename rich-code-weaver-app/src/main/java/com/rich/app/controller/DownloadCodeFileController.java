@@ -31,7 +31,7 @@ public class DownloadCodeFileController {
     /**
      * 下载代码文件
      *
-     * @param appId    应用 ID
+     * @param appId    产物 ID
      * @param response 响应
      */
 //    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
@@ -40,10 +40,10 @@ public class DownloadCodeFileController {
 //                                    HttpServletRequest request,
                                     HttpServletResponse response) {
         // 参数校验
-        ThrowUtils.throwIf(appId == null, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
-        // 应用校验
+        ThrowUtils.throwIf(appId == null, ErrorCode.PARAMS_ERROR, "产物ID不能为空");
+        // 产物校验
         App app = appService.getById(appId);
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
         // 权限校验 TODO 不允许下载其他用户的代码时打开
 //        User loginUser = InnerUserService.getLoginUser(request);
 //        ThrowUtils.throwIf(loginUser.getId().equals(app.getUserId()), ErrorCode.NOT_FOUND_ERROR, "您无权下载此代码");

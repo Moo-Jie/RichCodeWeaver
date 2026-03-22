@@ -34,7 +34,7 @@ public class CodeGeneratorNode {
     /**
      * 注册流式输出发射器（由 CodeGenWorkflowApp 在工作流启动前调用）
      *
-     * @param appId   应用ID
+     * @param appId   产物ID
      * @param emitter 接收每个流式文本块的消费者
      */
     public static void registerStreamEmitter(Long appId, Consumer<String> emitter) {
@@ -44,7 +44,7 @@ public class CodeGeneratorNode {
     /**
      * 注销流式输出发射器（由 CodeGenWorkflowApp 在工作流结束后调用）
      *
-     * @param appId 应用ID
+     * @param appId 产物ID
      */
     public static void unregisterStreamEmitter(Long appId) {
         STREAM_EMITTERS.remove(appId);

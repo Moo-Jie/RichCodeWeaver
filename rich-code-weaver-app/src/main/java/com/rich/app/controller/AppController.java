@@ -31,7 +31,7 @@ import reactor.core.publisher.Flux;
 import java.io.File;
 
 /**
- * AI 应用相关接口
+ * AI 产物相关接口
  *
  * @author DuRuiChi
  * @create 2025/8/7
@@ -51,10 +51,10 @@ public class AppController {
     private InnerFileService fileService;
 
     /**
-     * 执行 AI 生成应用代码（SSE 流式，支持断线重连）
+     * 执行 AI 生成产物代码（SSE 流式，支持断线重连）
      * 使用工作流分布执行节点模式
      *
-     * @param appId   应用id
+     * @param appId   产物id
      * @param message 用户消息
      * @param isWorkflow 是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
      * @param reconnect 是否为重连请求
@@ -72,19 +72,19 @@ public class AppController {
         // 参数校验
         Long userId = InnerUserService.getLoginUser(request).getId();
         ThrowUtils.throwIf(appId == null || userId == null || message == null, ErrorCode.PARAMS_ERROR);
-        // 执行 AI 生成应用代码（支持断线重连）
+        // 执行 AI 生成产物代码（支持断线重连）
         return appService.aiChatAndGenerateCodeStreamWithReconnect(appId, userId, message, isWorkflow, lastEventId, reconnect);
     }
 
     /**
-     * 预览指定应用
+     * 预览指定产物
      * URL：/api/app/{appId}[/{fileName}]
      *
-     * @param appId   应用浏览标识，用于定位应用输出目录
+     * @param appId   产物浏览标识，用于定位产物输出目录
      * @param request 请求对象
-     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 应用资源
+     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 产物资源
      * @author DuRuiChi
-     * @create 2025/8/9
+     * @create 2026/8/9
      **/
     @GetMapping("/view/{appId}/**")
     public ResponseEntity<FileSystemResource> viewApp(@PathVariable Long appId, HttpServletRequest request) {
@@ -95,20 +95,20 @@ public class AppController {
     }
 
     /**
-     * 部署应用
+     * 部署产物
      *
      * @param appDeployRequest 部署请求参数
      * @param request          请求信息
      * @return com.rich.app.model.common.BaseResponse<java.lang.String>  部署成功后的 URL
      * @author DuRuiChi
-     * @create 2025/8/10
+     * @create 2026/8/10
      **/
     @PostMapping("/deploy")
     public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
         Long appId = appDeployRequest.getAppId();
-        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物 ID 不能为空");
 
         User loginUser = InnerUserService.getLoginUser(request);
         // 执行部署逻辑
@@ -118,7 +118,7 @@ public class AppController {
 
 
     /**
-     * 创建 AI 应用
+     * 创建 AI 产物
      *
      * @param appAddRequest
      * @param request
@@ -132,7 +132,7 @@ public class AppController {
     }
 
     /**
-     * 更新 AI 应用（用户只能更新自己的 AI 应用名称）
+     * 更新 AI 产物（用户只能更新自己的 AI 产物名称）
      *
      * @param appUpdateRequest 更新请求参数
      * @param request          请求对象
@@ -148,7 +148,7 @@ public class AppController {
     }
 
     /**
-     * 删除 AI 应用
+     * 删除 AI 产物
      *
      * @param deleteRequest 删除请求参数
      * @param request       请求对象
@@ -164,23 +164,23 @@ public class AppController {
     }
 
     /**
-     * 根据 id 查询 AI 应用详情
+     * 根据 id 查询 AI 产物详情
      *
-     * @param id 应用 id
-     * @return com.rich.app.model.common.BaseResponse<com.rich.app.model.vo.AppVO> 应用详情
+     * @param id 产物 id
+     * @return com.rich.app.model.common.BaseResponse<com.rich.app.model.vo.AppVO> 产物详情
      */
     @GetMapping("/get/vo")
     public BaseResponse<AppVO> getAppVOById(@RequestParam("id") long id) {
         // 参数校验
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
-        // 获取 AI 应用
+        // 获取 AI 产物
         App app = appService.getById(id);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         return ResultUtils.success(appService.getAppVO(app));
     }
 
     /**
-     * 分页获取当前用户创建的 AI 应用列表
+     * 分页获取当前用户创建的 AI 产物列表
      *
      * @param appQueryRequest 查询请求参数
      * @param request         请求对象
@@ -193,10 +193,10 @@ public class AppController {
     }
 
     /**
-     * 分页获取星标 AI 应用列表
+     * 分页获取星标 AI 产物列表
      *
      * @param appQueryRequest 查询请求参数
-     * @return com.rich.app.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.app.model.vo.AppVO>> 星标应用列表
+     * @return com.rich.app.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.app.model.vo.AppVO>> 星标产物列表
      */
 //    @Cacheable(
 //            value = STAR_APP_CACHE_NAME, // 缓存名
@@ -211,7 +211,7 @@ public class AppController {
     }
 
     /**
-     * 管理员删除 AI 应用
+     * 管理员删除 AI 产物
      *
      * @param deleteRequest 删除请求参数
      * @return com.rich.app.model.common.BaseResponse<java.lang.Boolean> 删除结果
@@ -223,7 +223,7 @@ public class AppController {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // 获取 AI 应用
+        // 获取 AI 产物
         long id = deleteRequest.getId();
         App oldApp = appService.getById(id);
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
@@ -233,7 +233,7 @@ public class AppController {
     }
 
     /**
-     * 管理员更新 AI 应用
+     * 管理员更新 AI 产物
      *
      * @param appAdminUpdateRequest 更新请求参数
      * @return com.rich.app.model.common.BaseResponse<java.lang.Boolean> 更新结果
@@ -249,10 +249,10 @@ public class AppController {
     }
 
     /**
-     * 管理员分页获取 AI 应用列表
+     * 管理员分页获取 AI 产物列表
      *
      * @param appQueryRequest 查询请求参数
-     * @return com.rich.app.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.app.model.vo.AppVO>> 应用列表
+     * @return com.rich.app.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.app.model.vo.AppVO>> 产物列表
      */
     @PostMapping("/list/page/vo/admin")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -263,28 +263,28 @@ public class AppController {
     }
 
     /**
-     * 管理员根据 id 获取 AI 应用详情
+     * 管理员根据 id 获取 AI 产物详情
      *
-     * @param id 应用 id
-     * @return com.rich.app.model.common.BaseResponse<com.rich.app.model.vo.AppVO> 应用详情
+     * @param id 产物 id
+     * @return com.rich.app.model.common.BaseResponse<com.rich.app.model.vo.AppVO> 产物详情
      */
     @GetMapping("/get/vo/admin")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<AppVO> getAppVOByIdByAdmin(@RequestParam("id") long id) {
         // 参数校验
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
-        // 查询 AI 应用实体
+        // 查询 AI 产物实体
         App app = appService.getById(id);
-        // 检查 AI 应用是否存在
+        // 检查 AI 产物是否存在
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         // 转换为视图对象并返回
         return ResultUtils.success(appService.getAppVO(app));
     }
 
     /**
-     * 执行 AI 生成应用代码（非流式)
+     * 执行 AI 生成产物代码（非流式)
      *
-     * @param appCodeGenRequest 应用代码生成请求
+     * @param appCodeGenRequest 产物代码生成请求
      * @param request           请求对象
      * @return 生成结果流
      */
@@ -296,15 +296,15 @@ public class AppController {
         String message = appCodeGenRequest.getMessage();
         Long userId = InnerUserService.getLoginUser(request).getId();
         ThrowUtils.throwIf(appId == null || userId == null || appId < 0 || userId < 0 || message == null, ErrorCode.PARAMS_ERROR);
-        // 执行 AI 生成应用代码
+        // 执行 AI 生成产物代码
         return appService.aiChatAndGenerateCode(appId, userId, message);
     }
 
     /**
-     * 上传应用封面
+     * 上传产物封面
      *
      * @param file    封面图片
-     * @param appId   应用 ID
+     * @param appId   产物 ID
      * @param request 用户信息
      * @return com.rich.app.model.common.BaseResponse<java.lang.String>
      **/
@@ -317,10 +317,10 @@ public class AppController {
         App app = appService.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "参数错误");
         // 权限校验
-        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "您无权更换他人应用封面");
+        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()), ErrorCode.NO_AUTH_ERROR, "您无权更换他人产物封面");
         // 上传文件
         String url = fileService.upload(file);
-        // 更新应用封面
+        // 更新产物封面
         app.setCover(url);
         appService.updateById(app);
         // 返回图片URL

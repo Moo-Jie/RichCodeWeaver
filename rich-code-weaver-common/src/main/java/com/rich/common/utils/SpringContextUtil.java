@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Spring 上下文工具类（用于在静态方法中获取Spring Bean）
- * 实现 ApplicationContextAware 接口获取 Spring 应用上下文
+ * 实现 ApplicationContextAware 接口获取 Spring 产物上下文
  * 通过静态方法提供 Bean 获取能力
  *
  * @author DuRuiChi
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class SpringContextUtil implements ApplicationContextAware {
 
-    // 静态持有的 Spring 应用上下文（由 Spring 容器自动注入）
+    // 静态持有的 Spring 产物上下文（由 Spring 容器自动注入）
     private static ApplicationContext applicationContext;
 
     /**
@@ -53,7 +53,7 @@ public class SpringContextUtil implements ApplicationContextAware {
     /**
      * Spring 容器初始化时自动调用此方法注入静态上下文
      *
-     * @param applicationContext Spring 应用上下文对象
+     * @param applicationContext Spring 产物上下文对象
      */
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {

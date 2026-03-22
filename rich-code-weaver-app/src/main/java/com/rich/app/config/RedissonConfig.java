@@ -10,10 +10,11 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * Redisson 配置类
+ * 配置Redisson客户端，用于实现分布式锁、限流等功能
  *
  * @author DuRuiChi
- * @create 2025/9/24
- **/
+ * @since 2026-03-09
+ */
 @Configuration
 public class RedissonConfig {
 
@@ -65,10 +66,9 @@ public class RedissonConfig {
     /**
      * 创建 Redisson 客户端
      *
-     * @return org.redisson.api.RedissonClient
+     * @return Redisson客户端实例
      * @author DuRuiChi
-     * @create 2025/9/24
-     **/
+     */
     @Bean
     public RedissonClient redissonClient() {
         Config config = new Config();

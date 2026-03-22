@@ -117,7 +117,7 @@ public class AICodeReviewNode {
                     File mainJs = new File(srcDir, "main.js");
                     File mainTs = new File(srcDir, "main.ts");
                     if (!mainJs.exists() && !mainTs.exists()) {
-                        errors.add("缺少 src/main.js 或 src/main.ts（Vue 应用入口文件）");
+                        errors.add("缺少 src/main.js 或 src/main.ts（Vue 产物入口文件）");
                     }
                 }
                 // 检查 index.html 是否引用了 src/main.js
@@ -245,7 +245,7 @@ public class AICodeReviewNode {
                     "确保项目根目录包含 index.html，内容包括 <script type=\"module\" src=\"/src/main.js\"></script>",
                     "确保 package.json 包含 vue、vue-router 依赖和 vite、@vitejs/plugin-vue 开发依赖",
                     "确保 vite.config.js 配置了 base: './' 和 vue 插件",
-                    "确保 src/main.js 创建 Vue 应用并挂载到 #app",
+                    "确保 src/main.js 创建 Vue 产物并挂载到 #app",
                     "禁止引用未创建的本地资源文件（如 @/assets/logo.png），图片请使用在线 URL"
             );
             case MULTI_FILE -> List.of(

@@ -26,10 +26,11 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 限制接口的请求速率的切面类
+ * 基于Redisson实现分布式限流，支持按用户、IP、API三种维度进行限流
  *
  * @author DuRuiChi
- * @create 2025/8/5
- **/
+ * @since 2026-03-08
+ */
 @Aspect
 @Component
 @Slf4j
@@ -53,10 +54,8 @@ public class RateLimitInterceptor {
      *
      * @param joinPoint 连接点，用于获取方法等信息
      * @param rateLimit 限流注解，用于获取限流配置
-     * @return void
      * @author DuRuiChi
-     * @create 2025/9/24
-     **/
+     */
     @Before("@annotation(rateLimit)")
     public void doRateLimit(JoinPoint joinPoint, RateLimit rateLimit) {
         // 参数校验
@@ -98,6 +97,7 @@ public class RateLimitInterceptor {
      * @param key       限流key
      * @param rateLimit 限流注解配置
      * @param joinPoint 连接点
+     * @author DuRuiChi
      */
     private void executeRateLimiting(String key, RateLimit rateLimit, JoinPoint joinPoint) {
         // 获取 Redission 分布式限流器
@@ -137,6 +137,7 @@ public class RateLimitInterceptor {
      *
      * @param rateLimit 限流注解
      * @return 参数是否有效
+     * @author DuRuiChi
      */
     private boolean validateRateLimitParams(RateLimit rateLimit) {
         if (rateLimit.rate() <= 0) {
@@ -153,6 +154,7 @@ public class RateLimitInterceptor {
      *
      * @param joinPoint 连接点
      * @return 降级key
+     * @author DuRuiChi
      */
     private String generateFallbackKey(JoinPoint joinPoint) {
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
@@ -164,10 +166,9 @@ public class RateLimitInterceptor {
      *
      * @param joinPoint 连接点，用于获取方法等信息
      * @param rateLimit 限流注解，用于获取限流配置
-     * @return java.lang.String
+     * @return 限流key字符串
      * @author DuRuiChi
-     * @create 2025/9/24
-     **/
+     */
     private String splicingCurrentLimitingKey(JoinPoint joinPoint, RateLimit rateLimit) {
         // 拼接限流 key
         StringBuilder key = new StringBuilder("rate_limit:");
@@ -220,6 +221,7 @@ public class RateLimitInterceptor {
      * 获取当前登录用户
      *
      * @return 登录用户对象，获取失败返回null
+     * @author DuRuiChi
      */
     private User getCurrentLoginUser() {
         try {
@@ -239,6 +241,7 @@ public class RateLimitInterceptor {
      *
      * @param joinPoint 连接点
      * @return 方法对象，获取失败返回null
+     * @author DuRuiChi
      */
     private Method getTargetMethod(JoinPoint joinPoint) {
         try {
@@ -251,11 +254,11 @@ public class RateLimitInterceptor {
 
     /**
      * 获取当前请求的 IP 地址
+     * 支持从多种代理头中获取真实IP
      *
-     * @return java.lang.String
+     * @return 客户端IP地址
      * @author DuRuiChi
-     * @create 2025/9/24
-     **/
+     */
     private String getClientIP() {
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -306,6 +309,7 @@ public class RateLimitInterceptor {
      *
      * @param ip IP地址
      * @return 是否有效
+     * @author DuRuiChi
      */
     private boolean isValidIP(String ip) {
         return ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip) && !"0:0:0:0:0:0:0:1".equals(ip) && !"127.0.0.1".equals(ip);

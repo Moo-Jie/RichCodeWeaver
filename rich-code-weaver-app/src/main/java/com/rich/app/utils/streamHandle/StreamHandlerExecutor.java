@@ -28,7 +28,7 @@ public class StreamHandlerExecutor {
      *
      * @param stringFlux            AI 响应流
      * @param chatHistoryService    对话历史服务
-     * @param appId                 应用 ID
+     * @param appId                 产物 ID
      * @param userId                用户 ID
      * @param codeGeneratorTypeEnum 代码生成器类型枚举
      * @return reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent < java.lang.String>>  处理后响应给前端的 AI 响应流

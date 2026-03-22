@@ -29,7 +29,7 @@ public class WebResourceOrganizeNode {
             long startTime = System.currentTimeMillis();
             log.info("\n========================================");
             log.info("[网络资源整理节点] 开始执行");
-            log.info("应用ID: {}", context.getAppId());
+            log.info("产物ID: {}", context.getAppId());
             log.info("原始提示词: {}", context.getOriginalPrompt());
             log.info("========================================\n");
             
@@ -55,7 +55,7 @@ public class WebResourceOrganizeNode {
                 long duration = System.currentTimeMillis() - startTime;
                 log.error("\n========================================");
                 log.error("[网络资源整理节点] 执行失败");
-                log.error("应用ID: {}", context.getAppId());
+                log.error("产物ID: {}", context.getAppId());
                 log.error("执行耗时: {} ms", duration);
                 log.error("异常类型: {}", e.getClass().getName());
                 log.error("异常消息: {}", e.getMessage());

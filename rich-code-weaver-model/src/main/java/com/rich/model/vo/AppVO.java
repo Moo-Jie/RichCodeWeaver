@@ -6,7 +6,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 应用封装类
+ * 产物封装类
  */
 @Data
 public class AppVO implements Serializable {
@@ -17,15 +17,15 @@ public class AppVO implements Serializable {
      */
     private Long id;
     /**
-     * 应用名称
+     * 产物名称
      */
     private String appName;
     /**
-     * 应用封面
+     * 产物封面
      */
     private String cover;
     /**
-     * 应用初始化的 prompt
+     * 产物初始化的 prompt
      */
     private String initPrompt;
     /**

@@ -32,7 +32,7 @@ import static org.bsc.langgraph4j.StateGraph.START;
 import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
 
 /**
- * AI 代码生成工作流应用类
+ * AI 代码生成工作流产物类
  * 负责构建和执行代码生成的完整工作流程，包括资源收集、提示词增强、代码生成和项目构建等步骤
  *
  * @author DuRuiChi
@@ -126,7 +126,7 @@ public class CodeGenWorkflowApp {
      *
      * @param originalPrompt     原始提示词，描述需要生成的代码功能
      * @param type               代码生成器的不同模式，影响工作流的执行路径
-     * @param appId              应用ID，用于标识不同的生成任务
+     * @param appId              产物ID，用于标识不同的生成任务
      * @param chatHistoryService 对话历史服务，用于存储和管理对话记录
      * @param userId             用户ID，用于关联生成任务的用户
      * @return Flux<String> SSE事件流，包含工作流执行过程中的各种事件
@@ -159,7 +159,7 @@ public class CodeGenWorkflowApp {
                             "<div class='workflow-meta'>\n\n" +
                             "| 项目 | 信息 |\n" +
                             "|------|------|\n" +
-                            "| 应用ID | `" + appId + "` |\n" +
+                            "| 产物ID | `" + appId + "` |\n" +
                             "| 生成类型 | **" + type.getValue() + "** |\n" +
                             "| 执行模式 | **分布式工作流** |\n" +
                             "| 原始需求 | " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + " |\n\n" +
@@ -349,16 +349,16 @@ public class CodeGenWorkflowApp {
                             "- 🔍 质量已审查\n" +
                             "- 🏗️ 项目已构建\n\n" +
                             "**下一步操作：**\n\n" +
-                            "- 📱 切换到「应用模式」查看预览\n" +
+                            "- 📱 切换到「产物模式」查看预览\n" +
                             "- 🚀 点击「部署」发布到线上\n" +
                             "- 💾 点击「下载」获取源代码\n\n" +
                             "</div>\n\n";
                     emitStreamText(sink, aiResponseBuilder, completeInfo);
                     
-                    log.info("代码生成工作流执行完成！应用ID: {}", appId);
+                    log.info("代码生成工作流执行完成！产物ID: {}", appId);
                     sink.complete();
                 } catch (Throwable e) {
-                    log.error("工作流执行失败，应用ID: {}，错误信息: {}", appId, e.getMessage(), e);
+                    log.error("工作流执行失败，产物ID: {}，错误信息: {}", appId, e.getMessage(), e);
                     // 发送错误事件 - 使用结构化错误格式
                     String errorInfo = "\n\n<!-- WORKFLOW_ERROR -->\n\n" +
                             "---\n\n" +

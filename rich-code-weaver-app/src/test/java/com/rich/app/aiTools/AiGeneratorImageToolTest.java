@@ -170,16 +170,16 @@ public class AiGeneratorImageToolTest {
     }
 
     /**
-     * 测试前端学习应用场景（模拟工作流）
+     * 测试前端学习产物场景（模拟工作流）
      */
     @Test
     public void testFrontendLearningScenario() {
         log.info("========================================");
-        log.info("开始测试：前端学习应用场景");
+        log.info("开始测试：前端学习产物场景");
         log.info("========================================");
         
         String type = "概念视觉图";
-        String description = "前端知识学习单页应用，卡片式布局展示HTML、CSS、JavaScript示例，代码高亮，实时预览功能，现代化UI设计";
+        String description = "前端知识学习单页产物，卡片式布局展示HTML、CSS、JavaScript示例，代码高亮，实时预览功能，现代化UI设计";
         
         log.info("生成类型: {}", type);
         log.info("描述信息: {}", description);

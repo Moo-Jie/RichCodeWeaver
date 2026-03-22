@@ -25,7 +25,7 @@ public class StreamSession {
     private String sessionId;
 
     /**
-     * 应用ID
+     * 产物ID
      */
     private Long appId;
 

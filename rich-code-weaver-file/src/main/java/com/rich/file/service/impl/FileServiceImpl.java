@@ -19,8 +19,10 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * 阿里云 OSS 文件上传实现类
+ * 实现文件上传到阿里云OSS的具体逻辑
  *
- * @author lixiang
+ * @author DuRuiChi
+ * @since 2026-03-11
  */
 @Service
 @Slf4j
@@ -36,10 +38,9 @@ public class FileServiceImpl implements FileService {
      * 阿里云 OSS 文件上传，含 配置注入、OSS 客户端服务实例的创建、文件上传逻辑的具体实现
      *
      * @param file 上传的文件
-     * @return java.lang.String  文件上传后的路径
+     * @return 文件上传后的URL路径
      * @author DuRuiChi
-     * @create 2025/9/3
-     **/
+     */
     @Override
     public String upload(MultipartFile file) {
         // 参数校验

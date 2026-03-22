@@ -13,11 +13,11 @@ import java.util.List;
 
 /**
  * 提供外部调用用户服务的实现类
- * （由 Dubbo 提供服务发现和调用）
+ * 通过Dubbo提供服务发现和远程调用能力
  *
  * @author DuRuiChi
- * @create 2025/11/17
- **/
+ * @since 2026-03-08
+ */
 @DubboService
 public class InnerUserServiceImpl implements InnerUserService {
     /**

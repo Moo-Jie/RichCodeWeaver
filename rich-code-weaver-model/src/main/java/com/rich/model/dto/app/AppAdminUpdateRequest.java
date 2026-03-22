@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 管理员更新应用请求
+ * 管理员更新产物请求
  */
 @Data
 public class AppAdminUpdateRequest implements Serializable {
@@ -16,11 +16,11 @@ public class AppAdminUpdateRequest implements Serializable {
      */
     private Long id;
     /**
-     * 应用名称
+     * 产物名称
      */
     private String appName;
     /**
-     * 应用封面
+     * 产物封面
      */
     private String cover;
     /**

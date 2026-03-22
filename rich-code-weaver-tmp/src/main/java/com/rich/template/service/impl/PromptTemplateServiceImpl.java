@@ -18,6 +18,10 @@ import java.util.stream.Collectors;
 
 /**
  * 提示词模板 服务实现
+ * 实现提示词模板的业务逻辑，包括智能匹配、查询等功能
+ *
+ * @author DuRuiChi
+ * @since 2026-03-12
  */
 @Service
 public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper, PromptTemplate>
@@ -111,6 +115,16 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
         return getPromptTemplateVOList(deduped);
     }
 
+    /**
+     * 计算模板匹配分数
+     * 行业匹配+2分，身份匹配+1分
+     *
+     * @param t 模板对象
+     * @param identity 用户身份
+     * @param industry 用户行业
+     * @return 匹配分数
+     * @author DuRuiChi
+     */
     private int getMatchScore(PromptTemplate t, String identity, String industry) {
         int score = 0;
         if (t.getMatchIndustry() != null && t.getMatchIndustry().equals(industry)) score += 2;

@@ -7,10 +7,11 @@ import java.io.Serializable;
 
 /**
  * 基础响应类
+ * 统一封装API响应结果
  *
  * @author DuRuiChi
- * @create 2025/8/4
- **/
+ * @since 2026-03-08
+ */
 @Data
 public class BaseResponse<T> implements Serializable {
 

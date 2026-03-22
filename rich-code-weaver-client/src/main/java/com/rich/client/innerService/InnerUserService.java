@@ -14,11 +14,11 @@ import static com.rich.common.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 用户服务内部接口
- * （用于系统内部调用的客户端）
+ * 通过Dubbo提供用户服务的远程调用接口
  *
  * @author DuRuiChi
- * @create 2025/11/12
- **/
+ * @since 2026-03-08
+ */
 public interface InnerUserService {
     /**
      * 获取当前登录用户

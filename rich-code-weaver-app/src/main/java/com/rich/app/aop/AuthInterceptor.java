@@ -17,10 +17,11 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 /**
  * 权限校验的切面类
+ * 通过AOP拦截带有@AuthCheck注解的方法，验证用户是否具有所需权限
  *
  * @author DuRuiChi
- * @create 2025/8/5
- **/
+ * @since 2026-03-08
+ */
 @Aspect
 @Component
 public class AuthInterceptor {
@@ -32,6 +33,7 @@ public class AuthInterceptor {
      * @param authCheck 注解对象，包含需要的角色信息
      * @return 被拦截方法的执行结果
      * @throws Throwable 可能抛出的异常
+     * @author DuRuiChi
      */
     @Around("@annotation(authCheck)")
     public Object doInterceptor(ProceedingJoinPoint joinPoint, AuthCheck authCheck) throws Throwable {

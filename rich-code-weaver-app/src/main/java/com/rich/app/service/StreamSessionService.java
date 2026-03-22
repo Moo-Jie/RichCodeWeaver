@@ -16,7 +16,7 @@ public interface StreamSessionService {
     /**
      * 创建新的流式会话
      *
-     * @param appId  应用ID
+     * @param appId  产物ID
      * @param userId 用户ID
      * @return 会话ID
      */
@@ -26,7 +26,7 @@ public interface StreamSessionService {
      * 创建新的流式会话（使用自定义会话ID）
      *
      * @param sessionId 自定义会话ID
-     * @param appId     应用ID
+     * @param appId     产物ID
      * @param userId    用户ID
      * @return 会话ID
      */

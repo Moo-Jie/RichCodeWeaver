@@ -36,7 +36,7 @@ public class ChatHistoryQueryRequest extends PageRequest implements Serializable
      */
     private String messageType;
     /**
-     * 应用id
+     * 产物id
      */
     private Long appId;
     /**
