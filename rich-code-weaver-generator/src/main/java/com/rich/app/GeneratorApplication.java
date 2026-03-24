@@ -22,7 +22,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableCaching
 @EnableDubbo
 @EnableScheduling
-public class AppApplication {
+public class GeneratorApplication {
     
     /**
      * 应用启动入口方法
@@ -30,6 +30,6 @@ public class AppApplication {
      * @param args 命令行参数
      */
     public static void main(String[] args) {
-        SpringApplication.run(AppApplication.class, args);
+        SpringApplication.run(GeneratorApplication.class, args);
     }
 }

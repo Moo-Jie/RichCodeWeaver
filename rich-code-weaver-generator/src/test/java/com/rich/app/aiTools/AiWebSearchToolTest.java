@@ -1,7 +1,7 @@
 package com.rich.app.aiTools;
 
 import com.rich.ai.aiTools.webOperate.AiWebSearchTool;
-import com.rich.app.AppApplication;
+import com.rich.app.GeneratorApplication;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  * @create 2026/3/18
  */
 @Slf4j
-@SpringBootTest(classes = AppApplication.class)
+@SpringBootTest(classes = GeneratorApplication.class)
 public class AiWebSearchToolTest {
 
     @Autowired

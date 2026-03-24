@@ -251,6 +251,20 @@ public class AppController {
     }
 
     /**
+     * 管理员分页获取 AI 产物列表
+     *
+     * @param appQueryRequest 查询请求参数
+     * @return com.rich.app.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.app.model.vo.AppVO>> 产物列表
+     */
+    @PostMapping("/list/page/vo/admin")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Page<AppVO>> listAppVOByPageByAdmin(@RequestBody AppQueryRequest appQueryRequest) {
+        // 参数校验
+        ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        return ResultUtils.success(appService.listAppVOByPageByAdmin(appQueryRequest));
+    }
+
+    /**
      * 管理员更新 AI 产物
      *
      * @param appAdminUpdateRequest 更新请求参数

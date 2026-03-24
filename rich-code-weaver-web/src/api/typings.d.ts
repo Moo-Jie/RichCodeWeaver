@@ -390,6 +390,67 @@ declare namespace API {
     message?: string
   }
 
+  // ===== SystemPrompt Types =====
+
+  type SystemPromptVO = {
+    id?: number
+    promptName?: string
+    filePath?: string
+    description?: string
+    userId?: number
+    createTime?: string
+    updateTime?: string
+  }
+
+  type SystemPromptAddRequest = {
+    promptName?: string
+    filePath?: string
+    description?: string
+  }
+
+  type SystemPromptUpdateRequest = {
+    id?: number
+    promptName?: string
+    filePath?: string
+    description?: string
+  }
+
+  type SystemPromptQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    id?: number
+    promptName?: string
+    filePath?: string
+  }
+
+  type BaseResponseSystemPromptVO = {
+    code?: number
+    data?: SystemPromptVO
+    message?: string
+  }
+
+  type BaseResponseListSystemPromptVO = {
+    code?: number
+    data?: SystemPromptVO[]
+    message?: string
+  }
+
+  type PageSystemPromptVO = {
+    records?: SystemPromptVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePageSystemPromptVO = {
+    code?: number
+    data?: PageSystemPromptVO
+    message?: string
+  }
+
   // ===== PromptTemplate Field Definition =====
 
   type TemplateField = {

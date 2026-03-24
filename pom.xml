@@ -21,12 +21,13 @@
         <!-- 用户模块 -->
         <module>rich-code-weaver-user</module>
         <!-- 产物模块 -->
-        <module>rich-code-weaver-app</module>
+        <module>rich-code-weaver-generator</module>
         <!-- AI模块 -->
         <module>rich-code-weaver-ai</module>
         <!-- 文件模块 -->
         <module>rich-code-weaver-file</module>
         <module>rich-code-weaver-tmp</module>
+        <module>rich-code-weaver-prompt</module>
     </modules>
 
     <!-- 全局属性配置 -->

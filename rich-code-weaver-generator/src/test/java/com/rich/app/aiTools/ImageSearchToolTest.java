@@ -1,7 +1,7 @@
 package com.rich.app.aiTools;
 
 import com.rich.ai.aiTools.ImageResource.ImageSearchTool;
-import com.rich.app.AppApplication;
+import com.rich.app.GeneratorApplication;
 import com.rich.model.entity.ImageResource;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ import java.util.List;
  * @create 2026/3/18
  */
 @Slf4j
-@SpringBootTest(classes = AppApplication.class)
+@SpringBootTest(classes = GeneratorApplication.class)
 public class ImageSearchToolTest {
 
     @Autowired
