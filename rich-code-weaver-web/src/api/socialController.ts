@@ -16,6 +16,19 @@ export async function getAppHotStat(
   })
 }
 
+/** 分页查询热门产物列表 POST /social/hotStat/list/page */
+export async function listHotApps(
+  body: { pageNum?: number; pageSize?: number },
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponsePageAppHotStat>('/social/hotStat/list/page', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    data: body,
+    ...(options || {}),
+  })
+}
+
 // ===== 点赞 =====
 
 /** 切换产物点赞状态 POST /social/like */

@@ -549,4 +549,29 @@ declare namespace API {
     data?: PageAppFavoriteRecord
     message?: string
   }
+
+  type AppHotStat = {
+    id?: number
+    appId?: number
+    likeCount?: number
+    shareCount?: number
+    favoriteCount?: number
+    commentCount?: number
+    createTime?: string
+    updateTime?: string
+  }
+
+  type PageAppHotStat = {
+    records?: AppHotStat[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePageAppHotStat = {
+    code?: number
+    data?: PageAppHotStat
+    message?: string
+  }
 }

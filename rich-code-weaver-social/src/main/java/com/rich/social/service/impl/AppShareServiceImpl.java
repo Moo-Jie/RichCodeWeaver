@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 实现转发记录与热点计数递增（转发不可撤销）
  *
  * @author DuRuiChi
- * @since 2026-03-25
+ * @create 2026-03-25
  */
 @Service
 public class AppShareServiceImpl extends ServiceImpl<AppShareMapper, AppShare>
@@ -23,6 +23,13 @@ public class AppShareServiceImpl extends ServiceImpl<AppShareMapper, AppShare>
     @Resource
     private AppHotStatService appHotStatService;
 
+    /**
+     * 记录产物转发行为（转发不可撤销）
+     * 使用 @Transactional 保证转发记录和热点统计的原子性更新
+     *
+     * @param appId  产物id
+     * @param userId 用户id
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void doShare(Long appId, Long userId) {

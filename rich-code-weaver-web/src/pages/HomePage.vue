@@ -315,7 +315,7 @@ onMounted(() => {
         <!-- 热门提示词滑动模块 -->
         <div v-if="showPromptDropdown" class="prompt-slider-container">
           <div class="prompt-slider-header">
-            <h3 class="slider-title">🔥 热门提示词</h3>
+            <h3 class="slider-title">热门提示词</h3>
             <a-button
               class="close-button"
               size="small"

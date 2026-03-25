@@ -1,5 +1,6 @@
 package com.rich.social.service;
 
+import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.service.IService;
 import com.rich.model.entity.AppHotStat;
 import com.rich.model.vo.AppHotStatVO;
@@ -44,4 +45,13 @@ public interface AppHotStatService extends IService<AppHotStat> {
      * @param fieldName 字段名（likeCount/shareCount/favoriteCount/commentCount）
      */
     void decrementField(Long appId, String fieldName);
+
+    /**
+     * 分页查询热门产物（按综合热度得分降序）
+     *
+     * @param pageNum  页码
+     * @param pageSize 每页数量
+     * @return 分页热点统计数据
+     */
+    Page<AppHotStat> listHotApps(long pageNum, long pageSize);
 }

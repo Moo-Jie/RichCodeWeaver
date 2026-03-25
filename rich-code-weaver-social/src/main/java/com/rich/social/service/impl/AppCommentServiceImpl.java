@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
  * 实现评论的增删查及VO转换，同步更新热点统计
  *
  * @author DuRuiChi
- * @since 2026-03-25
+ * @create 2026-03-25
  */
 @Service
 public class AppCommentServiceImpl extends ServiceImpl<AppCommentMapper, AppComment>
@@ -46,6 +46,15 @@ public class AppCommentServiceImpl extends ServiceImpl<AppCommentMapper, AppComm
     @DubboReference
     private InnerUserService innerUserService;
 
+    /**
+     * 添加产物评论
+     * 使用 @Transactional 保证评论记录和热点统计的原子性更新
+     *
+     * @param appId   产物id
+     * @param userId  用户id
+     * @param content 评论内容
+     * @return 新创建的评论id
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long addComment(Long appId, Long userId, String content) {
@@ -60,6 +69,15 @@ public class AppCommentServiceImpl extends ServiceImpl<AppCommentMapper, AppComm
         return comment.getId();
     }
 
+    /**
+     * 删除产物评论（仅评论作者或管理员可删除）
+     * 使用 @Transactional 保证评论删除和热点统计的原子性更新
+     *
+     * @param commentId 评论id
+     * @param userId    当前用户id
+     * @param isAdmin   是否为管理员
+     * @throws BusinessException 评论不存在或无权删除时抛出
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteComment(Long commentId, Long userId, boolean isAdmin) {
@@ -75,6 +93,15 @@ public class AppCommentServiceImpl extends ServiceImpl<AppCommentMapper, AppComm
         appHotStatService.decrementField(comment.getAppId(), "commentCount");
     }
 
+    /**
+     * 分页查询产物评论列表
+     *
+     * @param appId         产物id
+     * @param currentUserId 当前用户id（可为null，未登录用户）
+     * @param pageNum       页码（从1开始）
+     * @param pageSize      每页数量
+     * @return 评论VO分页，按创建时间降序排列，包含用户信息和点赞状态
+     */
     @Override
     public Page<AppCommentVO> listCommentByPage(Long appId, Long currentUserId, long pageNum, long pageSize) {
         QueryWrapper query = QueryWrapper.create()
@@ -90,6 +117,13 @@ public class AppCommentServiceImpl extends ServiceImpl<AppCommentMapper, AppComm
         return new Page<>(voList, pageNum, pageSize, commentPage.getTotalRow());
     }
 
+    /**
+     * 将评论实体转换为VO（包含用户信息和点赞状态）
+     *
+     * @param comment       评论实体
+     * @param currentUserId 当前用户id（可为null，未登录用户）
+     * @return 评论VO，包含评论者信息和当前用户的点赞状态
+     */
     @Override
     public AppCommentVO getCommentVO(AppComment comment, Long currentUserId) {
         if (comment == null) return null;

@@ -1,17 +1,35 @@
 <template>
   <div class="my-favorites-page">
     <div class="page-header">
-      <h2 class="page-title">我的收藏</h2>
-      <p class="page-desc">您收藏的所有数字产物</p>
+      <div class="header-left">
+        <h2 class="page-title">我的收藏</h2>
+        <p class="page-desc">您收藏的所有数字产物</p>
+      </div>
+      <div class="header-right">
+        <a-input-search
+          v-model:value="searchKeyword"
+          placeholder="搜索收藏的产物..."
+          style="width: 240px; margin-right: 12px"
+        />
+        <a-select v-model:value="sortBy" style="width: 140px">
+          <a-select-option value="time">按收藏时间</a-select-option>
+          <a-select-option value="name">按名称排序</a-select-option>
+        </a-select>
+      </div>
     </div>
 
-    <div v-if="loading" class="loading-wrap">
-      <a-spin />
+    <!-- Skeleton loading -->
+    <div v-if="loading && apps.length === 0" class="apps-grid">
+      <div v-for="i in 6" :key="'skeleton-' + i" class="skeleton-card">
+        <a-skeleton-image class="skeleton-image" />
+        <div class="skeleton-content">
+          <a-skeleton :paragraph="{ rows: 2 }" active />
+        </div>
+      </div>
     </div>
 
-    <div v-else-if="apps.length === 0" class="empty-wrap">
-      <div class="empty-icon">⭐</div>
-      <p class="empty-text">暂无收藏，去发现更多优秀产物吧</p>
+    <div v-else-if="filteredApps.length === 0" class="empty-wrap">
+      <p class="empty-text">{{ searchKeyword ? '未找到匹配的收藏' : '暂无收藏，去发现更多优秀产物吧' }}</p>
       <button class="explore-btn" @click="router.push('/all/apps')">
         <GlobalOutlined /> 浏览全部产物
       </button>
@@ -20,20 +38,27 @@
     <template v-else>
       <div class="apps-grid">
         <div
-          v-for="app in apps"
+          v-for="app in filteredApps"
           :key="app.id"
           class="app-card"
-          @click="goToApp(app)"
         >
-          <div class="card-cover">
+          <div class="card-cover" @click="goToApp(app)">
             <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
             <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
+            <div class="cover-overlay">
+              <span class="view-btn">查看详情</span>
+            </div>
           </div>
-          <div class="card-body">
-            <span class="card-name">{{ app.appName || '未命名数字产物' }}</span>
+          <div class="card-body" @click="goToApp(app)">
+            <span class="card-name" :title="app.appName">{{ app.appName || '未命名数字产物' }}</span>
             <span class="card-time">收藏于 {{ formatTime(app._favoriteTime) }}</span>
           </div>
-          <div class="card-badge" v-if="app.deployKey">已部署</div>
+          <div class="card-actions">
+            <button class="action-btn" @click.stop="handleUnfavorite(app)" title="取消收藏">
+              <HeartFilled style="color: #ff4d4f" />
+            </button>
+            <span v-if="app.deployKey" class="deploy-tag">已部署</span>
+          </div>
         </div>
       </div>
 
@@ -47,16 +72,19 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { GlobalOutlined } from '@ant-design/icons-vue'
+import { message } from 'ant-design-vue'
+import { GlobalOutlined, HeartFilled } from '@ant-design/icons-vue'
 import { useAppStore } from '@/stores/appStore'
 import { getAppVoById } from '@/api/appController'
-import { listMyFavorites } from '@/api/socialController'
+import { listMyFavorites, toggleFavorite } from '@/api/socialController'
 
 const router = useRouter()
 const appStore = useAppStore()
 
+const searchKeyword = ref('')
+const sortBy = ref<'time' | 'name'>('time')
 const loading = ref(false)
 const loadingMore = ref(false)
 const page = ref(1)
@@ -73,6 +101,48 @@ const goToApp = (app: API.AppVO) => {
 const formatTime = (time?: string) => {
   if (!time) return ''
   return time.substring(0, 10)
+}
+
+// 过滤和排序
+const filteredApps = computed(() => {
+  let result = apps.value
+  
+  // 搜索过滤
+  if (searchKeyword.value.trim()) {
+    const keyword = searchKeyword.value.toLowerCase()
+    result = result.filter(app => app.appName?.toLowerCase().includes(keyword))
+  }
+  
+  // 排序
+  if (sortBy.value === 'time') {
+    result = [...result].sort((a, b) => {
+      const timeA = a._favoriteTime || ''
+      const timeB = b._favoriteTime || ''
+      return timeB.localeCompare(timeA)
+    })
+  } else if (sortBy.value === 'name') {
+    result = [...result].sort((a, b) => {
+      const nameA = a.appName || ''
+      const nameB = b.appName || ''
+      return nameA.localeCompare(nameB)
+    })
+  }
+  
+  return result
+})
+
+// 取消收藏
+const handleUnfavorite = async (app: API.AppVO) => {
+  try {
+    const res = await toggleFavorite({ appId: app.id })
+    if (res.data.code === 0) {
+      message.success('已取消收藏')
+      // 从列表中移除
+      apps.value = apps.value.filter(a => a.id !== app.id)
+    }
+  } catch (error) {
+    message.error('操作失败')
+  }
 }
 
 /**
@@ -126,10 +196,25 @@ onMounted(() => {
 .my-favorites-page {
   padding: 32px;
   width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .page-header {
-  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.header-left {
+  flex: 1;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .page-title {
@@ -145,10 +230,20 @@ onMounted(() => {
   margin: 0;
 }
 
-.loading-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 60px 0;
+.skeleton-card {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.skeleton-image {
+  width: 100%;
+  height: 140px;
+}
+
+.skeleton-content {
+  padding: 12px;
 }
 
 .empty-wrap {
@@ -159,9 +254,6 @@ onMounted(() => {
   gap: 12px;
 }
 
-.empty-icon {
-  font-size: 40px;
-}
 
 .empty-text {
   color: #999;
@@ -189,49 +281,91 @@ onMounted(() => {
 
 .apps-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .apps-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
 }
 
 .app-card {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: #fafafa;
+  background: #fff;
   border: 1px solid #f0f0f0;
   border-radius: 14px;
   overflow: hidden;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .app-card:hover {
-  border-color: #e5e5e5;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  border-color: #d0d0d0;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.app-card:hover .cover-overlay {
+  opacity: 1;
 }
 
 .card-cover {
+  position: relative;
   width: 100%;
-  height: 120px;
-  background: #f0f0f0;
+  height: 140px;
+  background: #f5f5f5;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 
 .card-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.app-card:hover .card-cover img {
+  transform: scale(1.05);
+}
+
+.cover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.view-btn {
+  padding: 8px 20px;
+  background: #fff;
+  color: #1a1a1a;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .card-body {
-  padding: 12px 14px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
+  cursor: pointer;
 }
 
 .card-name {
@@ -248,16 +382,41 @@ onMounted(() => {
   color: #bbb;
 }
 
-.card-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 8px;
-  background: #1a1a1a;
-  color: #fff;
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px 14px;
+  gap: 8px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background: #fff1f0;
+  border-color: #ffccc7;
+}
+
+.deploy-tag {
+  padding: 4px 10px;
+  background: #f0f0f0;
+  color: #666;
   font-size: 11px;
   border-radius: 6px;
   font-weight: 500;
+  flex: 1;
+  text-align: center;
 }
 
 .load-more-wrap {

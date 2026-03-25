@@ -1,19 +1,20 @@
 package com.rich.social.controller;
 
+import com.mybatisflex.core.paginate.Page;
 import com.rich.client.innerService.InnerUserService;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
 import com.rich.common.utils.ResultUtils;
+import com.rich.model.entity.AppHotStat;
 import com.rich.model.entity.User;
 import com.rich.model.vo.AppHotStatVO;
 import com.rich.social.service.AppHotStatService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 /**
  * 产物热点统计控制器
@@ -49,5 +50,21 @@ public class AppHotStatController {
         }
         AppHotStatVO vo = appHotStatService.getHotStatVO(appId, userId);
         return ResultUtils.success(vo);
+    }
+
+    /**
+     * 分页查询热门产物列表（按综合热度得分降序）
+     *
+     * @param params 请求参数（pageNum, pageSize）
+     * @return 分页热点统计数据
+     * @author DuRuiChi
+     */
+    @PostMapping("/list/page")
+    public BaseResponse<Page<AppHotStat>> listHotApps(@RequestBody Map<String, Object> params) {
+        long pageNum = params.get("pageNum") != null ? Long.parseLong(params.get("pageNum").toString()) : 1;
+        long pageSize = params.get("pageSize") != null ? Long.parseLong(params.get("pageSize").toString()) : 10;
+        ThrowUtils.throwIf(pageSize > 50, ErrorCode.PARAMS_ERROR, "每页数量不能超过50");
+        Page<AppHotStat> page = appHotStatService.listHotApps(pageNum, pageSize);
+        return ResultUtils.success(page);
     }
 }
