@@ -3,6 +3,7 @@ package com.rich.app.langGraph.node;
 import cn.hutool.core.util.StrUtil;
 import com.rich.ai.model.CodeReviewResponse;
 import com.rich.app.langGraph.state.WorkflowContext;
+import com.rich.app.utils.codeConcatenate.CodeConcatenateUtiles;
 import com.rich.model.enums.CodeGeneratorTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
@@ -35,15 +36,18 @@ public class PromptEnhancerNode {
      * 构建增强后的用户提示词
      */
     private static String buildEnhancedUserPrompt(WorkflowContext context) {
-        // 1.非第一次生成：已进行过代码质检，并且未通过,则直接构建代码错误修复提示词
+        // 1.代码质检未通过：构建代码错误修复提示词
         CodeReviewResponse codeReviewResponse = context.getCodeReviewResponse();
-        // 已进行过代码质检，并且未通过
         if (isQualityCheckFailed(codeReviewResponse)) {
-            // 构建代码修复提示词（区分生成类型，指导局部修复）
             return buildErrorFixPrompt(context);
         }
 
-        // 2.第一次生成：构建强化后的提示词，资源前置 + 强制指令 + 用户需求在后
+        // 2.二次修改模式：用户对已生成的代码提出修改需求
+        if (context.isModification()) {
+            return buildModificationPrompt(context);
+        }
+
+        // 3.首次生成：构建强化后的提示词，资源前置 + 强制指令 + 用户需求在后
         StringBuilder enhancedPromptBuilder = new StringBuilder();
 
         // === 素材区域：放在用户需求之前，确保 AI 优先看到并使用 ===
@@ -102,6 +106,47 @@ public class PromptEnhancerNode {
                 !codeReviewResponse.getIsPass() &&
                 codeReviewResponse.getErrorList() != null &&
                 !codeReviewResponse.getErrorList().isEmpty();
+    }
+
+    /**
+     * 构造二次修改提示词（用户对已生成的代码提出修改需求）
+     * 对 HTML/MULTI_FILE 模式：将现有代码作为上下文附加，指导精确修改
+     * 对 VUE_PROJECT 模式：强调使用工具读取和局部修改
+     */
+    private static String buildModificationPrompt(WorkflowContext context) {
+        CodeGeneratorTypeEnum generationType = context.getGenerationType();
+        StringBuilder modPrompt = new StringBuilder();
+
+        modPrompt.append("## 修改需求\n\n");
+        modPrompt.append(context.getOriginalPrompt());
+        modPrompt.append("\n\n");
+
+        if (generationType == CodeGeneratorTypeEnum.VUE_PROJECT) {
+            // VUE_PROJECT 模式：依赖工具读取文件，无需附加代码
+            modPrompt.append("### 修改指引\n\n");
+            modPrompt.append("请严格按照系统提示词中的「修改流程」执行：\n");
+            modPrompt.append("1. 先使用【readDir】了解项目结构\n");
+            modPrompt.append("2. 使用【readFile】查看需修改的目标文件\n");
+            modPrompt.append("3. 使用【modifyFile】进行精确的局部修改\n");
+            modPrompt.append("4. 禁止全量重新生成文件\n");
+        } else {
+            // HTML / MULTI_FILE 模式：附加现有代码作为上下文
+            String outputDir = context.getOutputDir();
+            if (StrUtil.isNotBlank(outputDir)) {
+                String existingCode = CodeConcatenateUtiles.readAndConcatenateCodeFiles(outputDir);
+                if (StrUtil.isNotBlank(existingCode)) {
+                    modPrompt.append("### 当前已有代码（请在此基础上修改）\n\n");
+                    modPrompt.append(existingCode);
+                    modPrompt.append("\n\n");
+                }
+            }
+            modPrompt.append("### 修改指引\n\n");
+            modPrompt.append("- 仔细阅读上方的已有代码，仅修改与需求相关的部分\n");
+            modPrompt.append("- 保持其他代码不变，确保页面稳定性和风格一致\n");
+            modPrompt.append("- 输出修改后的完整代码（格式与之前一致），不要有任何省略\n");
+        }
+
+        return modPrompt.toString();
     }
 
     /**

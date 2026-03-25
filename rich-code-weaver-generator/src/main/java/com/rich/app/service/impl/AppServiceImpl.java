@@ -165,10 +165,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean isSaveMsgSuccess = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsgSuccess, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
         
+        // 判断是否为二次修改模式：非 AI_STRATEGY 表示类型已确定（即已经过首次生成）
+        boolean isModification = codeGenType != CodeGeneratorTypeEnum.AI_STRATEGY;
+        
         // 通过工作流执行代码生成对话
         // TODO: 后续增加 Agent 自主规划模式（根据isWorkflow参数选择执行模式）
         Flux<ServerSentEvent<String>> generationFlux = codeGenWorkflowApp.executeWorkflow(
-                message, codeGenType, appId, chatHistoryService, userId);
+                message, codeGenType, appId, chatHistoryService, userId, isModification);
         
         // 独立订阅生成流：AI 生成与客户端连接解耦（核心设计）
         // 客户端断开不影响生成过程，所有事件缓存到会话中，支持断线重连

@@ -78,7 +78,7 @@ import { message } from 'ant-design-vue'
 import { GlobalOutlined, HeartFilled } from '@ant-design/icons-vue'
 import { useAppStore } from '@/stores/appStore'
 import { getAppVoById } from '@/api/appController'
-import { listMyFavorites, toggleFavorite } from '@/api/socialController'
+import { listMyFavorites, toggleAppFavorite } from '@/api/socialController'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -134,7 +134,7 @@ const filteredApps = computed(() => {
 // 取消收藏
 const handleUnfavorite = async (app: API.AppVO) => {
   try {
-    const res = await toggleFavorite({ appId: app.id })
+    const res = await toggleAppFavorite({ appId: app.id })
     if (res.data.code === 0) {
       message.success('已取消收藏')
       // 从列表中移除

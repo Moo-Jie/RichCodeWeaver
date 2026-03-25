@@ -87,6 +87,10 @@ public class WorkflowContext implements Serializable {
      * 错误信息
      */
     private String errorMessage;
+    /**
+     * 是否为二次修改模式（非首次生成）
+     */
+    private boolean isModification;
 
     /**
      * 从 MessagesState 中获取 WorkflowContext

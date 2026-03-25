@@ -5,22 +5,12 @@
       <div class="hint-content">
         <div class="hint-title">
           <span class="hint-icon">✓</span>
-          <span class="hint-label">已选中元素</span>
+          <span class="hint-label">已选中：{{ getElementTypeLabel(selectedElement.tagName) }}</span>
         </div>
-        <div class="hint-details">
-          <span class="detail-item">
-            <span class="detail-label">标签:</span>
-            <code class="detail-value">{{ selectedElement.tagName }}</code>
-          </span>
-          <span v-if="selectedElement.className" class="detail-item">
-            <span class="detail-label">类名:</span>
-            <code class="detail-value">{{ selectedElement.className }}</code>
-          </span>
-          <span class="detail-item">
-            <span class="detail-label">选择器:</span>
-            <code class="detail-value detail-selector">{{ selectedElement.selector }}</code>
-          </span>
+        <div v-if="selectedElement.textContent" class="hint-text-preview">
+          "{{ selectedElement.textContent.length > 60 ? selectedElement.textContent.substring(0, 60) + '...' : selectedElement.textContent }}"
         </div>
+        <div class="hint-tip">请在下方输入框描述您想要的修改</div>
       </div>
       <button class="hint-close" @click="$emit('clearSelection')" title="取消选择">✕</button>
     </div>
@@ -95,6 +85,20 @@ interface ElementInfo {
   tagName: string
   className: string
   selector: string
+  textContent?: string
+}
+
+const ELEMENT_TYPE_MAP: Record<string, string> = {
+  H1: '大标题', H2: '二级标题', H3: '三级标题', H4: '四级标题', H5: '五级标题', H6: '六级标题',
+  P: '段落文本', A: '链接', BUTTON: '按钮', IMG: '图片', VIDEO: '视频', AUDIO: '音频',
+  NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
+  SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
+  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框',
+  LABEL: '标签', SELECT: '下拉选择', TEXTAREA: '文本域', IFRAME: '嵌入框架',
+}
+
+function getElementTypeLabel(tagName: string): string {
+  return ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
 }
 
 interface Props {
@@ -221,39 +225,20 @@ defineExpose({
   font-size: 14px;
 }
 
-.hint-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-}
-
-.detail-label {
-  color: #666;
-  min-width: 50px;
-}
-
-.detail-value {
-  background: #fff;
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid #e0e0e0;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 11px;
-  color: #1a1a1a;
-}
-
-.detail-selector {
-  max-width: 300px;
+.hint-text-preview {
+  font-size: 13px;
+  color: #555;
+  font-style: italic;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+}
+
+.hint-tip {
+  font-size: 12px;
+  color: #999;
 }
 
 .hint-close {

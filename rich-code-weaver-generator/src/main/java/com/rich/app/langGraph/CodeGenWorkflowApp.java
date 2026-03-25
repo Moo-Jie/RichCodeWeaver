@@ -82,7 +82,7 @@ public class CodeGenWorkflowApp {
         try {
             return new MessagesStateGraph<String>()
                     // 添加工作流节点
-                    // 图片采集节点：收集与项目相关的图像资源（单独调用专精于图片收集的 AI 模型）
+                    // 网络资源采集节点：收集与项目相关的网络资源
                     .addNode("web_resource_organizer", WebResourceOrganizeNode.create())
                     // 图片采集节点：收集与项目相关的图像资源（单独调用专精于图片收集的 AI 模型）
                     .addNode("image_collector", ImageResourceNode.create())
@@ -121,6 +121,31 @@ public class CodeGenWorkflowApp {
     }
 
     /**
+     * 创建二次修改专用的简化工作流
+     * 跳过资源收集和类型策略节点，直接进入：提示词增强 → 代码生成 → 代码审查 → 项目构建(条件性)
+     */
+    public CompiledGraph<MessagesState<String>> createModificationWorkflow() {
+        try {
+            return new MessagesStateGraph<String>()
+                    .addNode("prompt_enhancer", PromptEnhancerNode.create())
+                    .addNode("code_generator", CodeGeneratorNode.create())
+                    .addNode("ai_code_reviewer", AICodeReviewNode.create())
+                    .addNode("project_builder", ProjectBuilderNode.create())
+                    .addEdge(START, "prompt_enhancer")
+                    .addEdge("prompt_enhancer", "code_generator")
+                    .addEdge("code_generator", "ai_code_reviewer")
+                    .addConditionalEdges("ai_code_reviewer",
+                            edge_async(this::nodeRouter),
+                            ROUTE_RESULTS)
+                    .addEdge("project_builder", END)
+                    .compile();
+        } catch (GraphStateException e) {
+            log.error("修改工作流创建失败: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "修改工作流创建失败");
+        }
+    }
+
+    /**
      * 执行工作流
      * 通过 ServerSentEvent (SSE) 实时推送工作流执行进度
      *
@@ -129,6 +154,7 @@ public class CodeGenWorkflowApp {
      * @param appId              产物ID，用于标识不同的生成任务
      * @param chatHistoryService 对话历史服务，用于存储和管理对话记录
      * @param userId             用户ID，用于关联生成任务的用户
+     * @param isModification     是否为二次修改模式
      * @return Flux<String> SSE事件流，包含工作流执行过程中的各种事件
      * @author DuRuiChi
      * @create 2026/1/14
@@ -137,7 +163,8 @@ public class CodeGenWorkflowApp {
                                                          CodeGeneratorTypeEnum type,
                                                          Long appId,
                                                          ChatHistoryService chatHistoryService,
-                                                         Long userId) {
+                                                         Long userId,
+                                                         boolean isModification) {
         // 每次执行使用局部 StringBuilder，避免并发问题
         StringBuilder aiResponseBuilder = new StringBuilder();
         // 构建 Agent 工作流风格的响应流
@@ -151,29 +178,10 @@ public class CodeGenWorkflowApp {
                             .originalPrompt(originalPrompt)
                             .generationType(type)
                             .currentStep("工作流初始化")
+                            .isModification(isModification)
                             .build();
 
-                    // 发送工作流开始事件 - 使用结构化格式
-                    String startInfo = "\n\n<!-- WORKFLOW_START -->\n\n" +
-                            "# 🚀 代码生成 Agent 启动\n\n" +
-                            "<div class='workflow-meta'>\n\n" +
-                            "| 项目 | 信息 |\n" +
-                            "|------|------|\n" +
-                            "| 产物ID | `" + appId + "` |\n" +
-                            "| 生成类型 | **" + type.getValue() + "** |\n" +
-                            "| 执行模式 | **分布式工作流** |\n" +
-                            "| 原始需求 | " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + " |\n\n" +
-                            "</div>\n\n";
-                    emitStreamText(sink, aiResponseBuilder, startInfo);
-
-                    CompiledGraph<MessagesState<String>> workflow = createWorkflow();
-                    // 生成可视化工作流图
-                    GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);
-                    log.info("\n工作流图:\n{}", graph.content());
-
                     // 注册流式输出发射器，使代码生成节点能将 AI 流式内容实时转发到前端
-                    // VUE_PROJECT 模式下，AI 输出的是 JSON 格式的消息块（含 ai_response / tool_request / tool_executed 类型），
-                    // 需要通过 JsonStreamHandler 解析后再发射，与非工作流模式保持一致的解析行为
                     if (type == CodeGeneratorTypeEnum.VUE_PROJECT) {
                         Set<String> seenToolIds = new HashSet<>();
                         CodeGeneratorNode.registerStreamEmitter(appId, chunk -> {
@@ -184,26 +192,51 @@ public class CodeGenWorkflowApp {
                             }
                         });
                     } else {
-                        // 非 VUE_PROJECT 类型（如 SINGLE_HTML）输出的是纯文本，直接转发原始内容
                         CodeGeneratorNode.registerStreamEmitter(appId, chunk -> {
                             sink.next(chunk);
                             aiResponseBuilder.append(chunk);
                         });
                     }
 
-                    emitStreamText(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_EXECUTION_START -->\n\n" +
-                            "## 📋 工作流执行计划\n\n" +
-                            "<div class='workflow-steps'>\n\n" +
-                            "**执行阶段:**\n\n" +
-                            "1. 🌐 网络资源整理\n" +
-                            "2. 🖼️ 图片资源收集\n" +
-                            "3. ✨ 提示词智能增强\n" +
-                            "4. 🎯 代码类型策略分析\n" +
-                            "5. 💻 AI 代码生成\n" +
-                            "6. 🔍 代码质量审查\n" +
-                            "7. 🏗️ 项目构建部署\n\n" +
-                            "</div>\n\n" +
-                            "---\n\n");
+                    // 根据是否为二次修改选择不同的工作流
+                    CompiledGraph<MessagesState<String>> workflow;
+                    if (isModification) {
+                        workflow = createModificationWorkflow();
+                        emitStreamText(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_START -->\n\n" +
+                                "# \uD83D\uDD04 代码修改 Agent 启动\n\n" +
+                                "---\n\n");
+                    } else {
+                        workflow = createWorkflow();
+                        // 发送工作流开始事件 - 使用结构化格式
+                        String startInfo = "\n\n<!-- WORKFLOW_START -->\n\n" +
+                                "# \uD83D\uDE80 代码生成 Agent 启动\n\n" +
+                                "<div class='workflow-meta'>\n\n" +
+                                "| 项目 | 信息 |\n" +
+                                "|------|------|\n" +
+                                "| 产物ID | `" + appId + "` |\n" +
+                                "| 生成类型 | **" + type.getValue() + "** |\n" +
+                                "| 执行模式 | **分布式工作流** |\n" +
+                                "| 原始需求 | " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + " |\n\n" +
+                                "</div>\n\n";
+                        emitStreamText(sink, aiResponseBuilder, startInfo);
+                        emitStreamText(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_EXECUTION_START -->\n\n" +
+                                "## \uD83D\uDCCB 工作流执行计划\n\n" +
+                                "<div class='workflow-steps'>\n\n" +
+                                "**执行阶段:**\n\n" +
+                                "1. \uD83C\uDF10 网络资源整理\n" +
+                                "2. \uD83D\uDDBC\uFE0F 图片资源收集\n" +
+                                "3. ✨ 提示词智能增强\n" +
+                                "4. \uD83C\uDFAF 代码类型策略分析\n" +
+                                "5. \uD83D\uDCBB AI 代码生成\n" +
+                                "6. \uD83D\uDD0D 代码质量审查\n" +
+                                "7. \uD83C\uDFD7\uFE0F 项目构建部署\n\n" +
+                                "</div>\n\n" +
+                                "---\n\n");
+                    }
+
+                    // 生成可视化工作流图
+                    GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);
+                    log.info("\n工作流图:\n{}", graph.content());
 
                     for (NodeOutput<MessagesState<String>> step : workflow.stream(
                             Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {

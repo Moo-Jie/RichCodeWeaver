@@ -339,6 +339,15 @@ const visualEditor = ref<visualEditorUtil | null>(null)
 const isEditMode = ref(false)
 const selectedElement = ref<ElementInfo | null>(null)
 
+const ELEMENT_TYPE_MAP: Record<string, string> = {
+  H1: '大标题', H2: '二级标题', H3: '三级标题', H4: '四级标题', H5: '五级标题', H6: '六级标题',
+  P: '段落文本', A: '链接', BUTTON: '按钮', IMG: '图片', VIDEO: '视频', AUDIO: '音频',
+  NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
+  SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
+  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框',
+}
+const getElementTypeLabel = (tagName: string): string => ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
+
 // === UI Refs ===
 const chatMessagesRef = ref<InstanceType<typeof ChatMessages>>()
 const appPreviewRef = ref<InstanceType<typeof AppPreview>>()
@@ -641,12 +650,17 @@ const sendMessage = async () => {
   const msg = userInput.value.trim()
   userInput.value = ''
 
+  let displayMsg = msg
   let prompt = msg
   if (selectedElement.value?.selector) {
-    prompt = `我选中了页面元素\n（selector: \`${selectedElement.value.selector}\`）\n 请帮我修改选中模块。\n我的具体需求是：${msg}`
+    const el = selectedElement.value
+    const typeLabel = getElementTypeLabel(el.tagName)
+    const textPreview = el.textContent ? el.textContent.substring(0, 40) : ''
+    displayMsg = `修改选中的「${typeLabel}」${textPreview ? `（${textPreview}...）` : ''}：${msg}`
+    prompt = `[可视化编辑] 我在页面中选中了一个「${typeLabel}」元素${textPreview ? `，内容为“${textPreview}”` : ''}。\n元素定位选择器: \`${el.selector}\`\n我的修改需求：${msg}`
   }
 
-  messages.value.push({type: 'user', content: prompt})
+  messages.value.push({type: 'user', content: displayMsg})
   const aiMessageIndex = messages.value.length
   messages.value.push({type: 'ai', content: '', loading: true})
   await nextTick()

@@ -161,7 +161,7 @@
         <div class="input-container">
           <a-alert
             v-if="selectedElement"
-            :message="`已选择“${selectedElement.tagName}”标签元素`"
+            :message="`已选中：${getElementTypeLabel(selectedElement.tagName)}`"
             class="selected-element-alert"
             closable
             show-icon
@@ -171,12 +171,10 @@
           >
             <template #description>
               <div class="element-details">
-                <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
-                  <strong>选择器类型:</strong> {{ selectedElement.className || '无' }}
+                <p v-if="selectedElement.textContent" style="margin: 4px 0; font-size: 13px; color: #389e0d; font-style: italic;">
+                  "{{ selectedElement.textContent.length > 60 ? selectedElement.textContent.substring(0, 60) + '...' : selectedElement.textContent }}"
                 </p>
-                <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
-                  <strong>代码块:</strong> {{ selectedElement.selector.substring(0, 100) }}
-                </p>
+                <p style="margin: 4px 0; font-size: 12px; color: #999;">请在下方输入框描述您想要的修改</p>
               </div>
             </template>
           </a-alert>
@@ -572,6 +570,15 @@ const visualEditor = ref<visualEditorUtil | null>(null)
 const isEditMode = ref(false)
 const selectedElement = ref<ElementInfo | null>(null)
 
+const ELEMENT_TYPE_MAP: Record<string, string> = {
+  H1: '大标题', H2: '二级标题', H3: '三级标题', H4: '四级标题', H5: '五级标题', H6: '六级标题',
+  P: '段落文本', A: '链接', BUTTON: '按钮', IMG: '图片', VIDEO: '视频', AUDIO: '音频',
+  NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
+  SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
+  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框',
+}
+const getElementTypeLabel = (tagName: string): string => ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
+
 
 // 显示产物详情
 const showAppDetail = () => {
@@ -867,16 +874,20 @@ const sendMessage = async () => {
   userInput.value = ''
 
   // 构建带上下文的提示
+  let displayMsg = message
   let prompt = message
   if (selectedElement.value?.selector) {
-    prompt = `我选中了页面元素\n（selector: \`${selectedElement.value.selector}\`）\n 请帮我修改选中模块。\n我的具体需求是：${message}`
+    const el = selectedElement.value
+    const typeLabel = getElementTypeLabel(el.tagName)
+    const textPreview = el.textContent ? el.textContent.substring(0, 40) : ''
+    displayMsg = `修改选中的「${typeLabel}」${textPreview ? `（${textPreview}...）` : ''}：${message}`
+    prompt = `[可视化编辑] 我在页面中选中了一个「${typeLabel}」元素${textPreview ? `，内容为“${textPreview}”` : ''}。\n元素定位选择器: \`${el.selector}\`\n我的修改需求：${message}`
   }
-
 
   // 添加用户消息
   messages.value.push({
     type: 'user',
-    content: prompt
+    content: displayMsg
   })
 
   // 添加AI消息占位符
