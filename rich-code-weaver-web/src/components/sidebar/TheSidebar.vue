@@ -62,18 +62,32 @@
       </template>
     </nav>
 
-    <!-- Other Menu -->
+    <!-- About Menu -->
     <div
-      v-for="item in otherNavItems"
-      :key="item.path"
-      :class="['nav-item', { active: isActive(item.path) }]"
-      @click="navigateTo(item.path)"
+      :class="['nav-item', 'nav-item-expandable', { active: route.path.startsWith('/other') }]"
+      @click="toggleAboutMenu"
     >
-      <component :is="item.icon" class="nav-icon" />
+      <AuditOutlined class="nav-icon" />
       <transition name="fade-text">
-        <span v-show="!appStore.sidebarCollapsed" class="nav-label">{{ item.label }}</span>
+        <span v-show="!appStore.sidebarCollapsed" class="nav-label">其他</span>
+      </transition>
+      <transition name="fade-text">
+        <DownOutlined v-show="!appStore.sidebarCollapsed" :class="['nav-arrow', { expanded: aboutMenuExpanded }]" />
       </transition>
     </div>
+    <transition name="submenu-slide">
+      <div v-show="aboutMenuExpanded && !appStore.sidebarCollapsed" class="nav-submenu">
+        <div
+          v-for="subItem in aboutNavItems"
+          :key="subItem.path"
+          :class="['nav-subitem', { active: isActive(subItem.path) }]"
+          @click.stop="navigateTo(subItem.path)"
+        >
+          <component :is="subItem.icon" class="nav-icon" />
+          <span class="nav-label">{{ subItem.label }}</span>
+        </div>
+      </div>
+    </transition>
 
     <!-- Divider -->
     <div class="sidebar-divider"></div>
@@ -159,6 +173,7 @@ const loginUserStore = useLoginUserStore()
 const router = useRouter()
 const route = useRoute()
 const adminMenuExpanded = ref(false)
+const aboutMenuExpanded = ref(false)
 
 const baseNavItems = [
   {path: '/', label: '主页', icon: HomeOutlined},
@@ -167,8 +182,10 @@ const baseNavItems = [
   {path: '/all/apps', label: '热门产物', icon: GlobalOutlined},
 ]
 
-const otherNavItems = [
-  {path: '/other/about', label: '关于', icon: AuditOutlined}
+const aboutNavItems = [
+  {path: '/other/about', label: '关于', icon: FileTextOutlined},
+  {path: '/other/privacy', label: '隐私政策', icon: FileTextOutlined},
+  {path: '/other/terms', label: '用户协议', icon: FileTextOutlined}
 ]
 
 const adminNavItems = [
@@ -183,6 +200,10 @@ const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')
 
 const toggleAdminMenu = () => {
   adminMenuExpanded.value = !adminMenuExpanded.value
+}
+
+const toggleAboutMenu = () => {
+  aboutMenuExpanded.value = !aboutMenuExpanded.value
 }
 
 const isActive = (path: string) => {
