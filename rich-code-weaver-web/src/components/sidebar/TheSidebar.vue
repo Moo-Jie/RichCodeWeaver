@@ -150,6 +150,7 @@ import {
   MenuUnfoldOutlined,
   PlusOutlined,
   SettingOutlined,
+  StarOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
 
@@ -162,6 +163,7 @@ const adminMenuExpanded = ref(false)
 const baseNavItems = [
   {path: '/', label: '主页', icon: HomeOutlined},
   {path: '/my/apps', label: '我的产物', icon: AppstoreOutlined},
+  {path: '/my/favorites', label: '我的收藏', icon: StarOutlined},
   {path: '/all/apps', label: '全部产物', icon: GlobalOutlined},
 ]
 

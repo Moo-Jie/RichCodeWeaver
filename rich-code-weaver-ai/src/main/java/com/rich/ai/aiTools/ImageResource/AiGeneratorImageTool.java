@@ -9,20 +9,18 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.rich.ai.aiTools.BaseTool;
-import com.rich.file.service.FileService;
+
+import com.rich.client.innerService.InnerFileService;
 import com.rich.model.entity.ImageResource;
 import com.rich.model.enums.ImageCategoryEnum;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -50,17 +48,15 @@ public class AiGeneratorImageTool extends BaseTool {
     // 任务查询接口
     private static final String TASK_QUERY_URL = DASHSCOPE_BASE_URL + "/tasks/";
 
+    // 注入外部文件上传服务的代理对象
+    @DubboReference
+    private InnerFileService fileService;
+
     /**
      * DashScope API密钥，从配置文件中注入
      */
     @Value("${dashscope.api-key:}")
     private String dashScopeApiKey;
-
-    /**
-     * 文件服务，用于上传图片到阿里云OSS
-     */
-    @Autowired
-    private FileService fileService;
 
     /**
      * 本地缓存目录路径
@@ -355,25 +351,15 @@ public class AiGeneratorImageTool extends BaseTool {
             // 4. 将缓存的文件上传到OSS
             log.info("开始上传图片到阿里云OSS...");
 
-            // 将File转换为MultipartFile
-            try (FileInputStream input = new FileInputStream(cacheFile)) {
-                MultipartFile multipartFile = new MockMultipartFile(
-                        "file",
-                        fileName,
-                        "image/png",
-                        input
-                );
+            // 调用文件服务上传到OSS（使用字节数组方式避免Dubbo序列化问题）
+            String ossUrl = fileService.uploadBytes(imageBytes, fileName);
 
-                // 调用文件服务上传到OSS
-                String ossUrl = fileService.upload(multipartFile);
-
-                if (StrUtil.isNotBlank(ossUrl)) {
-                    log.info("图片上传OSS成功: {}", ossUrl);
-                    return ossUrl;
-                } else {
-                    log.error("图片上传OSS失败，返回URL为空");
-                    return null;
-                }
+            if (StrUtil.isNotBlank(ossUrl)) {
+                log.info("图片上传OSS成功: {}", ossUrl);
+                return ossUrl;
+            } else {
+                log.error("图片上传OSS失败，返回URL为空");
+                return null;
             }
 
         } catch (IOException e) {

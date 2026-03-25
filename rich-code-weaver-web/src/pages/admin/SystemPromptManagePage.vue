@@ -2,7 +2,7 @@
   <div id="systemPromptManagePage">
     <div class="page-header">
       <h1>系统提示词管理</h1>
-      <p>管理 AI 系统提示词文件，支持 Markdown 格式编辑与实时预览</p>
+      <p>管理 AI 系统提示词，支持 Markdown 格式编辑与实时预览</p>
     </div>
 
     <!-- 搜索面板 -->
@@ -16,11 +16,11 @@
             placeholder="输入名称关键词"
           />
         </a-form-item>
-        <a-form-item class="search-item" label="文件路径">
+        <a-form-item class="search-item" label="提示词标识">
           <a-input
-            v-model:value="searchParams.filePath"
+            v-model:value="searchParams.promptKey"
             allow-clear
-            placeholder="输入文件路径"
+            placeholder="输入标识关键词"
           />
         </a-form-item>
         <a-form-item class="search-actions">
@@ -52,10 +52,13 @@
       @change="handleTableChange"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.dataIndex === 'filePath'">
-          <a-tooltip :title="record.filePath">
-            <code class="file-path-cell">{{ record.filePath }}</code>
+        <template v-if="column.dataIndex === 'promptKey'">
+          <a-tooltip :title="record.promptKey">
+            <code class="prompt-key-cell">{{ record.promptKey }}</code>
           </a-tooltip>
+        </template>
+        <template v-if="column.dataIndex === 'promptContent'">
+          <span class="content-cell">{{ record.promptContent ? record.promptContent.substring(0, 60) + (record.promptContent.length > 60 ? '...' : '') : '-' }}</span>
         </template>
         <template v-if="column.dataIndex === 'description'">
           <span class="desc-cell">{{ record.description || '-' }}</span>
@@ -64,7 +67,7 @@
           <a-space>
             <a @click="openEditor(record)">编辑内容</a>
             <a @click="showEditModal(record)">修改信息</a>
-            <a-popconfirm title="确定删除该提示词记录？（不会删除文件）" @confirm="handleDelete(record.id)">
+            <a-popconfirm title="确定删除该提示词记录？" @confirm="handleDelete(record.id)">
               <a class="danger-link">删除</a>
             </a-popconfirm>
           </a-space>
@@ -85,9 +88,9 @@
         <a-form-item label="提示词名称" required>
           <a-input v-model:value="metaForm.promptName" placeholder="如：HTML代码生成" />
         </a-form-item>
-        <a-form-item label="文件路径" required>
-          <a-input v-model:value="metaForm.filePath" placeholder="如：/aiPrompt/html-system-prompt.txt" :disabled="isEdit" />
-          <div v-if="!isEdit" class="form-tip">请先手动创建文件，再填入相对于 resources 的路径</div>
+        <a-form-item label="提示词标识" required>
+          <a-input v-model:value="metaForm.promptKey" placeholder="如：html-system-prompt" />
+          <div class="form-tip">唯一标识，用于程序中定位该提示词</div>
         </a-form-item>
         <a-form-item label="描述">
           <a-textarea v-model:value="metaForm.description" :rows="3" placeholder="提示词的简短描述" />
@@ -95,7 +98,7 @@
       </a-form>
     </a-modal>
 
-    <!-- 文件内容编辑模态框（全屏 Markdown 编辑器） -->
+    <!-- 提示词内容编辑模态框（全屏 Markdown 编辑器） -->
     <a-modal
       v-model:open="editorModalVisible"
       :title="'编辑提示词：' + currentEditPrompt?.promptName"
@@ -108,7 +111,7 @@
       <div class="editor-wrapper">
         <div class="editor-toolbar">
           <div class="editor-info">
-            <code>{{ currentEditPrompt?.filePath }}</code>
+            <code>{{ currentEditPrompt?.promptKey }}</code>
           </div>
           <div class="editor-actions">
             <a-button :loading="saving" type="primary" @click="handleSaveContent">
@@ -142,9 +145,7 @@ import {
   addSystemPrompt,
   deleteSystemPrompt,
   listSystemPromptByPage,
-  readSystemPromptFileContent,
-  updateSystemPrompt,
-  writeSystemPromptFileContent
+  updateSystemPrompt
 } from '@/api/systemPromptController'
 
 const loading = ref(false)
@@ -160,7 +161,7 @@ const searchParams = reactive<API.SystemPromptQueryRequest>({
   pageNum: 1,
   pageSize: 10,
   promptName: '',
-  filePath: ''
+  promptKey: ''
 })
 
 const pagination = reactive({
@@ -174,15 +175,16 @@ const pagination = reactive({
 const metaForm = reactive({
   id: undefined as number | undefined,
   promptName: '',
-  filePath: '',
+  promptKey: '',
   description: ''
 })
 
 const columns = [
   { title: 'ID', dataIndex: 'id', width: 80, ellipsis: true },
   { title: '提示词名称', dataIndex: 'promptName', width: 160 },
-  { title: '文件路径', dataIndex: 'filePath', width: 280, ellipsis: true },
-  { title: '描述', dataIndex: 'description', width: 200, ellipsis: true },
+  { title: '提示词标识', dataIndex: 'promptKey', width: 260, ellipsis: true },
+  { title: '内容预览', dataIndex: 'promptContent', width: 240, ellipsis: true },
+  { title: '描述', dataIndex: 'description', width: 180, ellipsis: true },
   { title: '更新时间', dataIndex: 'updateTime', width: 170 },
   { title: '操作', dataIndex: 'action', width: 200, fixed: 'right' as const }
 ]
@@ -213,7 +215,7 @@ const doSearch = () => {
 
 const resetSearch = () => {
   searchParams.promptName = ''
-  searchParams.filePath = ''
+  searchParams.promptKey = ''
   doSearch()
 }
 
@@ -227,7 +229,7 @@ const handleTableChange = (pag: any) => {
 const resetMetaForm = () => {
   metaForm.id = undefined
   metaForm.promptName = ''
-  metaForm.filePath = ''
+  metaForm.promptKey = ''
   metaForm.description = ''
 }
 
@@ -241,7 +243,7 @@ const showEditModal = (record: API.SystemPromptVO) => {
   isEdit.value = true
   metaForm.id = record.id
   metaForm.promptName = record.promptName || ''
-  metaForm.filePath = record.filePath || ''
+  metaForm.promptKey = record.promptKey || ''
   metaForm.description = record.description || ''
   metaModalVisible.value = true
 }
@@ -251,8 +253,8 @@ const handleMetaSubmit = async () => {
     message.warning('提示词名称不能为空')
     return
   }
-  if (!metaForm.filePath) {
-    message.warning('文件路径不能为空')
+  if (!metaForm.promptKey) {
+    message.warning('提示词标识不能为空')
     return
   }
 
@@ -261,7 +263,7 @@ const handleMetaSubmit = async () => {
       const res = await updateSystemPrompt({
         id: metaForm.id,
         promptName: metaForm.promptName,
-        filePath: metaForm.filePath,
+        promptKey: metaForm.promptKey,
         description: metaForm.description
       })
       if (res.data.code === 0) {
@@ -274,7 +276,7 @@ const handleMetaSubmit = async () => {
     } else {
       const res = await addSystemPrompt({
         promptName: metaForm.promptName,
-        filePath: metaForm.filePath,
+        promptKey: metaForm.promptKey,
         description: metaForm.description
       })
       if (res.data.code === 0) {
@@ -304,22 +306,11 @@ const handleDelete = async (id: number) => {
   }
 }
 
-// ===== 文件内容编辑器 =====
-const openEditor = async (record: API.SystemPromptVO) => {
+// ===== 提示词内容编辑器 =====
+const openEditor = (record: API.SystemPromptVO) => {
   currentEditPrompt.value = record
-  editorContent.value = ''
+  editorContent.value = record.promptContent || ''
   editorModalVisible.value = true
-
-  try {
-    const res = await readSystemPromptFileContent({ id: record.id! })
-    if (res.data.code === 0) {
-      editorContent.value = res.data.data || ''
-    } else {
-      message.error('读取文件内容失败：' + res.data.message)
-    }
-  } catch (e: any) {
-    message.error('读取文件内容失败：' + (e.message || '请重试'))
-  }
 }
 
 const handleSaveContent = async () => {
@@ -327,12 +318,17 @@ const handleSaveContent = async () => {
 
   saving.value = true
   try {
-    const res = await writeSystemPromptFileContent({
+    const res = await updateSystemPrompt({
       id: currentEditPrompt.value.id,
-      content: editorContent.value
+      promptContent: editorContent.value
     })
     if (res.data.code === 0) {
       message.success('保存成功')
+      // 同步更新列表中的数据
+      const idx = dataList.value.findIndex(item => item.id === currentEditPrompt.value?.id)
+      if (idx !== -1) {
+        dataList.value[idx].promptContent = editorContent.value
+      }
     } else {
       message.error('保存失败：' + res.data.message)
     }
@@ -418,11 +414,16 @@ onMounted(() => {
   }
 }
 
-.file-path-cell {
+.prompt-key-cell {
   font-size: 12px;
   background: #f5f5f5;
   padding: 2px 6px;
   border-radius: 4px;
+  color: #666;
+}
+
+.content-cell {
+  font-size: 13px;
   color: #666;
 }
 

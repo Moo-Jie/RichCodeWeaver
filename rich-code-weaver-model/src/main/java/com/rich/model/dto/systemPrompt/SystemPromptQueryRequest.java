@@ -45,7 +45,7 @@ public class SystemPromptQueryRequest implements Serializable {
     private String promptName;
 
     /**
-     * 文件路径
+     * 提示词唯一标识
      */
-    private String filePath;
+    private String promptKey;
 }

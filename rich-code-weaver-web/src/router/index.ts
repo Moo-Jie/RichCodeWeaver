@@ -8,6 +8,7 @@ import AppManagePage from '@/pages/admin/AppManagePage.vue'
 import AppEditPage from '@/pages/app/AppEditPage.vue'
 import MyAppsPage from '@/pages/app/MyAppsPage.vue'
 import AllAppsPage from '@/pages/app/AllAppsPage.vue'
+import MyFavoritesPage from '@/pages/app/MyFavoritesPage.vue'
 import UserCenterPage from '@/pages/user/UserCenterPage.vue'
 import ChatHistoryManagePage from '@/pages/admin/ChatHistoryManagePage.vue'
 import PromptTemplateManagePage from '@/pages/admin/PromptTemplateManagePage.vue'
@@ -53,6 +54,11 @@ const router = createRouter({
           path: 'all/apps',
           name: '全部产物',
           component: AllAppsPage
+        },
+        {
+          path: 'my/favorites',
+          name: '我的收藏',
+          component: MyFavoritesPage
         },
         {
           path: 'user/userCenter',

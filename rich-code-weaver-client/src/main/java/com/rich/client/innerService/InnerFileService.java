@@ -17,4 +17,13 @@ public interface InnerFileService {
      * @return java.lang.String  文件上传后的路径
      */
     String upload(MultipartFile file);
+
+    /**
+     * 文件上传（字节数组方式，用于Dubbo RPC调用）
+     *
+     * @param fileBytes 文件字节数组
+     * @param fileName  文件名（包含扩展名）
+     * @return java.lang.String  文件上传后的路径
+     */
+    String uploadBytes(byte[] fileBytes, String fileName);
 }

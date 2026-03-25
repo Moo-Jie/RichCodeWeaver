@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 系统提示词更新请求（仅文件元数据，不含文件内容）
+ * 系统提示词更新请求
  *
  * @author DuRuiChi
  */
@@ -25,9 +25,14 @@ public class SystemPromptUpdateRequest implements Serializable {
     private String promptName;
 
     /**
-     * 提示词文件路径
+     * 提示词唯一标识
      */
-    private String filePath;
+    private String promptKey;
+
+    /**
+     * 提示词内容
+     */
+    private String promptContent;
 
     /**
      * 提示词描述

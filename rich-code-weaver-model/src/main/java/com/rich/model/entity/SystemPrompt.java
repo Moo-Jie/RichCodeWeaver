@@ -15,7 +15,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 系统提示词 实体类（存储文件元数据，不存储文件内容）
+ * 系统提示词 实体类
  *
  * @author DuRuiChi
  */
@@ -42,10 +42,16 @@ public class SystemPrompt implements Serializable {
     private String promptName;
 
     /**
-     * 提示词文件路径（相对于 resources，如 /aiPrompt/xxx.txt）
+     * 提示词唯一标识（如 html-system-prompt）
      */
-    @Column("filePath")
-    private String filePath;
+    @Column("promptKey")
+    private String promptKey;
+
+    /**
+     * 提示词内容
+     */
+    @Column("promptContent")
+    private String promptContent;
 
     /**
      * 提示词描述

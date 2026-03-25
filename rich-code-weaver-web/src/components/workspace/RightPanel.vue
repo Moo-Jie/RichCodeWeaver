@@ -46,6 +46,39 @@
           </button>
         </div>
 
+        <!-- Social Actions -->
+        <div class="panel-section">
+          <div class="section-label">社交互动</div>
+          <button
+            :class="['panel-btn', { 'panel-btn--active': hotStat?.hasLiked }]"
+            @click="$emit('toggleLike')"
+          >
+            <LikeFilled v-if="hotStat?.hasLiked" />
+            <LikeOutlined v-else />
+            <span>点赞</span>
+            <span class="btn-count">{{ hotStat?.likeCount || 0 }}</span>
+          </button>
+          <button
+            :class="['panel-btn', { 'panel-btn--active': hotStat?.hasFavorited }]"
+            @click="$emit('toggleFavorite')"
+          >
+            <StarFilled v-if="hotStat?.hasFavorited" />
+            <StarOutlined v-else />
+            <span>收藏</span>
+            <span class="btn-count">{{ hotStat?.favoriteCount || 0 }}</span>
+          </button>
+          <button class="panel-btn" @click="$emit('doShare')">
+            <ShareAltOutlined />
+            <span>转发</span>
+            <span class="btn-count">{{ hotStat?.shareCount || 0 }}</span>
+          </button>
+          <button v-if="mode === 'app'" class="panel-btn" @click="$emit('openComment')">
+            <CommentOutlined />
+            <span>评论</span>
+            <span class="btn-count">{{ hotStat?.commentCount || 0 }}</span>
+          </button>
+        </div>
+
         <!-- Common Actions -->
         <div class="panel-section">
           <div class="section-label">通用操作</div>
@@ -67,11 +100,17 @@
 import { computed } from 'vue'
 import {
   CloudUploadOutlined,
+  CommentOutlined,
   DownloadOutlined,
   EditOutlined,
   ExpandOutlined,
   ExportOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  LikeFilled,
+  LikeOutlined,
+  ShareAltOutlined,
+  StarFilled,
+  StarOutlined
 } from '@ant-design/icons-vue'
 
 interface Props {
@@ -86,6 +125,7 @@ interface Props {
   deploying: boolean
   downloading: boolean
   isEditMode?: boolean
+  hotStat?: API.AppHotStatVO | null
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -94,7 +134,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits([
   'toggle', 'showDetail', 'previewFullscreen', 'download',
-  'deploy', 'reDeploy', 'visitSite', 'toggleEdit'
+  'deploy', 'reDeploy', 'visitSite', 'toggleEdit',
+  'toggleLike', 'toggleFavorite', 'doShare', 'openComment'
 ])
 
 const typeLabel = computed(() => {
@@ -236,6 +277,18 @@ const typeLabel = computed(() => {
 .panel-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.panel-btn--active {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.btn-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: #bbb;
+  font-weight: 400;
 }
 
 /* Panel Slide Transition */

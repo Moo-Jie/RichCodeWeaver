@@ -40,18 +40,10 @@ public interface SystemPromptService extends IService<SystemPrompt> {
     QueryWrapper getQueryWrapper(SystemPromptQueryRequest queryRequest);
 
     /**
-     * 读取提示词文件内容
+     * 根据提示词唯一标识获取提示词内容
      *
-     * @param filePath 文件路径（相对于 resources）
-     * @return 文件内容
+     * @param promptKey 提示词唯一标识（如 html-system-prompt）
+     * @return 提示词内容，若不存在则返回 null
      */
-    String readFileContent(String filePath);
-
-    /**
-     * 写入提示词文件内容
-     *
-     * @param filePath 文件路径（相对于 resources）
-     * @param content  文件内容
-     */
-    void writeFileContent(String filePath, String content);
+    String getPromptContentByKey(String promptKey);
 }

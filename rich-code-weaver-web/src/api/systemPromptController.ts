@@ -84,31 +84,3 @@ export async function listAllSystemPrompts(options?: { [key: string]: any }) {
   })
 }
 
-/** 读取提示词文件内容（管理员） GET /systemPrompt/file/content */
-export async function readSystemPromptFileContent(
-  params: { id: number },
-  options?: { [key: string]: any }
-) {
-  return request<API.BaseResponseString>('/systemPrompt/file/content', {
-    method: 'GET',
-    params: {
-      ...params,
-    },
-    ...(options || {}),
-  })
-}
-
-/** 写入提示词文件内容（管理员） POST /systemPrompt/file/content */
-export async function writeSystemPromptFileContent(
-  body: { id: number; content: string },
-  options?: { [key: string]: any }
-) {
-  return request<API.BaseResponseBoolean>('/systemPrompt/file/content', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    data: body,
-    ...(options || {}),
-  })
-}

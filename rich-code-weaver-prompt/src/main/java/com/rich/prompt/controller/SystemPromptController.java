@@ -25,11 +25,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 系统提示词管理 控制层
- * 提供系统提示词的增删改查接口，以及提示词文件内容的读写接口
+ * 提供系统提示词的增删改查接口（提示词内容直接存储在数据库中）
  *
  * @author DuRuiChi
  */
@@ -42,8 +41,7 @@ public class SystemPromptController {
     private SystemPromptService systemPromptService;
 
     /**
-     * 新增系统提示词记录（管理员）
-     * 仅保存文件元数据到数据库，文件需由管理员手动创建
+     * 新增系统提示词（管理员）
      *
      * @param addRequest 新增请求
      * @param request    请求对象
@@ -55,7 +53,7 @@ public class SystemPromptController {
                                                HttpServletRequest request) {
         ThrowUtils.throwIf(addRequest == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(addRequest.getPromptName()), ErrorCode.PARAMS_ERROR, "提示词名称不能为空");
-        ThrowUtils.throwIf(StrUtil.isBlank(addRequest.getFilePath()), ErrorCode.PARAMS_ERROR, "文件路径不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(addRequest.getPromptKey()), ErrorCode.PARAMS_ERROR, "提示词标识不能为空");
 
         User loginUser = InnerUserService.getLoginUser(request);
 
@@ -66,14 +64,13 @@ public class SystemPromptController {
         boolean saved = systemPromptService.save(systemPrompt);
         ThrowUtils.throwIf(!saved, ErrorCode.OPERATION_ERROR, "新增系统提示词失败");
 
-        log.info("新增系统提示词: id={}, promptName={}, filePath={}",
-                systemPrompt.getId(), systemPrompt.getPromptName(), systemPrompt.getFilePath());
+        log.info("新增系统提示词: id={}, promptName={}, promptKey={}",
+                systemPrompt.getId(), systemPrompt.getPromptName(), systemPrompt.getPromptKey());
         return ResultUtils.success(systemPrompt.getId());
     }
 
     /**
-     * 更新系统提示词记录（管理员）
-     * 仅更新数据库中的文件元数据
+     * 更新系统提示词（管理员）
      *
      * @param updateRequest 更新请求
      * @return 是否更新成功
@@ -99,8 +96,7 @@ public class SystemPromptController {
     }
 
     /**
-     * 删除系统提示词记录（管理员）
-     * 仅删除数据库记录（逻辑删除），不删除实际文件
+     * 删除系统提示词（管理员，逻辑删除）
      *
      * @param deleteRequest 删除请求
      * @return 是否删除成功
@@ -175,51 +171,5 @@ public class SystemPromptController {
     public BaseResponse<List<SystemPromptVO>> listAllSystemPrompts() {
         List<SystemPrompt> list = systemPromptService.list();
         return ResultUtils.success(systemPromptService.getSystemPromptVOList(list));
-    }
-
-    /**
-     * 读取提示词文件内容（管理员）
-     *
-     * @param id 系统提示词ID
-     * @return 文件内容
-     */
-    @GetMapping("/file/content")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<String> readFileContent(@RequestParam("id") long id) {
-        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR, "ID无效");
-
-        SystemPrompt systemPrompt = systemPromptService.getById(id);
-        ThrowUtils.throwIf(systemPrompt == null, ErrorCode.NOT_FOUND_ERROR, "系统提示词不存在");
-
-        String content = systemPromptService.readFileContent(systemPrompt.getFilePath());
-        return ResultUtils.success(content);
-    }
-
-    /**
-     * 写入提示词文件内容（管理员）
-     *
-     * @param body 请求体，包含 id 和 content
-     * @return 是否写入成功
-     */
-    @PostMapping("/file/content")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> writeFileContent(@RequestBody Map<String, Object> body) {
-        ThrowUtils.throwIf(body == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
-
-        Object idObj = body.get("id");
-        Object contentObj = body.get("content");
-        ThrowUtils.throwIf(idObj == null, ErrorCode.PARAMS_ERROR, "ID不能为空");
-        ThrowUtils.throwIf(contentObj == null, ErrorCode.PARAMS_ERROR, "内容不能为空");
-
-        long id = Long.parseLong(idObj.toString());
-        String content = contentObj.toString();
-
-        SystemPrompt systemPrompt = systemPromptService.getById(id);
-        ThrowUtils.throwIf(systemPrompt == null, ErrorCode.NOT_FOUND_ERROR, "系统提示词不存在");
-
-        systemPromptService.writeFileContent(systemPrompt.getFilePath(), content);
-
-        log.info("写入提示词文件内容: id={}, filePath={}", id, systemPrompt.getFilePath());
-        return ResultUtils.success(true);
     }
 }

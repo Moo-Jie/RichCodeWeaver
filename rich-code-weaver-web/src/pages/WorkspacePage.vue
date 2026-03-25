@@ -136,6 +136,7 @@
           :app="appStore.selectedApp"
           :deploying="deploying"
           :downloading="downloading"
+          :hot-stat="hotStat"
           :is-admin="isAdmin"
           :is-deployed="isDeployed"
           :is-edit-mode="isEditMode"
@@ -145,12 +146,16 @@
           :preview-url="previewUrl"
           :visible="appStore.rightPanelVisible"
           @deploy="deployApp"
+          @do-share="handleShare"
           @download="downloadCode"
+          @open-comment="commentDialogOpen = true"
           @preview-fullscreen="openInNewTab"
           @re-deploy="confirmReDeploy"
           @show-detail="showAppDetail"
           @toggle="appStore.toggleRightPanel"
           @toggle-edit="toggleEditMode"
+          @toggle-favorite="handleToggleFavorite"
+          @toggle-like="handleToggleLike"
           @visit-site="visitDeployedSite"
         />
       </div>
@@ -178,6 +183,13 @@
       v-model:open="templateDialogOpen"
       :template="selectedTemplate"
       @confirm="handleTemplateConfirm"
+    />
+
+    <!-- Comment dialog -->
+    <CommentDialog
+      v-model:open="commentDialogOpen"
+      :app-id="appStore.selectedApp?.id ?? null"
+      @comment-count-change="onCommentCountChange"
     />
   </div>
 </template>
@@ -217,6 +229,13 @@ import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import IdentitySetupModal from '@/components/IdentitySetupModal.vue'
 import PromptTemplateDialog from '@/components/PromptTemplateDialog.vue'
+import CommentDialog from '@/components/CommentDialog.vue'
+import {
+  getAppHotStat,
+  toggleAppLike,
+  toggleAppFavorite,
+  doAppShare
+} from '@/api/socialController'
 
 const route = useRoute()
 const router = useRouter()
@@ -324,6 +343,10 @@ const selectedElement = ref<ElementInfo | null>(null)
 const chatMessagesRef = ref<InstanceType<typeof ChatMessages>>()
 const appPreviewRef = ref<InstanceType<typeof AppPreview>>()
 const appDetailVisible = ref(false)
+
+// === Social State ===
+const hotStat = ref<API.AppHotStatVO | null>(null)
+const commentDialogOpen = ref(false)
 
 // === Timer ===
 const generatingTime = ref(0)
@@ -473,6 +496,7 @@ const fetchAppInfo = async () => {
 
       await fetchChatHistory()
       updatePreview()
+      fetchHotStat()
 
       // 智能判断默认模式：检测是否有正在传输的SSE流
       const hasActiveSSE = !!getGeneratingInfo()
@@ -975,6 +999,74 @@ const handleDeleteApp = async () => {
   }
 }
 
+// === Social Handlers ===
+const fetchHotStat = async () => {
+  if (!appId.value) return
+  try {
+    const res = await getAppHotStat({ appId: appId.value as unknown as number })
+    if (res.data.code === 0 && res.data.data) {
+      hotStat.value = res.data.data
+    }
+  } catch (e) {
+    console.error('获取热点数据失败:', e)
+  }
+}
+
+const handleToggleLike = async () => {
+  if (!appId.value) return
+  if (!loginUserStore.loginUser.id) {
+    message.warning('请先登录')
+    return
+  }
+  try {
+    const res = await toggleAppLike({ appId: appId.value as unknown as number })
+    if (res.data.code === 0) {
+      await fetchHotStat()
+    }
+  } catch (e) {
+    message.error('操作失败')
+  }
+}
+
+const handleToggleFavorite = async () => {
+  if (!appId.value) return
+  if (!loginUserStore.loginUser.id) {
+    message.warning('请先登录')
+    return
+  }
+  try {
+    const res = await toggleAppFavorite({ appId: appId.value as unknown as number })
+    if (res.data.code === 0) {
+      const favorited = res.data.data
+      message.success(favorited ? '已收藏' : '已取消收藏')
+      await fetchHotStat()
+    }
+  } catch (e) {
+    message.error('操作失败')
+  }
+}
+
+const handleShare = async () => {
+  if (!appId.value) return
+  if (!loginUserStore.loginUser.id) {
+    message.warning('请先登录')
+    return
+  }
+  try {
+    const res = await doAppShare({ appId: appId.value as unknown as number })
+    if (res.data.code === 0) {
+      message.success('转发成功')
+      await fetchHotStat()
+    }
+  } catch (e) {
+    message.error('转发失败')
+  }
+}
+
+const onCommentCountChange = (_delta: number) => {
+  fetchHotStat()
+}
+
 // === Route Watcher ===
 watch(() => route.params.id, (newId) => {
   if (newId) {
@@ -1002,6 +1094,8 @@ const resetChatState = () => {
   generatingTime.value = 0
   isEditMode.value = false
   selectedElement.value = null
+  hotStat.value = null
+  commentDialogOpen.value = false
   if (timer.value) {
     clearInterval(timer.value)
     timer.value = null

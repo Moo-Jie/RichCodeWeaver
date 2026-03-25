@@ -4,6 +4,7 @@ import com.rich.client.innerService.InnerFileService;
 import com.rich.file.service.FileService;
 import jakarta.annotation.Resource;
 import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -24,5 +25,17 @@ public class InnerFileServiceImpl implements InnerFileService {
     @Override
     public String upload(MultipartFile file) {
         return fileService.upload(file);
+    }
+
+    @Override
+    public String uploadBytes(byte[] fileBytes, String fileName) {
+        // 将字节数组转换为MultipartFile
+        MultipartFile multipartFile = new MockMultipartFile(
+                "file",
+                fileName,
+                "image/png",
+                fileBytes
+        );
+        return fileService.upload(multipartFile);
     }
 }

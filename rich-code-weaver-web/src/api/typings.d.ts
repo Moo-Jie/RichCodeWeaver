@@ -395,7 +395,8 @@ declare namespace API {
   type SystemPromptVO = {
     id?: number
     promptName?: string
-    filePath?: string
+    promptKey?: string
+    promptContent?: string
     description?: string
     userId?: number
     createTime?: string
@@ -404,14 +405,16 @@ declare namespace API {
 
   type SystemPromptAddRequest = {
     promptName?: string
-    filePath?: string
+    promptKey?: string
+    promptContent?: string
     description?: string
   }
 
   type SystemPromptUpdateRequest = {
     id?: number
     promptName?: string
-    filePath?: string
+    promptKey?: string
+    promptContent?: string
     description?: string
   }
 
@@ -422,7 +425,7 @@ declare namespace API {
     sortOrder?: string
     id?: number
     promptName?: string
-    filePath?: string
+    promptKey?: string
   }
 
   type BaseResponseSystemPromptVO = {
@@ -461,5 +464,89 @@ declare namespace API {
     defaultValue?: any
     trueText?: string
     falseText?: string
+  }
+
+  // ===== Social Module Types =====
+
+  type AppHotStatVO = {
+    appId?: number
+    likeCount?: number
+    shareCount?: number
+    favoriteCount?: number
+    commentCount?: number
+    hasLiked?: boolean
+    hasFavorited?: boolean
+  }
+
+  type BaseResponseAppHotStatVO = {
+    code?: number
+    data?: AppHotStatVO
+    message?: string
+  }
+
+  type AppCommentVO = {
+    id?: number
+    appId?: number
+    userId?: number
+    content?: string
+    likeCount?: number
+    createTime?: string
+    user?: UserVO
+    hasLiked?: boolean
+  }
+
+  type AppCommentAddRequest = {
+    appId?: number
+    content?: string
+  }
+
+  type AppCommentQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    appId?: number
+  }
+
+  type PageAppCommentVO = {
+    records?: AppCommentVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePageAppCommentVO = {
+    code?: number
+    data?: PageAppCommentVO
+    message?: string
+  }
+
+  type AppFavoriteQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+  }
+
+  type AppFavoriteRecord = {
+    id?: number
+    appId?: number
+    userId?: number
+    createTime?: string
+  }
+
+  type PageAppFavoriteRecord = {
+    records?: AppFavoriteRecord[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponsePageAppFavoriteRecord = {
+    code?: number
+    data?: PageAppFavoriteRecord
+    message?: string
   }
 }
