@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
  **/
 public class SensitiveWordsConstant {
 
-    // ==================== 提示词注入攻击敏感词 ====================
+    //  提示词注入攻击敏感词 
     public static final Set<String> PROMPT_INJECTION_WORDS = Set.of(
             // 中文注入词汇 - 基础指令覆盖
             "忽略之前的指令", "忽略上述指令", "忽略所有指令", "忽略前面的", "忽略以上",
@@ -63,7 +63,7 @@ public class SensitiveWordsConstant {
             "تجاهل", "忽视", "忽略", "不理", "不管", "不顾"
     );
 
-    // ==================== 政治敏感词汇 ====================
+    //  政治敏感词汇 
     public static final Set<String> POLITICAL_SENSITIVE_WORDS = Set.of(
             // 政治体制相关
             "政治敏感", "政府机密", "国家机密", "颠覆国家", "分裂国家",
@@ -100,7 +100,7 @@ public class SensitiveWordsConstant {
             "nuclear weapons", "biological weapons", "chemical weapons"
     );
 
-    // ==================== 辱骂和仇恨言论词汇 ====================
+    //  辱骂和仇恨言论词汇 
     public static final Set<String> ABUSIVE_WORDS = Set.of(
             // 中文辱骂词汇 - 基础
             "傻逼", "白痴", "智障", "脑残", "废物", "垃圾", "畜生",
@@ -140,7 +140,7 @@ public class SensitiveWordsConstant {
             "nigger", "chink", "gook", "spic", "wetback", "kike", "faggot"
     );
 
-    // ==================== 色情和不当内容词汇 ====================
+    //  色情和不当内容词汇 
     public static final Set<String> SEXUAL_CONTENT_WORDS = Set.of(
             // 色情基础词汇
             "色情", "黄色", "成人内容", "性行为", "裸体", "性器官",
@@ -175,7 +175,7 @@ public class SensitiveWordsConstant {
             "strip club", "escort", "brothel", "red light district", "sex work"
     );
 
-    // ==================== 暴力和危险内容词汇 ====================
+    //  暴力和危险内容词汇 
     public static final Set<String> VIOLENCE_WORDS = Set.of(
             // 暴力行为
             "暴力", "杀人", "谋杀", "杀害", "杀死", "弄死", "干掉",
@@ -218,7 +218,7 @@ public class SensitiveWordsConstant {
             "gambling", "loan shark", "mafia", "gang", "organized crime"
     );
 
-    // ==================== 违法违规内容词汇 ====================
+    //  违法违规内容词汇 
     public static final Set<String> ILLEGAL_CONTENT_WORDS = Set.of(
             // 网络犯罪
             "违法", "犯罪", "非法", "黑客攻击", "网络攻击", "入侵", "渗透",
@@ -264,7 +264,7 @@ public class SensitiveWordsConstant {
             "smuggling", "illegal immigration", "document fraud", "customs fraud"
     );
 
-    // ==================== 高级注入攻击模式 ====================
+    //  高级注入攻击模式 
     public static final List<Pattern> ADVANCED_INJECTION_PATTERNS = Arrays.asList(
             // 基础提示词注入模式
             Pattern.compile("(?i)ignore\\s+(?:previous|above|all|prior)\\s+(?:instructions?|commands?|prompts?|rules?)"),
@@ -346,7 +346,7 @@ public class SensitiveWordsConstant {
             Pattern.compile("(?i)(?:instruction|rule|system).{0,50}(?:ignore|bypass|override)")
     );
 
-    // ==================== 内容合规性检查模式 ====================
+    //  内容合规性检查模式 
     public static final List<Pattern> COMPLIANCE_PATTERNS = Arrays.asList(
             // 政治敏感内容模式
             Pattern.compile("(?i)(?:推翻|颠覆|overthrow|subvert)\\s+(?:政府|government|regime)"),
@@ -413,7 +413,7 @@ public class SensitiveWordsConstant {
             Pattern.compile("(?i)(?:地下|underground)\\s+(?:钱庄|banking)")
     );
 
-    // ==================== 配置常量 ====================
+    //  配置常量 
 
     /**
      * 获取所有敏感词汇的总数

@@ -3,6 +3,7 @@ package com.rich.app.factory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.ai.aiTools.ToolsManager;
+import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
 import com.rich.ai.service.AiCodeGeneratorService;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.client.innerService.InnerSystemPromptService;
@@ -16,10 +17,12 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
@@ -89,10 +92,18 @@ public class AiCodeGeneratorServiceFactory {
     private InnerSystemPromptService innerSystemPromptService;
 
     /**
+     * RAG 知识库检索增强工厂
+     * 当 rag.enabled=true 时由 Spring 自动注入，否则为 null
+     * 为 null 时 AI 服务正常工作，只是不会从知识库检索参考内容
+     **/
+    @Autowired
+    private RagContentRetrieverAugmentorFactory ragContentRetrieverAugmentorFactory;
+
+    /**
      * 在 Caffeine 缓存中获取或创建 AI 服务实例
      * 通过 appId 从缓存中获取已存在的实例，若不存在则创建新实例并加入缓存
      *
-     * @param appId          产物ID
+     * @param appId           产物ID
      * @param codeGenTypeEnum 代码生成类型枚举
      * @return AiCodeGeneratorService AI 代码生成服务实例
      * @author DuRuiChi
@@ -108,14 +119,14 @@ public class AiCodeGeneratorServiceFactory {
      * 根据 appId 创建独立的 AI 服务实例，并从数据库加载对话历史
      * 根据代码生成类型选择不同的 AI 模型和配置（普通流式模型或推理流式模型）
      *
-     * @param appId          产物ID
+     * @param appId           产物ID
      * @param codeGenTypeEnum 代码生成类型枚举
      * @return AiCodeGeneratorService AI 代码生成服务实例
      * @author DuRuiChi
      */
     private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeGeneratorTypeEnum codeGenTypeEnum) {
         log.info("为 appId: {} 创建新的 AI 服务实例，代码生成类型: {}", appId, codeGenTypeEnum);
-        
+
         // 步骤1：根据代码生成类型从数据库查询对应的系统提示词
         String promptKey = getPromptKeyByCodeGenType(codeGenTypeEnum);
         String systemPromptContent = innerSystemPromptService.getPromptContentByKey(promptKey);
@@ -123,7 +134,7 @@ public class AiCodeGeneratorServiceFactory {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,
                     "未找到系统提示词，promptKey=" + promptKey + "，请在管理后台配置");
         }
-        
+
         // 步骤2：根据 appId 创建独立的对话记忆（ChatMemory）
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory
                 .builder()
@@ -131,7 +142,7 @@ public class AiCodeGeneratorServiceFactory {
                 .chatMemoryStore(redisChatMemoryStore)  // 指定为 Redis 类型的存储
                 .maxMessages(50)  // 最大保留50条消息（滑动窗口）
                 .build();
-        
+
         // 步骤3：从数据库中加载对话历史到 Redis 类型的 chatMemory 中
         Boolean isSave = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 10);
         if (!isSave) {
@@ -139,7 +150,7 @@ public class AiCodeGeneratorServiceFactory {
             chatMemory.add(UserMessage.from("历史记录加载失败，可能已经过期。"));
             log.warn("为 appId: {} 加载历史记录失败", appId);
         }
-        
+
         // 步骤4：构建 AI 服务实例的基础配置（使用 systemMessageProvider 编程式指定系统提示词）
         AiServices<AiCodeGeneratorService> aiCodeGenServices = AiServices.builder(AiCodeGeneratorService.class)
                 .chatModel(chatModel)  // 配置基础 AI 模型
@@ -148,7 +159,22 @@ public class AiCodeGeneratorServiceFactory {
 //                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .maxSequentialToolsInvocations(25)  // 最大连续调用工具次数（防止无限循环）
                 .chatMemory(chatMemory);  // 配置对话记忆
-        
+
+        // 步骤4.5：注入 RAG 知识库检索增强器（如果 RAG 功能已启用）
+        // RetrievalAugmentor 会在每次 AI 调用前自动执行：
+        //   1. 将用户查询向量化
+        //   2. 在 PGVector 中按 codeGenType 过滤检索相关知识库片段
+        //   3. 将检索到的开发规范以权威参考形式注入到用户消息中
+        // 这样 AI 生成代码时会参考知识库中的开发规范，降低幻觉概率
+        if (ragContentRetrieverAugmentorFactory != null) {
+            RetrievalAugmentor ragAugmentor = ragContentRetrieverAugmentorFactory
+                    .createRetrievalAugmentor(codeGenTypeEnum.name());
+            aiCodeGenServices.retrievalAugmentor(ragAugmentor);
+            log.info("为 appId: {} 注入 RAG 知识库检索增强，codeGenType: {}", appId, codeGenTypeEnum.name());
+        } else {
+            log.debug("RAG 知识库未启用，appId: {} 跳过检索增强", appId);
+        }
+
         // 步骤5：根据代码生成类型选择不同的 AI 模型和配置
         switch (codeGenTypeEnum) {
             // 单文件模式、多文件模式：使用普通流式模型
