@@ -186,7 +186,7 @@ mysql -u root -p
 CREATE DATABASE rich_code_weaver CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 # 导入SQL脚本
-mysql -u root -p rich_code_weaver < sql/RichCodeWeaverDB.sql
+mysql -u root -p rich_code_weaver < sql/RichCodeWeaverDB_MySQL.sql
 mysql -u root -p rich_code_weaver < sql/V2_prompt_template_and_user_identity.sql
 mysql -u root -p rich_code_weaver < sql/V2_prompt_template_data.sql
 mysql -u root -p rich_code_weaver < sql/V3_social_module.sql

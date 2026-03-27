@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: rich-code-weaver-server-admin
+  profiles:
+    active: local
+  # Spring Boot Admin Server UI 配置
+  boot:
+    admin:
+      ui:
+        title: RichCodeWeaver
+        brand: <img src="assets/img/icon-spring-boot-admin.svg"><span>RichCodeWeaver</span>
+
+server:
+  port: 9001
+
+# 日志文件配置
+logging:
+  file:
+    name: logs/admin-server.log
+
+# actuator 端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        # 暴露所有端点
+        include: '*'
+  endpoint:
+    health:
+      # 显示详细健康信息
+      show-details: always

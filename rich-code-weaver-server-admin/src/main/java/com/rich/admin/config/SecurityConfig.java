@@ -1,22 +1,22 @@
-package com.rich.richcodeweaverserveradmin.config;
+package com.rich.admin.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Web配置类
- * 配置跨域访问等
- * 
+ * Web 安全与跨域配置
+ * 允许前端页面跨域访问 Admin Server 监控面板。
+ *
  * @author Rich
- * @date 2025-12-12
  */
 @Configuration
 public class SecurityConfig implements WebMvcConfigurer {
 
     /**
-     * 配置跨域访问
-     * 允许前端页面访问Admin Server
+     * 配置全局跨域访问规则
+     *
+     * @param registry 跨域注册器
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
@@ -28,4 +28,3 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .maxAge(3600);
     }
 }
-

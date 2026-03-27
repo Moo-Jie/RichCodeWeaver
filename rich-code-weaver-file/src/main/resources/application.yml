@@ -26,6 +26,9 @@ knife4j:
   setting:
     language: zh_cn
 
+# Spring Boot Admin Client 配置（默认关闭，需要时在 application-local.yml 中设置为 true）
+spring.boot.admin.client.enabled: false
+
 # actuator 端点配置
 management:
   endpoints:
