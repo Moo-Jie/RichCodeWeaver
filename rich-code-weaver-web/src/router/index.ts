@@ -13,6 +13,7 @@ import UserCenterPage from '@/pages/user/UserCenterPage.vue'
 import ChatHistoryManagePage from '@/pages/admin/ChatHistoryManagePage.vue'
 import PromptTemplateManagePage from '@/pages/admin/PromptTemplateManagePage.vue'
 import SystemPromptManagePage from '@/pages/admin/SystemPromptManagePage.vue'
+import RagManagePage from '@/pages/admin/RagManagePage.vue'
 import DocsPage from '@/pages/other/DocsPage.vue'
 import AboutPage from '@/pages/other/AboutPage.vue'
 import PrivacyPage from '@/pages/other/PrivacyPage.vue'
@@ -89,6 +90,11 @@ const router = createRouter({
           path: 'admin/systemPrompt',
           name: '系统提示词管理',
           component: SystemPromptManagePage
+        },
+        {
+          path: 'admin/ragManage',
+          name: 'RAG知识库管理',
+          component: RagManagePage
         },
         {
           path: 'other/docs',

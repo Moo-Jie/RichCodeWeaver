@@ -13,6 +13,7 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.EmbeddingStoreIngestor;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -86,6 +87,12 @@ public class RagDocumentIndexCreationService {
     private RagProperties ragProperties;
 
     /**
+     * 文档来源提供者
+     **/
+    @Autowired
+    private RagDocumentProvider ragDocumentProvider;
+
+    /**
      * 应用启动完成后自动执行文档摄入检查
      * 使用 {@link ApplicationReadyEvent} 而非 {@code @PostConstruct}，
      * 确保所有 Bean 和外部资源（数据库连接等）都已就绪
@@ -128,71 +135,23 @@ public class RagDocumentIndexCreationService {
      * @create 2026/3/26
      **/
     public void ingestDocuments() {
-        // 1.验证文档目录路径
-        String docsPath = ragProperties.getDocsPath();
-        if (docsPath == null || docsPath.isBlank()) {
-            log.warn("【RAG 文档摄入】文档路径未配置（rag.docs-path），跳过摄入");
-            return;
-        }
+        List<Document> enrichedDocuments;
 
-        Path docsDir = Path.of(docsPath);
-        if (!Files.exists(docsDir) || !Files.isDirectory(docsDir)) {
-            log.warn("【RAG 文档摄入】文档目录不存在或不是目录: {}，跳过摄入", docsPath);
-            return;
-        }
-
-        // 2.加载 Markdown 文档
-        log.info("【RAG 文档摄入】从目录加载文档: {}", docsPath);
-
-        // 使用 glob 模式匹配 .md 文件
-        PathMatcher mdMatcher = FileSystems.getDefault().getPathMatcher("glob:*.md");
-
-        // 使用 TextDocumentParser 以纯文本方式解析 Markdown 文件
-        // Markdown 的结构化格式（标题、列表、代码块等）对 AI 理解非常友好，无需额外转换
-        List<Document> documents = FileSystemDocumentLoader.loadDocuments(
-                docsDir,          // 文档目录
-                mdMatcher,        // 只加载 .md 文件
-                new TextDocumentParser()  // 以纯文本方式读取，保留 Markdown 原始格式
-        );
-
-        if (documents.isEmpty()) {
-            log.warn("【RAG 文档摄入】目录 {} 下未找到 .md 文件，跳过摄入", docsPath);
-            return;
-        }
-
-        log.info("【RAG 文档摄入】共加载 {} 个文档，开始处理...", documents.size());
-
-        // 3.为每个文档添加元数据
-        // 元数据用于检索阶段的过滤，确保不同代码生成类型只检索对应的知识库文档
-        List<Document> enrichedDocuments = new ArrayList<>();
-        for (Document doc : documents) {
-            // 从文档元数据中获取原始文件名
-            // FileSystemDocumentLoader 会自动将 file_name 添加到 Metadata 中
-            String fileName = doc.metadata().getString("file_name");
-            if (fileName == null) {
-                fileName = "unknown";
+        // 优先使用数据库文档来源（RagDocumentProvider），其次回退到文件系统
+        if (ragDocumentProvider != null) {
+            log.info("【RAG 文档摄入】使用数据库文档来源（RagDocumentProvider）加载文档...");
+            enrichedDocuments = ragDocumentProvider.loadDocuments();
+            if (enrichedDocuments.isEmpty()) {
+                log.warn("【RAG 文档摄入】数据库中无已启用的 RAG 文档（isEnabled=1），跳过摄入");
+                return;
             }
-
-            // 根据文件名推断代码生成类型
-            String codeGenType = resolveCodeGenType(fileName);
-
-            // 提取文档标题（Markdown 第一行通常是 # 标题）
-            String docTitle = extractDocumentTitle(doc.text());
-
-            // 构建增强后的元数据
-            Metadata enrichedMetadata = doc.metadata().copy();
-            enrichedMetadata.put("codeGenType", codeGenType);  // 代码生成类型（用于检索过滤）
-            enrichedMetadata.put("source", fileName);           // 来源文件名（用于追溯和调试）
-            enrichedMetadata.put("title", docTitle);            // 文档标题（提供额外上下文）
-
-            // 创建带有增强元数据的新文档
-            Document enrichedDoc = Document.from(doc.text(), enrichedMetadata);
-            enrichedDocuments.add(enrichedDoc);
-
-            log.info("【RAG 文档摄入】处理文档: {} → codeGenType={}, 标题: {}, 文本长度: {} 字符",
-                    fileName, codeGenType, docTitle, doc.text().length());
-
-            log.info("【RAG 文档元信息】:{}", enrichedDoc.metadata());
+            log.info("【RAG 文档摄入】从数据库加载到 {} 个文档，开始处理...", enrichedDocuments.size());
+        } else {
+            // 回退：从文件系统读取
+            enrichedDocuments = loadFromFileSystem();
+            if (enrichedDocuments == null) {
+                return;
+            }
         }
 
         // 4.构建文档切分器
@@ -273,6 +232,49 @@ public class RagDocumentIndexCreationService {
                     e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * 从文件系统加载文档（兼容旧配置的回退方案）
+     * 读取 rag.docs-path 目录下所有 .md 文件并附加元数据
+     *
+     * @return 带元数据的文档列表，若路径未配置或无文件则返回 null
+     **/
+    private List<Document> loadFromFileSystem() {
+        String docsPath = ragProperties.getDocsPath();
+        if (docsPath == null || docsPath.isBlank()) {
+            log.warn("【RAG 文档摄入】未配置数据库文档来源，也未配置文件路径（rag.docs-path），跳过摄入");
+            return null;
+        }
+        Path docsDir = Path.of(docsPath);
+        if (!Files.exists(docsDir) || !Files.isDirectory(docsDir)) {
+            log.warn("【RAG 文档摄入】文档目录不存在或不是目录: {}，跳过摄入", docsPath);
+            return null;
+        }
+        log.info("【RAG 文档摄入】从文件系统加载文档: {}", docsPath);
+        PathMatcher mdMatcher = FileSystems.getDefault().getPathMatcher("glob:*.md");
+        List<Document> documents = FileSystemDocumentLoader.loadDocuments(
+                docsDir, mdMatcher, new TextDocumentParser());
+        if (documents.isEmpty()) {
+            log.warn("【RAG 文档摄入】目录 {} 下未找到 .md 文件，跳过摄入", docsPath);
+            return null;
+        }
+        log.info("【RAG 文档摄入】共加载 {} 个文档，开始处理...", documents.size());
+        List<Document> enriched = new ArrayList<>();
+        for (Document doc : documents) {
+            String fileName = doc.metadata().getString("file_name");
+            if (fileName == null) fileName = "unknown";
+            String codeGenType = resolveCodeGenType(fileName);
+            String docTitle = extractDocumentTitle(doc.text());
+            Metadata enrichedMetadata = doc.metadata().copy();
+            enrichedMetadata.put("codeGenType", codeGenType);
+            enrichedMetadata.put("source", fileName);
+            enrichedMetadata.put("title", docTitle);
+            enriched.add(Document.from(doc.text(), enrichedMetadata));
+            log.info("【RAG 文档摄入】处理文档: {} → codeGenType={}, 标题: {}, 文本长度: {} 字符",
+                    fileName, codeGenType, docTitle, doc.text().length());
+        }
+        return enriched;
     }
 
     /**

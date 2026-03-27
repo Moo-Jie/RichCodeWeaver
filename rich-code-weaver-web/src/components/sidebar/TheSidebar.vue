@@ -152,8 +152,9 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import { userLogout } from '@/api/userController'
 import SidebarAppList from './SidebarAppList.vue'
 import {
+  AlignLeftOutlined,
   AppstoreOutlined,
-  AuditOutlined,
+  AuditOutlined, CommentOutlined, CopyOutlined,
   DownOutlined,
   FileTextOutlined,
   GlobalOutlined,
@@ -162,7 +163,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  PlusOutlined,
+  PlusOutlined, ReadOutlined, SafetyOutlined, SecurityScanOutlined,
   SettingOutlined,
   StarOutlined,
   UserOutlined
@@ -184,16 +185,17 @@ const baseNavItems = [
 
 const aboutNavItems = [
   {path: '/other/about', label: '关于', icon: FileTextOutlined},
-  {path: '/other/privacy', label: '隐私政策', icon: FileTextOutlined},
-  {path: '/other/terms', label: '用户协议', icon: FileTextOutlined}
+  {path: '/other/privacy', label: '隐私政策', icon: SecurityScanOutlined},
+  {path: '/other/terms', label: '用户协议', icon: SafetyOutlined}
 ]
 
 const adminNavItems = [
   {path: '/admin/userManage', label: '用户管理', icon: UserOutlined},
   {path: '/admin/appManage', label: '产物管理', icon: AppstoreOutlined},
-  {path: '/admin/chatHistory', label: '对话历史', icon: FileTextOutlined},
-  {path: '/admin/promptTemplate', label: '模板管理', icon: FileTextOutlined},
-  {path: '/admin/systemPrompt', label: '提示词管理', icon: FileTextOutlined}
+  {path: '/admin/chatHistory', label: '会话管理', icon: CommentOutlined},
+  {path: '/admin/promptTemplate', label: '模板管理', icon: CopyOutlined},
+  {path: '/admin/systemPrompt', label: '提示词管理', icon: AlignLeftOutlined},
+  {path: '/admin/ragManage', label: '知识库管理', icon: ReadOutlined}
 ]
 
 const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')

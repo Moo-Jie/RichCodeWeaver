@@ -574,4 +574,66 @@ declare namespace API {
     data?: PageAppHotStat
     message?: string
   }
+
+  // ===== RAG Document Types =====
+
+  type RagDocumentVO = {
+    id?: number
+    docTitle?: string
+    docContent?: string
+    codeGenType?: string
+    description?: string
+    isEnabled?: number
+    sortOrder?: number
+    userId?: number
+    createTime?: string
+    updateTime?: string
+  }
+
+  type RagDocumentAddRequest = {
+    docTitle?: string
+    docContent?: string
+    codeGenType?: string
+    description?: string
+    isEnabled?: number
+    sortOrder?: number
+  }
+
+  type RagDocumentUpdateRequest = {
+    id?: number
+    docTitle?: string
+    docContent?: string
+    codeGenType?: string
+    description?: string
+    isEnabled?: number
+    sortOrder?: number
+  }
+
+  type RagDocumentQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    docTitle?: string
+    codeGenType?: string
+    isEnabled?: number
+  }
+
+  type PageRagDocumentVO = {
+    records?: RagDocumentVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponseRagDocumentVO = {
+    code?: number
+    data?: RagDocumentVO
+    message?: string
+  }
+
+  type BaseResponsePageRagDocumentVO = {
+    code?: number
+    data?: PageRagDocumentVO
+    message?: string
+  }
 }

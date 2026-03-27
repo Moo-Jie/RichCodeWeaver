@@ -379,9 +379,9 @@ npm run openapi2ts
 
 ## 作者
 
-**MO-JIE**
+**MO-JIE TEAM**
 - GitHub: [@Moo-Jie](https://github.com/Moo-Jie)
-- Email: NotProvided@xxx.com
+- Email: NotProvidedTemporarily@xxx.com
 
 ---
 
@@ -403,7 +403,7 @@ npm run openapi2ts
 如有任何问题或建议，欢迎通过以下方式联系：
 
 - 提交 [Issue](https://github.com/Moo-Jie/RichCodeWeaver/issues)
-- 发送邮件至：NotProvided@xxx.com
+- 发送邮件至：NotProvidedTemporarily@xxx.com
 
 ---
 
@@ -411,6 +411,6 @@ npm run openapi2ts
 
 **⭐ 如果这个项目对你有帮助，请给个Star支持一下！⭐**
 
-Made with ❤️ by MO-JIE Team
+Made with ❤️ by MO-JIE TEAM
 
 </div>

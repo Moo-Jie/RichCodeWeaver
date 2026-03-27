@@ -170,14 +170,13 @@
         <div class="author-card">
           <div class="author-avatar">M</div>
           <div class="author-info">
-            <h3 class="author-name">MO-JIE</h3>
-            <p class="author-role">Java 后端开发工程师</p>
+            <h3 class="author-name">MO-JIE TEAM</h3>
             <div class="author-links">
               <a href="https://github.com/Moo-Jie" target="_blank" class="author-link">
                 GitHub: @Moo-Jie
               </a>
-              <a href="mailto:NotProvided@xxx.com" class="author-link">
-                Email: NotProvided@xxx.com
+              <a href="mailto:NotProvidedTemporarily@xxx.com" class="author-link">
+                Email: NotProvidedTemporarily@xxx.com
               </a>
             </div>
           </div>

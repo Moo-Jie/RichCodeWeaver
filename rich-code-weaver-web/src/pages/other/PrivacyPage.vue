@@ -20,7 +20,7 @@
           您使用或继续使用我们的服务，即意味着同意我们按照本《隐私政策》收集、使用、储存和分享您的相关信息。
         </p>
         <p class="section-text">
-          如对本《隐私政策》或相关事宜有任何问题，请通过 <strong>NotProvided@xxx.com</strong> 与我们联系。
+          如对本《隐私政策》或相关事宜有任何问题，请通过 <strong>NotProvidedTemporarily@xxx.com</strong> 与我们联系。
         </p>
       </section>
 

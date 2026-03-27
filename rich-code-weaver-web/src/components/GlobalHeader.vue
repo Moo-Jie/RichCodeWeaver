@@ -76,7 +76,8 @@ import {
   BorderlessTableOutlined,
   HomeOutlined,
   LogoutOutlined,
-  UserOutlined
+  UserOutlined,
+  AlignLeftOutlined
 } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
@@ -126,7 +127,7 @@ const originItems = [
       },
       {
         key: '/admin/chatHistory',
-        icon: () => h(BorderlessTableOutlined),
+        icon: () => h(AlignLeftOutlined),
         label: '对话历史管理',
         title: '对话历史管理'
       }
