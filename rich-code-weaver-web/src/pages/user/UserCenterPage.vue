@@ -11,12 +11,12 @@
       <a-card class="info-card">
         <div class="card-header">
           <h2>
-            <UserOutlined/>
+            <UserOutlined />
             个人信息
           </h2>
           <a-button class="gradient-button" type="primary" @click="showEditModal">
             <template #icon>
-              <EditOutlined/>
+              <EditOutlined />
             </template>
             编辑资料
           </a-button>
@@ -26,7 +26,7 @@
           <div class="avatar-section">
             <a-avatar :size="120" :src="userInfo.userAvatar" class="user-avatar">
               <template v-if="!userInfo.userAvatar" #icon>
-                <UserOutlined style="font-size: 48px"/>
+                <UserOutlined style="font-size: 48px" />
               </template>
             </a-avatar>
             <a-upload
@@ -37,7 +37,7 @@
               name="avatar"
             >
               <a-button class="upload-btn gradient-button">
-                <UploadOutlined/>
+                <UploadOutlined />
                 更换头像
               </a-button>
             </a-upload>
@@ -64,7 +64,8 @@
             </div>
             <div class="detail-row">
               <label>用户身份</label>
-              <span>{{ identityLabelMap[userInfo.userIdentity] || userInfo.userIdentity || '未设置' }}</span>
+              <span>{{ identityLabelMap[userInfo.userIdentity] || userInfo.userIdentity || '未设置'
+                }}</span>
             </div>
             <div class="detail-row">
               <label>行业领域</label>
@@ -73,7 +74,7 @@
             <div class="detail-row">
               <label>注册时间</label>
               <span>
-                <CalendarOutlined/>
+                <CalendarOutlined />
                 {{ dayjs(userInfo.createTime).format('YYYY-MM-DD HH:mm') }}
               </span>
             </div>
@@ -84,7 +85,7 @@
       <!-- 账户安全卡片 -->
       <a-card class="security-card">
         <h2>
-          <LockOutlined/>
+          <LockOutlined />
           账户安全
         </h2>
 
@@ -127,7 +128,7 @@
         <div class="logout-section">
           <a-button class="logout-button" danger @click="handleLogout">
             <template #icon>
-              <LogoutOutlined/>
+              <LogoutOutlined />
             </template>
             退出登录
           </a-button>
@@ -149,7 +150,7 @@
       <br>
       <a-form :label-col="{ span: 6 }" :model="editForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户昵称">
-          <a-input v-model:value="editForm.userName" placeholder="请输入新昵称"/>
+          <a-input v-model:value="editForm.userName" placeholder="请输入新昵称" />
         </a-form-item>
         <a-form-item label="个人简介">
           <a-textarea
@@ -162,16 +163,16 @@
         <a-form-item label="用户身份">
           <a-select
             v-model:value="editForm.userIdentity"
-            placeholder="请选择您的身份"
             :options="identitySelectOptions"
+            placeholder="请选择您的身份"
           />
         </a-form-item>
         <a-form-item label="行业领域">
           <a-auto-complete
             v-model:value="editForm.userIndustry"
+            :filter-option="filterIndustry"
             :options="industryAutoOptions"
             placeholder="请选择或输入您的行业领域"
-            :filter-option="filterIndustry"
           />
         </a-form-item>
       </a-form>
@@ -187,14 +188,14 @@
       <br>
       <a-form :label-col="{ span: 6 }" :model="passwordForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="原密码">
-          <a-input-password v-model:value="passwordForm.oldPassword" placeholder="请输入当前密码"/>
+          <a-input-password v-model:value="passwordForm.oldPassword" placeholder="请输入当前密码" />
         </a-form-item>
         <a-form-item label="新密码">
-          <a-input-password v-model:value="passwordForm.newPassword" placeholder="请输入新密码"/>
+          <a-input-password v-model:value="passwordForm.newPassword" placeholder="请输入新密码" />
         </a-form-item>
         <a-form-item label="确认密码">
           <a-input-password v-model:value="passwordForm.confirmPassword"
-                            placeholder="请确认新密码"/>
+                            placeholder="请确认新密码" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -222,7 +223,7 @@ import {
   updateUserPassword,
   userLogout
 } from '@/api/userController'
-import { identityOptions, industryOptions, identityLabelMap } from '@/constants/identityOptions'
+import { identityLabelMap, identityOptions, industryOptions } from '@/constants/identityOptions'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()

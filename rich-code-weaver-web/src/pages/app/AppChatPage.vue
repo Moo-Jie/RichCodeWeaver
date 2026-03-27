@@ -5,7 +5,7 @@
     <!-- 编辑模式顶部提示条 -->
     <div v-if="isEditMode" class="edit-mode-top-bar">
       <div class="top-bar-content">
-        <EditOutlined style="color: #595959; margin-right: 8px;"/>
+        <EditOutlined style="color: #595959; margin-right: 8px;" />
         <span style="color: #595959; font-weight: 800;">可视化编辑模式已启用</span>
         <span style="color: #595959; margin-left: 12px; font-size: 20px;">
          （ 点击想要修改的页面元素并输入你的需求）
@@ -46,7 +46,7 @@
         <template v-if="appInfo">
           推广级别：
           <a-tag v-if="appInfo.priority === 99" class="app-tag2" color="gold">
-            <star-filled/>
+            <star-filled />
             星选数字产物
           </a-tag>
           <span v-else class="app-tag">普通数字产物</span>
@@ -58,7 +58,7 @@
         <!-- 查看/编辑 数字产物信息  -->
         <a-button class="detail-btn" type="primary" @click="showAppDetail">
           <template #icon>
-            <InfoCircleOutlined/>
+            <InfoCircleOutlined />
           </template>
           查看/编辑 数字产物信息
         </a-button>
@@ -67,7 +67,7 @@
                   type="primary"
                   @click="openInNewTab ">
           <template #icon>
-            <ExportOutlined/>
+            <ExportOutlined />
           </template>
           全屏查看预览
         </a-button>
@@ -75,7 +75,7 @@
         <a-button :disabled="isGenerating" :loading="downloading" class="detail-btn" type="primary"
                   @click="downloadCode">
           <template #icon>
-            <DownloadOutlined/>
+            <DownloadOutlined />
           </template>
           下载代码
         </a-button>
@@ -85,14 +85,14 @@
           <a-button :disabled="isGenerating" :loading="deploying" class="detail-btn" type="primary"
                     @click="confirmReDeploy">
             <template #icon>
-              <CloudUploadOutlined/>
+              <CloudUploadOutlined />
             </template>
             我的代码已更新，重复部署
           </a-button>
           <!-- 访问已部署网站 按钮 -->
           <a-button :href="deployedSiteUrl" class="detail-btn" target="_blank" type="primary">
             <template #icon>
-              <ExportOutlined/>
+              <ExportOutlined />
             </template>
             访问已部署网站
           </a-button>
@@ -102,7 +102,7 @@
                   type="primary"
                   @click="deployApp">
           <template #icon>
-            <CloudUploadOutlined/>
+            <CloudUploadOutlined />
           </template>
           部署为可访问网站
         </a-button>
@@ -129,7 +129,7 @@
           >
             加载更多历史消息
           </a-button>
-          <a-spin v-else size="small"/>
+          <a-spin v-else size="small" />
         </div>
 
 
@@ -139,17 +139,17 @@
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content creative-bubble">{{ message.content }}</div>
               <div class="message-avatar">
-                <a-avatar :src="loginUserStore.loginUser.userAvatar" class="avatar-glow"/>
+                <a-avatar :src="loginUserStore.loginUser.userAvatar" class="avatar-glow" />
               </div>
             </div>
             <div v-else class="ai-message">
               <div class="message-avatar">
-                <a-avatar :src="aiAvatar" class="avatar-glow ai-avatar"/>
+                <a-avatar :src="aiAvatar" class="avatar-glow ai-avatar" />
               </div>
               <div class="message-content creative-bubble">
-                <MarkdownRenderer v-if="message.content" :content="message.content"/>
+                <MarkdownRenderer v-if="message.content" :content="message.content" />
                 <div v-if="message.loading" class="loading-indicator">
-                  <a-spin size="small"/>
+                  <a-spin size="small" />
                   <span>AI 正在编织灵感...</span>
                 </div>
               </div>
@@ -171,17 +171,20 @@
           >
             <template #description>
               <div class="element-details">
-                <p v-if="selectedElement.textContent" style="margin: 4px 0; font-size: 13px; color: #389e0d; font-style: italic;">
-                  "{{ selectedElement.textContent.length > 60 ? selectedElement.textContent.substring(0, 60) + '...' : selectedElement.textContent }}"
+                <p v-if="selectedElement.textContent"
+                   style="margin: 4px 0; font-size: 13px; color: #389e0d; font-style: italic;">
+                  "{{ selectedElement.textContent.length > 60 ? selectedElement.textContent.substring(0, 60) + '...' : selectedElement.textContent
+                  }}"
                 </p>
-                <p style="margin: 4px 0; font-size: 12px; color: #999;">请在下方输入框描述您想要的修改</p>
+                <p style="margin: 4px 0; font-size: 12px; color: #999;">
+                  请在下方输入框描述您想要的修改</p>
               </div>
             </template>
           </a-alert>
           <div>
             <div v-if="!isOwner" class="creator-tip">
               <a-alert description="如需对话请创建您自己的项目" message="这是别人的创作作品"
-                       show-icon type="info"/>
+                       show-icon type="info" />
             </div>
             <a-textarea
               v-else
@@ -206,7 +209,7 @@
                   @click="startTour"
                 >
                   <template #icon>
-                    <PlayCircleOutlined/>
+                    <PlayCircleOutlined />
                   </template>
                 </a-button>
               </a-tooltip>
@@ -225,7 +228,7 @@
                   @click="toggleEditMode"
                 >
                   <template #icon>
-                    <EditOutlined/>
+                    <EditOutlined />
                   </template>
                 </a-button>
               </a-tooltip>
@@ -241,7 +244,7 @@
                   @click="sendMessage"
                 >
                   <template #icon>
-                    <SendOutlined/>
+                    <SendOutlined />
                   </template>
                 </a-button>
               </a-tooltip>
@@ -256,7 +259,7 @@
                   @click="sendMessage"
                 >
                   <template #icon>
-                    <SendOutlined/>
+                    <SendOutlined />
                   </template>
                 </a-button>
               </a-tooltip>
@@ -289,7 +292,7 @@
             <p class="placeholder-subtext">描述您的创意，AI将为您编织网站</p>
           </div>
           <div v-else-if="isGenerating" class="preview-loading">
-            <a-spin :tip="generatingTip" size="large"/>
+            <a-spin :tip="generatingTip" size="large" />
             <!-- 已用时间显示 -->
             <div class="generating-time">
               <p class="wait-tip">支持断线重连，刷新页面后可继续接收生成内容。</p>
@@ -397,7 +400,7 @@ import {
   StarFilled
 } from '@ant-design/icons-vue'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
-import { StreamChunkParserContext, parseBatchContent } from '@/utils/streamChunkParser'
+import { parseBatchContent, StreamChunkParserContext } from '@/utils/streamChunkParser'
 
 const route = useRoute()
 const router = useRouter()
@@ -575,7 +578,7 @@ const ELEMENT_TYPE_MAP: Record<string, string> = {
   P: '段落文本', A: '链接', BUTTON: '按钮', IMG: '图片', VIDEO: '视频', AUDIO: '音频',
   NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
   SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
-  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框',
+  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框'
 }
 const getElementTypeLabel = (tagName: string): string => ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
 
@@ -610,7 +613,7 @@ const fetchAppInfo = async () => {
   appId.value = id
 
   try {
-    const res = await getAppVoById({id: id as unknown as number})
+    const res = await getAppVoById({ id: id as unknown as number })
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
@@ -696,7 +699,7 @@ const downloadCode = async () => {
       responseType: 'blob'
     })
 
-    const blob = new Blob([res.data], {type: 'application/zip'})
+    const blob = new Blob([res.data], { type: 'application/zip' })
 
     const contentDisposition = res.headers['content-disposition']
 
@@ -994,7 +997,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       })
 
       // 处理接收到的消息
-      eventSource.onmessage = function (event) {
+      eventSource.onmessage = function(event) {
         if (streamCompleted) return
 
         // 保存最后的事件ID
@@ -1025,12 +1028,12 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       }
 
       // 处理 end 事件
-      eventSource.addEventListener('end', function () {
+      eventSource.addEventListener('end', function() {
         onStreamEnd()
       })
 
       // 处理错误事件
-      eventSource.addEventListener('error', function () {
+      eventSource.addEventListener('error', function() {
         if (streamCompleted || !isGenerating.value) return
 
         console.log('SSE 连接错误，readyState:', eventSource?.readyState)
@@ -1084,7 +1087,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
 const refreshAppInfoOnly = async () => {
   if (!appId.value) return
   try {
-    const res = await getAppVoById({id: appId.value as unknown as number})
+    const res = await getAppVoById({ id: appId.value as unknown as number })
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
       updatePreview()
@@ -1236,7 +1239,7 @@ const deleteApp = async () => {
   if (!appInfo.value?.id) return
 
   try {
-    const res = await deleteAppApi({id: appInfo.value.id})
+    const res = await deleteAppApi({ id: appInfo.value.id })
     if (res.data.code === 0) {
       message.success('删除成功')
       appDetailVisible.value = false

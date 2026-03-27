@@ -112,9 +112,9 @@ public class RateLimitInterceptor {
 
             // 设置限流规则：作用范围(OVERALL)、窗口时间内的最大请求数、窗口时间、时间单位(秒)
             boolean rateSet = rateLimiter.trySetRate(
-                    RateType.OVERALL, 
-                    rateLimit.rate(), 
-                    rateLimit.window(), 
+                    RateType.OVERALL,
+                    rateLimit.rate(),
+                    rateLimit.window(),
                     RateIntervalUnit.SECONDS);
             if (!rateSet) {
                 log.warn("限流规则设置失败，限流key: {}", key);
@@ -213,9 +213,9 @@ public class RateLimitInterceptor {
                     if (method != null) {
                         // 拼接类名 + 方法名保证接口的唯一性
                         key.append("api:")
-                           .append(method.getDeclaringClass().getName())
-                           .append(":")
-                           .append(method.getName());
+                                .append(method.getDeclaringClass().getName())
+                                .append(":")
+                                .append(method.getName());
                     } else {
                         // 方法获取失败时的降级处理
                         log.warn("无法获取目标方法，使用降级key");
@@ -295,12 +295,12 @@ public class RateLimitInterceptor {
 
             // 按优先级尝试从不同的HTTP头中获取真实IP（支持代理场景）
             String[] headerNames = {
-                "X-Forwarded-For",      // 标准的代理头
-                "X-Real-IP",            // Nginx代理头
-                "Proxy-Client-IP",      // Apache代理头
-                "WL-Proxy-Client-IP",   // WebLogic代理头
-                "HTTP_CLIENT_IP",       // 通用代理头
-                "HTTP_X_FORWARDED_FOR"  // 通用代理头
+                    "X-Forwarded-For",      // 标准的代理头
+                    "X-Real-IP",            // Nginx代理头
+                    "Proxy-Client-IP",      // Apache代理头
+                    "WL-Proxy-Client-IP",   // WebLogic代理头
+                    "HTTP_CLIENT_IP",       // 通用代理头
+                    "HTTP_X_FORWARDED_FOR"  // 通用代理头
             };
 
             // 遍历所有可能的头信息，找到第一个有效的IP
@@ -345,9 +345,9 @@ public class RateLimitInterceptor {
      */
     private boolean isValidIP(String ip) {
         // 验证IP是否有效：排除null、空字符串、"unknown"、IPv6本地地址、IPv4本地地址
-        return ip != null 
-                && !ip.isEmpty() 
-                && !"unknown".equalsIgnoreCase(ip) 
+        return ip != null
+                && !ip.isEmpty()
+                && !"unknown".equalsIgnoreCase(ip)
                 && !"0:0:0:0:0:0:0:1".equals(ip)  // IPv6本地地址
                 && !"127.0.0.1".equals(ip);        // IPv4本地地址
     }

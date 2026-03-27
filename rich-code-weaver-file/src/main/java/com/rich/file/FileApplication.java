@@ -17,7 +17,7 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan("com.rich")
 @EnableDubbo
 public class FileApplication {
-    
+
     /**
      * 应用启动入口方法
      *

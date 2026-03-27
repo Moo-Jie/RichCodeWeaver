@@ -5,17 +5,19 @@
       <div class="workspace-home">
         <div class="home-scroll">
           <!-- Greeting -->
-          <div class="greeting">
+          <div ref="greetingRef" class="greeting">
             <img alt="Logo" class="greeting-logo" src="@/assets/logo.png" />
-            <h1 class="greeting-title">RichCodeWeaver - 织码睿奇</h1>
+            <h1 class="greeting-title">RichCodeWeaver - 织码睭奇</h1>
             <p class="greeting-sub">工作大幅提效，成果触手可及</p>
           </div>
 
           <!-- 热门数字产物 horizontal scrollable cards -->
-          <div v-if="appStore.hotApps.length > 0" class="section">
+          <div v-if="appStore.hotApps.length > 0" ref="hotSectionRef" class="section">
             <div class="section-header">
               <span class="section-title">热门数字产物</span>
-              <button class="section-more" @click="router.push('/all/apps')">查看更多 <RightOutlined /></button>
+              <button class="section-more" @click="router.push('/all/apps')">查看更多
+                <RightOutlined />
+              </button>
             </div>
             <div class="app-scroll-wrap">
               <div class="app-scroll">
@@ -36,10 +38,11 @@
           </div>
 
           <!-- Dynamic prompt templates -->
-          <div v-if="matchedTemplates.length > 0" class="section">
+          <div v-if="matchedTemplates.length > 0" ref="templateSectionRef" class="section">
             <div class="section-header">
               <span class="section-title">推荐模板</span>
-              <span v-if="loginUserStore.loginUser.userIndustry" class="section-tag">{{ loginUserStore.loginUser.userIndustry }}</span>
+              <span v-if="loginUserStore.loginUser.userIndustry"
+                    class="section-tag">{{ loginUserStore.loginUser.userIndustry }}</span>
             </div>
             <div class="prompt-grid">
               <div
@@ -52,9 +55,9 @@
                   <div
                     v-for="(color, idx) in getColorSchemePreview(tpl)"
                     :key="idx"
-                    class="color-dot"
                     :style="{ background: color }"
                     :title="color"
+                    class="color-dot"
                   />
                 </div>
                 <span class="prompt-label">{{ tpl.templateName }}</span>
@@ -66,17 +69,19 @@
 
         <!-- Chat Input at bottom -->
         <ChatInput
-          ref="chatInputRef"
+          ref="chatInputWrapRef"
           v-model="userPrompt"
           :generator-mode="useAgentMode"
-          :sending="creating"
           :optimizing="optimizing"
+          :sending="creating"
           :show-mode-selector="true"
           :show-optimize-button="true"
+          :show-tour-button="true"
           placeholder="描述您想要创建的数字产物..."
-          @send="handleCreate"
           @optimize="handleOptimizePrompt"
+          @send="handleCreate"
           @update:generator-mode="useAgentMode = $event"
+          @start-tour="startTour"
         />
       </div>
 
@@ -115,8 +120,8 @@
             :selected-element="selectedElement"
             :sending="isGenerating"
             placeholder="✨  描述越详尽，创作越符合您的预期"
-            @clear-selection="clearSelection"
             @send="sendMessage"
+            @clear-selection="clearSelection"
           />
         </div>
 
@@ -146,13 +151,13 @@
           :preview-url="previewUrl"
           :visible="appStore.rightPanelVisible"
           @deploy="deployApp"
-          @do-share="handleShare"
           @download="downloadCode"
+          @toggle="appStore.toggleRightPanel"
+          @do-share="handleShare"
           @open-comment="commentDialogOpen = true"
           @preview-fullscreen="openInNewTab"
           @re-deploy="confirmReDeploy"
           @show-detail="showAppDetail"
-          @toggle="appStore.toggleRightPanel"
           @toggle-edit="toggleEditMode"
           @toggle-favorite="handleToggleFavorite"
           @toggle-like="handleToggleLike"
@@ -191,6 +196,10 @@
       :app-id="appStore.selectedApp?.id ?? null"
       @comment-count-change="onCommentCountChange"
     />
+
+    <!-- Tour 漫游引导 -->
+    <a-tour v-model:open="tourOpen" :steps="tourSteps" @close="tourOpen = false"
+            @finish="tourOpen = false" />
   </div>
 </template>
 
@@ -218,7 +227,7 @@ import {
 } from '@/config/env'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { listMatchedTemplates } from '@/api/promptTemplateController'
-import { StreamChunkParserContext, parseBatchContent } from '@/utils/streamChunkParser'
+import { parseBatchContent, StreamChunkParserContext } from '@/utils/streamChunkParser'
 import request from '@/request'
 import ChatInput from '@/components/workspace/ChatInput.vue'
 import ChatMessages from '@/components/workspace/ChatMessages.vue'
@@ -230,12 +239,7 @@ import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import IdentitySetupModal from '@/components/IdentitySetupModal.vue'
 import PromptTemplateDialog from '@/components/PromptTemplateDialog.vue'
 import CommentDialog from '@/components/CommentDialog.vue'
-import {
-  getAppHotStat,
-  toggleAppLike,
-  toggleAppFavorite,
-  doAppShare
-} from '@/api/socialController'
+import { doAppShare, getAppHotStat, toggleAppFavorite, toggleAppLike } from '@/api/socialController'
 
 const route = useRoute()
 const router = useRouter()
@@ -248,6 +252,45 @@ const useAgentMode = ref(true)
 const creating = ref(false)
 const optimizing = ref(false)
 const chatInputRef = ref()
+
+// === Tour State ===
+const tourOpen = ref(false)
+const greetingRef = ref<HTMLElement | null>(null)
+const hotSectionRef = ref<HTMLElement | null>(null)
+const templateSectionRef = ref<HTMLElement | null>(null)
+const chatInputWrapRef = ref<any>(null)
+
+const tourSteps = computed(() => [
+  {
+    title: '欢迎使用 RichCodeWeaver',
+    description: '识码睭奇是一个 AI 驱动的数字产物生成平台，只需描述您的需求，AI 即可自动生成完整的网页应用。',
+    target: () => greetingRef.value
+  },
+  {
+    title: '输入您的想法',
+    description: '在输入框中描述您想要创建的数字产物，越详细越好。支持 Agent 智能模式，具备更强的理解能力。',
+    target: () => chatInputWrapRef.value?.$el ?? chatInputWrapRef.value
+  },
+  ...(appStore.hotApps.length > 0 ? [{
+    title: '热门数字产物',
+    description: '浏览社区中最受欢迎的数字产物，点击卡片即可进入对话体验。',
+    target: () => hotSectionRef.value
+  }] : []),
+  ...(matchedTemplates.value.length > 0 ? [{
+    title: '推荐模板',
+    description: '根据您的身份和行业智能推荐模板，点击模板可快速填充提示词。',
+    target: () => templateSectionRef.value
+  }] : []),
+  {
+    title: '我的产物',
+    description: '点击左侧边栏的「我的产物」可查看您创建的所有数字产物，支持编辑、删除、部署等操作。',
+    target: null
+  }
+])
+
+const startTour = () => {
+  tourOpen.value = true
+}
 
 // === Dynamic Template State ===
 const matchedTemplates = ref<API.PromptTemplateVO[]>([])
@@ -344,7 +387,7 @@ const ELEMENT_TYPE_MAP: Record<string, string> = {
   P: '段落文本', A: '链接', BUTTON: '按钮', IMG: '图片', VIDEO: '视频', AUDIO: '音频',
   NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
   SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
-  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框',
+  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框'
 }
 const getElementTypeLabel = (tagName: string): string => ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
 
@@ -498,7 +541,7 @@ const fetchAppInfo = async () => {
   appId.value = id
 
   try {
-    const res = await getAppVoById({id: id as unknown as number})
+    const res = await getAppVoById({ id: id as unknown as number })
     if (res.data.code === 0 && res.data.data) {
       appStore.refreshSelectedApp(res.data.data)
       appStore.rightPanelVisible = true
@@ -620,7 +663,7 @@ const checkAndResumeGeneration = () => {
     messages.value[aiMessageIndex].loading = true
   } else {
     aiMessageIndex = messages.value.length
-    messages.value.push({type: 'ai', content: '', loading: true})
+    messages.value.push({ type: 'ai', content: '', loading: true })
   }
 
   isGenerating.value = true
@@ -635,9 +678,9 @@ const loadMoreHistory = async () => {
 
 // === Send Messages ===
 const sendInitialMessage = async (prompt: string) => {
-  messages.value.push({type: 'user', content: prompt})
+  messages.value.push({ type: 'user', content: prompt })
   const aiMessageIndex = messages.value.length
-  messages.value.push({type: 'ai', content: '', loading: true})
+  messages.value.push({ type: 'ai', content: '', loading: true })
   await nextTick()
   chatMessagesRef.value?.scrollToBottom(true)
   isGenerating.value = true
@@ -660,9 +703,9 @@ const sendMessage = async () => {
     prompt = `[可视化编辑] 我在页面中选中了一个「${typeLabel}」元素${textPreview ? `，内容为“${textPreview}”` : ''}。\n元素定位选择器: \`${el.selector}\`\n我的修改需求：${msg}`
   }
 
-  messages.value.push({type: 'user', content: displayMsg})
+  messages.value.push({ type: 'user', content: displayMsg })
   const aiMessageIndex = messages.value.length
-  messages.value.push({type: 'ai', content: '', loading: true})
+  messages.value.push({ type: 'ai', content: '', loading: true })
   await nextTick()
   chatMessagesRef.value?.scrollToBottom(true)
 
@@ -732,9 +775,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
         params.set('lastEventId', lastEventId.value)
       }
       const url = `${baseURL}/app/gen/code/stream?${params}`
-      eventSource = new EventSource(url, {withCredentials: true})
+      eventSource = new EventSource(url, { withCredentials: true })
 
-      eventSource.onmessage = function (event) {
+      eventSource.onmessage = function(event) {
         if (streamCompleted) return
         if (event.lastEventId) lastEventId.value = event.lastEventId
         try {
@@ -800,7 +843,7 @@ const refreshAppInfoOnly = async () => {
   const id = route.params.id as string
   if (!id) return
   try {
-    const res = await getAppVoById({id: id as unknown as number})
+    const res = await getAppVoById({ id: id as unknown as number })
     if (res.data.code === 0 && res.data.data) {
       appStore.refreshSelectedApp(res.data.data)
       updatePreview()
@@ -869,7 +912,7 @@ const deployApp = async () => {
 
   deploying.value = true
   try {
-    const res = await deployAppApi({appId: appId.value as unknown as number})
+    const res = await deployAppApi({ appId: appId.value as unknown as number })
     if (res.data.code === 0 && res.data.data) {
       deployUrl.value = res.data.data
       deployModalVisible.value = true
@@ -901,7 +944,7 @@ const confirmReDeploy = async () => {
     onOk: async () => {
       deploying.value = true
       try {
-        const res = await deployAppApi({appId: appId.value as unknown as number})
+        const res = await deployAppApi({ appId: appId.value as unknown as number })
         if (res.data.code === 0 && res.data.data) {
           deployUrl.value = res.data.data
           deployModalVisible.value = true
@@ -932,8 +975,8 @@ const downloadCode = async () => {
 
   downloading.value = true
   try {
-    const res = await request.get(`/download/code/zip/${appId.value}`, {responseType: 'blob'})
-    const blob = new Blob([res.data], {type: 'application/zip'})
+    const res = await request.get(`/download/code/zip/${appId.value}`, { responseType: 'blob' })
+    const blob = new Blob([res.data], { type: 'application/zip' })
     const contentDisposition = res.headers['content-disposition']
     let filename = `${appStore.selectedApp?.appName ?? 'code'}.zip`
     if (contentDisposition) {
@@ -998,7 +1041,7 @@ const handleEditApp = () => {
 const handleDeleteApp = async () => {
   if (!appStore.selectedApp?.id) return
   try {
-    const res = await deleteAppApi({id: appStore.selectedApp.id})
+    const res = await deleteAppApi({ id: appStore.selectedApp.id })
     if (res.data.code === 0) {
       message.success('删除成功')
       appDetailVisible.value = false
@@ -1093,7 +1136,7 @@ watch(() => route.params.id, (newId) => {
     appStore.clearSelectedApp()
     resetChatState()
   }
-}, {immediate: false})
+}, { immediate: false })
 
 const resetChatState = () => {
   appId.value = ''
@@ -1197,10 +1240,18 @@ const handleIframeMessage = (event: MessageEvent) => {
   gap: 28px;
 }
 
-.home-scroll::-webkit-scrollbar { width: 4px; }
-.home-scroll::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 4px; }
+.home-scroll::-webkit-scrollbar {
+  width: 4px;
+}
 
-.greeting { text-align: center; }
+.home-scroll::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 4px;
+}
+
+.greeting {
+  text-align: center;
+}
 
 .greeting-logo {
   width: 100px;
@@ -1264,7 +1315,9 @@ const handleIframeMessage = (event: MessageEvent) => {
   transition: color 0.15s;
 }
 
-.section-more:hover { color: #666; }
+.section-more:hover {
+  color: #666;
+}
 
 /* Horizontal scrollable app cards */
 .app-scroll-wrap {
@@ -1280,8 +1333,14 @@ const handleIframeMessage = (event: MessageEvent) => {
   scroll-snap-type: x mandatory;
 }
 
-.app-scroll::-webkit-scrollbar { height: 3px; }
-.app-scroll::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 3px; }
+.app-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+
+.app-scroll::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 3px;
+}
 
 .app-card {
   flex-shrink: 0;
@@ -1303,7 +1362,7 @@ const handleIframeMessage = (event: MessageEvent) => {
   background: #f5f5f5;
   border-color: #e5e5e5;
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .app-card-cover {
@@ -1425,8 +1484,14 @@ const handleIframeMessage = (event: MessageEvent) => {
 }
 
 @keyframes slideDown {
-  from { transform: translateY(-100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .edit-bar-text {

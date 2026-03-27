@@ -53,8 +53,8 @@ public class FileDirReadTool extends BaseTool {
     public String getResultMsg(JSONObject arguments) {
         // 从参数中提取目录路径，若为空则使用默认值
         String relativeDirPath = arguments.getStr("relativeDirPath");
-        String displayPath = (relativeDirPath == null || relativeDirPath.trim().isEmpty()) 
-                ? "项目根目录" 
+        String displayPath = (relativeDirPath == null || relativeDirPath.trim().isEmpty())
+                ? "项目根目录"
                 : relativeDirPath;
         return String.format("[工具调用结束] 成功读取目录 %s", displayPath);
     }
@@ -71,54 +71,54 @@ public class FileDirReadTool extends BaseTool {
             log.warn(errorMsg);
             return errorMsg;
         }
-        
+
         try {
             // 处理空路径的情况（读取项目根目录）
-            String normalizedPath = (relativeDirPath == null || relativeDirPath.trim().isEmpty()) 
-                    ? "" 
+            String normalizedPath = (relativeDirPath == null || relativeDirPath.trim().isEmpty())
+                    ? ""
                     : relativeDirPath.trim();
-            
+
             // 解析目录路径
             Path targetPath = Paths.get(normalizedPath);
-            
+
             // 如果不是绝对路径，则拼接项目根目录
             if (!targetPath.isAbsolute()) {
                 String projectDirName = "vue_project_" + appId;
                 Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
                 targetPath = projectRoot.resolve(normalizedPath);
             }
-            
+
             // 转换为File对象进行操作
             File targetDir = targetPath.toFile();
-            
+
             // 检查目录是否存在
             if (!targetDir.exists()) {
                 String errorMsg = "错误：目录不存在 - " + (normalizedPath.isEmpty() ? "项目根目录" : relativeDirPath);
                 log.warn(errorMsg);
                 return errorMsg;
             }
-            
+
             // 检查是否为目录（非文件）
             if (!targetDir.isDirectory()) {
                 String errorMsg = "错误：指定路径不是目录 - " + relativeDirPath;
                 log.warn(errorMsg);
                 return errorMsg;
             }
-            
+
             // 构建目录结构字符串
             StringBuilder structure = new StringBuilder();
             structure.append("项目目录结构:\n");
-            
+
             // 使用 Hutool 递归获取所有文件（过滤掉需要忽略的文件）
             List<File> allFiles = FileUtil.loopFiles(targetDir, file -> !shouldIgnore(file.getName()));
-            
+
             // 如果目录为空，返回提示信息
             if (allFiles.isEmpty()) {
                 structure.append("（目录为空或所有文件已被过滤）\n");
                 log.info("目录为空: {}", targetPath.toAbsolutePath());
                 return structure.toString();
             }
-            
+
             // 按路径深度和名称排序显示文件列表
             allFiles.stream()
                     .sorted((file1, file2) -> {
@@ -138,14 +138,14 @@ public class FileDirReadTool extends BaseTool {
                         // 添加文件名到结构字符串（每个文件占一行）
                         structure.append(indent).append(file.getName()).append("\n");
                     });
-            
+
             log.info("成功读取目录: {}, 共 {} 个文件", targetPath.toAbsolutePath(), allFiles.size());
             return structure.toString();
 
         } catch (Exception e) {
             // 捕获所有异常并记录详细错误信息
-            String displayPath = (relativeDirPath == null || relativeDirPath.trim().isEmpty()) 
-                    ? "项目根目录" 
+            String displayPath = (relativeDirPath == null || relativeDirPath.trim().isEmpty())
+                    ? "项目根目录"
                     : relativeDirPath;
             String errorMessage = String.format("读取目录结构失败: %s, 错误: %s", displayPath, e.getMessage());
             log.error(errorMessage, e);
@@ -156,8 +156,8 @@ public class FileDirReadTool extends BaseTool {
     /**
      * 计算文件相对于根目录的深度
      * 深度用于控制目录树的缩进显示
-     * 
-     * @param rootDir 根目录
+     *
+     * @param rootDir    根目录
      * @param targetFile 目标文件
      * @return 相对深度（0表示根目录下的直接文件）
      */
@@ -165,7 +165,7 @@ public class FileDirReadTool extends BaseTool {
         // 将File转换为Path以便进行路径计算
         Path rootPath = rootDir.toPath();
         Path filePath = targetFile.toPath();
-        
+
         // 计算相对路径的层级数，减1是因为文件本身也算一层
         // 例如：root/a/b.txt 相对于 root 的深度为 1（在a目录下）
         return rootPath.relativize(filePath).getNameCount() - 1;
@@ -174,7 +174,7 @@ public class FileDirReadTool extends BaseTool {
     /**
      * 判断是否应该忽略该文件或目录
      * 忽略规则：1. 匹配忽略名称列表  2. 匹配忽略扩展名列表
-     * 
+     *
      * @param fileName 文件或目录名称
      * @return true-应该忽略, false-不应该忽略
      */
@@ -183,7 +183,7 @@ public class FileDirReadTool extends BaseTool {
         if (fileName == null || fileName.trim().isEmpty()) {
             return false;
         }
-        
+
         // 检查是否在忽略名称列表中（精确匹配）
         if (IGNORED_NAMES.contains(fileName)) {
             return true;

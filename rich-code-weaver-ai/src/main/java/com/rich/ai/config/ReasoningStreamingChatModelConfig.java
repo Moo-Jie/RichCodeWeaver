@@ -70,43 +70,43 @@ public class ReasoningStreamingChatModelConfig {
     public StreamingChatModel reasoningStreamingChatModel() {
         // 构建OpenAI流式聊天模型（推理模型）
         OpenAiStreamingChatModel.OpenAiStreamingChatModelBuilder builder = OpenAiStreamingChatModel.builder();
-        
+
         // 设置模型名称（必需参数，推理模型通常使用更强大的模型）
         if (modelName != null && !modelName.trim().isEmpty()) {
             builder.modelName(modelName);
         }
-        
+
         // 设置API密钥（必需参数）
         if (apiKey != null && !apiKey.trim().isEmpty()) {
             builder.apiKey(apiKey);
         }
-        
+
         // 设置基础URL（可选参数，用于自定义API端点）
         if (baseUrl != null && !baseUrl.trim().isEmpty()) {
             builder.baseUrl(baseUrl);
         }
-        
+
         // 设置最大Token数（可选参数，推理模型通常需要更多Token）
         if (maxTokens != null && maxTokens > 0) {
             builder.maxTokens(maxTokens);
         }
-        
+
         // 设置超时时间（可选参数，推理模型需要更长的超时时间）
         // 推理过程比普通对话更复杂，需要更多时间处理
         if (timeout != null && timeout > 0) {
             builder.timeout(Duration.ofMillis(timeout));
         }
-        
+
         // 设置是否记录请求日志（可选参数，用于调试）
         if (logRequests != null) {
             builder.logRequests(logRequests);
         }
-        
+
         // 设置是否记录响应日志（可选参数，用于调试）
         if (logResponses != null) {
             builder.logResponses(logResponses);
         }
-        
+
         // 构建并返回流式聊天模型实例
         return builder.build();
     }

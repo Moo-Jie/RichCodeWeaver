@@ -42,7 +42,7 @@ public class ExitTool extends BaseTool {
     public String exit() {
         // 记录退出操作日志
         log.info("AI调用了退出工具，任务执行结束");
-        
+
         // 返回退出确认信息，指示AI停止工具调用并输出最终结果
         return "当前任务已经完成，已无需继续调用任何工具，现需要输出最终结果";
     }

@@ -133,7 +133,7 @@ public interface AppService extends IService<App> {
      * @param isWorkflow  是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
      * @param lastEventId 最后接收到的事件ID（用于断线重连）
      * @param reconnect   是否为重连请求
-     * @return reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent<java.lang.String>> 代码生成事件流
+     * @return reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent < java.lang.String>> 代码生成事件流
      * @author DuRuiChi
      */
     Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, Boolean isWorkflow, String lastEventId, Boolean reconnect);

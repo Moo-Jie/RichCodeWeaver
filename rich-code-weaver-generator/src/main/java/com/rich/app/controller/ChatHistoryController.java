@@ -56,7 +56,7 @@ public class ChatHistoryController {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
         // 参数校验：验证分页参数合理性（限制最大100条防止数据量过大）
         ThrowUtils.throwIf(pageSize <= 0 || pageSize > 100, ErrorCode.PARAMS_ERROR, "页面大小必须在1-100之间");
-        
+
         // 查询指定产物的对话历史（支持游标分页）
         Page<ChatHistory> chatHistoryPage = chatHistoryService.listAppChatHistoryByPage(
                 appId, pageSize, lastCreateTime, request);
@@ -76,18 +76,18 @@ public class ChatHistoryController {
     public BaseResponse<Page<ChatHistory>> listAppChatHistoryByPageAdmin(@RequestBody ChatHistoryQueryRequest chatHistoryQueryRequest) {
         // 参数校验：验证查询请求不为空
         ThrowUtils.throwIf(chatHistoryQueryRequest == null, ErrorCode.PARAMS_ERROR, "查询请求参数不能为空");
-        
+
         // 提取分页参数
         long pageNum = chatHistoryQueryRequest.getPageNum();
         long pageSize = chatHistoryQueryRequest.getPageSize();
-        
+
         // 参数校验：验证分页参数合理性
         ThrowUtils.throwIf(pageNum <= 0, ErrorCode.PARAMS_ERROR, "页码必须大于0");
         ThrowUtils.throwIf(pageSize <= 0 || pageSize > 100, ErrorCode.PARAMS_ERROR, "页面大小必须在1-100之间");
-        
+
         // 构建查询条件
         QueryWrapper queryWrapper = chatHistoryService.getQueryWrapper(chatHistoryQueryRequest);
-        
+
         // 执行分页查询
         Page<ChatHistory> chatHistoryPage = chatHistoryService.page(
                 Page.of(pageNum, pageSize), queryWrapper);
@@ -107,11 +107,11 @@ public class ChatHistoryController {
     public BaseResponse<Boolean> deleteById(@PathVariable Long id) {
         // 参数校验：验证历史消息ID有效性
         ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR, "历史消息ID无效");
-        
+
         // 构建删除条件：根据ID删除
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("id", id);
-        
+
         // 执行删除操作
         boolean deleteResult = chatHistoryService.remove(queryWrapper);
         return ResultUtils.success(deleteResult);

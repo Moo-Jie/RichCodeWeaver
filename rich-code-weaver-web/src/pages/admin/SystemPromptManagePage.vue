@@ -25,7 +25,9 @@
         </a-form-item>
         <a-form-item class="search-actions">
           <a-button html-type="submit" type="primary">
-            <template #icon><SearchOutlined /></template>
+            <template #icon>
+              <SearchOutlined />
+            </template>
             搜索
           </a-button>
           <a-button @click="resetSearch">重置</a-button>
@@ -36,7 +38,9 @@
     <!-- 操作栏 -->
     <div class="action-bar">
       <a-button type="primary" @click="showAddModal">
-        <template #icon><PlusOutlined /></template>
+        <template #icon>
+          <PlusOutlined />
+        </template>
         新增提示词
       </a-button>
     </div>
@@ -58,7 +62,9 @@
           </a-tooltip>
         </template>
         <template v-if="column.dataIndex === 'promptContent'">
-          <span class="content-cell">{{ record.promptContent ? record.promptContent.substring(0, 60) + (record.promptContent.length > 60 ? '...' : '') : '-' }}</span>
+          <span
+            class="content-cell">{{ record.promptContent ? record.promptContent.substring(0, 60) + (record.promptContent.length > 60 ? '...' : '') : '-'
+            }}</span>
         </template>
         <template v-if="column.dataIndex === 'description'">
           <span class="desc-cell">{{ record.description || '-' }}</span>
@@ -78,13 +84,14 @@
     <!-- 新增/编辑元数据模态框 -->
     <a-modal
       v-model:open="metaModalVisible"
+      :cancel-text="'取消'"
+      :ok-text="'提交'"
       :title="isEdit ? '修改提示词信息' : '新增提示词'"
       width="560px"
-      :ok-text="'提交'"
-      :cancel-text="'取消'"
       @ok="handleMetaSubmit"
     >
-      <a-form :model="metaForm" :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
+      <a-form :label-col="{ span: 5 }" :model="metaForm" :wrapper-col="{ span: 19 }"
+              style="margin-top: 16px;">
         <a-form-item label="提示词名称" required>
           <a-input v-model:value="metaForm.promptName" placeholder="如：HTML代码生成" />
         </a-form-item>
@@ -93,7 +100,8 @@
           <div class="form-tip">唯一标识，用于程序中定位该提示词</div>
         </a-form-item>
         <a-form-item label="描述">
-          <a-textarea v-model:value="metaForm.description" :rows="3" placeholder="提示词的简短描述" />
+          <a-textarea v-model:value="metaForm.description" :rows="3"
+                      placeholder="提示词的简短描述" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -101,12 +109,12 @@
     <!-- 提示词内容编辑模态框（全屏 Markdown 编辑器） -->
     <a-modal
       v-model:open="editorModalVisible"
-      :title="'编辑提示词：' + currentEditPrompt?.promptName"
-      width="95vw"
-      :footer="null"
       :body-style="{ padding: '0', height: 'calc(90vh - 55px)', overflow: 'hidden' }"
+      :footer="null"
+      :title="'编辑提示词：' + currentEditPrompt?.promptName"
       centered
       destroy-on-close
+      width="95vw"
     >
       <div class="editor-wrapper">
         <div class="editor-toolbar">
@@ -115,7 +123,9 @@
           </div>
           <div class="editor-actions">
             <a-button :loading="saving" type="primary" @click="handleSaveContent">
-              <template #icon><SaveOutlined /></template>
+              <template #icon>
+                <SaveOutlined />
+              </template>
               保存
             </a-button>
           </div>
@@ -123,10 +133,10 @@
         <div class="editor-container">
           <MdEditor
             v-model="editorContent"
-            :theme="'light'"
             :language="'zh-CN'"
-            :show-code-row-number="true"
             :preview="true"
+            :show-code-row-number="true"
+            :theme="'light'"
             style="height: 100%"
           />
         </div>
@@ -138,7 +148,7 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { PlusOutlined, SearchOutlined, SaveOutlined } from '@ant-design/icons-vue'
+import { PlusOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons-vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import {

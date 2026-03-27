@@ -1,10 +1,10 @@
 <template>
   <a-modal
-    :open="open"
-    title="评论区"
     :footer="null"
-    width="680px"
+    :open="open"
     centered
+    title="评论区"
+    width="680px"
     @cancel="$emit('update:open', false)"
   >
     <!-- Comment Input -->
@@ -16,15 +16,15 @@
         <textarea
           v-model="newComment"
           class="comment-textarea"
+          maxlength="500"
           placeholder="写下你的评论..."
           rows="2"
-          maxlength="500"
         />
         <div class="comment-input-footer">
           <span class="char-count">{{ newComment.length }}/500</span>
           <button
-            class="comment-submit-btn"
             :disabled="!newComment.trim() || submitting"
+            class="comment-submit-btn"
             @click="handleSubmitComment"
           >
             {{ submitting ? '发布中...' : '发布评论' }}
@@ -39,7 +39,7 @@
     </div>
 
     <!-- Comment List -->
-    <div class="comment-list" ref="commentListRef">
+    <div ref="commentListRef" class="comment-list">
       <div v-if="loading && comments.length === 0" class="comment-loading">
         <a-spin size="small" />
         <span>加载中...</span>
@@ -82,7 +82,7 @@
 
       <!-- Load More -->
       <div v-if="hasMore && comments.length > 0" class="comment-load-more">
-        <button class="load-more-btn" :disabled="loading" @click="loadMore">
+        <button :disabled="loading" class="load-more-btn" @click="loadMore">
           {{ loading ? '加载中...' : '加载更多' }}
         </button>
       </div>
@@ -355,8 +355,14 @@ watch(() => props.open, (val) => {
   padding-right: 4px;
 }
 
-.comment-list::-webkit-scrollbar { width: 4px; }
-.comment-list::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 4px; }
+.comment-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.comment-list::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 4px;
+}
 
 .comment-loading,
 .comment-empty {

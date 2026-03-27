@@ -11,7 +11,7 @@ export async function addRagDocument(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -24,7 +24,7 @@ export async function updateRagDocument(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -37,7 +37,7 @@ export async function deleteRagDocument(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -49,7 +49,7 @@ export async function getRagDocumentVOById(
   return request<API.BaseResponseRagDocumentVO>('/rag/get/vo', {
     method: 'GET',
     params: { ...params },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -62,7 +62,7 @@ export async function listRagDocumentByPage(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -70,6 +70,6 @@ export async function listRagDocumentByPage(
 export async function reindexRagDocuments(options?: { [key: string]: any }) {
   return request<API.BaseResponseString>('/rag/reindex', {
     method: 'POST',
-    ...(options || {}),
+    ...(options || {})
   })
 }

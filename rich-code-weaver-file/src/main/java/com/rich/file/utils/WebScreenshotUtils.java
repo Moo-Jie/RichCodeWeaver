@@ -4,7 +4,10 @@ import cn.hutool.core.img.ImgUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
-import com.microsoft.playwright.*;
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.ScreenshotType;
 import com.microsoft.playwright.options.WaitUntilState;
 import com.rich.common.constant.AppConstant;
@@ -29,13 +32,12 @@ import java.util.UUID;
 @Slf4j
 @Component
 public class WebScreenshotUtils {
+    // 双重检查锁确保线程安全的单例初始化
+    private static final Object LOCK = new Object();
     // Playwright 实例（单例，线程安全）
     private static volatile Playwright playwright;
     // Browser 实例（复用，提升性能）
     private static volatile Browser browser;
-
-    // 双重检查锁确保线程安全的单例初始化
-    private static final Object LOCK = new Object();
 
     /**
      * 获取 Playwright 实例（懒加载 + 双重检查锁）

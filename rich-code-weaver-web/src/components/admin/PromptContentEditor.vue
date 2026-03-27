@@ -3,8 +3,10 @@
     <div class="editor-toolbar">
       <span class="toolbar-title">提示词内容编辑器</span>
       <div class="toolbar-actions">
-        <a-button size="small" @click="loadExample" v-if="!localContent">
-          <template #icon><BulbOutlined /></template>
+        <a-button v-if="!localContent" size="small" @click="loadExample">
+          <template #icon>
+            <BulbOutlined />
+          </template>
           加载示例
         </a-button>
         <a-dropdown>
@@ -15,12 +17,15 @@
               </a-menu-item>
               <a-menu-divider v-if="availableFields.length > 0" />
               <a-menu-item key="custom">
-                <EditOutlined /> 自定义变量...
+                <EditOutlined />
+                自定义变量...
               </a-menu-item>
             </a-menu>
           </template>
           <a-button size="small">
-            <template #icon><PlusOutlined /></template>
+            <template #icon>
+              <PlusOutlined />
+            </template>
             插入变量
             <DownOutlined />
           </a-button>
@@ -32,8 +37,8 @@
       ref="textareaRef"
       v-model:value="localContent"
       :rows="8"
-      placeholder="输入提示词内容，使用 {{变量名}} 作为可替换占位符&#10;&#10;示例：为一位{{identity}}用户创建网站。色系：{{colorScheme}}，布局：{{layout}}。"
       class="content-textarea"
+      placeholder="输入提示词内容，使用 {{变量名}} 作为可替换占位符&#10;&#10;示例：为一位{{identity}}用户创建网站。色系：{{colorScheme}}，布局：{{layout}}。"
       @change="handleChange"
     />
 
@@ -146,7 +151,7 @@ const insertAtCursor = (text: string) => {
   const end = textarea.selectionEnd
   const before = localContent.value.substring(0, start)
   const after = localContent.value.substring(end)
-  
+
   localContent.value = before + text + after
   handleChange()
 
@@ -198,7 +203,7 @@ const formatVariable = (key: string) => {
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 13px;
   line-height: 1.6;
-  
+
   :deep(textarea) {
     border-radius: 6px;
     background: white;

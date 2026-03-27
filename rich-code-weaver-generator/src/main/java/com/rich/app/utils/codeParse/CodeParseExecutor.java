@@ -42,8 +42,8 @@ public class CodeParseExecutor {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
             }
 
-            log.info("开始解析{}类型代码，代码内容长度：{}", 
-                    codeGeneratorTypeEnum.getValue(), 
+            log.info("开始解析{}类型代码，代码内容长度：{}",
+                    codeGeneratorTypeEnum.getValue(),
                     codeContent != null ? codeContent.length() : 0);
 
             // 步骤2：根据代码生成类型选择对应的解析策略
@@ -53,7 +53,7 @@ public class CodeParseExecutor {
                 // 多文件模式 / Vue 项目模式：均使用多文件解析器
                 case MULTI_FILE, VUE_PROJECT -> aiResToMultiFileCodeResultParser.parseCode(codeContent);
                 // 默认情况：不支持的类型，抛出异常
-                default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, 
+                default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
                         "不支持的代码解析类型: " + codeGeneratorTypeEnum.getValue());
             };
         } catch (BusinessException e) {

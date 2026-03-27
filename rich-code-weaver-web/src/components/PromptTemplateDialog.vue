@@ -2,18 +2,18 @@
   <a-modal
     :open="open"
     :title="template?.templateName || '编辑模板'"
-    width="560px"
-    centered
-    okText="确定生成"
     cancelText="取消"
+    centered
     class="template-dialog"
-    @ok="handleConfirm"
+    okText="确定生成"
+    width="560px"
     @cancel="$emit('update:open', false)"
+    @ok="handleConfirm"
   >
     <div class="template-dialog-body">
       <p class="template-desc">{{ template?.description }}</p>
 
-      <a-form layout="vertical" class="template-form">
+      <a-form class="template-form" layout="vertical">
         <div v-for="field in parsedFields" :key="field.key">
           <!-- 下拉选项 -->
           <a-form-item v-if="field.type === 'select'" :label="field.label">
@@ -23,10 +23,11 @@
               placeholder="请选择"
             />
             <!-- Color scheme visual preview -->
-            <div v-if="field.key === 'colorScheme' && fieldValues[field.key]" class="color-scheme-visual-preview">
-              <div class="preview-card-demo" :style="getColorSchemeStyle(fieldValues[field.key])">
-                <div class="demo-header"/>
-                <div class="demo-body"/>
+            <div v-if="field.key === 'colorScheme' && fieldValues[field.key]"
+                 class="color-scheme-visual-preview">
+              <div :style="getColorSchemeStyle(fieldValues[field.key])" class="preview-card-demo">
+                <div class="demo-header" />
+                <div class="demo-body" />
               </div>
             </div>
           </a-form-item>
@@ -49,9 +50,9 @@
         <a-form-item label="网站展示内容">
           <a-textarea
             v-model:value="additionalContent"
-            placeholder="请输入需要在网站中展示的具体信息，例如：个人简介、产品列表、服务项目等"
-            :rows="4"
             :maxlength="500"
+            :rows="4"
+            placeholder="请输入需要在网站中展示的具体信息，例如：个人简介、产品列表、服务项目等"
             show-count
           />
           <div class="field-hint">此内容将自动添加到生成的提示词末尾，用于补充具体展示信息</div>
@@ -217,8 +218,14 @@ const getColorSchemeStyle = (colorScheme: string) => {
   word-break: break-all;
 }
 
-.preview-content::-webkit-scrollbar { width: 3px; }
-.preview-content::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+.preview-content::-webkit-scrollbar {
+  width: 3px;
+}
+
+.preview-content::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
 
 .color-scheme-visual-preview {
   margin-top: 12px;

@@ -18,12 +18,12 @@ public abstract class BaseTool {
     public String getResponseMsg() {
         // 获取工具的显示名称
         String displayName = getToolDisplayName();
-        
+
         // 防御性编程：处理工具名称为null或空的情况
         if (displayName == null || displayName.trim().isEmpty()) {
             displayName = "未知工具";
         }
-        
+
         // 返回格式化的工具调用开始提示信息
         return String.format("\n\n[开始调用系统工具] %s\n\n", displayName);
     }

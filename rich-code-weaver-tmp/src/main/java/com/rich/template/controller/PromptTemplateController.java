@@ -74,7 +74,7 @@ public class PromptTemplateController {
      * 新增模板（管理员）
      *
      * @param addRequest 新增请求参数
-     * @param request HTTP请求对象
+     * @param request    HTTP请求对象
      * @return 新增模板的ID
      * @author DuRuiChi
      */

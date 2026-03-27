@@ -139,52 +139,52 @@ public class CommonChatModelConfig {
         // 使用通用构建方法创建聊天模型
         return buildChatModel();
     }
-    
+
     /**
      * 通用的聊天模型构建方法
      * 统一处理所有聊天模型的配置和参数校验，避免代码重复
-     * 
+     *
      * @return dev.langchain4j.model.chat.ChatModel 聊天模型实例
      */
     private ChatModel buildChatModel() {
         // 构建OpenAI聊天模型
         OpenAiChatModel.OpenAiChatModelBuilder builder = OpenAiChatModel.builder();
-        
+
         // 设置模型名称（必需参数）
         if (modelName != null && !modelName.trim().isEmpty()) {
             builder.modelName(modelName);
         }
-        
+
         // 设置API密钥（必需参数）
         if (apiKey != null && !apiKey.trim().isEmpty()) {
             builder.apiKey(apiKey);
         }
-        
+
         // 设置基础URL（可选参数，用于自定义API端点）
         if (baseUrl != null && !baseUrl.trim().isEmpty()) {
             builder.baseUrl(baseUrl);
         }
-        
+
         // 设置超时时间（可选参数，防止请求长时间挂起）
         if (timeout != null && timeout > 0) {
             builder.timeout(Duration.ofMillis(timeout));
         }
-        
+
         // 设置最大Token数（可选参数，控制生成内容的长度）
         if (maxTokens != null && maxTokens > 0) {
             builder.maxTokens(maxTokens);
         }
-        
+
         // 设置是否记录请求日志（可选参数，用于调试）
         if (logRequests != null) {
             builder.logRequests(logRequests);
         }
-        
+
         // 设置是否记录响应日志（可选参数，用于调试）
         if (logResponses != null) {
             builder.logResponses(logResponses);
         }
-        
+
         // 构建并返回聊天模型实例
         return builder.build();
     }

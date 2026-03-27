@@ -3,7 +3,9 @@
     <div class="editor-header">
       <span class="editor-title">UI色系编辑器</span>
       <a-button size="small" @click="addColorScheme">
-        <template #icon><PlusOutlined /></template>
+        <template #icon>
+          <PlusOutlined />
+        </template>
         添加色系
       </a-button>
     </div>
@@ -17,7 +19,9 @@
             style="flex: 1; margin-right: 8px;"
           />
           <a-button danger size="small" @click="removeColorScheme(index)">
-            <template #icon><DeleteOutlined /></template>
+            <template #icon>
+              <DeleteOutlined />
+            </template>
           </a-button>
         </div>
 
@@ -27,8 +31,8 @@
             <div class="color-picker-wrap">
               <input
                 v-model="scheme.primary"
-                type="color"
                 class="color-picker"
+                type="color"
               />
               <a-input
                 v-model:value="scheme.primary"
@@ -43,8 +47,8 @@
             <div class="color-picker-wrap">
               <input
                 v-model="scheme.secondary"
-                type="color"
                 class="color-picker"
+                type="color"
               />
               <a-input
                 v-model:value="scheme.secondary"
@@ -56,14 +60,15 @@
         </div>
 
         <!-- Real-time preview -->
-        <div class="scheme-preview" :style="getPreviewStyle(scheme)">
+        <div :style="getPreviewStyle(scheme)" class="scheme-preview">
           <div class="preview-card">
-            <div class="preview-header" :style="{ background: scheme.primary }">
+            <div :style="{ background: scheme.primary }" class="preview-header">
               <span style="color: white; font-weight: 600;">{{ scheme.name || '预览' }}</span>
             </div>
-            <div class="preview-body" :style="{ background: scheme.secondary }">
+            <div :style="{ background: scheme.secondary }" class="preview-body">
               <p :style="{ color: scheme.primary }">这是使用该色系的示例内容</p>
-              <button class="preview-button" :style="{ background: scheme.primary, color: 'white' }">
+              <button :style="{ background: scheme.primary, color: 'white' }"
+                      class="preview-button">
                 按钮示例
               </button>
             </div>
@@ -104,7 +109,7 @@ watch(() => props.modelValue, (val) => {
     colorSchemes.value = []
     return
   }
-  
+
   try {
     const parsed = JSON.parse(val)
     if (Array.isArray(parsed)) {

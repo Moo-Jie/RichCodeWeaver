@@ -33,17 +33,15 @@ public class AiWebSearchTool extends BaseTool {
      * 默认的搜索结果返回数量
      */
     private static final int DEFAULT_RESULT_COUNT = 10;
-
+    /**
+     * 百度千帆搜索API的基础URL
+     */
+    private static final String QIANFAN_SEARCH_URL = "https://qianfan.baidubce.com/v2/ai_search/web_search";
     /**
      * 百度千帆平台AppBuilder API Key，从配置文件注入
      */
     @Value("${baidu.qianfan.appbuilder-api-key:}")
     private String appBuilderApiKey;
-
-    /**
-     * 百度千帆搜索API的基础URL
-     */
-    private static final String QIANFAN_SEARCH_URL = "https://qianfan.baidubce.com/v2/ai_search/web_search";
 
     @Override
     public String getToolName() {
@@ -59,12 +57,12 @@ public class AiWebSearchTool extends BaseTool {
     public String getResultMsg(JSONObject arguments) {
         // 从参数中提取搜索关键词
         String query = arguments.getStr("query");
-        
+
         // 格式化显示文本，若关键词为空则不显示
-        String displayQuery = (query == null || query.trim().isEmpty()) 
-                ? "" 
+        String displayQuery = (query == null || query.trim().isEmpty())
+                ? ""
                 : "\n[\n" + query + "\n]\n";
-        
+
         return String.format("[工具调用结束] %s %s", "成功搜索以下关键词", displayQuery);
     }
 
@@ -83,7 +81,7 @@ public class AiWebSearchTool extends BaseTool {
             log.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
-        
+
         // 配置校验：检查API密钥是否已配置
         if (appBuilderApiKey == null || appBuilderApiKey.trim().isEmpty()) {
             String errorMsg = "百度千帆AppBuilder API密钥未配置，请检查配置";
@@ -126,15 +124,15 @@ public class AiWebSearchTool extends BaseTool {
 
             // 检查HTTP响应状态码是否成功
             if (!response.isOk()) {
-                String errorMsg = String.format("百度千帆搜索API请求失败，状态码: %d, 响应: %s", 
+                String errorMsg = String.format("百度千帆搜索API请求失败，状态码: %d, 响应: %s",
                         response.getStatus(), response.body());
                 log.error(errorMsg);
                 return "搜索服务返回错误，状态码: " + response.getStatus();
             }
-            
+
             // 获取响应体内容
             String responseBody = response.body();
-            
+
             // 检查响应体是否为空
             if (responseBody == null || responseBody.trim().isEmpty()) {
                 String errorMsg = "百度千帆搜索API返回空响应";
@@ -175,7 +173,7 @@ public class AiWebSearchTool extends BaseTool {
             log.warn("处理搜索响应时发现响应体为空");
             return "未找到相关搜索结果";
         }
-        
+
         // 解析JSON响应体
         JSONObject jsonResponse = JSONUtil.parseObj(responseBody);
 
@@ -188,7 +186,7 @@ public class AiWebSearchTool extends BaseTool {
 
         // 获取references数组（千帆平台的搜索结果存储在此字段）
         JSONArray references = jsonResponse.getJSONArray("references");
-        
+
         // 检查是否获取到搜索结果
         if (references == null || references.isEmpty()) {
             log.warn("未找到相关搜索结果");
@@ -202,13 +200,13 @@ public class AiWebSearchTool extends BaseTool {
         // 遍历搜索结果并提取关键信息
         for (int i = 0; i < actualResultCount; i++) {
             JSONObject referenceItem = references.getJSONObject(i);
-            
+
             // 跳过null项（防御性编程）
             if (referenceItem == null) {
                 log.debug("跳过null搜索结果项，索引: {}", i);
                 continue;
             }
-            
+
             // 只处理web类型的搜索结果（过滤其他类型）
             String itemType = referenceItem.getStr("type");
             if ("web".equals(itemType)) {
@@ -219,7 +217,7 @@ public class AiWebSearchTool extends BaseTool {
                 formattedResult.set("link", referenceItem.getStr("url", ""));           // URL链接
                 formattedResult.set("snippet", referenceItem.getStr("content", "无摘要")); // 内容摘要
                 formattedResult.set("date", referenceItem.getStr("date", ""));          // 发布日期
-                
+
                 formattedResults.add(formattedResult);
             }
         }
@@ -229,7 +227,7 @@ public class AiWebSearchTool extends BaseTool {
             log.warn("未找到web类型的搜索结果");
             return "未找到相关搜索结果";
         }
-        
+
         log.info("成功处理 {} 条搜索结果", formattedResults.size());
 
         // 返回格式化的JSON数组字符串

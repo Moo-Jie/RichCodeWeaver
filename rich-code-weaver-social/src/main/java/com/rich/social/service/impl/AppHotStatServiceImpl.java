@@ -163,7 +163,7 @@ public class AppHotStatServiceImpl extends ServiceImpl<AppHotStatMapper, AppHotS
         QueryColumn favoriteCount = new QueryColumn("favoriteCount");
         QueryColumn commentCount = new QueryColumn("commentCount");
         QueryColumn updateTime = new QueryColumn("updateTime");
-        
+
         QueryWrapper query = QueryWrapper.create()
                 .from(AppHotStat.class)
                 .orderBy(

@@ -13,21 +13,26 @@
           <a-input v-model:value="searchParams.docTitle" allow-clear placeholder="输入标题关键词" />
         </a-form-item>
         <a-form-item class="search-item" label="适用类型">
-          <a-select v-model:value="searchParams.codeGenType" placeholder="全部类型" style="width: 280px" allow-clear>
-            <a-select-option v-for="item in codeGenTypeOptions" :key="item.value" :value="item.value">
+          <a-select v-model:value="searchParams.codeGenType" allow-clear
+                    placeholder="全部类型" style="width: 280px">
+            <a-select-option v-for="item in codeGenTypeOptions" :key="item.value"
+                             :value="item.value">
               {{ item.label }}
             </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item class="search-item" label="状态">
-          <a-select v-model:value="searchParams.isEnabled" placeholder="全部" style="width: 100px" allow-clear>
+          <a-select v-model:value="searchParams.isEnabled" allow-clear placeholder="全部"
+                    style="width: 100px">
             <a-select-option :value="1">启用</a-select-option>
             <a-select-option :value="0">禁用</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item class="search-actions">
           <a-button html-type="submit" type="primary">
-            <template #icon><SearchOutlined /></template>
+            <template #icon>
+              <SearchOutlined />
+            </template>
             搜索
           </a-button>
           <a-button @click="resetSearch">重置</a-button>
@@ -38,11 +43,15 @@
     <!-- 操作栏 -->
     <div class="action-bar">
       <a-button type="primary" @click="showAddModal">
-        <template #icon><PlusOutlined /></template>
+        <template #icon>
+          <PlusOutlined />
+        </template>
         新增文档
       </a-button>
       <a-button class="reindex-btn" @click="openReindexModal">
-        <template #icon><SyncOutlined /></template>
+        <template #icon>
+          <SyncOutlined />
+        </template>
         刷新向量数据库
       </a-button>
     </div>
@@ -75,7 +84,8 @@
           <a-space>
             <a @click="showEditModal(record)">编辑信息</a>
             <a @click="openEditor(record)">编辑内容</a>
-            <a-popconfirm title="确定删除该文档？删除后需重新刷新向量数据库才能生效。" @confirm="handleDelete(record.id)">
+            <a-popconfirm title="确定删除该文档？删除后需重新刷新向量数据库才能生效。"
+                          @confirm="handleDelete(record.id)">
               <a class="danger-link">删除</a>
             </a-popconfirm>
           </a-space>
@@ -84,7 +94,7 @@
     </a-table>
 
     <!-- RAG 参数配置 -->
-    <a-card class="params-panel" :loading="paramsLoading">
+    <a-card :loading="paramsLoading" class="params-panel">
       <div class="params-header">
         <h2>RAG 参数配置</h2>
         <p class="params-sub">动态调整向量化、检索和注入各阶段参数，修改后立即生效（无需重新索引）</p>
@@ -102,8 +112,30 @@
               <span class="param-desc">{{ param.description }}</span>
             </div>
             <div class="param-input-area">
+              <template v-if="param.paramKey === 'max_results'">
+                <div class="slider-wrap">
+                  <a-slider
+                    v-model:value="paramDrafts[param.paramKey || '']"
+                    :marks="{ 1: '1', 5: '5', 10: '10', 20: '20' }" :max="20" :min="1"
+                    :step="1"
+                    style="flex: 1; min-width: 180px"
+                  />
+                  <span class="slider-value">{{ paramDrafts[param.paramKey || ''] }}</span>
+                </div>
+              </template>
+              <template v-else-if="param.paramKey === 'min_score'">
+                <div class="slider-wrap">
+                  <a-slider
+                    v-model:value="paramDrafts[param.paramKey || '']"
+                    :marks="{ 0: '0', 0.5: '0.5', 1: '1' }" :max="1" :min="0"
+                    :step="0.05"
+                    style="flex: 1; min-width: 180px"
+                  />
+                  <span class="slider-value">{{ paramDrafts[param.paramKey || ''] }}</span>
+                </div>
+              </template>
               <a-input-number
-                v-if="param.paramType === 'int'"
+                v-else-if="param.paramType === 'int'"
                 v-model:value="paramDrafts[param.paramKey || '']"
                 :min="1"
                 :precision="0"
@@ -112,10 +144,10 @@
               <a-input-number
                 v-else-if="param.paramType === 'double'"
                 v-model:value="paramDrafts[param.paramKey || '']"
-                :min="0"
                 :max="1"
-                :step="0.05"
+                :min="0"
                 :precision="2"
+                :step="0.05"
                 style="width: 120px"
               />
               <a-textarea
@@ -126,10 +158,10 @@
                 placeholder="模板需包含 {{userMessage}} 和 {{contents}} 占位符"
               />
               <a-button
-                type="primary"
-                size="small"
-                class="param-save-btn"
                 :loading="paramSaving[param.paramKey || '']"
+                class="param-save-btn"
+                size="small"
+                type="primary"
                 @click="handleSaveParam(param)"
               >
                 保存
@@ -145,28 +177,32 @@
     <a-modal
       v-model:open="metaModalVisible"
       :title="isEdit ? '编辑文档信息' : '新增知识库文档'"
-      width="560px"
-      ok-text="提交"
       cancel-text="取消"
+      ok-text="提交"
+      width="560px"
       @ok="handleMetaSubmit"
     >
-      <a-form :model="metaForm" :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }" style="margin-top: 16px;">
+      <a-form :label-col="{ span: 5 }" :model="metaForm" :wrapper-col="{ span: 19 }"
+              style="margin-top: 16px;">
         <a-form-item label="文档标题" required>
           <a-input v-model:value="metaForm.docTitle" placeholder="请输入文档标题" />
         </a-form-item>
         <a-form-item label="适用类型" required>
-          <a-select v-model:value="metaForm.codeGenType" placeholder="请选择适用的代码生成类型" style="width: 280px">
-            <a-select-option v-for="item in codeGenTypeOptions" :key="item.value" :value="item.value">
+          <a-select v-model:value="metaForm.codeGenType" placeholder="请选择适用的代码生成类型"
+                    style="width: 280px">
+            <a-select-option v-for="item in codeGenTypeOptions" :key="item.value"
+                             :value="item.value">
               {{ item.label }}
             </a-select-option>
           </a-select>
           <div class="form-hint">GENERAL 表示所有代码生成类型均使用该文档</div>
         </a-form-item>
         <a-form-item label="文档描述">
-          <a-textarea v-model:value="metaForm.description" :rows="2" placeholder="简短描述文档用途" />
+          <a-textarea v-model:value="metaForm.description" :rows="2"
+                      placeholder="简短描述文档用途" />
         </a-form-item>
         <a-form-item label="排序权重">
-          <a-input-number v-model:value="metaForm.sortOrder" :min="0" :max="9999" />
+          <a-input-number v-model:value="metaForm.sortOrder" :max="9999" :min="0" />
           <span class="form-hint" style="margin-left: 8px;">数字越小越靠前</span>
         </a-form-item>
         <a-form-item label="是否启用">
@@ -179,24 +215,28 @@
     <!-- 文档内容编辑器（全屏 Markdown 编辑器） -->
     <a-modal
       v-model:open="editorModalVisible"
-      :title="'编辑内容：' + (currentEditDoc?.docTitle || '')"
-      width="95vw"
-      :footer="null"
       :body-style="{ padding: '0', height: 'calc(90vh - 55px)', overflow: 'hidden' }"
+      :footer="null"
+      :title="'编辑内容：' + (currentEditDoc?.docTitle || '')"
       centered
       destroy-on-close
+      width="95vw"
     >
       <div class="editor-wrapper">
         <div class="editor-toolbar">
           <div class="editor-info">
-            <a-tag :color="codeGenTypeColorMap[currentEditDoc?.codeGenType || ''] || 'default'" size="small">
-              {{ codeGenTypeLabelMap[currentEditDoc?.codeGenType || ''] || currentEditDoc?.codeGenType }}
+            <a-tag :color="codeGenTypeColorMap[currentEditDoc?.codeGenType || ''] || 'default'"
+                   size="small">
+              {{ codeGenTypeLabelMap[currentEditDoc?.codeGenType || ''] || currentEditDoc?.codeGenType
+              }}
             </a-tag>
             <span class="editor-char-count">{{ editorContent.length }} 字符</span>
           </div>
           <div class="editor-actions">
             <a-button :loading="saving" type="primary" @click="handleSaveContent">
-              <template #icon><SaveOutlined /></template>
+              <template #icon>
+                <SaveOutlined />
+              </template>
               保存
             </a-button>
           </div>
@@ -204,10 +244,10 @@
         <div class="editor-container">
           <MdEditor
             v-model="editorContent"
-            :theme="'light'"
             :language="'zh-CN'"
-            :show-code-row-number="true"
             :preview="true"
+            :show-code-row-number="true"
+            :theme="'light'"
             style="height: 100%"
           />
         </div>
@@ -217,12 +257,12 @@
     <!-- 刷新向量数据库进度模态框 -->
     <a-modal
       v-model:open="reindexModalVisible"
-      :title="reindexModalTitle"
-      width="480px"
-      :footer="null"
       :closable="reindexState !== 'progress'"
+      :footer="null"
       :mask-closable="reindexState !== 'progress'"
+      :title="reindexModalTitle"
       centered
+      width="480px"
     >
       <!-- 确认阶段 -->
       <div v-if="reindexState === 'confirm'" class="reindex-confirm">
@@ -230,12 +270,14 @@
           <SyncOutlined />
         </div>
         <p class="reindex-confirm-text">
-          此操作将<strong>清空现有向量数据</strong>并重新从数据库读取所有已启用的知识库文档，向量化后写入 PGVector。
+          此操作将<strong>清空现有向量数据</strong>并重新从数据库读取所有已启用的知识库文档，向量化后写入
+          PGVector。
         </p>
         <p class="reindex-confirm-sub">向量化过程耗时约 3-10 秒，期间请勿关闭页面。</p>
         <div class="reindex-confirm-btns">
           <a-button @click="reindexModalVisible = false">取消</a-button>
-          <a-button type="primary" class="confirm-primary-btn" @click="startReindex">确认执行</a-button>
+          <a-button class="confirm-primary-btn" type="primary" @click="startReindex">确认执行
+          </a-button>
         </div>
       </div>
 
@@ -245,8 +287,8 @@
           <div
             v-for="step in reindexSteps"
             :key="step.id"
-            class="progress-step"
             :class="step.status"
+            class="progress-step"
           >
             <div class="step-icon">
               <LoadingOutlined v-if="step.status === 'loading'" class="icon-loading" />
@@ -271,7 +313,9 @@
         </div>
 
         <div v-if="reindexState === 'done' || reindexState === 'error'" class="reindex-done-btn">
-          <a-button type="primary" class="confirm-primary-btn" @click="reindexModalVisible = false">关闭</a-button>
+          <a-button class="confirm-primary-btn" type="primary" @click="reindexModalVisible = false">
+            关闭
+          </a-button>
         </div>
       </div>
     </a-modal>
@@ -370,7 +414,9 @@ const metaForm = reactive({
 
 const metaFormEnabled = computed({
   get: () => metaForm.isEnabled === 1,
-  set: (val: boolean) => { metaForm.isEnabled = val ? 1 : 0 }
+  set: (val: boolean) => {
+    metaForm.isEnabled = val ? 1 : 0
+  }
 })
 
 const resetMetaForm = () => {
@@ -622,13 +668,31 @@ const paramDrafts = reactive<Record<string, any>>({})
 const paramSaving = reactive<Record<string, boolean>>({})
 
 const groupMeta: Record<string, { label: string; color: string; desc: string }> = {
-  etl: { label: 'ETL 切分', color: 'blue', desc: '文档收集与切片阶段参数（修改后需重新刷新向量数据库才能生效）' },
-  retrieval: { label: '向量检索', color: 'purple', desc: '向量搜索阶段参数（实时生效，无需重新索引）' },
-  injection: { label: '提示词注入', color: 'cyan', desc: 'RAG 内容注入到提示词的模板（实时生效，无需重新索引）' }
+  etl: {
+    label: 'ETL 切分',
+    color: 'blue',
+    desc: '文档收集与切片阶段参数（修改后需重新刷新向量数据库才能生效）'
+  },
+  retrieval: {
+    label: '向量检索',
+    color: 'purple',
+    desc: '向量搜索阶段参数（实时生效，无需重新索引）'
+  },
+  injection: {
+    label: '提示词注入',
+    color: 'cyan',
+    desc: 'RAG 内容注入到提示词的模板（实时生效，无需重新索引）'
+  }
 }
 
 const paramGroups = computed(() => {
-  const groups: { key: string; label: string; color: string; desc: string; params: API.RagParamVO[] }[] = []
+  const groups: {
+    key: string;
+    label: string;
+    color: string;
+    desc: string;
+    params: API.RagParamVO[]
+  }[] = []
   const order = ['etl', 'retrieval', 'injection']
   for (const key of order) {
     const params = rawParams.value.filter(p => p.paramGroup === key)
@@ -1124,6 +1188,26 @@ const handleSaveParam = async (param: API.RagParamVO) => {
   max-width: 520px;
   width: 100%;
   flex-direction: row;
+}
+
+.slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  padding-bottom: 8px;
+}
+
+.slider-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  min-width: 36px;
+  text-align: center;
+  background: #f5f5f5;
+  border-radius: 6px;
+  padding: 2px 8px;
+  flex-shrink: 0;
 }
 
 .param-save-btn {

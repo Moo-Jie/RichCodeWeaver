@@ -34,7 +34,7 @@ redisson:
 springdoc:
   group-configs:
     - group: 'default'
-#      paths-to-match: '/**'
+      #      paths-to-match: '/**'
       packages-to-scan: com.rich.app.controller
 # knife4j
 knife4j:

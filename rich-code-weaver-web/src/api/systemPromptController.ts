@@ -10,10 +10,10 @@ export async function addSystemPrompt(
   return request<API.BaseResponseLong>('/systemPrompt/add', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -25,10 +25,10 @@ export async function updateSystemPrompt(
   return request<API.BaseResponseBoolean>('/systemPrompt/update', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -40,10 +40,10 @@ export async function deleteSystemPrompt(
   return request<API.BaseResponseBoolean>('/systemPrompt/delete', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -55,9 +55,9 @@ export async function getSystemPromptVOById(
   return request<API.BaseResponseSystemPromptVO>('/systemPrompt/get/vo', {
     method: 'GET',
     params: {
-      ...params,
+      ...params
     },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -69,10 +69,10 @@ export async function listSystemPromptByPage(
   return request<API.BaseResponsePageSystemPromptVO>('/systemPrompt/list/page/vo', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -80,7 +80,7 @@ export async function listSystemPromptByPage(
 export async function listAllSystemPrompts(options?: { [key: string]: any }) {
   return request<API.BaseResponseListSystemPromptVO>('/systemPrompt/list/all', {
     method: 'GET',
-    ...(options || {}),
+    ...(options || {})
   })
 }
 

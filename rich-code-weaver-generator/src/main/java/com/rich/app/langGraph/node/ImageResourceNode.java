@@ -32,17 +32,17 @@ public class ImageResourceNode {
             log.info("产物ID: {}", context.getAppId());
             log.info("原始提示词: {}", context.getOriginalPrompt());
             log.info("========================================\n");
-            
+
             // 单独调用专精于图片收集的 AI 模型服务获取图片资源
             try {
                 AiImageResourceService aiImageResourceService = SpringContextUtil.getBean(AiImageResourceService.class);
                 log.info("[图片收集节点] 正在调用 AI 图片资源服务...");
-                
+
                 String imageListStr = aiImageResourceService.resourceImages(context.getOriginalPrompt());
-                
+
                 // 录入工作流状态
                 context.setImageListStr(imageListStr);
-                
+
                 long duration = System.currentTimeMillis() - startTime;
                 log.info("\n========================================");
                 log.info("[图片收集节点] 执行成功");
@@ -50,7 +50,7 @@ public class ImageResourceNode {
                 log.info("收集结果长度: {} 字符", imageListStr != null ? imageListStr.length() : 0);
                 log.info("收集结果内容: {}", imageListStr != null && imageListStr.length() > 200 ? imageListStr.substring(0, 200) + "..." : imageListStr);
                 log.info("========================================\n");
-                
+
             } catch (Exception e) {
                 long duration = System.currentTimeMillis() - startTime;
                 log.error("\n========================================");
@@ -61,7 +61,7 @@ public class ImageResourceNode {
                 log.error("异常消息: {}", e.getMessage());
                 log.error("详细堆栈信息:", e);
                 log.error("========================================\n");
-                
+
                 context.setErrorMessage("图片收集节点运行失败: " + e.getMessage());
                 return WorkflowContext.saveContext(context);
             }

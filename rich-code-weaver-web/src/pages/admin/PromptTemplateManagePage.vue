@@ -19,9 +19,9 @@
         <a-form-item class="search-item" label="匹配身份">
           <a-select
             v-model:value="searchParams.matchIdentity"
+            allow-clear
             placeholder="全部身份"
             style="width: 120px"
-            allow-clear
           >
             <a-select-option value="">全部</a-select-option>
             <a-select-option v-for="item in identityOptions" :key="item.value" :value="item.value">
@@ -32,19 +32,19 @@
         <a-form-item class="search-item" label="匹配行业">
           <a-auto-complete
             v-model:value="searchParams.matchIndustry"
+            :filter-option="filterIndustry"
             :options="industryAutoOptions"
+            allow-clear
             placeholder="输入行业"
             style="width: 160px"
-            allow-clear
-            :filter-option="filterIndustry"
           />
         </a-form-item>
         <a-form-item class="search-item" label="状态">
           <a-select
             v-model:value="searchParams.isEnabled"
+            allow-clear
             placeholder="全部"
             style="width: 100px"
-            allow-clear
           >
             <a-select-option :value="1">启用</a-select-option>
             <a-select-option :value="0">禁用</a-select-option>
@@ -52,7 +52,9 @@
         </a-form-item>
         <a-form-item class="search-actions">
           <a-button html-type="submit" type="primary">
-            <template #icon><SearchOutlined /></template>
+            <template #icon>
+              <SearchOutlined />
+            </template>
             搜索
           </a-button>
           <a-button @click="resetSearch">重置</a-button>
@@ -63,7 +65,9 @@
     <!-- 操作栏 -->
     <div class="action-bar">
       <a-button type="primary" @click="showAddModal">
-        <template #icon><PlusOutlined /></template>
+        <template #icon>
+          <PlusOutlined />
+        </template>
         新增模板
       </a-button>
     </div>
@@ -108,19 +112,20 @@
     <!-- 新增/编辑模态框 -->
     <a-modal
       v-model:open="modalVisible"
+      :body-style="{ maxHeight: '70vh', overflowY: 'auto' }"
+      :cancel-text="'取消'"
+      :ok-text="'提交'"
       :title="isEdit ? '编辑模板' : '新增模板'"
       width="900px"
-      :ok-text="'提交'"
-      :cancel-text="'取消'"
       @ok="handleSubmit"
-      :body-style="{ maxHeight: '70vh', overflowY: 'auto' }"
     >
-      <a-form :model="formData" :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }" style="margin-top: 16px;">
+      <a-form :label-col="{ span: 4 }" :model="formData" :wrapper-col="{ span: 20 }"
+              style="margin-top: 16px;">
         <a-form-item label="模板名称" required>
           <a-input v-model:value="formData.templateName" placeholder="请输入模板名称" />
         </a-form-item>
         <a-form-item label="匹配身份">
-          <a-select v-model:value="formData.matchIdentity" placeholder="不限（留空）" allow-clear>
+          <a-select v-model:value="formData.matchIdentity" allow-clear placeholder="不限（留空）">
             <a-select-option v-for="item in identityOptions" :key="item.value" :value="item.value">
               {{ item.label }}
             </a-select-option>
@@ -129,9 +134,9 @@
         <a-form-item label="匹配行业">
           <a-auto-complete
             v-model:value="formData.matchIndustry"
+            :filter-option="filterIndustry"
             :options="industryAutoOptions"
             placeholder="不限（留空）"
-            :filter-option="filterIndustry"
           />
         </a-form-item>
         <a-form-item label="模板描述">
@@ -150,7 +155,7 @@
           />
         </a-form-item>
         <a-form-item label="排序权重">
-          <a-input-number v-model:value="formData.sortOrder" :min="0" :max="9999" />
+          <a-input-number v-model:value="formData.sortOrder" :max="9999" :min="0" />
         </a-form-item>
         <a-form-item label="是否启用">
           <a-switch v-model:checked="formEnabled" />
@@ -170,7 +175,7 @@ import {
   listPromptTemplateByPage,
   updatePromptTemplate
 } from '@/api/promptTemplateController'
-import { identityOptions, industryOptions, identityLabelMap } from '@/constants/identityOptions'
+import { identityLabelMap, identityOptions, industryOptions } from '@/constants/identityOptions'
 import PromptContentEditor from '@/components/admin/PromptContentEditor.vue'
 import FieldDefinitionEditor from '@/components/admin/FieldDefinitionEditor.vue'
 
@@ -216,7 +221,9 @@ const handleFieldsUpdated = (fields: API.TemplateField[]) => {
 
 const formEnabled = computed({
   get: () => formData.isEnabled === 1,
-  set: (val: boolean) => { formData.isEnabled = val ? 1 : 0 }
+  set: (val: boolean) => {
+    formData.isEnabled = val ? 1 : 0
+  }
 })
 
 const industryAutoOptions = industryOptions.map(item => ({ value: item }))
@@ -303,7 +310,7 @@ const showEditModal = (record: API.PromptTemplateVO) => {
   formData.templateFields = record.templateFields || ''
   formData.sortOrder = record.sortOrder || 0
   formData.isEnabled = record.isEnabled ?? 1
-  
+
   // Parse fields for editor
   try {
     if (record.templateFields) {
@@ -314,7 +321,7 @@ const showEditModal = (record: API.PromptTemplateVO) => {
   } catch {
     currentFields.value = []
   }
-  
+
   modalVisible.value = true
 }
 

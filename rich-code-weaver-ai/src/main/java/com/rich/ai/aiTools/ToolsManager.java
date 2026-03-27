@@ -38,7 +38,7 @@ public class ToolsManager {
             log.warn("未检测到任何可用工具，工具管理器将为空");
             return;
         }
-        
+
         // 遍历所有工具并注册到映射表中
         for (BaseTool tool : baseTools) {
             // 跳过null工具（防御性编程）
@@ -46,24 +46,24 @@ public class ToolsManager {
                 log.warn("检测到null工具，已跳过");
                 continue;
             }
-            
+
             // 获取工具名称并校验
             String toolName = tool.getToolName();
             if (toolName == null || toolName.trim().isEmpty()) {
                 log.warn("检测到工具名称为空的工具，已跳过: {}", tool.getClass().getSimpleName());
                 continue;
             }
-            
+
             // 检查是否存在重复的工具名称
             if (toolsMap.containsKey(toolName)) {
                 log.warn("检测到重复的工具名称: {}，旧工具将被覆盖", toolName);
             }
-            
+
             // 将工具注册到映射表中
             toolsMap.put(toolName, tool);
             log.info("已初始化工具：{} ({})", tool.getToolDisplayName(), toolName);
         }
-        
+
         log.info("工具初始化完成，共注册 {} 个工具", toolsMap.size());
     }
 
@@ -79,15 +79,15 @@ public class ToolsManager {
             log.warn("尝试获取工具时传入的工具名称为空");
             return null;
         }
-        
+
         // 从映射表中获取工具
         BaseTool tool = toolsMap.get(toolName);
-        
+
         // 记录未找到工具的情况
         if (tool == null) {
             log.debug("未找到名称为 '{}' 的工具", toolName);
         }
-        
+
         return tool;
     }
 
@@ -102,7 +102,7 @@ public class ToolsManager {
             log.warn("工具数组为null，返回空数组");
             return new BaseTool[0];
         }
-        
+
         return baseTools;
     }
 }

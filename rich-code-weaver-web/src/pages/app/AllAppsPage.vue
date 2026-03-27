@@ -18,25 +18,27 @@
     <!-- Tab 切换 -->
     <div class="tabs">
       <div
-        class="tab-item"
         :class="{ active: activeTab === 'hot' }"
+        class="tab-item"
         @click="activeTab = 'hot'"
       >
-        <FireOutlined /> 社区热门
+        <FireOutlined />
+        社区热门
       </div>
       <div
-        class="tab-item"
         :class="{ active: activeTab === 'star' }"
+        class="tab-item"
         @click="activeTab = 'star'"
       >
-        <CrownOutlined /> 精选推荐
+        <CrownOutlined />
+        精选推荐
       </div>
     </div>
 
     <!-- 热门产物（社区模块） -->
     <div v-show="activeTab === 'hot'" class="section">
       <!-- Skeleton loading -->
-      <div v-if="hotLoading && hotApps.length === 0" class="apps-grid">
+      <div v-if="hotLoading && hotApps.length === 0" class="apps-masonry">
         <div v-for="i in 6" :key="'skeleton-' + i" class="skeleton-card">
           <a-skeleton-image class="skeleton-image" />
           <div class="skeleton-content">
@@ -48,7 +50,7 @@
         <p class="empty-text">{{ searchKeyword ? '未找到匹配的产物' : '暂无社区热门产物' }}</p>
       </div>
       <template v-else>
-        <div class="apps-grid">
+        <div class="apps-masonry">
           <div
             v-for="item in filteredHotApps"
             :key="'hot-' + item.appId"
@@ -63,7 +65,9 @@
               </div>
             </div>
             <div class="card-body">
-              <span class="card-name" :title="item.appVO?.appName">{{ item.appVO?.appName || '未命名数字产物' }}</span>
+              <span :title="item.appVO?.appName"
+                    class="card-name">{{ item.appVO?.appName || '未命名数字产物'
+                }}</span>
               <div class="card-stats-row">
                 <div class="stat-item">
                   <LikeOutlined />
@@ -86,7 +90,7 @@
           </div>
         </div>
         <div v-if="hotHasMore" class="load-more-wrap">
-          <button class="load-more-btn" :disabled="hotLoadingMore" @click="loadMoreHot">
+          <button :disabled="hotLoadingMore" class="load-more-btn" @click="loadMoreHot">
             {{ hotLoadingMore ? '加载中...' : '加载更多' }}
           </button>
         </div>
@@ -96,7 +100,7 @@
     <!-- 精选推荐（生成器星选推荐） -->
     <div v-show="activeTab === 'star'" class="section">
       <!-- Skeleton loading -->
-      <div v-if="starLoading && starApps.length === 0" class="apps-grid">
+      <div v-if="starLoading && starApps.length === 0" class="apps-masonry">
         <div v-for="i in 6" :key="'skeleton-' + i" class="skeleton-card">
           <a-skeleton-image class="skeleton-image" />
           <div class="skeleton-content">
@@ -108,7 +112,7 @@
         <p class="empty-text">{{ searchKeyword ? '未找到匹配的产物' : '暂无精选推荐产物' }}</p>
       </div>
       <template v-else>
-        <div class="apps-grid">
+        <div class="apps-masonry">
           <div
             v-for="app in filteredStarApps"
             :key="'star-' + app.id"
@@ -123,7 +127,8 @@
               </div>
             </div>
             <div class="card-body">
-              <span class="card-name" :title="app.appName">{{ app.appName || '未命名数字产物' }}</span>
+              <span :title="app.appName" class="card-name">{{ app.appName || '未命名数字产物'
+                }}</span>
               <div class="card-desc">{{ formatTime(app.createTime) }}</div>
               <div class="card-footer">
                 <span class="card-user">{{ app.user?.userName || '--' }}</span>
@@ -133,7 +138,7 @@
           </div>
         </div>
         <div v-if="starHasMore" class="load-more-wrap">
-          <button class="load-more-btn" :disabled="starLoadingMore" @click="loadMoreStar">
+          <button :disabled="starLoadingMore" class="load-more-btn" @click="loadMoreStar">
             {{ starLoadingMore ? '加载中...' : '加载更多' }}
           </button>
         </div>
@@ -143,12 +148,18 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/appStore'
-import { listStarAppVoByPage, getAppVoById } from '@/api/appController'
+import { getAppVoById, listStarAppVoByPage } from '@/api/appController'
 import { listHotApps } from '@/api/socialController'
-import { LikeOutlined, StarOutlined, CommentOutlined, FireOutlined, CrownOutlined } from '@ant-design/icons-vue'
+import {
+  CommentOutlined,
+  CrownOutlined,
+  FireOutlined,
+  LikeOutlined,
+  StarOutlined
+} from '@ant-design/icons-vue'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -204,7 +215,7 @@ const handleSearch = () => {
 const filteredHotApps = computed(() => {
   if (!searchKeyword.value.trim()) return hotApps.value
   const keyword = searchKeyword.value.toLowerCase()
-  return hotApps.value.filter(item => 
+  return hotApps.value.filter(item =>
     item.appVO?.appName?.toLowerCase().includes(keyword)
   )
 })
@@ -213,7 +224,7 @@ const filteredHotApps = computed(() => {
 const filteredStarApps = computed(() => {
   if (!searchKeyword.value.trim()) return starApps.value
   const keyword = searchKeyword.value.toLowerCase()
-  return starApps.value.filter(app => 
+  return starApps.value.filter(app =>
     app.appName?.toLowerCase().includes(keyword)
   )
 })
@@ -239,7 +250,8 @@ const fetchHotApps = async (pageNum = 1) => {
             if (appRes.data.code === 0 && appRes.data.data) {
               item.appVO = appRes.data.data
             }
-          } catch { /* 跳过加载失败的产物 */ }
+          } catch { /* 跳过加载失败的产物 */
+          }
         })
       )
 
@@ -385,24 +397,25 @@ onMounted(() => {
   margin: 0;
 }
 
-.apps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
+.apps-masonry {
+  columns: 4 260px;
+  column-gap: 20px;
 }
 
-@media (max-width: 768px) {
-  .apps-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+@media (max-width: 900px) {
+  .apps-masonry {
+    columns: 2 200px;
+    column-gap: 14px;
   }
 }
 
 .skeleton-card {
   background: #fff;
   border: 1px solid #f0f0f0;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
+  break-inside: avoid;
+  margin-bottom: 20px;
 }
 
 .skeleton-image {
@@ -420,16 +433,18 @@ onMounted(() => {
   flex-direction: column;
   background: #fff;
   border: 1px solid #f0f0f0;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  break-inside: avoid;
+  margin-bottom: 20px;
 }
 
 .app-card:hover {
   border-color: #d0d0d0;
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .app-card:hover .cover-overlay {
@@ -439,7 +454,8 @@ onMounted(() => {
 .card-cover {
   position: relative;
   width: 100%;
-  height: 140px;
+  aspect-ratio: 4/3;
+  min-height: 180px;
   background: #f5f5f5;
   overflow: hidden;
   display: flex;
@@ -490,8 +506,8 @@ onMounted(() => {
 }
 
 .card-name {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #1a1a1a;
   white-space: nowrap;
   overflow: hidden;

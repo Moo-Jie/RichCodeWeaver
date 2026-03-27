@@ -7,7 +7,8 @@
     <div class="content-wrap">
       <section class="section">
         <p class="section-text">
-          <em>MoJie 团队</em>（以下简称"我们"）依据本协议为用户（以下简称"你"）提供<em>RichCodeWeaver</em>服务。本协议对你和我们均具有法律约束力。
+          <em>MoJie
+            团队</em>（以下简称"我们"）依据本协议为用户（以下简称"你"）提供<em>RichCodeWeaver</em>服务。本协议对你和我们均具有法律约束力。
         </p>
       </section>
 

@@ -117,7 +117,7 @@ const handleSubmit = async () => {
     if (res.data.code === 0 && res.data.data) {
       await loginUserStore.fetchLoginUser()
       message.success('登录成功')
-      router.replace({path: '/'})
+      router.replace({ path: '/' })
     } else {
       message.error('登录失败：' + res.data.message)
     }

@@ -16,13 +16,14 @@
           <a-select-option value="name">按名称排序</a-select-option>
         </a-select>
         <button class="create-btn" @click="router.push('/')">
-          <PlusOutlined /> 新建
+          <PlusOutlined />
+          新建
         </button>
       </div>
     </div>
 
     <!-- Skeleton loading -->
-    <div v-if="loading && appStore.myApps.length === 0" class="apps-grid">
+    <div v-if="loading && appStore.myApps.length === 0" class="apps-masonry">
       <div v-for="i in 6" :key="'skeleton-' + i" class="skeleton-card">
         <a-skeleton-image class="skeleton-image" />
         <div class="skeleton-content">
@@ -32,14 +33,16 @@
     </div>
 
     <div v-else-if="filteredApps.length === 0" class="empty-wrap">
-      <p class="empty-text">{{ searchKeyword ? '未找到匹配的产物' : '暂无数字产物，快去创建一个吧' }}</p>
+      <p class="empty-text">{{ searchKeyword ? '未找到匹配的产物' : '暂无数字产物，快去创建一个吧'
+        }}</p>
       <button v-if="!searchKeyword" class="create-btn-large" @click="router.push('/')">
-        <PlusOutlined /> 新建数字产物
+        <PlusOutlined />
+        新建数字产物
       </button>
     </div>
 
     <template v-else>
-      <div class="apps-grid">
+      <div class="apps-masonry">
         <div
           v-for="app in filteredApps"
           :key="app.id"
@@ -53,14 +56,15 @@
             </div>
           </div>
           <div class="card-body" @click="goToApp(app)">
-            <span class="card-name" :title="app.appName">{{ app.appName || '未命名数字产物' }}</span>
+            <span :title="app.appName" class="card-name">{{ app.appName || '未命名数字产物'
+              }}</span>
             <span class="card-time">{{ formatTime(app.createTime) }}</span>
           </div>
           <div class="card-actions">
-            <button class="action-btn" @click.stop="handleEdit(app)" title="编辑">
+            <button class="action-btn" title="编辑" @click.stop="handleEdit(app)">
               <EditOutlined />
             </button>
-            <button class="action-btn" @click.stop="handleDelete(app)" title="删除">
+            <button class="action-btn" title="删除" @click.stop="handleDelete(app)">
               <DeleteOutlined style="color: #ff4d4f" />
             </button>
             <span v-if="app.deployKey" class="deploy-tag">已部署</span>
@@ -70,7 +74,7 @@
       </div>
 
       <div v-if="hasMore" class="load-more-wrap">
-        <button class="load-more-btn" :disabled="loadingMore" @click="loadMore">
+        <button :disabled="loadingMore" class="load-more-btn" @click="loadMore">
           {{ loadingMore ? '加载中...' : '加载更多' }}
         </button>
       </div>
@@ -79,12 +83,12 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { Modal, message } from 'ant-design-vue'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { message, Modal } from 'ant-design-vue'
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { useAppStore } from '@/stores/appStore'
-import { listMyAppVoByPage, deleteApp } from '@/api/appController'
+import { deleteApp, listMyAppVoByPage } from '@/api/appController'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -111,13 +115,13 @@ const formatTime = (time?: string) => {
 // 过滤和排序
 const filteredApps = computed(() => {
   let result = appStore.myApps
-  
+
   // 搜索过滤
   if (searchKeyword.value.trim()) {
     const keyword = searchKeyword.value.toLowerCase()
     result = result.filter(app => app.appName?.toLowerCase().includes(keyword))
   }
-  
+
   // 排序
   if (sortBy.value === 'time') {
     result = [...result].sort((a, b) => {
@@ -132,7 +136,7 @@ const filteredApps = computed(() => {
       return nameA.localeCompare(nameB)
     })
   }
-  
+
   return result
 })
 
@@ -309,16 +313,15 @@ onMounted(() => {
   background: #333;
 }
 
-.apps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
+.apps-masonry {
+  columns: 4 260px;
+  column-gap: 20px;
 }
 
-@media (max-width: 768px) {
-  .apps-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+@media (max-width: 900px) {
+  .apps-masonry {
+    columns: 2 200px;
+    column-gap: 14px;
   }
 }
 
@@ -328,15 +331,17 @@ onMounted(() => {
   flex-direction: column;
   background: #fff;
   border: 1px solid #f0f0f0;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  break-inside: avoid;
+  margin-bottom: 20px;
 }
 
 .app-card:hover {
   border-color: #d0d0d0;
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .app-card:hover .cover-overlay {
@@ -346,7 +351,8 @@ onMounted(() => {
 .card-cover {
   position: relative;
   width: 100%;
-  height: 140px;
+  aspect-ratio: 4/3;
+  min-height: 180px;
   background: #f5f5f5;
   overflow: hidden;
   display: flex;
@@ -399,8 +405,8 @@ onMounted(() => {
 }
 
 .card-name {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #1a1a1a;
   white-space: nowrap;
   overflow: hidden;
@@ -410,6 +416,11 @@ onMounted(() => {
 .card-time {
   font-size: 12px;
   color: #bbb;
+}
+
+.skeleton-card {
+  break-inside: avoid;
+  margin-bottom: 20px;
 }
 
 .card-actions {

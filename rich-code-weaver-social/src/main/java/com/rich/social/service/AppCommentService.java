@@ -36,10 +36,10 @@ public interface AppCommentService extends IService<AppComment> {
     /**
      * 分页查询评论列表（含评论者信息和当前用户的点赞状态）
      *
-     * @param appId       产物id
+     * @param appId         产物id
      * @param currentUserId 当前用户id（可为null）
-     * @param pageNum     页码
-     * @param pageSize    每页大小
+     * @param pageNum       页码
+     * @param pageSize      每页大小
      * @return 评论VO分页
      */
     Page<AppCommentVO> listCommentByPage(Long appId, Long currentUserId, long pageNum, long pageSize);

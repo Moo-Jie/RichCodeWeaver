@@ -21,7 +21,7 @@ import org.springframework.context.annotation.FilterType;
 })
 @EnableDubbo
 public class PromptApplication {
-    
+
     /**
      * 应用启动入口方法
      *

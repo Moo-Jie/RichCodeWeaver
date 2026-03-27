@@ -10,44 +10,44 @@
 
 ### 1.1 微服务模块
 
-| 模块 | 职责 |
-|------|------|
-| `rich-code-weaver-generator` | 核心代码生成服务（工作流编排、节点执行） |
-| `rich-code-weaver-ai` | AI 能力层（模型配置、工具定义、RAG） |
-| `rich-code-weaver-prompt` | 系统提示词管理（Dubbo 远程服务） |
-| `rich-code-weaver-file` | 文件/OSS 服务（Dubbo 远程服务） |
-| `rich-code-weaver-user` | 用户服务 |
-| `rich-code-weaver-web` | 前端 Vue 应用 |
-| `rich-code-weaver-social` | 社交模块（点赞/收藏/评论） |
-| `rich-code-weaver-model` | 数据模型层 |
-| `rich-code-weaver-common` | 公共工具类 |
-| `rich-code-weaver-client` | Dubbo 内部服务接口定义 |
-| `rich-code-weaver-server-admin` | Spring Boot Admin 监控 |
+| 模块                              | 职责                    |
+|---------------------------------|-----------------------|
+| `rich-code-weaver-generator`    | 核心代码生成服务（工作流编排、节点执行）  |
+| `rich-code-weaver-ai`           | AI 能力层（模型配置、工具定义、RAG） |
+| `rich-code-weaver-prompt`       | 系统提示词管理（Dubbo 远程服务）   |
+| `rich-code-weaver-file`         | 文件/OSS 服务（Dubbo 远程服务） |
+| `rich-code-weaver-user`         | 用户服务                  |
+| `rich-code-weaver-web`          | 前端 Vue 应用             |
+| `rich-code-weaver-social`       | 社交模块（点赞/收藏/评论）        |
+| `rich-code-weaver-model`        | 数据模型层                 |
+| `rich-code-weaver-common`       | 公共工具类                 |
+| `rich-code-weaver-client`       | Dubbo 内部服务接口定义        |
+| `rich-code-weaver-server-admin` | Spring Boot Admin 监控  |
 
 ### 1.2 AI 模型配置
 
-| 用途 | 模型 | Bean 名称 | 调用方式 | max_tokens |
-|------|------|-----------|----------|------------|
-| 基础服务（审查/策略/资源/图片） | `qwen-plus` | `CommonChatModelConfig` 多例 | 非流式 | 8192 |
-| 代码生成（HTML/MULTI_FILE） | `qwen3-coder-plus` | `streamingChatModel` | 流式 | 32768 |
-| 代码生成（VUE_PROJECT） | `qwen3-coder-plus` | `reasoningStreamingChatModel` | 流式+工具 | 32768 |
-| Embedding | `text-embedding-v4` | RAG 专用 | 批量 | - |
+| 用途                    | 模型                  | Bean 名称                       | 调用方式  | max_tokens |
+|-----------------------|---------------------|-------------------------------|-------|------------|
+| 基础服务（审查/策略/资源/图片）     | `qwen-plus`         | `CommonChatModelConfig` 多例    | 非流式   | 8192       |
+| 代码生成（HTML/MULTI_FILE） | `qwen3-coder-plus`  | `streamingChatModel`          | 流式    | 32768      |
+| 代码生成（VUE_PROJECT）     | `qwen3-coder-plus`  | `reasoningStreamingChatModel` | 流式+工具 | 32768      |
+| Embedding             | `text-embedding-v4` | RAG 专用                        | 批量    | -          |
 
 所有模型通过 DashScope 兼容 OpenAI 接口调用：`https://dashscope.aliyuncs.com/compatible-mode/v1`
 
 ### 1.3 AI 工具清单
 
-| 工具名 | 类 | 用途 | 可用节点 |
-|--------|-----|------|----------|
-| `searchWeb` | `AiWebSearchTool` | 百度千帆搜索 API | web_resource_organizer |
-| `scrapeWebPage` | `AiWebScrapingTool` | Jsoup 网页抓取（截取前400字符） | web_resource_organizer |
-| `searchImages` | `ImageSearchTool` | 接口盒子百度图片搜索 API | image_collector |
-| `aiGeneratorImage` | `AiGeneratorImageTool` | DashScope wan2.2-t2i-flash 文生图 | image_collector |
-| `creatAndWrite` | - | 创建并写入文件 | code_generator (VUE) |
-| `modifyFile` | - | 修改文件内容 | code_generator (VUE) |
-| `deleteFile` | - | 删除文件 | code_generator (VUE) |
-| `readDir` | - | 读取目录结构 | code_generator (VUE) |
-| `readFile` | - | 读取文件内容 | code_generator (VUE) |
+| 工具名                | 类                      | 用途                             | 可用节点                   |
+|--------------------|------------------------|--------------------------------|------------------------|
+| `searchWeb`        | `AiWebSearchTool`      | 百度千帆搜索 API                     | web_resource_organizer |
+| `scrapeWebPage`    | `AiWebScrapingTool`    | Jsoup 网页抓取（截取前400字符）           | web_resource_organizer |
+| `searchImages`     | `ImageSearchTool`      | 接口盒子百度图片搜索 API                 | image_collector        |
+| `aiGeneratorImage` | `AiGeneratorImageTool` | DashScope wan2.2-t2i-flash 文生图 | image_collector        |
+| `creatAndWrite`    | -                      | 创建并写入文件                        | code_generator (VUE)   |
+| `modifyFile`       | -                      | 修改文件内容                         | code_generator (VUE)   |
+| `deleteFile`       | -                      | 删除文件                           | code_generator (VUE)   |
+| `readDir`          | -                      | 读取目录结构                         | code_generator (VUE)   |
+| `readFile`         | -                      | 读取文件内容                         | code_generator (VUE)   |
 
 ---
 
@@ -98,9 +98,9 @@ flowchart TD
 
 - **实现类**：`PromptEnhancerNode`（纯逻辑，无 AI 调用）
 - **三种模式**：
-  1. **首次生成**：将图片素材 + 网络资源 + 强制使用指令 + 用户原始需求组合为增强提示词
-  2. **代码审查失败修复**：构建错误修复提示词（含错误列表 + 修复建议 + 修复要求）
-  3. **二次修改**：构建修改提示词（HTML/MULTI_FILE 附加现有代码；VUE_PROJECT 指引使用工具）
+    1. **首次生成**：将图片素材 + 网络资源 + 强制使用指令 + 用户原始需求组合为增强提示词
+    2. **代码审查失败修复**：构建错误修复提示词（含错误列表 + 修复建议 + 修复要求）
+    3. **二次修改**：构建修改提示词（HTML/MULTI_FILE 附加现有代码；VUE_PROJECT 指引使用工具）
 - **输入**：`context.originalPrompt` + `context.webResourceListStr` + `context.imageListStr`
 - **输出**：`context.enhancedPrompt`
 - **关键设计**：素材区域放在用户需求之前，确保 AI 优先看到并使用
@@ -111,9 +111,9 @@ flowchart TD
 - **模型**：`qwen-plus`（非流式）
 - **系统提示词**：`code-generation-strategy-system-prompt.txt`
 - **判断逻辑**：
-  1. 若用户选择了 `AI_STRATEGY`：将增强后提示词发送给 AI 判断类型
-  2. 若用户指定了固定类型：检查提示词是否包含不同类型关键词（正则匹配），若有则覆盖
-  3. AI 判断失败时默认回退到 `HTML` 类型
+    1. 若用户选择了 `AI_STRATEGY`：将增强后提示词发送给 AI 判断类型
+    2. 若用户指定了固定类型：检查提示词是否包含不同类型关键词（正则匹配），若有则覆盖
+    3. AI 判断失败时默认回退到 `HTML` 类型
 - **输出**：更新 `context.generationType` 并写入数据库 `app.codeGenType`
 
 #### 节点 5：`code_generator` — AI 代码生成
@@ -121,8 +121,8 @@ flowchart TD
 - **实现类**：`CodeGeneratorNode` → `AIGenerateCodeAndSaveToFileUtils`
 - **服务工厂**：`AiCodeGeneratorServiceFactory`（Caffeine 缓存实例，30 分钟写入过期/10 分钟访问过期）
 - **模型选择**：
-  - HTML/MULTI_FILE → `qwen3-coder-plus`（流式，无工具）
-  - VUE_PROJECT → `qwen3-coder-plus`（流式 + 文件操作工具，最大 25 次连续工具调用）
+    - HTML/MULTI_FILE → `qwen3-coder-plus`（流式，无工具）
+    - VUE_PROJECT → `qwen3-coder-plus`（流式 + 文件操作工具，最大 25 次连续工具调用）
 - **对话记忆**：Redis ChatMemoryStore，滑动窗口 50 条，从数据库加载最近 10 条历史
 - **RAG 增强**：若 `rag.enabled=true`，注入 RetrievalAugmentor（PGVector 按 codeGenType 过滤，minScore=0.6，maxResults=5）
 - **流式转发**：通过 `ConcurrentHashMap<Long, Consumer<String>>` 注册发射器，实时转发到 SSE
@@ -135,11 +135,11 @@ flowchart TD
 - **模型**：`qwen-plus`（非流式）
 - **系统提示词**：`code-review-system-prompt.txt`
 - **审查流程**：
-  1. **结构性预检查**（磁盘文件级别）：
-     - HTML：至少一个 .html 文件
-     - MULTI_FILE：index.html + style.css + script.js
-     - VUE_PROJECT：index.html、package.json、vite.config.js、src/main.js、检查本地资源引用
-  2. **AI 代码审查**：拼接所有代码文件内容，发送给 AI 分析
+    1. **结构性预检查**（磁盘文件级别）：
+        - HTML：至少一个 .html 文件
+        - MULTI_FILE：index.html + style.css + script.js
+        - VUE_PROJECT：index.html、package.json、vite.config.js、src/main.js、检查本地资源引用
+    2. **AI 代码审查**：拼接所有代码文件内容，发送给 AI 分析
 - **异常处理**：审查异常时 `isPass=true`（跳过审查继续执行）
 - **reviewCount**：每次审查递增，用于路由判断
 
@@ -155,12 +155,12 @@ flowchart TD
 
 ```java
 // CodeGenWorkflowApp.nodeRouter()
-MAX_CODE_REVIEW_ATTEMPTS = 2;
+MAX_CODE_REVIEW_ATTEMPTS =2;
 
-if (codeReviewResponse == null) → "code_review_failed"
-if (!isPass && reviewCount < 2) → "code_review_failed"  // 回到 prompt_enhancer 重试
-if (HTML || MULTI_FILE)         → "code_review_succeeded_and_skip_build"
-if (VUE_PROJECT)                → "code_review_succeeded_and_build"
+        if(codeReviewResponse ==null) → "code_review_failed"
+        if(!isPass &&reviewCount< 2) → "code_review_failed"  // 回到 prompt_enhancer 重试
+        if(HTML ||MULTI_FILE)         → "code_review_succeeded_and_skip_build"
+        if(VUE_PROJECT)                → "code_review_succeeded_and_build"
 ```
 
 ### 2.4 二次修改工作流（简化）
@@ -194,27 +194,27 @@ CodeGenWorkflowApp (虚拟线程)
 
 > 测试场景：用户请求 "创建工作汇报网页"，AI 策略选择 → single_html
 
-| # | 节点 | 开始时间 | 结束时间 | 耗时 | AI 调用次数 | 备注 |
-|---|------|----------|----------|------|-------------|------|
-| 1 | web_resource_organizer | 13:01:45 | 13:02:53 | **~68s** | 2次 LLM + 1次搜索 + 1次抓取 | **最大瓶颈** |
-| 2 | image_collector | 13:02:56 | 13:03:16 | **~19s** | 1次 LLM + 1次图片搜索 + 1次图片生成 + OSS上传 | 含异步轮询 |
-| 3 | prompt_enhancer | ~13:03:20 | ~13:03:28 | **~8s** | 0次（纯逻辑） | 主要耗时在 emitStreamText |
-| 4 | type_strategy | 13:03:24 | 13:03:25 | **~1s** | 1次 LLM（796ms） | 最快节点 |
-| 5 | code_generator | 13:03:28 | 13:04:23 | **~55s** | 1次流式 LLM + 1次 Embedding | 含 RAG 检索 |
-| 6 | ai_code_reviewer | 13:04:28 | 13:04:36 | **~8s** | 1次 LLM（7579ms） | 审查通过 |
-| - | 工作流状态推送 | - | 13:04:54 | ~18s | 0 | emitStreamText 累计 |
-| | **总计** | 13:01:36 | 13:04:54 | **~198s（3分18秒）** | **6次 LLM + 1次 Embedding** | |
+| # | 节点                     | 开始时间      | 结束时间      | 耗时               | AI 调用次数                          | 备注                   |
+|---|------------------------|-----------|-----------|------------------|----------------------------------|----------------------|
+| 1 | web_resource_organizer | 13:01:45  | 13:02:53  | **~68s**         | 2次 LLM + 1次搜索 + 1次抓取             | **最大瓶颈**             |
+| 2 | image_collector        | 13:02:56  | 13:03:16  | **~19s**         | 1次 LLM + 1次图片搜索 + 1次图片生成 + OSS上传 | 含异步轮询                |
+| 3 | prompt_enhancer        | ~13:03:20 | ~13:03:28 | **~8s**          | 0次（纯逻辑）                          | 主要耗时在 emitStreamText |
+| 4 | type_strategy          | 13:03:24  | 13:03:25  | **~1s**          | 1次 LLM（796ms）                    | 最快节点                 |
+| 5 | code_generator         | 13:03:28  | 13:04:23  | **~55s**         | 1次流式 LLM + 1次 Embedding          | 含 RAG 检索             |
+| 6 | ai_code_reviewer       | 13:04:28  | 13:04:36  | **~8s**          | 1次 LLM（7579ms）                   | 审查通过                 |
+| - | 工作流状态推送                | -         | 13:04:54  | ~18s             | 0                                | emitStreamText 累计    |
+|   | **总计**                 | 13:01:36  | 13:04:54  | **~198s（3分18秒）** | **6次 LLM + 1次 Embedding**        |                      |
 
 ### 3.2 LLM 调用明细
 
-| 调用点 | 模型 | 流式 | prompt_tokens | completion_tokens | API 耗时 |
-|--------|------|------|---------------|-------------------|----------|
-| 网络资源整理（第1轮） | qwen-plus | 否 | ~2000 | ~500 | ~5s |
-| 网络资源整理（第2轮+工具） | qwen-plus | 否 | ~4000 | ~10000 | ~55s |
-| 图片收集 | qwen-plus | 否 | ~2000 | ~300 | ~3s |
-| 代码类型策略 | qwen-plus | 否 | 4547 | 1 | 796ms |
-| 代码生成 | qwen3-coder-plus | **是** | ~10000 | ~17000 | ~53s |
-| 代码审查 | qwen-plus | 否 | 5239 | 320 | 7579ms |
+| 调用点            | 模型               | 流式    | prompt_tokens | completion_tokens | API 耗时 |
+|----------------|------------------|-------|---------------|-------------------|--------|
+| 网络资源整理（第1轮）    | qwen-plus        | 否     | ~2000         | ~500              | ~5s    |
+| 网络资源整理（第2轮+工具） | qwen-plus        | 否     | ~4000         | ~10000            | ~55s   |
+| 图片收集           | qwen-plus        | 否     | ~2000         | ~300              | ~3s    |
+| 代码类型策略         | qwen-plus        | 否     | 4547          | 1                 | 796ms  |
+| 代码生成           | qwen3-coder-plus | **是** | ~10000        | ~17000            | ~53s   |
+| 代码审查           | qwen-plus        | 否     | 5239          | 320               | 7579ms |
 
 ### 3.3 耗时分布饼图（估算）
 
@@ -235,17 +235,21 @@ CodeGenWorkflowApp (虚拟线程)
 
 ### 4.1 【严重】网络资源整理节点产出了完整 HTML 代码
 
-**现象**：`web_resource_organizer` 节点输出了 10245 字符的内容，其中包含一份完整的 HTML 网页代码（含 CSS 样式和完整的业务内容），而非预期的"网络资源素材"。
+**现象**：`web_resource_organizer` 节点输出了 10245 字符的内容，其中包含一份完整的 HTML 网页代码（含 CSS
+样式和完整的业务内容），而非预期的"网络资源素材"。
 
 **影响**：
+
 1. 这份 HTML 代码被 `prompt_enhancer` 作为"参考内容"注入到代码生成 prompt 中
 2. 代码生成节点几乎原样复制了这段代码，仅做微小改进（添加 Font Awesome、BEM 命名、banner 图片）
 3. 浪费了约 10000 个 prompt tokens 和 68 秒执行时间
 4. 代码生成的"创造性"被大幅削弱，几乎变成了"复制粘贴"
 
-**根因**：`web-resource-organize-system-prompt` 系统提示词（存储在数据库中）缺少"禁止生成代码"的约束，导致 AI 在搜索到相关内容后自行生成了完整代码。
+**根因**：`web-resource-organize-system-prompt` 系统提示词（存储在数据库中）缺少"禁止生成代码"的约束，导致 AI
+在搜索到相关内容后自行生成了完整代码。
 
 **建议**：在 `web-resource-organize-system-prompt` 中明确添加约束：
+
 ```
 ## 严禁事项
 - 禁止生成任何代码（HTML/CSS/JavaScript/Vue 等）
@@ -259,6 +263,7 @@ CodeGenWorkflowApp (虚拟线程)
 **现象**：两个资源收集节点严格串行：`web_resource_organizer`（68s）→ `image_collector`（19s），总计 87 秒。
 
 **分析**：
+
 - `image_collector` 仅依赖 `context.originalPrompt`，不依赖 `context.webResourceListStr`
 - 两者完全可以并行执行，理论节省 19 秒（取较长者 68 秒）
 - LangGraph4j 目前不原生支持并行节点，但可通过 `CompletableFuture` 在单个节点内实现
@@ -295,15 +300,18 @@ document.getElementById('current-date') 引用了不存在的 DOM 元素
 **影响**：400 字符通常只包含 `<head>` 标签内容（meta、title、CSS 引用），实际正文内容几乎无法获取，工具效用大打折扣。
 
 **建议**：
+
 1. 使用 Jsoup 的 `.text()` 提取纯文本而非 `.html()` 获取原始 HTML
 2. 将截取长度提升到 2000-4000 字符
 3. 或仅提取 `<body>` 内的文本内容
 
 ### 4.6 【低等】Caffeine 缓存的 AI 服务实例首次创建时加载历史失败
 
-**现象**：日志显示 `为 appId: 395002924146741248 加载历史记录失败`，原因是 chat_history 表中此时仅有 user 消息（AI 响应尚未生成），查询偏移量为 1 导致返回空。
+**现象**：日志显示 `为 appId: 395002924146741248 加载历史记录失败`，原因是 chat_history 表中此时仅有 user 消息（AI
+响应尚未生成），查询偏移量为 1 导致返回空。
 
-**分析**：SQL 查询使用 `LIMIT 1, 10`（跳过第 1 条），但首次生成时只有 1 条用户消息，跳过后为空。这不影响功能（添加了提示消息兜底），但导致了一个 WARN 级别的日志噪音。
+**分析**：SQL 查询使用 `LIMIT 1, 10`（跳过第 1 条），但首次生成时只有 1 条用户消息，跳过后为空。这不影响功能（添加了提示消息兜底），但导致了一个
+WARN 级别的日志噪音。
 
 ### 4.7 【低等】基础设施告警
 
@@ -317,11 +325,11 @@ document.getElementById('current-date') 引用了不存在的 DOM 元素
 
 ### 5.1 文档映射
 
-| 文档文件 | codeGenType | 核心约束 |
-|----------|-------------|----------|
-| `rag-web-dev-guide-html.md` (209行) | HTML | 单文件、无工具、CDN 引入、localStorage |
-| `rag-web-dev-guide-multi-file.md` (217行) | MULTI_FILE | 三文件分离、无工具、跨文件协调 |
-| `rag-web-dev-guide-vue-project.md` (217行) | VUE_PROJECT | Vue3+Vite、有工具调用、hash 路由 |
+| 文档文件                                      | codeGenType | 核心约束                        |
+|-------------------------------------------|-------------|-----------------------------|
+| `rag-web-dev-guide-html.md` (209行)        | HTML        | 单文件、无工具、CDN 引入、localStorage |
+| `rag-web-dev-guide-multi-file.md` (217行)  | MULTI_FILE  | 三文件分离、无工具、跨文件协调             |
+| `rag-web-dev-guide-vue-project.md` (217行) | VUE_PROJECT | Vue3+Vite、有工具调用、hash 路由     |
 
 ### 5.2 检索配置
 
@@ -336,6 +344,7 @@ document.getElementById('current-date') 引用了不存在的 DOM 元素
 ### 5.3 RAG 与 System Prompt 的关系
 
 系统存在两层知识注入：
+
 1. **System Prompt**（`docs/aiPrompts/*.txt` → 数据库）：作为系统消息注入，定义 AI 角色和行为规范
 2. **RAG**（`docs/ragDocs/*.md` → PGVector）：作为用户消息上下文注入，提供具体开发规范参考
 
@@ -347,16 +356,16 @@ document.getElementById('current-date') 引用了不存在的 DOM 元素
 
 ### 6.1 Prompt 清单
 
-| Prompt Key | 文件 | 用途 | Token 估算 |
-|------------|------|------|------------|
-| `prompt-optimization-system-prompt` | 同名 .txt | 提示词优化助手 | ~500 |
-| `code-generation-strategy-system-prompt` | 同名 .txt | 代码类型选择器 | ~800 |
-| `html-system-prompt` | 同名 .txt | 单 HTML 代码生成 | ~2000 |
-| `multi-file-system-prompt` | 同名 .txt | 三文件代码生成 | ~2500 |
-| `vue-project-system-prompt` | 同名 .txt | Vue 项目代码生成 | ~3500 |
-| `code-review-system-prompt` | 同名 .txt | 代码审查 | ~1200 |
-| `web-resource-organize-system-prompt` | 数据库存储 | 网络资源整理 | 未知 |
-| `image-resource-system-prompt` | 数据库存储 | 图片资源收集 | 未知 |
+| Prompt Key                               | 文件      | 用途          | Token 估算 |
+|------------------------------------------|---------|-------------|----------|
+| `prompt-optimization-system-prompt`      | 同名 .txt | 提示词优化助手     | ~500     |
+| `code-generation-strategy-system-prompt` | 同名 .txt | 代码类型选择器     | ~800     |
+| `html-system-prompt`                     | 同名 .txt | 单 HTML 代码生成 | ~2000    |
+| `multi-file-system-prompt`               | 同名 .txt | 三文件代码生成     | ~2500    |
+| `vue-project-system-prompt`              | 同名 .txt | Vue 项目代码生成  | ~3500    |
+| `code-review-system-prompt`              | 同名 .txt | 代码审查        | ~1200    |
+| `web-resource-organize-system-prompt`    | 数据库存储   | 网络资源整理      | 未知       |
+| `image-resource-system-prompt`           | 数据库存储   | 图片资源收集      | 未知       |
 
 ### 6.2 Prompt 设计模式
 
@@ -384,14 +393,23 @@ document.getElementById('current-date') 引用了不存在的 DOM 元素
 - **预期效果**：节省 ~19 秒（取较长者而非累加）
 - **风险**：中（需要处理异常合并和上下文同步）
 - **代码示意**：
+
 ```java
 CompletableFuture<String> webFuture = CompletableFuture.supplyAsync(
-    () -> aiWebResourceOrganizeService.webResource(prompt));
+        () -> aiWebResourceOrganizeService.webResource(prompt));
 CompletableFuture<String> imageFuture = CompletableFuture.supplyAsync(
-    () -> aiImageResourceService.resourceImages(prompt));
-CompletableFuture.allOf(webFuture, imageFuture).join();
-context.setWebResourceListStr(webFuture.get());
-context.setImageListStr(imageFuture.get());
+        () -> aiImageResourceService.resourceImages(prompt));
+CompletableFuture.
+
+allOf(webFuture, imageFuture).
+
+join();
+context.
+
+setWebResourceListStr(webFuture.get());
+        context.
+
+setImageListStr(imageFuture.get());
 ```
 
 #### 7.3 emitStreamText 对状态文本改用批量发送
@@ -400,6 +418,7 @@ context.setImageListStr(imageFuture.get());
 - **预期效果**：节省 ~18 秒
 - **风险**：低（前端已支持批量接收）
 - **代码示意**：
+
 ```java
 private void emitStreamBlock(FluxSink<String> sink, StringBuilder builder, String text) {
     sink.next(text);
@@ -453,15 +472,15 @@ private void emitStreamBlock(FluxSink<String> sink, StringBuilder builder, Strin
 
 实施 P0 优化后的预期耗时：
 
-| 节点 | 当前耗时 | 优化后预计 | 节省 |
-|------|----------|------------|------|
-| 资源收集（并行后） | 87s | 40s | **47s** |
-| 提示词增强 | 8s | 1s | **7s** |
-| 类型策略 | 1s | 1s | 0 |
-| 代码生成 | 55s | 45s | **10s**（prompt tokens 减少） |
-| 代码审查 | 8s | 8s | 0 |
-| 流式推送 | 18s | 1s | **17s** |
-| **总计** | **198s** | **~117s** | **~81s（节省 41%）** |
+| 节点        | 当前耗时     | 优化后预计     | 节省                        |
+|-----------|----------|-----------|---------------------------|
+| 资源收集（并行后） | 87s      | 40s       | **47s**                   |
+| 提示词增强     | 8s       | 1s        | **7s**                    |
+| 类型策略      | 1s       | 1s        | 0                         |
+| 代码生成      | 55s      | 45s       | **10s**（prompt tokens 减少） |
+| 代码审查      | 8s       | 8s        | 0                         |
+| 流式推送      | 18s      | 1s        | **17s**                   |
+| **总计**    | **198s** | **~117s** | **~81s（节省 41%）**          |
 
 ---
 
@@ -518,11 +537,11 @@ docs/
 
 ### B. 外部 API 依赖
 
-| API | 提供方 | 用途 |
-|-----|--------|------|
-| DashScope Chat API | 阿里云百炼 | LLM 对话/代码生成 |
-| DashScope Text2Image API | 阿里云百炼 (wan2.2-t2i-flash) | AI 图片生成 |
-| DashScope Embedding API | 阿里云百炼 (text-embedding-v4) | RAG 向量化 |
-| 百度千帆搜索 API | 百度 | 联网搜索 |
-| 接口盒子图片搜索 API | apihz.cn | 百度图片搜索 |
-| 阿里云 OSS | 阿里云 | AI 生成图片存储 |
+| API                      | 提供方                       | 用途          |
+|--------------------------|---------------------------|-------------|
+| DashScope Chat API       | 阿里云百炼                     | LLM 对话/代码生成 |
+| DashScope Text2Image API | 阿里云百炼 (wan2.2-t2i-flash)  | AI 图片生成     |
+| DashScope Embedding API  | 阿里云百炼 (text-embedding-v4) | RAG 向量化     |
+| 百度千帆搜索 API               | 百度                        | 联网搜索        |
+| 接口盒子图片搜索 API             | apihz.cn                  | 百度图片搜索      |
+| 阿里云 OSS                  | 阿里云                       | AI 生成图片存储   |

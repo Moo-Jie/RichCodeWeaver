@@ -45,7 +45,8 @@ public class CodeGenWorkflowApp {
      * 代码审查最大重试次数
      */
     private static final int MAX_CODE_REVIEW_ATTEMPTS = 2;
-
+    // 流式输出每个字符的延迟（毫秒），模拟 AI 打字效果
+    private static final int STREAM_CHAR_DELAY_MS = 15;
     /**
      * 条件边判断参数映射，用于根据代码生成类型决定工作流路由
      * key: 路由条件判断结果
@@ -59,10 +60,6 @@ public class CodeGenWorkflowApp {
             // 代码审查未通过，返回到提示词增强节点
             "code_review_failed", "prompt_enhancer"
     );
-
-    // 流式输出每个字符的延迟（毫秒），模拟 AI 打字效果
-    private static final int STREAM_CHAR_DELAY_MS = 15;
-
     @Resource
     private CommonStreamHandler commonStreamHandler;
 
@@ -236,7 +233,7 @@ public class CodeGenWorkflowApp {
 
                     for (NodeOutput<MessagesState<String>> step : workflow.stream(
                             Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {
-                        
+
                         // 获取当前步骤的上下文
                         WorkflowContext currentContext = WorkflowContext.getContext(step.state());
                         if (currentContext != null) {
@@ -248,7 +245,7 @@ public class CodeGenWorkflowApp {
                             stepInfo.append(String.format("\n\n<!-- NODE_START:%s -->\n\n", nodeName));
                             stepInfo.append(String.format("### ✅ %s\n\n", stepTitle));
                             stepInfo.append("<div class='node-result'>\n\n");
-                            
+
                             // 根据节点类型输出特定信息，采用更清晰的展示格式
                             switch (nodeName) {
                                 case "resource_collector":
@@ -267,7 +264,7 @@ public class CodeGenWorkflowApp {
                                     }
                                     stepInfo.append("- ✓ 执行模式：网络资源 + 图片资源**并行收集**\n");
                                     break;
-                                    
+
                                 case "prompt_enhancer":
                                     stepInfo.append("**✨ 提示词增强节点**\n\n");
                                     if (StrUtil.isNotBlank(currentContext.getEnhancedPrompt())) {
@@ -277,7 +274,7 @@ public class CodeGenWorkflowApp {
                                         stepInfo.append("- ✓ 质量提升：更精准的代码生成指令\n");
                                     }
                                     break;
-                                    
+
                                 case "ai_code_generator_type_strategy":
                                     stepInfo.append("**🎯 代码类型策略节点**\n\n");
                                     if (currentContext.getGenerationType() != null) {
@@ -287,7 +284,7 @@ public class CodeGenWorkflowApp {
                                         stepInfo.append("- ✓ 准备就绪：开始代码生成流程\n");
                                     }
                                     break;
-                                    
+
                                 case "code_generator":
                                     stepInfo.append("**💻 AI 代码生成节点**\n\n");
                                     if (StrUtil.isNotBlank(currentContext.getOutputDir())) {
@@ -297,7 +294,7 @@ public class CodeGenWorkflowApp {
                                     }
                                     stepInfo.append("\n> 🔍 正在启动代码审查流程...\n");
                                     break;
-                                    
+
                                 case "ai_code_reviewer":
                                     stepInfo.append("**🔍 代码审查节点**\n\n");
                                     if (currentContext.getCodeReviewResponse() != null) {
@@ -313,7 +310,7 @@ public class CodeGenWorkflowApp {
                                         }
                                     }
                                     break;
-                                    
+
                                 case "project_builder":
                                     stepInfo.append("**🏗️ 项目构建节点**\n\n");
                                     if (StrUtil.isNotBlank(currentContext.getDeployDir())) {
@@ -330,7 +327,7 @@ public class CodeGenWorkflowApp {
                                     stepInfo.append("- ✓ 准备开始执行各节点任务\n");
                                     break;
                             }
-                            
+
                             // 错误信息总是显示，使用醒目的格式
                             if (StrUtil.isNotBlank(currentContext.getErrorMessage())) {
                                 stepInfo.append("\n\n---\n\n");
@@ -343,7 +340,7 @@ public class CodeGenWorkflowApp {
 
                             stepInfo.append("\n\n</div>\n\n");
                             stepInfo.append(String.format("<!-- NODE_END:%s -->\n\n", nodeName));
-                            
+
                             emitStreamBlock(sink, aiResponseBuilder, stepInfo.toString());
                             log.info("当前步骤: {} - {}", nodeName, currentContext.getCurrentStep());
 
@@ -374,7 +371,7 @@ public class CodeGenWorkflowApp {
                             "- 💾 点击「下载」获取源代码\n\n" +
                             "</div>\n\n";
                     emitStreamBlock(sink, aiResponseBuilder, completeInfo);
-                    
+
                     log.info("代码生成工作流执行完成！产物ID: {}", appId);
                     sink.complete();
                 } catch (Throwable e) {
@@ -415,9 +412,9 @@ public class CodeGenWorkflowApp {
     /**
      * 辅助方法：流式输出文本，模拟打字效果（仅用于需要打字效果的场景，如 AI 代码生成流）
      *
-     * @param sink            SSE事件流
+     * @param sink              SSE事件流
      * @param aiResponseBuilder 响应内容构建器
-     * @param text            需要输出的文本
+     * @param text              需要输出的文本
      */
     private void emitStreamText(FluxSink<String> sink, StringBuilder aiResponseBuilder, String text) {
         // 使用 codePoints() 遍历，正确处理 emoji 等 Unicode 补充字符（避免 surrogate pair 被拆分导致乱码）
@@ -437,9 +434,9 @@ public class CodeGenWorkflowApp {
      * 辅助方法：批量发送文本，一次性推送整段内容（用于工作流状态信息，无需模拟打字效果）
      * 相比 emitStreamText 逐字符发送，可节省大量延迟时间
      *
-     * @param sink            SSE事件流
+     * @param sink              SSE事件流
      * @param aiResponseBuilder 响应内容构建器
-     * @param text            需要输出的文本
+     * @param text              需要输出的文本
      */
     private void emitStreamBlock(FluxSink<String> sink, StringBuilder aiResponseBuilder, String text) {
         sink.next(text);

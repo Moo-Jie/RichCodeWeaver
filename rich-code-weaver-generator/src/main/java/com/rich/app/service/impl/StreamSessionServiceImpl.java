@@ -48,7 +48,7 @@ public class StreamSessionServiceImpl implements StreamSessionService {
             log.error("创建会话失败：参数无效 - appId={}, userId={}", appId, userId);
             throw new IllegalArgumentException("产物ID和用户ID不能为空或小于等于0");
         }
-        
+
         // 生成唯一会话ID
         String sessionId = generateSessionId(appId, userId);
         return createSession(sessionId, appId, userId);
@@ -75,16 +75,16 @@ public class StreamSessionServiceImpl implements StreamSessionService {
             log.error("创建会话失败：参数无效 - sessionId={}, appId={}, userId={}", sessionId, appId, userId);
             throw new IllegalArgumentException("产物ID和用户ID不能为空或小于等于0");
         }
-        
+
         // 检查会话是否已存在，避免重复创建
         if (sessionMap.containsKey(sessionId)) {
             log.warn("会话已存在，返回现有会话ID: sessionId={}", sessionId);
             return sessionId;
         }
-        
+
         // 获取当前时间（统一使用同一时间戳）
         LocalDateTime currentTime = LocalDateTime.now();
-        
+
         // 构建流式会话对象
         StreamSession session = StreamSession.builder()
                 .sessionId(sessionId)
@@ -102,7 +102,7 @@ public class StreamSessionServiceImpl implements StreamSessionService {
         sessionMap.put(sessionId, session);
         // 初始化事件ID计数器（原子操作，线程安全）
         eventIdCounters.put(sessionId, new AtomicLong(0));
-        
+
         log.info("创建流式会话成功: sessionId={}, appId={}, userId={}", sessionId, appId, userId);
         return sessionId;
     }
@@ -140,7 +140,7 @@ public class StreamSessionServiceImpl implements StreamSessionService {
             log.warn("添加事件失败：事件对象为空 - sessionId={}", sessionId);
             return;
         }
-        
+
         // 获取会话对象
         StreamSession session = sessionMap.get(sessionId);
         if (session == null) {
@@ -154,26 +154,26 @@ public class StreamSessionServiceImpl implements StreamSessionService {
             log.error("事件队列为空，会话数据异常: sessionId={}", sessionId);
             return;
         }
-        
+
         // 检查队列容量，超过最大限制时移除最旧的事件（FIFO策略，防止内存溢出）
         if (eventQueue.size() >= MAX_EVENTS_PER_SESSION) {
             StreamEvent removedEvent = eventQueue.poll();
-            log.debug("事件队列已满（容量={}），移除最旧事件: eventId={}", 
+            log.debug("事件队列已满（容量={}），移除最旧事件: eventId={}",
                     MAX_EVENTS_PER_SESSION,
                     removedEvent != null ? removedEvent.getEventId() : "null");
         }
-        
+
         // 将新事件添加到队列尾部（线程安全操作）
         boolean addSuccess = eventQueue.offer(event);
         if (!addSuccess) {
             log.error("事件添加失败: sessionId={}, eventId={}", sessionId, event.getEventId());
             return;
         }
-        
+
         // 更新会话最后访问时间（保持会话活跃）
         session.setLastAccessTime(LocalDateTime.now());
-        
-        log.debug("添加事件到会话成功: sessionId={}, eventId={}, eventType={}, queueSize={}", 
+
+        log.debug("添加事件到会话成功: sessionId={}, eventId={}, eventType={}, queueSize={}",
                 sessionId, event.getEventId(), event.getEventType(), eventQueue.size());
     }
 
@@ -193,7 +193,7 @@ public class StreamSessionServiceImpl implements StreamSessionService {
             log.warn("获取事件失败：会话ID为空");
             return new ArrayList<>();
         }
-        
+
         // 获取会话对象
         StreamSession session = sessionMap.get(sessionId);
         if (session == null) {
@@ -203,17 +203,17 @@ public class StreamSessionServiceImpl implements StreamSessionService {
 
         // 更新会话最后访问时间（保持会话活跃，防止被清理）
         session.setLastAccessTime(LocalDateTime.now());
-        
+
         // 获取事件队列
         ConcurrentLinkedQueue<StreamEvent> eventQueue = session.getEventQueue();
         if (eventQueue == null || eventQueue.isEmpty()) {
             // 队列为空或不存在，返回空列表
             return new ArrayList<>();
         }
-        
+
         // 准备返回的事件列表
         List<StreamEvent> resultEvents = new ArrayList<>();
-        
+
         // 如果没有指定lastEventId，返回所有事件（首次连接场景）
         if (StrUtil.isEmpty(lastEventId)) {
             resultEvents.addAll(eventQueue);
@@ -225,7 +225,7 @@ public class StreamSessionServiceImpl implements StreamSessionService {
                 if (event == null || event.getEventId() == null) {
                     continue;
                 }
-                
+
                 if (foundLastEvent) {
                     // 已找到lastEventId，添加后续所有事件
                     resultEvents.add(event);
@@ -234,15 +234,15 @@ public class StreamSessionServiceImpl implements StreamSessionService {
                     foundLastEvent = true;
                 }
             }
-            
+
             // 如果没有找到lastEventId，可能是事件已被清理，返回所有事件
             if (!foundLastEvent && !eventQueue.isEmpty()) {
-                log.warn("未找到指定的lastEventId，返回所有事件: sessionId={}, lastEventId={}", 
+                log.warn("未找到指定的lastEventId，返回所有事件: sessionId={}, lastEventId={}",
                         sessionId, lastEventId);
                 resultEvents.addAll(eventQueue);
             }
         }
-        
+
         return resultEvents;
     }
 
@@ -322,7 +322,7 @@ public class StreamSessionServiceImpl implements StreamSessionService {
         try {
             // 计算过期时间点（当前时间减去过期时长）
             LocalDateTime expireTime = LocalDateTime.now().minusMinutes(SESSION_EXPIRE_MINUTES);
-            
+
             // 收集所有过期的会话ID（避免在遍历时直接删除导致并发问题）
             List<String> expiredSessionIds = new ArrayList<>();
             sessionMap.forEach((sessionId, session) -> {
@@ -332,13 +332,13 @@ public class StreamSessionServiceImpl implements StreamSessionService {
                     expiredSessionIds.add(sessionId);
                     return;
                 }
-                
+
                 // 如果会话的最后访问时间早于过期时间点，则标记为过期
                 if (session.getLastAccessTime().isBefore(expireTime)) {
                     expiredSessionIds.add(sessionId);
                 }
             });
-            
+
             // 批量清理过期会话（先收集再删除，避免并发修改异常）
             int cleanedCount = 0;
             for (String sessionId : expiredSessionIds) {
@@ -347,11 +347,11 @@ public class StreamSessionServiceImpl implements StreamSessionService {
                     StreamSession removedSession = sessionMap.remove(sessionId);
                     // 从事件ID计数器映射表中移除
                     AtomicLong removedCounter = eventIdCounters.remove(sessionId);
-                    
+
                     if (removedSession != null) {
                         cleanedCount++;
-                        log.info("清理过期会话: sessionId={}, appId={}, 事件数={}", 
-                                sessionId, 
+                        log.info("清理过期会话: sessionId={}, appId={}, 事件数={}",
+                                sessionId,
                                 removedSession.getAppId(),
                                 removedSession.getEventQueue() != null ? removedSession.getEventQueue().size() : 0);
                     }
@@ -359,10 +359,10 @@ public class StreamSessionServiceImpl implements StreamSessionService {
                     log.error("清理会话失败: sessionId={}, error={}", sessionId, e.getMessage());
                 }
             }
-            
+
             // 记录清理结果
             if (cleanedCount > 0) {
-                log.info("定时清理任务完成，清理了 {} 个过期会话，当前活跃会话数: {}", 
+                log.info("定时清理任务完成，清理了 {} 个过期会话，当前活跃会话数: {}",
                         cleanedCount, sessionMap.size());
             }
         } catch (Exception e) {
@@ -385,14 +385,14 @@ public class StreamSessionServiceImpl implements StreamSessionService {
             log.error("生成事件ID失败：会话ID为空");
             throw new IllegalArgumentException("会话ID不能为空");
         }
-        
+
         // 获取或创建该会话的事件ID计数器（线程安全）
         AtomicLong counter = eventIdCounters.computeIfAbsent(sessionId, k -> new AtomicLong(0));
-        
+
         // 生成唯一的事件ID：sessionId-序号（原子递增，线程安全）
         long eventSequence = counter.incrementAndGet();
         String eventId = sessionId + "-" + eventSequence;
-        
+
         log.debug("生成事件ID: sessionId={}, eventId={}", sessionId, eventId);
         return eventId;
     }
@@ -412,12 +412,12 @@ public class StreamSessionServiceImpl implements StreamSessionService {
             log.error("生成会话ID失败：参数无效 - appId={}, userId={}", appId, userId);
             throw new IllegalArgumentException("产物ID和用户ID不能为空或小于等于0");
         }
-        
+
         // 生成唯一的会话ID：session-appId-userId-时间戳
         // 时间戳确保即使同一用户对同一产物的多次请求也能生成不同的会话ID（毫秒级精度）
         long timestamp = System.currentTimeMillis();
         String sessionId = String.format("session-%d-%d-%d", appId, userId, timestamp);
-        
+
         log.debug("生成会话ID: sessionId={}, appId={}, userId={}", sessionId, appId, userId);
         return sessionId;
     }

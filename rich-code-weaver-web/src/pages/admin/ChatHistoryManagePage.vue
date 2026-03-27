@@ -17,15 +17,15 @@
           <a-input-search
             v-model:value="appSearch"
             allow-clear
+            aria-label="搜索数字产物"
             class="search-input"
             placeholder="搜索数字产物..."
             @search="handleSearch"
-            aria-label="搜索数字产物"
           />
         </a-card>
 
         <div v-if="loadingApps" class="loading-container">
-          <a-spin size="large" tip="加载数字产物列表中..."/>
+          <a-spin size="large" tip="加载数字产物列表中..." />
         </div>
 
         <a-empty
@@ -47,17 +47,17 @@
           <div
             v-for="app in filteredAppList"
             :key="app.id"
+            :aria-label="`选择数字产物 ${app.appName}`"
             :class="{ active: selectedApp?.id === app.id }"
             class="app-item"
-            tabindex="0"
             role="button"
-            :aria-label="`选择数字产物 ${app.appName}`"
+            tabindex="0"
             @click="selectApp(app)"
             @keydown.enter="selectApp(app)"
             @keydown.space.prevent="selectApp(app)"
           >
             <div class="app-info">
-              <a-avatar :src="app.cover" size="medium"/>
+              <a-avatar :src="app.cover" size="medium" />
               <div class="app-meta">
                 <div class="app-name">{{ app.appName }}</div>
                 <div class="app-date">{{ formatTime(app.updateTime) }}</div>
@@ -77,7 +77,7 @@
 
           <a-card :bordered="false" class="app-card">
             <div class="app-header">
-              <a-avatar :src="selectedApp.cover" size="large"/>
+              <a-avatar :src="selectedApp.cover" size="large" />
               <div class="app-info">
                 <h3>{{ selectedApp.appName }}</h3>
                 <p class="app-desc">{{ selectedApp.appDescription }}</p>
@@ -88,12 +88,12 @@
               </div>
               <div class="app-actions">
                 <a-button
+                  aria-label="查看产物详情"
                   type="default"
                   @click="navigateToApp(selectedApp.id)"
-                  aria-label="查看产物详情"
                 >
                   <template #icon>
-                    <ArrowRightOutlined/>
+                    <ArrowRightOutlined />
                   </template>
                   查看详情
                 </a-button>
@@ -103,7 +103,7 @@
 
           <div class="dialog-area">
             <div v-if="loadingHistory" class="loading-container">
-              <a-spin size="large" tip="加载对话中..."/>
+              <a-spin size="large" tip="加载对话中..." />
             </div>
 
             <a-empty
@@ -123,31 +123,33 @@
                    class="conversation-item">
                 <div v-if="history.messageType === 'ai'" class="ai-message">
                   <div class="message-avatar">
-                    <a-avatar :src="aiAvatar" class="ai-avatar" size="default"/>
+                    <a-avatar :src="aiAvatar" class="ai-avatar" size="default" />
                     <span class="ai-label">AI</span>
                   </div>
                   <div class="message-content">
                     <div :class="{ 'collapsed': history.collapsed }" class="message-content-inner">
-                      <markdown-renderer v-if="history.message" :content="history.message"/>
+                      <markdown-renderer v-if="history.message" :content="history.message" />
                     </div>
                     <a-button
                       v-if="history.message && history.message.length > 300"
+                      :aria-label="history.collapsed ? '展开完整AI消息内容' : '收起AI消息内容'"
                       class="toggle-content-btn"
                       type="link"
                       @click="toggleContent(history)"
-                      :aria-label="history.collapsed ? '展开完整AI消息内容' : '收起AI消息内容'"
                     >
                       {{ history.collapsed ? '展开全部' : '收起' }}
                     </a-button>
                   </div>
-                  <a-button class="delete-icon" @click="deleteMessage(history.id)" :aria-label="`删除AI消息 ${history.id}`">
-                    <DeleteOutlined/>
+                  <a-button :aria-label="`删除AI消息 ${history.id}`" class="delete-icon"
+                            @click="deleteMessage(history.id)">
+                    <DeleteOutlined />
                   </a-button>
                 </div>
 
                 <div v-if="history.messageType === 'user'" class="user-message">
-                  <a-button class="delete-icon" @click="deleteMessage(history.id)" :aria-label="`删除用户消息 ${history.id}`">
-                    <DeleteOutlined/>
+                  <a-button :aria-label="`删除用户消息 ${history.id}`" class="delete-icon"
+                            @click="deleteMessage(history.id)">
+                    <DeleteOutlined />
                   </a-button>
                   <div class="message-content">
                     <div :class="{ 'collapsed': history.collapsed }" class="message-content-inner">
@@ -157,16 +159,16 @@
                     </div>
                     <a-button
                       v-if="history.message && history.message.length > 300"
+                      :aria-label="history.collapsed ? '展开完整消息内容' : '收起消息内容'"
                       class="toggle-content-btn"
                       type="link"
                       @click="toggleContent(history)"
-                      :aria-label="history.collapsed ? '展开完整消息内容' : '收起消息内容'"
                     >
                       {{ history.collapsed ? '展开全部' : '收起' }}
                     </a-button>
                   </div>
                   <div class="message-avatar">
-                    <a-avatar :src="loginUserStore.loginUser.userAvatar" size="default"/>
+                    <a-avatar :src="loginUserStore.loginUser.userAvatar" size="default" />
                     <span class="user-label">用户</span>
                   </div>
                 </div>

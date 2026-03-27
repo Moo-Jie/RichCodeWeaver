@@ -17,42 +17,42 @@
 
         <a-descriptions-item label="数字产物名称">
           <div class="meta-item">
-            <AppstoreOutlined/>
+            <AppstoreOutlined />
             <span class="app-name">{{ app?.appName || '--' }}</span>
           </div>
         </a-descriptions-item>
 
         <a-descriptions-item label="创建者">
           <div class="meta-item">
-            <UserOutlined/>
-            <UserInfo :user="app?.user" size="small"/>
+            <UserOutlined />
+            <UserInfo :user="app?.user" size="small" />
           </div>
         </a-descriptions-item>
 
         <a-descriptions-item label="用户ID">
           <div class="meta-item">
-            <IdcardOutlined/>
+            <IdcardOutlined />
             <span>{{ app?.userId || '--' }}</span>
           </div>
         </a-descriptions-item>
 
         <a-descriptions-item label="创建时间">
           <div class="meta-item">
-            <CalendarOutlined/>
+            <CalendarOutlined />
             <span>{{ formatTime(app?.createTime) || '--' }}</span>
           </div>
         </a-descriptions-item>
 
         <a-descriptions-item label="更新时间">
           <div class="meta-item">
-            <SyncOutlined/>
+            <SyncOutlined />
             <span>{{ formatTime(app?.updateTime) || '--' }}</span>
           </div>
         </a-descriptions-item>
 
         <a-descriptions-item label="部署状态">
           <div class="meta-item">
-            <CloudServerOutlined/>
+            <CloudServerOutlined />
             <template v-if="app?.deployKey">
               <a-tag color="green">已部署</a-tag>
             </template>
@@ -62,7 +62,7 @@
 
         <a-descriptions-item label="部署时间">
           <div class="meta-item">
-            <CloudServerOutlined/>
+            <CloudServerOutlined />
             <template v-if="app?.deployKey">
               <span>{{ formatTime(app.deployedTime) }}</span>
             </template>
@@ -74,10 +74,10 @@
           <div class="meta-item">
             <a-tag :color="getTypeColor(app?.codeGenType)">
               {{
-                app?.codeGenType === 'single_html' ? '单文件结构' :
-                  app?.codeGenType === 'multi_file' ? '多文件结构' :
-                    app?.codeGenType === 'vue_project' ? 'VUE 项目工程' :
-                      formatCodeGenType(app?.codeGenType)
+              app?.codeGenType === 'single_html' ? '单文件结构' :
+              app?.codeGenType === 'multi_file' ? '多文件结构' :
+              app?.codeGenType === 'vue_project' ? 'VUE 项目工程' :
+              formatCodeGenType(app?.codeGenType)
               }}
             </a-tag>
           </div>
@@ -85,15 +85,15 @@
 
         <a-descriptions-item label="数字产物封面">
           <div class="meta-item">
-            <PictureOutlined/>
-            <img v-if="app?.cover" :src="app.cover" alt="数字产物封面" class="cover-img"/>
+            <PictureOutlined />
+            <img v-if="app?.cover" :src="app.cover" alt="数字产物封面" class="cover-img" />
             <span v-else>--</span>
           </div>
         </a-descriptions-item>
 
         <a-descriptions-item label="初始提示词">
           <div class="meta-item">
-            <MessageOutlined/>
+            <MessageOutlined />
             <a-typography-paragraph :ellipsis="{ rows: 3, expandable: true }">
               {{ app?.initPrompt || '--' }}
             </a-typography-paragraph>
@@ -102,7 +102,7 @@
 
         <a-descriptions-item label="优先级">
           <div class="meta-item">
-            <FlagOutlined/>
+            <FlagOutlined />
             <a-tag :color="getPriorityColor(app?.priority)">{{ app?.priority || '--' }}</a-tag>
           </div>
         </a-descriptions-item>
@@ -117,7 +117,7 @@
             @click="handleEdit"
           >
             <template #icon>
-              <EditOutlined/>
+              <EditOutlined />
             </template>
             前往完善数字产物信息
           </a-button>
@@ -129,7 +129,7 @@
           >
             <a-button class="delete-btn" danger>
               <template #icon>
-                <DeleteOutlined/>
+                <DeleteOutlined />
               </template>
               删除当前数字产物
             </a-button>

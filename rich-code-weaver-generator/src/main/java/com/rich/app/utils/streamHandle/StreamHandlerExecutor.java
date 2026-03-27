@@ -43,7 +43,7 @@ public class StreamHandlerExecutor {
             // 用于处理纯文本流式输出（不含 JSON 结构）
             case HTML, MULTI_FILE -> testStreamHandler.handleStream(stringFlux, chatHistoryService, appId, userId);
             // 默认情况：不支持的类型，抛出异常
-            default -> throw new BusinessException(ErrorCode.PARAMS_ERROR, 
+            default -> throw new BusinessException(ErrorCode.PARAMS_ERROR,
                     "不支持的代码生成器类型: " + codeGeneratorTypeEnum.getValue());
         };
     }

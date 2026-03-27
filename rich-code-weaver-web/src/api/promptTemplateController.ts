@@ -10,9 +10,9 @@ export async function listMatchedTemplates(
   return request<API.BaseResponseListPromptTemplateVO>('/promptTemplate/list/matched', {
     method: 'GET',
     params: {
-      ...params,
+      ...params
     },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -24,9 +24,9 @@ export async function getPromptTemplateVOById(
   return request<API.BaseResponsePromptTemplateVO>('/promptTemplate/get/vo', {
     method: 'GET',
     params: {
-      ...params,
+      ...params
     },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -38,10 +38,10 @@ export async function addPromptTemplate(
   return request<API.BaseResponseLong>('/promptTemplate/add', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -53,10 +53,10 @@ export async function updatePromptTemplate(
   return request<API.BaseResponseBoolean>('/promptTemplate/update', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -68,10 +68,10 @@ export async function deletePromptTemplate(
   return request<API.BaseResponseBoolean>('/promptTemplate/delete', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -83,9 +83,9 @@ export async function listPromptTemplateByPage(
   return request<API.BaseResponsePagePromptTemplateVO>('/promptTemplate/list/page/vo', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }

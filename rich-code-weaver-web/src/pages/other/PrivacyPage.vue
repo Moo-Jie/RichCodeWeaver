@@ -14,13 +14,15 @@
         <p class="section-text">
           <em>RichCodeWeaver</em> 是一款由 <em>MoJie 团队</em> （以下简称"我们"）提供的产品。
           您在使用我们的服务时，我们可能会收集和使用您的相关信息。我们希望通过本《隐私政策》向您说明，在使用我们的服务时，我们如何收集、使用、储存和分享这些信息，以及我们为您提供的访问、更新、控制和保护这些信息的方式。
-          本《隐私政策》与您所使用的 <em>RichCodeWeaver</em> 服务息息相关，希望您仔细阅读，在需要时，按照本《隐私政策》的指引，作出您认为适当的选择。本《隐私政策》中涉及的相关技术词汇，我们尽量以简明扼要的表述，并提供进一步说明的链接，以便您的理解。
+          本《隐私政策》与您所使用的 <em>RichCodeWeaver</em>
+          服务息息相关，希望您仔细阅读，在需要时，按照本《隐私政策》的指引，作出您认为适当的选择。本《隐私政策》中涉及的相关技术词汇，我们尽量以简明扼要的表述，并提供进一步说明的链接，以便您的理解。
         </p>
         <p class="section-text highlight">
           您使用或继续使用我们的服务，即意味着同意我们按照本《隐私政策》收集、使用、储存和分享您的相关信息。
         </p>
         <p class="section-text">
-          如对本《隐私政策》或相关事宜有任何问题，请通过 <strong>NotProvidedTemporarily@xxx.com</strong> 与我们联系。
+          如对本《隐私政策》或相关事宜有任何问题，请通过
+          <strong>NotProvidedTemporarily@xxx.com</strong> 与我们联系。
         </p>
       </section>
 
@@ -30,8 +32,10 @@
           我们或我们的第三方合作伙伴提供服务时，可能会收集、储存和使用下列与您有关的信息。如果您不提供相关信息，可能无法注册成为我们的用户或无法享受我们提供的某些服务，或者无法达到相关服务拟达到的效果。
         </p>
         <ul class="info-list">
-          <li><strong>个人信息</strong>，您在注册账户或使用我们的服务时，向我们提供的相关个人信息，例如电话号码、电子邮件等。</li>
-          <li><strong>日志信息</strong>，指您使用我们的服务时，系统可能通过cookies、标识符及相关技术收集的信息，包括您的<strong>设备信息</strong>、<strong>浏览信息</strong>、<strong>点击信息</strong>，并将该等信息储存为日志信息，为您提供个性化的用户体验、保障服务安全。您可以通过浏览器设置拒绝或管理cookie、标识符或相关技术的使用。</li>
+          <li><strong>个人信息</strong>，您在注册账户或使用我们的服务时，向我们提供的相关个人信息，例如电话号码、电子邮件等。
+          </li>
+          <li><strong>日志信息</strong>，指您使用我们的服务时，系统可能通过cookies、标识符及相关技术收集的信息，包括您的<strong>设备信息</strong>、<strong>浏览信息</strong>、<strong>点击信息</strong>，并将该等信息储存为日志信息，为您提供个性化的用户体验、保障服务安全。您可以通过浏览器设置拒绝或管理cookie、标识符或相关技术的使用。
+          </li>
         </ul>
         <p class="section-text sdk-title">我们接入的第三方SDK：</p>
         <div class="sdk-list">
@@ -56,7 +60,8 @@
               </div>
               <div class="sdk-detail-item">
                 <dt>隐私政策链接：</dt>
-                <dd><a href="https://openai.com/policies/privacy-policy" target="_blank" class="sdk-link">https://openai.com/policies/privacy-policy</a></dd>
+                <dd><a class="sdk-link" href="https://openai.com/policies/privacy-policy"
+                       target="_blank">https://openai.com/policies/privacy-policy</a></dd>
               </div>
             </dl>
           </div>
@@ -81,7 +86,8 @@
               </div>
               <div class="sdk-detail-item">
                 <dt>隐私政策链接：</dt>
-                <dd><a href="https://help.aliyun.com/document_detail/189971.html" target="_blank" class="sdk-link">https://help.aliyun.com/document_detail/189971.html</a></dd>
+                <dd><a class="sdk-link" href="https://help.aliyun.com/document_detail/189971.html"
+                       target="_blank">https://help.aliyun.com/document_detail/189971.html</a></dd>
               </div>
             </dl>
           </div>
@@ -106,7 +112,8 @@
               </div>
               <div class="sdk-detail-item">
                 <dt>隐私政策链接：</dt>
-                <dd><a href="https://help.aliyun.com/document_detail/189731.html" target="_blank" class="sdk-link">https://help.aliyun.com/document_detail/189731.html</a></dd>
+                <dd><a class="sdk-link" href="https://help.aliyun.com/document_detail/189731.html"
+                       target="_blank">https://help.aliyun.com/document_detail/189731.html</a></dd>
               </div>
             </dl>
           </div>
@@ -117,17 +124,25 @@
         <h2 class="section-title">2. 信息的存储</h2>
         <h3 class="subsection-title">2.1 信息存储的方式和期限</h3>
         <ul class="info-list">
-          <li>我们会通过安全的方式存储您的信息，包括本地存储（例如利用APP进行数据缓存）、数据库和服务器日志。</li>
-          <li>一般情况下，我们只会在为实现服务目的所必需的时间内或法律法规规定的条件下存储您的个人信息。</li>
+          <li>
+            我们会通过安全的方式存储您的信息，包括本地存储（例如利用APP进行数据缓存）、数据库和服务器日志。
+          </li>
+          <li>
+            一般情况下，我们只会在为实现服务目的所必需的时间内或法律法规规定的条件下存储您的个人信息。
+          </li>
         </ul>
         <h3 class="subsection-title">2.2 信息存储的地域</h3>
         <ul class="info-list">
           <li>我们会按照法律法规规定，将境内收集的用户个人信息存储于中国境内。</li>
-          <li>目前我们不会跨境传输或存储您的个人信息。将来如需跨境传输或存储的，我们会向您告知信息出境的目的、接收方、安全保证措施和安全风险，并征得您的同意。</li>
+          <li>
+            目前我们不会跨境传输或存储您的个人信息。将来如需跨境传输或存储的，我们会向您告知信息出境的目的、接收方、安全保证措施和安全风险，并征得您的同意。
+          </li>
         </ul>
         <h3 class="subsection-title">2.3 产品或服务停止运营时的通知</h3>
         <ul class="info-list">
-          <li>当我们的产品或服务发生停止运营的情况时，我们将以推送通知、公告等形式通知您，并在合理期限内删除您的个人信息或进行匿名化处理，法律法规另有规定的除外。</li>
+          <li>
+            当我们的产品或服务发生停止运营的情况时，我们将以推送通知、公告等形式通知您，并在合理期限内删除您的个人信息或进行匿名化处理，法律法规另有规定的除外。
+          </li>
         </ul>
       </section>
 
@@ -143,9 +158,13 @@
         <p class="section-text">我们可能将在向您提供服务的过程之中所收集的信息用作下列用途：</p>
         <ul class="info-list">
           <li>向您提供服务；</li>
-          <li>在我们提供服务时，用于身份验证、客户服务、安全防范、诈骗监测、存档和备份用途，确保我们向您提供的产品和服务的安全性；</li>
+          <li>
+            在我们提供服务时，用于身份验证、客户服务、安全防范、诈骗监测、存档和备份用途，确保我们向您提供的产品和服务的安全性；
+          </li>
           <li>帮助我们设计新服务，改善我们现有服务；</li>
-          <li>使我们更加了解您如何接入和使用我们的服务，从而针对性地回应您的个性化需求，例如语言设定、位置设定、个性化的帮助服务和指示，或对您和其他用户作出其他方面的回应；</li>
+          <li>
+            使我们更加了解您如何接入和使用我们的服务，从而针对性地回应您的个性化需求，例如语言设定、位置设定、个性化的帮助服务和指示，或对您和其他用户作出其他方面的回应；
+          </li>
           <li>向您提供与您更加相关的广告以替代普遍投放的广告；</li>
           <li>评估我们服务中的广告和其他促销及推广活动的效果，并加以改善；</li>
           <li>软件认证或管理软件升级；</li>

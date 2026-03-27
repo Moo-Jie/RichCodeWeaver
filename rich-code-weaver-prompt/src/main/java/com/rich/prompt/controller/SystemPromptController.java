@@ -50,7 +50,7 @@ public class SystemPromptController {
     @PostMapping("/add")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Long> addSystemPrompt(@RequestBody SystemPromptAddRequest addRequest,
-                                               HttpServletRequest request) {
+                                              HttpServletRequest request) {
         ThrowUtils.throwIf(addRequest == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(addRequest.getPromptName()), ErrorCode.PARAMS_ERROR, "提示词名称不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(addRequest.getPromptKey()), ErrorCode.PARAMS_ERROR, "提示词标识不能为空");

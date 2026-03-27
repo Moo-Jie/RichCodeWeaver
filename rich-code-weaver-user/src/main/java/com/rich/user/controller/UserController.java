@@ -162,10 +162,10 @@ public class UserController {
         // Fetch existing user first to avoid null fields
         User existingUser = userService.getById(userUpdateRequest.getId());
         ThrowUtils.throwIf(existingUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
-        
+
         // Copy only non-null properties from request
         BeanUtil.copyProperties(userUpdateRequest, existingUser, "id");
-        
+
         boolean result = userService.updateById(existingUser);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
@@ -183,10 +183,10 @@ public class UserController {
         // Fetch existing user first to avoid null fields
         User existingUser = userService.getById(userUpdateRequest.getId());
         ThrowUtils.throwIf(existingUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
-        
+
         // Copy only non-null properties from request
         BeanUtil.copyProperties(userUpdateRequest, existingUser, "id");
-        
+
         boolean result = userService.updateById(existingUser);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);
@@ -195,7 +195,7 @@ public class UserController {
     /**
      * 更新头像
      *
-     * @param file 头像文件
+     * @param file    头像文件
      * @param request 请求对象
      * @return 更新结果
      * @author DuRuiChi

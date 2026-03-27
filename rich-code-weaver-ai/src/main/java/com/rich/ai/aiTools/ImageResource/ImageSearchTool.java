@@ -33,17 +33,14 @@ public class ImageSearchTool extends BaseTool {
 
     // 接口盒子API地址
     private static final String APIHZ_BASE_URL = "https://cn.apihz.cn/api/img/apihzimgbaidu.php";
-    
+    // 接口类型（百度源）
+    private static final String API_TYPE = "apihzimgbaidu";
     // 接口盒子ID
     @Value("${apihz.image-search.id:10014138}")
     private String apihzId;
-
     // 接口盒子开发者KEY
     @Value("${apihz.image-search.key:f9977bd04e49b300d467d16d22607b84}")
     private String apihzKey;
-    
-    // 接口类型（百度源）
-    private static final String API_TYPE = "apihzimgbaidu";
 
     @Override
     public String getToolName() {
@@ -59,8 +56,8 @@ public class ImageSearchTool extends BaseTool {
     public String getResultMsg(JSONObject arguments) {
         // 从参数中提取搜索关键词
         String query = arguments.getStr("query");
-        String displayQuery = (query == null || query.trim().isEmpty()) 
-                ? "" 
+        String displayQuery = (query == null || query.trim().isEmpty())
+                ? ""
                 : "\n[\n" + query + "\n]\n";
         return String.format("[工具调用结束] %s %s", "成功搜索以下关键词的图片", displayQuery);
     }
@@ -76,16 +73,16 @@ public class ImageSearchTool extends BaseTool {
     public List<ImageResource> searchImages(@P("清晰、凝练的搜索关键词") String query) {
         // 初始化图片列表（用于存储搜索结果）
         List<ImageResource> imageList = new ArrayList<>();
-        
+
         // 参数校验：检查搜索关键词是否为空
         if (query == null || query.trim().isEmpty()) {
             log.warn("搜索关键词为空，无法搜索图片");
             return imageList;
         }
-        
+
         // 配置校验：检查API密钥是否已配置
-        if (apihzId == null || apihzId.trim().isEmpty() || 
-            apihzKey == null || apihzKey.trim().isEmpty()) {
+        if (apihzId == null || apihzId.trim().isEmpty() ||
+                apihzKey == null || apihzKey.trim().isEmpty()) {
             log.error("接口盒子API配置未完成，无法搜索图片");
             return imageList;
         }
@@ -93,7 +90,7 @@ public class ImageSearchTool extends BaseTool {
         // 调用接口盒子图片搜索API
         try {
             log.info("正在通过接口盒子搜索图片，关键词: {}", query);
-            
+
             // 构建GET请求URL
             // 参数说明：id=接口ID, key=开发者KEY, words=搜索关键词, limit=返回数量, page=页码
             String requestUrl = String.format("%s?id=%s&key=%s&words=%s&limit=12&page=1",
@@ -109,25 +106,25 @@ public class ImageSearchTool extends BaseTool {
 
             // 检查HTTP响应状态码是否为200（成功）
             if (!response.isOk()) {
-                log.error("接口盒子图片搜索API请求失败，状态码: {}, 响应: {}", 
+                log.error("接口盒子图片搜索API请求失败，状态码: {}, 响应: {}",
                         response.getStatus(), response.body());
                 return imageList;
             }
-            
+
             // 获取响应体内容
             String responseBody = response.body();
-            
+
             // 检查响应体是否为空
             if (responseBody == null || responseBody.trim().isEmpty()) {
                 log.error("接口盒子API返回空响应");
                 return imageList;
             }
-            
+
             log.debug("接口盒子API响应: {}", responseBody);
-            
+
             // 解析JSON响应体
             JSONObject result = JSONUtil.parseObj(responseBody);
-            
+
             // 检查API返回的业务状态码
             Integer code = result.getInt("code");
             if (code == null || code != 200) {
@@ -135,23 +132,23 @@ public class ImageSearchTool extends BaseTool {
                 log.error("接口盒子图片搜索API返回错误: code={}, msg={}", code, errorMsg);
                 return imageList;
             }
-            
+
             // 获取图片URL数组（接口盒子返回的res字段是字符串数组）
             JSONArray imageUrls = result.getJSONArray("res");
-            
+
             // 检查是否获取到图片URL
             if (imageUrls == null || imageUrls.isEmpty()) {
                 log.warn("未找到相关图片，关键词: {}", query);
                 return imageList;
             }
-            
+
             log.info("成功获取到 {} 个图片URL", imageUrls.size());
 
             // 遍历所有图片URL并构建ImageResource对象（最多取12张）
             int maxCount = Math.min(12, imageUrls.size());
             for (int i = 0; i < maxCount; i++) {
                 String imageUrl = imageUrls.getStr(i);
-                
+
                 // 校验图片URL是否有效
                 if (imageUrl != null && !imageUrl.trim().isEmpty()) {
                     // 构建图片资源对象并添加到列表
@@ -163,9 +160,9 @@ public class ImageSearchTool extends BaseTool {
                     imageList.add(imageResource);
                 }
             }
-            
+
             log.info("成功搜索到 {} 张有效图片，关键词: {}", imageList.size(), query);
-            
+
         } catch (Exception e) {
             // 捕获所有异常并记录详细错误日志
             log.error("接口盒子图片搜索API调用失败，关键词: {}, 错误: {}", query, e.getMessage(), e);

@@ -24,5 +24,5 @@ export const useLoginUserStore = defineStore('loginUser', () => {
     loginUser.value = newLoginUser
   }
 
-  return {loginUser, fetchLoginUser, setLoginUser}
+  return { loginUser, fetchLoginUser, setLoginUser }
 })

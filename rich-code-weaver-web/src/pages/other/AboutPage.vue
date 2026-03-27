@@ -20,7 +20,8 @@
           <div class="feature-card">
             <div class="feature-number">01</div>
             <h3 class="feature-title">智能代码生成</h3>
-            <p class="feature-desc">基于LangChain4j和LangGraph4j的AI工作流，支持多轮对话式代码生成，提供高质量的代码输出</p>
+            <p class="feature-desc">
+              基于LangChain4j和LangGraph4j的AI工作流，支持多轮对话式代码生成，提供高质量的代码输出</p>
           </div>
           <div class="feature-card">
             <div class="feature-number">02</div>
@@ -30,12 +31,14 @@
           <div class="feature-card">
             <div class="feature-number">03</div>
             <h3 class="feature-title">智能提示模板</h3>
-            <p class="feature-desc">根据用户身份和行业智能匹配提示词模板，快速开始创作，降低使用门槛</p>
+            <p class="feature-desc">
+              根据用户身份和行业智能匹配提示词模板，快速开始创作，降低使用门槛</p>
           </div>
           <div class="feature-card">
             <div class="feature-number">04</div>
             <h3 class="feature-title">Agent模式</h3>
-            <p class="feature-desc">支持传统生成和Agent智能生成两种模式，满足不同场景需求，灵活应对复杂任务</p>
+            <p class="feature-desc">
+              支持传统生成和Agent智能生成两种模式，满足不同场景需求，灵活应对复杂任务</p>
           </div>
           <div class="feature-card">
             <div class="feature-number">05</div>
@@ -91,7 +94,8 @@
           <div class="module-card">
             <div class="module-header">
               <span class="module-name">用户模块</span>
-              <span :class="['module-status', moduleHealth.user ? 'status-running' : 'status-stopped']">
+              <span
+                :class="['module-status', moduleHealth.user ? 'status-running' : 'status-stopped']">
                 {{ moduleHealth.user ? '运行中' : '未运行' }}
               </span>
             </div>
@@ -100,7 +104,8 @@
           <div class="module-card">
             <div class="module-header">
               <span class="module-name">产物生成模块</span>
-              <span :class="['module-status', moduleHealth.generator ? 'status-running' : 'status-stopped']">
+              <span
+                :class="['module-status', moduleHealth.generator ? 'status-running' : 'status-stopped']">
                 {{ moduleHealth.generator ? '运行中' : '未运行' }}
               </span>
             </div>
@@ -109,7 +114,8 @@
           <div class="module-card">
             <div class="module-header">
               <span class="module-name">AI模块</span>
-              <span :class="['module-status', moduleHealth.ai ? 'status-running' : 'status-stopped']">
+              <span
+                :class="['module-status', moduleHealth.ai ? 'status-running' : 'status-stopped']">
                 {{ moduleHealth.ai ? '运行中' : '未运行' }}
               </span>
             </div>
@@ -118,7 +124,8 @@
           <div class="module-card">
             <div class="module-header">
               <span class="module-name">文件模块</span>
-              <span :class="['module-status', moduleHealth.file ? 'status-running' : 'status-stopped']">
+              <span
+                :class="['module-status', moduleHealth.file ? 'status-running' : 'status-stopped']">
                 {{ moduleHealth.file ? '运行中' : '未运行' }}
               </span>
             </div>
@@ -127,7 +134,8 @@
           <div class="module-card">
             <div class="module-header">
               <span class="module-name">提示词模板模块</span>
-              <span :class="['module-status', moduleHealth.prompt ? 'status-running' : 'status-stopped']">
+              <span
+                :class="['module-status', moduleHealth.prompt ? 'status-running' : 'status-stopped']">
                 {{ moduleHealth.prompt ? '运行中' : '未运行' }}
               </span>
             </div>
@@ -136,7 +144,8 @@
           <div class="module-card">
             <div class="module-header">
               <span class="module-name">社交模块</span>
-              <span :class="['module-status', moduleHealth.social ? 'status-running' : 'status-stopped']">
+              <span
+                :class="['module-status', moduleHealth.social ? 'status-running' : 'status-stopped']">
                 {{ moduleHealth.social ? '运行中' : '未运行' }}
               </span>
             </div>
@@ -150,7 +159,7 @@
         <div class="opensource-info">
           <div class="info-item">
             <span class="info-label">项目地址</span>
-            <a href="https://github.com/Moo-Jie/RichCodeWeaver" target="_blank" class="info-link">
+            <a class="info-link" href="https://github.com/Moo-Jie/RichCodeWeaver" target="_blank">
               https://github.com/Moo-Jie/RichCodeWeaver
             </a>
           </div>
@@ -170,12 +179,12 @@
         <div class="author-card">
           <div class="author-avatar">M</div>
           <div class="author-info">
-            <h3 class="author-name">MO-JIE TEAM</h3>
+            <h3 class="author-name">MO-JIE-RUBY TEAM</h3>
             <div class="author-links">
-              <a href="https://github.com/Moo-Jie" target="_blank" class="author-link">
+              <a class="author-link" href="https://github.com/Moo-Jie" target="_blank">
                 GitHub: @Moo-Jie
               </a>
-              <a href="mailto:NotProvidedTemporarily@xxx.com" class="author-link">
+              <a class="author-link" href="mailto:NotProvidedTemporarily@xxx.com">
                 Email: NotProvidedTemporarily@xxx.com
               </a>
             </div>
@@ -186,7 +195,8 @@
       <section class="section">
         <h2 class="section-title">致谢</h2>
         <p class="section-text">
-          感谢以下开源项目为本项目提供的支持：Spring Boot、Vue.js、LangChain4j、LangGraph4j、MyBatis Flex、Ant Design Vue 等。
+          感谢以下开源项目为本项目提供的支持：Spring Boot、Vue.js、LangChain4j、LangGraph4j、MyBatis
+          Flex、Ant Design Vue 等。
           特别感谢所有为开源社区做出贡献的开发者们。
         </p>
       </section>
@@ -292,7 +302,7 @@ onMounted(() => {
 .feature-card:hover {
   border-color: #e5e5e5;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .feature-number {
@@ -375,7 +385,7 @@ onMounted(() => {
 
 .module-card:hover {
   border-color: #e5e5e5;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .module-header {

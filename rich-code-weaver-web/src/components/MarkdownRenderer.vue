@@ -1,5 +1,5 @@
 <template>
-  <div class="markdown-content" v-html="renderedMarkdown" @click="handleToolCardClick"></div>
+  <div class="markdown-content" @click="handleToolCardClick" v-html="renderedMarkdown"></div>
 </template>
 
 <script lang="ts" setup>
@@ -18,12 +18,12 @@ const md: MarkdownIt = new MarkdownIt({
   html: true,
   linkify: true,
   typographer: true,
-  highlight: function (str: string, lang: string): string {
+  highlight: function(str: string, lang: string): string {
     if (lang && hljs.getLanguage(lang)) {
       try {
         return (
           '<pre class="hljs"><code>' +
-          hljs.highlight(str, {language: lang, ignoreIllegals: true}).value +
+          hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
           '</code></pre>'
         )
       } catch {
@@ -42,36 +42,36 @@ const preprocessMarkdown = (content: string): string => {
   // 识别并包裹工作流开始标记
   content = content.replace(
     /<!-- WORKFLOW_START -->/g,
-    '<div class="workflow-start-marker"></div>'
-  )
+  '<div class="workflow-start-marker"></div>'
+)
 
   // 识别并包裹工作流执行开始标记
   content = content.replace(
     /<!-- WORKFLOW_EXECUTION_START -->/g,
-    '<div class="workflow-execution-marker"></div>'
-  )
+  '<div class="workflow-execution-marker"></div>'
+)
 
   // 识别并包裹工作流完成标记
   content = content.replace(
     /<!-- WORKFLOW_COMPLETE -->/g,
-    '<div class="workflow-complete-marker"></div>'
-  )
+  '<div class="workflow-complete-marker"></div>'
+)
 
   // 识别并包裹工作流错误标记
   content = content.replace(
     /<!-- WORKFLOW_ERROR -->/g,
-    '<div class="workflow-error-marker"></div>'
-  )
+  '<div class="workflow-error-marker"></div>'
+)
 
   // 识别并包裹节点开始/结束标记
   content = content.replace(
     /<!-- NODE_START:(\w+) -->/g,
-    '<div class="node-start-marker" data-node="$1"></div>'
-  )
+  '<div class="node-start-marker" data-node="$1"></div>'
+)
   content = content.replace(
     /<!-- NODE_END:(\w+) -->/g,
-    '<div class="node-end-marker" data-node="$1"></div>'
-  )
+  '<div class="node-end-marker" data-node="$1"></div>'
+)
 
   // ====== 工具调用处理 ======
   // 核心问题：并行工具调用时，所有 [开始调用系统工具] 先出现，然后所有 [工具调用结束] 再出现，
@@ -148,6 +148,7 @@ const processToolCallMarkers = (content: string): string => {
     endIndex: number
     html: string
   }
+
   const replacements: Replacement[] = []
 
   // 处理已完成的 ends（每个 end 生成一个完成卡片）
@@ -504,8 +505,12 @@ const highlightCode = () => {
 }
 
 @keyframes toolItemProgress {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 /* 工作流标记样式 */

@@ -27,7 +27,7 @@ export const useAppStore = defineStore('app', () => {
 
   async function selectAppById(appId: number) {
     try {
-      const res = await getAppVoById({id: appId})
+      const res = await getAppVoById({ id: appId })
       if (res.data.code === 0 && res.data.data) {
         selectedApp.value = res.data.data
         currentMode.value = 'chat'

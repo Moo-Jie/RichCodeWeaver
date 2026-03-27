@@ -142,7 +142,7 @@ const handleSubmit = async () => {
       message.success('注册成功')
       router.replace({
         path: '/user/login',
-        query: {username: formState.userAccount}
+        query: { username: formState.userAccount }
       })
     } else {
       message.error('注册失败：' + res.data.message)

@@ -6,7 +6,6 @@ import com.rich.app.service.AppService;
 import com.rich.client.innerService.InnerFileService;
 import com.rich.client.innerService.InnerUserService;
 import com.rich.common.constant.UserConstant;
-import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
@@ -27,8 +26,6 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
-
-import java.io.File;
 
 /**
  * AI 产物相关接口
@@ -54,12 +51,12 @@ public class AppController {
      * 执行 AI 生成产物代码（SSE 流式，支持断线重连）
      * 使用工作流分布执行节点模式
      *
-     * @param appId   产物id
-     * @param message 用户消息
-     * @param isWorkflow 是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
-     * @param reconnect 是否为重连请求
+     * @param appId       产物id
+     * @param message     用户消息
+     * @param isWorkflow  是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
+     * @param reconnect   是否为重连请求
      * @param lastEventId 最后接收到的事件ID
-     * @param request 请求对象
+     * @param request     请求对象
      * @return 生成结果流
      */
     @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -72,12 +69,12 @@ public class AppController {
         // 获取当前登录用户ID
         User loginUser = InnerUserService.getLoginUser(request);
         Long userId = loginUser.getId();
-        
+
         // 参数校验：验证必要参数不为空
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID无效");
         ThrowUtils.throwIf(message == null || message.trim().isEmpty(), ErrorCode.PARAMS_ERROR, "消息内容不能为空");
-        
+
         // 执行 AI 生成产物代码（支持断线重连）
         return appService.aiChatAndGenerateCodeStreamWithReconnect(
                 appId, userId, message.trim(), isWorkflow, lastEventId, reconnect);
@@ -97,7 +94,7 @@ public class AppController {
     public ResponseEntity<FileSystemResource> viewApp(@PathVariable Long appId, HttpServletRequest request) {
         // 参数校验：验证产物ID有效性
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
-        
+
         // 响应服务静态资源（HTML、CSS、JS等文件）
         return appService.serverStaticResource(appId, request);
     }
@@ -115,7 +112,7 @@ public class AppController {
     public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
         // 参数校验：验证请求对象不为空
         ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR, "部署请求参数不能为空");
-        
+
         // 提取并验证产物ID
         Long appId = appDeployRequest.getAppId();
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
@@ -123,7 +120,7 @@ public class AppController {
         // 获取当前登录用户
         User loginUser = InnerUserService.getLoginUser(request);
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
-        
+
         // 执行部署逻辑并返回部署URL
         String deployUrl = appService.deployApp(appId, loginUser);
         return ResultUtils.success(deployUrl);
@@ -142,7 +139,7 @@ public class AppController {
         // 参数校验：验证请求参数不为空
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR, "产物添加请求参数不能为空");
         ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR, "请求对象不能为空");
-        
+
         // 调用服务层创建产物并返回新产物ID
         Long newAppId = appService.addApp(appAddRequest, request);
         return ResultUtils.success(newAppId);
@@ -160,9 +157,9 @@ public class AppController {
     public BaseResponse<Boolean> updateApp(@RequestBody AppUpdateRequest appUpdateRequest, HttpServletRequest request) {
         // 参数校验：验证更新请求参数和产物ID
         ThrowUtils.throwIf(appUpdateRequest == null, ErrorCode.PARAMS_ERROR, "更新请求参数不能为空");
-        ThrowUtils.throwIf(appUpdateRequest.getId() == null || appUpdateRequest.getId() <= 0, 
+        ThrowUtils.throwIf(appUpdateRequest.getId() == null || appUpdateRequest.getId() <= 0,
                 ErrorCode.PARAMS_ERROR, "产物ID无效");
-        
+
         // 调用服务层更新产物
         boolean updateResult = appService.updateApp(appUpdateRequest, request);
         return ResultUtils.success(updateResult);
@@ -180,9 +177,9 @@ public class AppController {
     public BaseResponse<Boolean> deleteApp(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         // 参数校验：验证删除请求参数和产物ID
         ThrowUtils.throwIf(deleteRequest == null, ErrorCode.PARAMS_ERROR, "删除请求参数不能为空");
-        ThrowUtils.throwIf(deleteRequest.getId() == null || deleteRequest.getId() <= 0, 
+        ThrowUtils.throwIf(deleteRequest.getId() == null || deleteRequest.getId() <= 0,
                 ErrorCode.PARAMS_ERROR, "产物ID无效");
-        
+
         // 调用服务层删除产物
         boolean deleteResult = appService.deleteApp(deleteRequest, request);
         return ResultUtils.success(deleteResult);
@@ -199,11 +196,11 @@ public class AppController {
     public BaseResponse<AppVO> getAppVOById(@RequestParam("id") long id) {
         // 参数校验：验证产物ID有效性
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR, "产物ID必须大于0");
-        
+
         // 查询产物实体
         App app = appService.getById(id);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
-        
+
         // 转换为视图对象并返回
         AppVO appVO = appService.getAppVO(app);
         return ResultUtils.success(appVO);
@@ -214,14 +211,14 @@ public class AppController {
      *
      * @param appQueryRequest 查询请求参数
      * @param request         请求对象
-     * @return com.rich.common.model.BaseResponse<com.mybatisflex.core.paginate.Page<com.rich.model.vo.AppVO>> 产物列表分页
+     * @return com.rich.common.model.BaseResponse<com.mybatisflex.core.paginate.Page < com.rich.model.vo.AppVO>> 产物列表分页
      * @author DuRuiChi
      */
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<AppVO>> listMyAppVOByPage(@RequestBody AppQueryRequest appQueryRequest, HttpServletRequest request) {
         // 参数校验：验证查询请求参数不为空
         ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR, "查询请求参数不能为空");
-        
+
         // 查询当前用户的产物列表（分页）
         Page<AppVO> appPage = appService.listMyAppVOByPage(appQueryRequest, request);
         return ResultUtils.success(appPage);
@@ -244,7 +241,7 @@ public class AppController {
     public BaseResponse<Page<AppVO>> listStarAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
         // 参数校验：验证查询请求参数不为空
         ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR, "查询请求参数不能为空");
-        
+
         // 查询星标（热门）产物列表（分页）
         Page<AppVO> starAppPage = appService.listStarAppVOByPage(appQueryRequest);
         return ResultUtils.success(starAppPage);
@@ -277,9 +274,9 @@ public class AppController {
     public BaseResponse<Boolean> updateAppByAdmin(@RequestBody AppAdminUpdateRequest appAdminUpdateRequest) {
         // 参数校验：验证管理员更新请求参数和产物ID
         ThrowUtils.throwIf(appAdminUpdateRequest == null, ErrorCode.PARAMS_ERROR, "更新请求参数不能为空");
-        ThrowUtils.throwIf(appAdminUpdateRequest.getId() == null || appAdminUpdateRequest.getId() <= 0, 
+        ThrowUtils.throwIf(appAdminUpdateRequest.getId() == null || appAdminUpdateRequest.getId() <= 0,
                 ErrorCode.PARAMS_ERROR, "产物ID无效");
-        
+
         // 执行管理员更新逻辑
         boolean updateResult = appService.updateAppByAdmin(appAdminUpdateRequest);
         return ResultUtils.success(updateResult);
@@ -317,35 +314,35 @@ public class AppController {
      * @description 上传产物封面，支持jpg、png等格式图片
      */
     @PostMapping("/upload/cover")
-    public BaseResponse<String> uploadAppCover(@RequestParam("file") MultipartFile file, 
-                                               @RequestParam("appId") Long appId, 
+    public BaseResponse<String> uploadAppCover(@RequestParam("file") MultipartFile file,
+                                               @RequestParam("appId") Long appId,
                                                HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(file == null || file.isEmpty(), ErrorCode.PARAMS_ERROR, "上传文件不能为空");
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
-        
+
         // 获取当前登录用户
         User loginUser = InnerUserService.getLoginUser(request);
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
-        
+
         // 查询产物信息
         App app = appService.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
-        
+
         // 权限校验：只能更新自己的产物封面
-        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()), 
+        ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()),
                 ErrorCode.NO_AUTH_ERROR, "您无权更换他人产物封面");
-        
+
         // 上传文件到文件服务
         String uploadedUrl = fileService.upload(file);
-        ThrowUtils.throwIf(uploadedUrl == null || uploadedUrl.trim().isEmpty(), 
+        ThrowUtils.throwIf(uploadedUrl == null || uploadedUrl.trim().isEmpty(),
                 ErrorCode.SYSTEM_ERROR, "文件上传失败");
-        
+
         // 更新产物封面URL
         app.setCover(uploadedUrl);
         boolean updateSuccess = appService.updateById(app);
         ThrowUtils.throwIf(!updateSuccess, ErrorCode.SYSTEM_ERROR, "更新产物封面失败");
-        
+
         // 返回上传后的图片URL
         return ResultUtils.success(uploadedUrl);
     }
@@ -360,7 +357,7 @@ public class AppController {
     @PostMapping("/optimize/prompt")
     public BaseResponse<String> optimizePrompt(@RequestBody String userPrompt) {
         // 参数校验
-        ThrowUtils.throwIf(userPrompt == null || userPrompt.trim().isEmpty(), 
+        ThrowUtils.throwIf(userPrompt == null || userPrompt.trim().isEmpty(),
                 ErrorCode.PARAMS_ERROR, "提示词不能为空");
         // 调用 AI 优化服务
         String optimizedPrompt = aiPromptOptimizationService.optimizePrompt(userPrompt.trim());

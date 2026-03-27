@@ -8,11 +8,12 @@
           <span class="hint-label">已选中：{{ getElementTypeLabel(selectedElement.tagName) }}</span>
         </div>
         <div v-if="selectedElement.textContent" class="hint-text-preview">
-          "{{ selectedElement.textContent.length > 60 ? selectedElement.textContent.substring(0, 60) + '...' : selectedElement.textContent }}"
+          "{{ selectedElement.textContent.length > 60 ? selectedElement.textContent.substring(0, 60)
+          + '...' : selectedElement.textContent }}"
         </div>
         <div class="hint-tip">请在下方输入框描述您想要的修改</div>
       </div>
-      <button class="hint-close" @click="$emit('clearSelection')" title="取消选择">✕</button>
+      <button class="hint-close" title="取消选择" @click="$emit('clearSelection')">✕</button>
     </div>
 
     <!-- Not owner tip -->
@@ -23,15 +24,23 @@
     <!-- Input Area -->
     <div v-else class="input-area">
       <!-- Capsule mode selector (above input, only for create mode) -->
-      <div v-if="showModeSelector" class="capsule-switch">
-        <button
-          :class="['capsule-item', { active: generatorMode }]"
-          @click="$emit('update:generatorMode', true)"
-        >系统分步执行</button>
-        <button
-          :class="['capsule-item', { active: !generatorMode }]"
-          @click="$emit('update:generatorMode', false)"
-        >Agent 智能生成</button>
+      <div v-if="showModeSelector" class="mode-and-tour">
+        <div class="capsule-switch">
+          <button
+            :class="['capsule-item', { active: generatorMode }]"
+            @click="$emit('update:generatorMode', true)"
+          >系统分步执行
+          </button>
+          <button
+            :class="['capsule-item', { active: !generatorMode }]"
+            @click="$emit('update:generatorMode', false)"
+          >Agent 智能生成
+          </button>
+        </div>
+        <button v-if="showTourButton" class="tour-trigger-btn" @click="$emit('startTour')">
+          <QuestionCircleOutlined />
+          新手引导
+        </button>
       </div>
 
       <div class="input-row">
@@ -39,11 +48,11 @@
           <div class="textarea-container">
             <textarea
               ref="inputRef"
+              :class="{ optimizing: optimizing }"
               :disabled="sending || optimizing"
               :placeholder="placeholder"
               :value="modelValue"
               class="chat-textarea"
-              :class="{ optimizing: optimizing }"
               rows="1"
               @input="handleInput"
             ></textarea>
@@ -54,17 +63,19 @@
           v-if="showOptimizeButton"
           :class="['optimize-btn', { disabled: optimizing || !modelValue?.trim() }]"
           :disabled="optimizing || !modelValue?.trim()"
-          @click="$emit('optimize')"
           title="AI 优化提示词"
+          @click="$emit('optimize')"
         >
           <template v-if="optimizing">
             <a-spin :indicator="indicator" size="small" />
           </template>
           <template v-else>
-            <img :class="['optimize-btn', { disabled: optimizing || !modelValue?.trim() }]" src="@/assets/AiOptimize.png"/>
+            <img :class="['optimize-btn', { disabled: optimizing || !modelValue?.trim() }]"
+                 src="@/assets/AiOptimize.png" />
           </template>
         </button>
-        <button :class="['send-btn', { disabled: sending || !modelValue?.trim() }]" :disabled="sending || optimizing" @click="handleSend">
+        <button :class="['send-btn', { disabled: sending || !modelValue?.trim() }]"
+                :disabled="sending || optimizing" @click="handleSend">
           <template v-if="sending">
             <a-spin :indicator="indicator" size="small" />
           </template>
@@ -79,7 +90,7 @@
 
 <script lang="ts" setup>
 import { h, nextTick, onMounted, ref } from 'vue'
-import { LoadingOutlined, SendOutlined } from '@ant-design/icons-vue'
+import { LoadingOutlined, SendOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
 
 interface ElementInfo {
   tagName: string
@@ -94,7 +105,7 @@ const ELEMENT_TYPE_MAP: Record<string, string> = {
   NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
   SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
   UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框',
-  LABEL: '标签', SELECT: '下拉选择', TEXTAREA: '文本域', IFRAME: '嵌入框架',
+  LABEL: '标签', SELECT: '下拉选择', TEXTAREA: '文本域', IFRAME: '嵌入框架'
 }
 
 function getElementTypeLabel(tagName: string): string {
@@ -112,6 +123,7 @@ interface Props {
   placeholder?: string
   showOptimizeButton?: boolean
   optimizing?: boolean
+  showTourButton?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -122,14 +134,15 @@ const props = withDefaults(defineProps<Props>(), {
   generatorMode: true,
   placeholder: '描述您想要创建的数字产物...',
   showOptimizeButton: false,
-  optimizing: false
+  optimizing: false,
+  showTourButton: false
 })
 
-const emit = defineEmits(['update:modelValue', 'send', 'clearSelection', 'update:generatorMode', 'optimize'])
+const emit = defineEmits(['update:modelValue', 'send', 'clearSelection', 'update:generatorMode', 'optimize', 'startTour'])
 
 const inputRef = ref<HTMLTextAreaElement>()
 const baseHeight = ref(0)
-const indicator = h(LoadingOutlined, {style: {fontSize: '16px', color: '#999'}, spin: true})
+const indicator = h(LoadingOutlined, { style: { fontSize: '16px', color: '#999' }, spin: true })
 
 onMounted(() => {
   if (inputRef.value) {
@@ -273,19 +286,25 @@ defineExpose({
   margin: 0 auto;
 }
 
+/* Mode selector and tour button wrapper */
+.mode-and-tour {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
 /* Capsule mode switch */
 .capsule-switch {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0;
-  margin-bottom: 10px;
   background: #f0f0f0;
   border-radius: 20px;
   padding: 3px;
   width: fit-content;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .capsule-item {
@@ -304,11 +323,32 @@ defineExpose({
 .capsule-item.active {
   background: #1a1a1a;
   color: #fff;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
 }
 
 .capsule-item:not(.active):hover {
   color: #666;
+}
+
+.tour-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 20px;
+  background: #fff;
+  color: #666;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.tour-trigger-btn:hover {
+  border-color: #bbb;
+  color: #1a1a1a;
+  background: #fafafa;
 }
 
 .input-row {
@@ -324,7 +364,7 @@ defineExpose({
 
 .input-row:focus-within {
   border-color: #d0d0d0;
-  box-shadow: 0 0 0 3px rgba(0,0,0,0.03);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.03);
 }
 
 .textarea-wrapper {
@@ -381,11 +421,10 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background:
-    radial-gradient(circle at 20% 50%, rgba(147, 197, 253, 0.25) 0%, transparent 50%),
-    radial-gradient(circle at 80% 50%, rgba(196, 181, 253, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 50% 80%, rgba(253, 186, 116, 0.18) 0%, transparent 50%),
-    radial-gradient(circle at 40% 20%, rgba(134, 239, 172, 0.15) 0%, transparent 50%);
+  background: radial-gradient(circle at 20% 50%, rgba(147, 197, 253, 0.25) 0%, transparent 50%),
+  radial-gradient(circle at 80% 50%, rgba(196, 181, 253, 0.2) 0%, transparent 50%),
+  radial-gradient(circle at 50% 80%, rgba(253, 186, 116, 0.18) 0%, transparent 50%),
+  radial-gradient(circle at 40% 20%, rgba(134, 239, 172, 0.15) 0%, transparent 50%);
   background-size: 200% 200%;
   animation: mistMove 6s ease-in-out infinite, mistFlow 3s ease-in-out infinite;
   pointer-events: none;

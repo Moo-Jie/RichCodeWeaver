@@ -34,7 +34,6 @@ public class RagConfig {
      * 创建 Embedding 向量模型 Bean
      * 使用阿里云 DashScope 原生 SDK 调用文本向量模型（text-embedding-v4）
      *
-     *
      * @param ragProperties RAG 配置属性，包含 Embedding 模型的 API 密钥、模型名称等
      * @return EmbeddingModel 向量模型实例（DashScope 文本向量适配器）
      * @author DuRuiChi

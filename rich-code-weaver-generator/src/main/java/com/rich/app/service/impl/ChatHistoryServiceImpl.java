@@ -64,12 +64,12 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         ThrowUtils.throwIf(StrUtil.isBlank(messageType), ErrorCode.PARAMS_ERROR, "消息类型不能为空");
         // 参数校验：验证用户ID有效性
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID无效");
-        
+
         // 验证消息类型的合法性（必须是预定义的枚举值：USER 或 AI）
         ChatHistoryTypeEnum messageTypeEnum = ChatHistoryTypeEnum.getEnumByValue(messageType);
-        ThrowUtils.throwIf(messageTypeEnum == null, ErrorCode.PARAMS_ERROR, 
+        ThrowUtils.throwIf(messageTypeEnum == null, ErrorCode.PARAMS_ERROR,
                 "消息类型不合法，必须是 USER 或 AI: " + messageType);
-        
+
         // 构建对话历史实体对象
         ChatHistory chatHistory = ChatHistory.builder()
                 .appId(appId)
@@ -77,18 +77,18 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                 .messageType(messageType)
                 .userId(userId)
                 .build();
-        
+
         // 保存对话历史到数据库
         boolean saveSuccess = this.save(chatHistory);
-        
+
         // 记录保存结果日志
         if (saveSuccess) {
-            log.debug("保存对话消息成功: appId={}, userId={}, messageType={}, messageLength={}", 
+            log.debug("保存对话消息成功: appId={}, userId={}, messageType={}, messageLength={}",
                     appId, userId, messageType, message.length());
         } else {
             log.error("保存对话消息失败: appId={}, userId={}, messageType={}", appId, userId, messageType);
         }
-        
+
         return saveSuccess;
     }
 
@@ -104,21 +104,21 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     public boolean deleteByAppId(Long appId) {
         // 参数校验：验证产物ID有效性
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
-        
+
         // 构建删除条件：根据产物ID删除所有相关对话历史（级联删除）
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("appId", appId);
-        
+
         // 执行批量删除操作
         boolean deleteSuccess = this.remove(queryWrapper);
-        
+
         // 记录删除结果日志
         if (deleteSuccess) {
             log.info("删除产物对话历史成功: appId={}", appId);
         } else {
             log.warn("删除产物对话历史失败或无记录: appId={}", appId);
         }
-        
+
         return deleteSuccess;
     }
 
@@ -139,40 +139,40 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                                                       HttpServletRequest request) {
         // 获取当前登录用户
         User loginUser = InnerUserService.getLoginUser(request);
-        
+
         // 参数校验：验证产物ID有效性
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
         // 参数校验：验证分页大小合理性（限制最大50条防止数据量过大，避免内存溢出）
-        ThrowUtils.throwIf(pageSize <= 0 || pageSize > 50, ErrorCode.PARAMS_ERROR, 
+        ThrowUtils.throwIf(pageSize <= 0 || pageSize > 50, ErrorCode.PARAMS_ERROR,
                 "页面大小必须在1-50之间，当前值: " + pageSize);
         // 参数校验：验证用户已登录
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
         ThrowUtils.throwIf(loginUser.getId() == null, ErrorCode.NOT_LOGIN_ERROR, "用户ID无效");
-        
+
         // 查询产物信息并验证其存在性
         App app = appService.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
-        
+
         // 权限校验（预留）
         // TODO: 开启权限控制时，只允许查看自己的产物对话历史
 //        boolean isOwner = app.getUserId().equals(loginUser.getId());
 //        boolean isAdmin = UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole());
 //        ThrowUtils.throwIf(!isOwner && !isAdmin, ErrorCode.NO_AUTH_ERROR, "无权查看该产物的对话历史");
-        
+
         // 构建查询请求对象
         ChatHistoryQueryRequest queryRequest = new ChatHistoryQueryRequest();
         queryRequest.setAppId(appId);
         queryRequest.setLastCreateTime(lastCreateTime);  // 游标分页：基于时间戳
-        
+
         // 构建查询条件（支持游标分页，避免深分页性能问题）
         QueryWrapper queryWrapper = this.getQueryWrapper(queryRequest);
-        
+
         // 执行分页查询（固定页码为1，通过游标实现分页）
         Page<ChatHistory> resultPage = this.page(Page.of(1, pageSize), queryWrapper);
-        
-        log.debug("查询产物对话历史: appId={}, pageSize={}, lastCreateTime={}, resultCount={}", 
+
+        log.debug("查询产物对话历史: appId={}, pageSize={}, lastCreateTime={}, resultCount={}",
                 appId, pageSize, lastCreateTime, resultPage.getRecords().size());
-        
+
         return resultPage;
     }
 
@@ -188,12 +188,12 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     public QueryWrapper getQueryWrapper(ChatHistoryQueryRequest chatHistoryQueryRequest) {
         // 创建查询条件构造器
         QueryWrapper queryWrapper = QueryWrapper.create();
-        
+
         // 空值保护：如果请求参数为空，返回空查询条件
         if (chatHistoryQueryRequest == null) {
             return queryWrapper;
         }
-        
+
         // 解构查询请求参数
         Long id = chatHistoryQueryRequest.getId();
         String message = chatHistoryQueryRequest.getMessage();
@@ -203,20 +203,20 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         LocalDateTime lastCreateTime = chatHistoryQueryRequest.getLastCreateTime();
         String sortField = chatHistoryQueryRequest.getSortField();
         String sortOrder = chatHistoryQueryRequest.getSortOrder();
-        
+
         // 设置查询条件（仅当参数不为空时添加条件）
         queryWrapper.eq("id", id)  // 精确匹配：对话历史ID
                 .like("message", message)  // 模糊查询：消息内容
                 .eq("messageType", messageType)  // 精确匹配：消息类型（USER/AI）
                 .eq("appId", appId)  // 精确匹配：产物ID
                 .eq("userId", userId);  // 精确匹配：用户ID
-        
+
         // 设置游标查询，防止重复查询（基于时间戳的游标分页）
         if (lastCreateTime != null) {
             // 查询指定时间戳游标之前的记录（降序排列时，查询更早的记录）
             queryWrapper.lt("createTime", lastCreateTime);
         }
-        
+
         // 设置排序规则
         if (StrUtil.isNotBlank(sortField)) {
             // 自定义排序字段和排序方向
@@ -226,7 +226,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
             // 默认按创建时间降序排列（最新的消息在前）
             queryWrapper.orderBy("createTime", false);
         }
-        
+
         return queryWrapper;
     }
 
@@ -256,28 +256,28 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                 log.warn("加载对话历史失败：加载数量无效 - appId={}, maxCount={}", appId, maxCount);
                 return false;
             }
-            
+
             // 构建查询条件：跳过第1条（最新记录），加载后续 maxCount 条
             // 原因：排除当前未处理的最新消息，避免重复加载到上下文中
             QueryWrapper queryWrapper = QueryWrapper.create()
                     .eq(ChatHistory::getAppId, appId)  // 筛选指定产物的对话历史
                     .orderBy(ChatHistory::getCreateTime, false)  // 按创建时间降序排列（最新在前）
                     .limit(1, maxCount);  // 跳过第1条，取后续maxCount条
-            
+
             // 查询对话历史记录
             List<ChatHistory> historyList = this.list(queryWrapper);
             if (CollUtil.isEmpty(historyList)) {
                 log.info("加载对话历史：无历史记录 - appId={}", appId);
                 return false;
             }
-            
+
             // 反转列表，转换为正序（旧→新），符合对话上下文的时间顺序
             historyList = historyList.reversed();
             log.info("为 appId: {} 加载 {} 条历史记录到聊天记忆", appId, historyList.size());
-            
+
             // 先清理历史缓存，防止重复加载（确保记忆中只有本次加载的历史）
             chatMemory.clear();
-            
+
             // 加载历史记录到记忆中（按时间顺序添加）
             // UserMessage.from() 方法用于创建用户消息
             // AiMessage.from() 方法用于创建AI消息
@@ -286,11 +286,11 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
             for (ChatHistory history : historyList) {
                 // 空值保护
                 if (history == null || StrUtil.isBlank(history.getMessage())) {
-                    log.warn("跳过无效的历史记录: appId={}, historyId={}", appId, 
+                    log.warn("跳过无效的历史记录: appId={}, historyId={}", appId,
                             history != null ? history.getId() : "null");
                     continue;
                 }
-                
+
                 // 根据消息类型区分处理
                 String messageType = history.getMessageType();
                 if (ChatHistoryTypeEnum.USER.getValue().equals(messageType)) {
@@ -305,7 +305,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                     log.warn("跳过未知类型的历史记录: appId={}, messageType={}", appId, messageType);
                 }
             }
-            
+
             log.info("加载对话历史到记忆成功: appId={}, loadedCount={}", appId, loadedCount);
             return true;
         } catch (Exception e) {

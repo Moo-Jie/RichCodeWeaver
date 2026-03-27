@@ -119,7 +119,7 @@ public class PromptTemplateServiceImpl extends ServiceImpl<PromptTemplateMapper,
      * 计算模板匹配分数
      * 行业匹配+2分，身份匹配+1分
      *
-     * @param t 模板对象
+     * @param t        模板对象
      * @param identity 用户身份
      * @param industry 用户行业
      * @return 匹配分数

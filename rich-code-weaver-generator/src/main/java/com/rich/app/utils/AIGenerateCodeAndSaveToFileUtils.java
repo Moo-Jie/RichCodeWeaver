@@ -1,7 +1,5 @@
 package com.rich.app.utils;
 
-import com.rich.ai.model.codeResponse.HtmlCodeResponse;
-import com.rich.ai.model.codeResponse.MultiFileCodeResponse;
 import com.rich.ai.service.AiCodeGeneratorService;
 import com.rich.app.factory.AiCodeGeneratorServiceFactory;
 import com.rich.app.utils.codeParse.CodeParseExecutor;
@@ -15,10 +13,6 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-
-import java.io.File;
-
-import static com.rich.model.enums.CodeGeneratorTypeEnum.MULTI_FILE;
 
 /**
  * AI 生成代码并保存为本地文件
@@ -53,11 +47,11 @@ public class AIGenerateCodeAndSaveToFileUtils {
             log.info("（流式）开始生成{}类型代码，用户需求：{}", codeGenTypeEnum.getValue(), userMessage);
 
             // 步骤2：从 Spring 容器中获取 AI 代码生成器工厂
-            AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory = 
+            AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory =
                     SpringContextUtil.getBean(AiCodeGeneratorServiceFactory.class);
 
             // 步骤3：通过工厂获取或创建 AI 服务实例（带缓存）
-            AiCodeGeneratorService aiCodeGeneratorService = 
+            AiCodeGeneratorService aiCodeGeneratorService =
                     aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
 
             // 步骤4：根据代码生成类型选择对应的生成策略
@@ -112,7 +106,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
     private Flux<String> parseAndSaveCodeStream(Flux<String> resultStream, CodeGeneratorTypeEnum codeGeneratorTypeEnum, Long appId) {
         // 创建 StringBuilder 用于拼接代码流中的所有代码块
         StringBuilder codeBuilder = new StringBuilder();
-        
+
         // 处理代码流：每次收到代码块时追加到 StringBuilder，流结束时解析并保存
         return resultStream
                 // doOnNext：每次收到代码块时追加到 codeBuilder

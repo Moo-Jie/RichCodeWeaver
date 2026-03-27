@@ -39,8 +39,8 @@ public class FileModifyTool extends BaseTool {
     public String getResultMsg(JSONObject arguments) {
         // 从参数中提取文件路径，若为空则使用默认值
         String relativeFilePath = arguments.getStr("relativeFilePath");
-        String displayPath = (relativeFilePath == null || relativeFilePath.trim().isEmpty()) 
-                ? "未知文件" 
+        String displayPath = (relativeFilePath == null || relativeFilePath.trim().isEmpty())
+                ? "未知文件"
                 : relativeFilePath;
         return String.format("[工具调用结束] 成功修改文件 %s", displayPath);
     }
@@ -61,83 +61,83 @@ public class FileModifyTool extends BaseTool {
             log.warn(errorMsg);
             return errorMsg;
         }
-        
+
         // 参数校验：检查旧内容是否为空（允许空字符串，但不允许null）
         if (oldContent == null) {
             String errorMsg = "错误：要替换的旧内容不能为null";
             log.warn(errorMsg);
             return errorMsg;
         }
-        
+
         // 参数校验：检查新内容是否为空（允许空字符串，但不允许null）
         if (newContent == null) {
             String errorMsg = "错误：替换后的新内容不能为null";
             log.warn(errorMsg);
             return errorMsg;
         }
-        
+
         // 参数校验：检查应用ID是否有效
         if (appId == null || appId <= 0) {
             String errorMsg = "错误：应用ID无效";
             log.warn(errorMsg);
             return errorMsg;
         }
-        
+
         try {
             // 解析文件路径
             Path targetPath = Paths.get(relativeFilePath);
-            
+
             // 如果不是绝对路径，则拼接项目根目录
             if (!targetPath.isAbsolute()) {
                 String projectDirName = "vue_project_" + appId;
                 Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
                 targetPath = projectRoot.resolve(relativeFilePath);
             }
-            
+
             // 检查文件是否存在
             if (!Files.exists(targetPath)) {
                 String errorMsg = "错误：文件不存在 - " + relativeFilePath;
                 log.warn(errorMsg);
                 return errorMsg;
             }
-            
+
             // 检查是否为普通文件（非目录）
             if (!Files.isRegularFile(targetPath)) {
                 String errorMsg = "错误：指定路径不是文件 - " + relativeFilePath;
                 log.warn(errorMsg);
                 return errorMsg;
             }
-            
+
             // 读取原始文件内容
             String originalContent = Files.readString(targetPath);
-            
+
             // 检查文件中是否包含要替换的旧内容
             if (!originalContent.contains(oldContent)) {
                 String warningMsg = "警告：文件中未找到要替换的内容，文件未修改 - " + relativeFilePath;
                 log.warn(warningMsg);
                 return warningMsg;
             }
-            
+
             // 执行内容替换（替换所有匹配项）
             String modifiedContent = originalContent.replace(oldContent, newContent);
-            
+
             // 检查替换后内容是否发生变化
             if (originalContent.equals(modifiedContent)) {
                 String infoMsg = "信息：替换后文件内容未发生变化 - " + relativeFilePath;
                 log.info(infoMsg);
                 return infoMsg;
             }
-            
+
             // 将修改后的内容写回文件（覆盖原文件）
-            Files.writeString(targetPath, modifiedContent, 
-                    StandardOpenOption.CREATE, 
+            Files.writeString(targetPath, modifiedContent,
+                    StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
-            
-            log.info("成功修改文件: {}, 替换了 {} 处内容", 
-                    targetPath.toAbsolutePath(), 
+
+            log.info("成功修改文件: {}, 替换了 {} 处内容",
+                    targetPath.toAbsolutePath(),
                     countOccurrences(originalContent, oldContent));
             return "文件修改成功: " + relativeFilePath;
-            
+
         } catch (IOException e) {
             // 捕获IO异常并记录详细错误信息
             String errorMessage = String.format("修改文件失败: %s, 错误: %s", relativeFilePath, e.getMessage());
@@ -150,11 +150,11 @@ public class FileModifyTool extends BaseTool {
             return errorMessage;
         }
     }
-    
+
     /**
      * 统计字符串中子串出现的次数
-     * 
-     * @param content 原始内容
+     *
+     * @param content   原始内容
      * @param substring 要查找的子串
      * @return 出现次数
      */
@@ -162,16 +162,16 @@ public class FileModifyTool extends BaseTool {
         if (content == null || substring == null || substring.isEmpty()) {
             return 0;
         }
-        
+
         int count = 0;
         int index = 0;
-        
+
         // 循环查找子串出现的位置
         while ((index = content.indexOf(substring, index)) != -1) {
             count++;
             index += substring.length();
         }
-        
+
         return count;
     }
 }

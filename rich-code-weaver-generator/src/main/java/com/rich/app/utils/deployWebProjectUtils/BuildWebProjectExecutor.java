@@ -39,7 +39,7 @@ public class BuildWebProjectExecutor {
     public boolean buildProjectAsync(String projectPath) {
         // 使用原子布尔保证线程安全的状态判断
         AtomicBoolean isBuild = new AtomicBoolean(true);
-        
+
         // 开启 JDK-21 的虚拟线程，异步执行构建任务，避免阻塞主流程
         Thread.ofVirtual()
                 .name("vue-builder-" + System.currentTimeMillis())  // 设置线程名称
@@ -117,7 +117,7 @@ public class BuildWebProjectExecutor {
             log.error("package.json 文件不存在: {}", packageJson.getAbsolutePath());
             return null;
         }
-        
+
         return projectDir;
     }
 
@@ -156,11 +156,11 @@ public class BuildWebProjectExecutor {
             if (!pkg.exists()) {
                 return;  // 文件不存在，直接返回
             }
-            
+
             // 读取文件内容并解析为 JSON
             String text = Files.readString(pkg.toPath(), StandardCharsets.UTF_8);
             JSONObject obj = JSONUtil.parseObj(text);
-            
+
             // 检查 type 字段是否为 "module"
             String type = obj.getStr("type");
             if (type == null || !"module".equalsIgnoreCase(type)) {

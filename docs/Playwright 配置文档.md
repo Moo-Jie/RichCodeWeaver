@@ -107,18 +107,18 @@ Playwright 会将浏览器下载到以下位置：
 ### 核心改动
 
 1. **依赖替换**
-   - 移除：`selenium-java`, `webdrivermanager`
-   - 添加：`playwright`
+    - 移除：`selenium-java`, `webdrivermanager`
+    - 添加：`playwright`
 
 2. **API 变更**
-   - 原 Selenium API → Playwright API
-   - 自动等待机制，无需手动 `Thread.sleep()`
-   - 更简洁的截图 API
+    - 原 Selenium API → Playwright API
+    - 自动等待机制，无需手动 `Thread.sleep()`
+    - 更简洁的截图 API
 
 3. **性能优化**
-   - Browser 实例复用（避免每次启动浏览器）
-   - Page 级别隔离（多线程安全）
-   - 智能等待（`WaitUntilState.NETWORKIDLE`）
+    - Browser 实例复用（避免每次启动浏览器）
+    - Page 级别隔离（多线程安全）
+    - 智能等待（`WaitUntilState.NETWORKIDLE`）
 
 ### 关键代码示例
 
@@ -151,6 +151,7 @@ page.close();
 ### 1. 首次启动前必须安装浏览器
 
 如果未安装浏览器，会报错：
+
 ```
 Executable doesn't exist at /path/to/chromium
 ```
@@ -160,11 +161,13 @@ Executable doesn't exist at /path/to/chromium
 ### 2. Linux 生产环境可能缺少系统依赖
 
 如果报错：
+
 ```
 error while loading shared libraries: libnss3.so
 ```
 
 **解决方法**：
+
 ```bash
 mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install-deps chromium"
 ```
@@ -219,12 +222,12 @@ mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="in
 
 ## 📊 性能对比
 
-| 指标 | Selenium | Playwright | 提升 |
-|------|----------|------------|------|
-| 首次启动 | ~5s | ~2s | **60%** |
-| 截图速度 | ~3s | ~1s | **66%** |
-| 内存占用 | ~200MB | ~150MB | **25%** |
-| 稳定性 | 中 | 高 | ✅ |
+| 指标   | Selenium | Playwright | 提升      |
+|------|----------|------------|---------|
+| 首次启动 | ~5s      | ~2s        | **60%** |
+| 截图速度 | ~3s      | ~1s        | **66%** |
+| 内存占用 | ~200MB   | ~150MB     | **25%** |
+| 稳定性  | 中        | 高          | ✅       |
 
 ---
 

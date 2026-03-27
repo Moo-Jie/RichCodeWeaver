@@ -14,9 +14,9 @@
           <a-input
             v-model:value="searchParams.appName"
             allow-clear
+            aria-label="搜索数字产物名称"
             placeholder="输入数字产物名称关键词"
             suffix-icon="search"
-            aria-label="搜索数字产物名称"
           />
         </a-form-item>
 
@@ -24,9 +24,9 @@
           <a-input
             v-model:value="searchParams.initPrompt"
             allow-clear
+            aria-label="搜索提示关键词"
             placeholder="输入提示关键词"
             suffix-icon="search"
-            aria-label="搜索提示关键词"
           />
         </a-form-item>
 
@@ -34,18 +34,18 @@
           <a-input
             v-model:value="searchParams.userId"
             allow-clear
+            aria-label="搜索创建者用户ID"
             placeholder="输入用户ID"
             suffix-icon="user"
-            aria-label="搜索创建者用户ID"
           />
         </a-form-item>
 
         <a-form-item class="search-item" label="生成类型">
           <a-select
             v-model:value="searchParams.codeGenType"
+            aria-label="选择生成类型"
             placeholder="全部生成类型"
             style="width: 180px"
-            aria-label="选择生成类型"
           >
             <a-select-option>全部类型</a-select-option>
             <a-select-option
@@ -62,16 +62,16 @@
           <a-input
             v-model:value="searchParams.initPrompt"
             allow-clear
+            aria-label="搜索部署密钥"
             placeholder="输入部署密钥"
             suffix-icon="deployKey"
-            aria-label="搜索部署密钥"
           />
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button html-type="submit" aria-label="搜索数字产物">搜索</a-button>
+          <a-button aria-label="搜索数字产物" html-type="submit">搜索</a-button>
           &nbsp;
-          <a-button @click="resetSearch" aria-label="重置搜索条件">重置</a-button>
+          <a-button aria-label="重置搜索条件" @click="resetSearch">重置</a-button>
         </a-form-item>
       </a-form>
     </a-card>
@@ -105,7 +105,7 @@
               class="app-cover"
             />
             <div v-else class="no-cover">
-              <picture-outlined/>
+              <picture-outlined />
               <span>未上传封面</span>
             </div>
           </template>
@@ -113,7 +113,7 @@
           <template v-else-if="column.dataIndex === 'initPrompt'">
             <a-tooltip :title="record.initPrompt">
               <div class="prompt-text">
-                <ellipsis-outlined/>
+                <ellipsis-outlined />
                 {{ record.initPrompt }}
               </div>
             </a-tooltip>
@@ -129,10 +129,10 @@
 
           <template v-else-if="column.dataIndex === 'deployKey'">
             <div
-              class="deploy-key-cell"
-              tabindex="0"
-              role="button"
               :aria-label="`${showDeployKey[record.id] ? '隐藏' : '显示'}部署密钥`"
+              class="deploy-key-cell"
+              role="button"
+              tabindex="0"
               @click="toggleDeployKey(record.id)"
               @keydown.enter="toggleDeployKey(record.id)"
               @keydown.space.prevent="toggleDeployKey(record.id)"
@@ -148,35 +148,39 @@
           </template>
 
           <template v-else-if="column.dataIndex === 'priority'">
-            <a-tag v-if="record.priority === 99" color="gold">
-              <star-filled/>
-              星选数字产物
-            </a-tag>
-            <span v-else>普通数字产物</span>
+            <div class="rate-cell">
+              <a-rate
+                :count="5"
+                :value="priorityToRate(record.priority)"
+                allow-half
+                @change="handleRateChange(record, $event)"
+              />
+              <span v-if="record.priority >= 99" class="star-label">★ 星选</span>
+            </div>
           </template>
 
           <template v-else-if="column.dataIndex === 'deployedTime'">
             <div v-if="record.deployedTime" class="time-cell">
-              <calendar-outlined/>
+              <calendar-outlined />
               {{ formatTime(record.deployedTime) }}
             </div>
             <div v-else class="text-gray">
-              <clock-circle-outlined/>
+              <clock-circle-outlined />
               <span>未部署</span>
             </div>
           </template>
 
           <template v-else-if="column.dataIndex === 'createTime'">
             <div class="time-cell">
-              <calendar-outlined/>
+              <calendar-outlined />
               {{ formatTime(record.createTime) }}
             </div>
           </template>
 
           <template v-else-if="column.dataIndex === 'user'">
             <div class="user-cell">
-              <user-outlined/>
-              <UserInfo :user="record.user" size="small"/>
+              <user-outlined />
+              <UserInfo :user="record.user" size="small" />
             </div>
           </template>
 
@@ -184,59 +188,43 @@
             <a-space class="action-buttons">
               <!-- 进入数字产物按钮 -->
               <a-button
+                :aria-label="`进入数字产物 ${record.appName}`"
                 size="small"
                 type="default"
                 @click="enterApp(record)"
-                :aria-label="`进入数字产物 ${record.appName}`"
               >
                 <template #icon>
-                  <ArrowRightOutlined/>
+                  <ArrowRightOutlined />
                 </template>
                 进入
               </a-button>
               <a-button
+                :aria-label="`编辑数字产物 ${record.appName}`"
                 size="small"
                 type="default"
                 @click="editApp(record)"
-                :aria-label="`编辑数字产物 ${record.appName}`"
               >
                 编辑
               </a-button>
               <!-- 信息卡片按钮 -->
               <a-button
+                :aria-label="`查看数字产物 ${record.appName} 详情`"
                 size="small"
                 type="default"
                 @click="showAppDetail(record)"
-                :aria-label="`查看数字产物 ${record.appName} 详情`"
               >
                 <template #icon>
-                  <InfoCircleOutlined/>
+                  <InfoCircleOutlined />
                 </template>
                 详情
-              </a-button>
-
-              <a-button
-                :class="{ 'featured-btn': record.priority === 99 }"
-                size="small"
-                type="default"
-                @click="toggleFeatured(record)"
-                :aria-label="record.priority === 99 ? `取消星选数字产物 ${record.appName}` : `设为星选数字产物 ${record.appName}`"
-              >
-                <template v-if="record.priority === 99">
-                  <star-filled/>
-                  取消星选
-                </template>
-                <template v-else>
-                  <star-outlined/>
-                  设为星选
-                </template>
               </a-button>
 
               <a-popconfirm
                 title="确定要删除这个数字产物吗？此操作不可恢复"
                 @confirm="doDeleteApp(record.id)"
               >
-                <a-button danger size="small" :aria-label="`删除数字产物 ${record.appName}`">删除</a-button>
+                <a-button :aria-label="`删除数字产物 ${record.appName}`" danger size="small">删除
+                </a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -266,8 +254,6 @@ import {
   EyeOutlined,
   InfoCircleOutlined,
   PictureOutlined,
-  StarFilled,
-  StarOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
 import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
@@ -325,9 +311,9 @@ const columns = [
     width: 120
   },
   {
-    title: '推送等级',
+    title: '产物评分',
     dataIndex: 'priority',
-    width: 100
+    width: 200
   },
   {
     title: '部署密钥',
@@ -455,7 +441,40 @@ const editApp = (app: API.AppVO) => {
   router.push(`/app/edit/${app.id}`)
 }
 
-// 切换星选状态
+// priority ↔ Rate 互转（0 stars = 0, 1-4 stars = 1-4, 5 stars = 99 featured）
+const priorityToRate = (p?: number): number => {
+  if (!p || p === 0) return 0
+  if (p >= 99) return 5
+  return Math.min(p, 4)
+}
+
+const rateToPriority = (r: number): number => {
+  if (r <= 0) return 0
+  if (r >= 5) return 99
+  return r
+}
+
+// 产物评分变更（Rate 组件）
+const handleRateChange = async (app: API.AppVO, rateVal: number) => {
+  if (!app.id) return
+  const newPriority = rateToPriority(rateVal)
+  try {
+    const res = await updateAppByAdmin({
+      id: app.id,
+      priority: newPriority
+    })
+    if (res.data.code === 0) {
+      app.priority = newPriority
+      message.success(rateVal >= 5 ? `「${app.appName}」已设为星选 (5星)` : `产物评分已更新为 ${rateVal} 星`)
+    } else {
+      message.error('更新失败：' + res.data.message)
+    }
+  } catch {
+    message.error('更新失败，请重试')
+  }
+}
+
+// 切换星选状态（保留兼容）
 const toggleFeatured = async (app: API.AppVO) => {
   if (!app.id) return
 
@@ -484,7 +503,7 @@ const doDeleteApp = async (id: number | undefined) => {
   if (!id) return
 
   try {
-    const res = await deleteApp({id})
+    const res = await deleteApp({ id })
     if (res.data.code === 0) {
       message.success('删除成功')
       await fetchData()
@@ -786,6 +805,32 @@ const doDeleteApp = async (id: number | undefined) => {
     outline-offset: 2px;
     border-radius: 4px;
   }
+}
+
+.rate-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rate-cell :deep(.ant-rate) {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.rate-cell :deep(.ant-rate-star) {
+  margin-inline-end: 4px;
+}
+
+.star-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #d48806;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {

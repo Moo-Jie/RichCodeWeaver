@@ -13,5 +13,5 @@ export default {
   fileController,
   chatHistoryController,
   appController,
-  downloadCodeFileController,
+  downloadCodeFileController
 }

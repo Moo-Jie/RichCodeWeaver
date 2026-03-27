@@ -10,11 +10,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 /**
  * 百度千帆搜索工具测试类
  * 用于手动测试百度千帆平台搜索API的调用
- * 
+ * <p>
  * 配置要求：
  * 需要在 application-local.yml 中配置：
  * baidu.qianfan.appbuilder-api-key
- * 
+ * <p>
  * 获取API Key：https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
  *
  * @author DuRuiChi
@@ -35,12 +35,12 @@ public class AiWebSearchToolTest {
         log.info("========================================");
         log.info("开始测试：基本搜索功能");
         log.info("========================================");
-        
+
         String query = "Java Spring Boot 最佳实践";
         log.info("搜索关键词: {}", query);
-        
+
         String result = aiWebSearchTool.searchWeb(query);
-        
+
         log.info("========================================");
         log.info("搜索结果:");
         log.info("{}", result);
@@ -55,12 +55,12 @@ public class AiWebSearchToolTest {
         log.info("========================================");
         log.info("开始测试：英文搜索");
         log.info("========================================");
-        
+
         String query = "React best practices 2024";
         log.info("搜索关键词: {}", query);
-        
+
         String result = aiWebSearchTool.searchWeb(query);
-        
+
         log.info("========================================");
         log.info("搜索结果:");
         log.info("{}", result);
@@ -75,12 +75,12 @@ public class AiWebSearchToolTest {
         log.info("========================================");
         log.info("开始测试：技术相关搜索");
         log.info("========================================");
-        
+
         String query = "Vue3 Composition API 教程";
         log.info("搜索关键词: {}", query);
-        
+
         String result = aiWebSearchTool.searchWeb(query);
-        
+
         log.info("========================================");
         log.info("搜索结果:");
         log.info("{}", result);
@@ -95,12 +95,12 @@ public class AiWebSearchToolTest {
         log.info("========================================");
         log.info("开始测试：前端知识学习产物搜索");
         log.info("========================================");
-        
+
         String query = "frontend educational SPA HTML CSS JS cards code highlight live preview";
         log.info("搜索关键词: {}", query);
-        
+
         String result = aiWebSearchTool.searchWeb(query);
-        
+
         log.info("========================================");
         log.info("搜索结果:");
         log.info("{}", result);
@@ -115,14 +115,14 @@ public class AiWebSearchToolTest {
         log.info("========================================");
         log.info("开始测试：空查询异常处理");
         log.info("========================================");
-        
+
         try {
             String result = aiWebSearchTool.searchWeb("");
             log.error("预期应该抛出异常，但返回了结果: {}", result);
         } catch (IllegalArgumentException e) {
             log.info("正确捕获异常: {}", e.getMessage());
         }
-        
+
         log.info("========================================");
     }
 
@@ -134,10 +134,10 @@ public class AiWebSearchToolTest {
         log.info("========================================");
         log.info("开始测试：工具元信息");
         log.info("========================================");
-        
+
         log.info("工具名称: {}", aiWebSearchTool.getToolName());
         log.info("工具显示名称: {}", aiWebSearchTool.getToolDisplayName());
-        
+
         log.info("========================================");
     }
 }

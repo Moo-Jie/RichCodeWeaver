@@ -11,7 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * 应用模块启动类
  * 负责启动应用服务，提供应用管理、代码生成、聊天历史等核心功能
- * 
+ *
  * @author DuRuiChi
  * @since 2026-03-10
  */
@@ -23,10 +23,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableDubbo
 @EnableScheduling
 public class GeneratorApplication {
-    
+
     /**
      * 应用启动入口方法
-     * 
+     *
      * @param args 命令行参数
      */
     public static void main(String[] args) {

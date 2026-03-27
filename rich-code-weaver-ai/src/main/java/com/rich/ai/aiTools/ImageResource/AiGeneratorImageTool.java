@@ -9,7 +9,6 @@ import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.rich.ai.aiTools.BaseTool;
-
 import com.rich.client.innerService.InnerFileService;
 import com.rich.model.entity.ImageResource;
 import com.rich.model.enums.ImageCategoryEnum;
@@ -47,26 +46,22 @@ public class AiGeneratorImageTool extends BaseTool {
 
     // 任务查询接口
     private static final String TASK_QUERY_URL = DASHSCOPE_BASE_URL + "/tasks/";
-
+    /**
+     * 本地缓存目录路径
+     */
+    private static final String CACHE_DIR = "cache";
+    /**
+     * 图像生成模型名称，使用wan2.2-t2i-flash极速版
+     */
+    private static final String IMAGE_MODEL = "wan2.2-t2i-flash";
     // 注入外部文件上传服务的代理对象
     @DubboReference
     private InnerFileService fileService;
-
     /**
      * DashScope API密钥，从配置文件中注入
      */
     @Value("${dashscope.api-key:}")
     private String dashScopeApiKey;
-
-    /**
-     * 本地缓存目录路径
-     */
-    private static final String CACHE_DIR = "cache";
-
-    /**
-     * 图像生成模型名称，使用wan2.2-t2i-flash极速版
-     */
-    private static final String IMAGE_MODEL = "wan2.2-t2i-flash";
 
     @Override
     public String getToolName() {

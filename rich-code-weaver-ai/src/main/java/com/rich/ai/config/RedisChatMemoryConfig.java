@@ -68,7 +68,7 @@ public class RedisChatMemoryConfig {
             // 如果未配置主机地址，使用默认值localhost
             builder.host("localhost");
         }
-        
+
         // 设置Redis端口（必需参数）
         if (port > 0 && port <= 65535) {
             builder.port(port);
@@ -76,30 +76,30 @@ public class RedisChatMemoryConfig {
             // 如果端口无效，使用默认值6379
             builder.port(6379);
         }
-        
+
         // 设置Redis数据库索引（可选参数，默认为0）
         if (database >= 0 && database <= 15) {
 //            builder.database(database);
         }
-        
+
         // 设置用户名（可选参数，生产环境建议启用）
         // 注意：当前已注释，上线时需要取消注释以启用认证
         // if (user != null && !user.trim().isEmpty()) {
         //     builder.user(user);
         // }
-        
+
         // 设置密码（可选参数，生产环境建议启用）
         // 注意：当前已注释，上线时需要取消注释以启用认证
         // if (password != null && !password.trim().isEmpty()) {
         //     builder.password(password);
         // }
-        
+
         // 设置TTL（生存时间，单位：秒）
         // TTL用于自动清理过期的对话记录，避免Redis内存占用过高
         if (ttl > 0) {
             builder.ttl(ttl);
         }
-        
+
         // 构建并返回Redis聊天记忆存储实例
         return builder.build();
     }

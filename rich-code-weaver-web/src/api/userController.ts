@@ -7,10 +7,10 @@ export async function addUser(body: API.UserAddRequest, options?: { [key: string
   return request<API.BaseResponseLong>('/user/add', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -19,10 +19,10 @@ export async function deleteUser(body: API.DeleteRequest, options?: { [key: stri
   return request<API.BaseResponseBoolean>('/user/delete', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -35,9 +35,9 @@ export async function getUserById(
   return request<API.BaseResponseUser>('/user/get', {
     method: 'GET',
     params: {
-      ...params,
+      ...params
     },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -45,7 +45,7 @@ export async function getUserById(
 export async function getLoginUser(options?: { [key: string]: any }) {
   return request<API.BaseResponseLoginUserVO>('/user/get/login', {
     method: 'GET',
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -58,9 +58,9 @@ export async function getUserVoById(
   return request<API.BaseResponseUserVO>('/user/get/vo', {
     method: 'GET',
     params: {
-      ...params,
+      ...params
     },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -72,10 +72,10 @@ export async function listUserVoByPage(
   return request<API.BaseResponsePageUserVO>('/user/list/page/vo', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -84,10 +84,10 @@ export async function userLogin(body: API.UserLoginRequest, options?: { [key: st
   return request<API.BaseResponseLoginUserVO>('/user/login', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -95,7 +95,7 @@ export async function userLogin(body: API.UserLoginRequest, options?: { [key: st
 export async function userLogout(options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/user/logout', {
     method: 'POST',
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -107,10 +107,10 @@ export async function userRegister(
   return request<API.BaseResponseLong>('/user/register', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -123,9 +123,9 @@ export async function resetUserPassword(
   return request<API.BaseResponseBoolean>('/user/reset/password', {
     method: 'POST',
     params: {
-      ...params,
+      ...params
     },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -134,10 +134,10 @@ export async function updateUser(body: API.UserUpdateRequest, options?: { [key: 
   return request<API.BaseResponseBoolean>('/user/update', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -149,10 +149,10 @@ export async function updateUserAdmin(
   return request<API.BaseResponseBoolean>('/user/update/admin', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -161,10 +161,10 @@ export async function updateUserAvatar(body: {}, options?: { [key: string]: any 
   return request<API.BaseResponseBoolean>('/user/update/avatar', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -176,9 +176,9 @@ export async function updateUserPassword(
   return request<API.BaseResponseBoolean>('/user/update/password', {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }

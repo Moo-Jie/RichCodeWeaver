@@ -146,7 +146,7 @@ const createApp = async () => {
       // 传递Agent模式参数
       await router.push({
         path: `/app/chat/${appId}`,
-        query: {useAgent: useAgentMode.value.toString()}
+        query: { useAgent: useAgentMode.value.toString() }
       })
     } else {
       message.error('创建失败：' + res.data.message)
@@ -276,7 +276,7 @@ onMounted(() => {
               @click="startTour"
             >
               <template #icon>
-                <PlayCircleOutlined/>
+                <PlayCircleOutlined />
               </template>
               快速入门
             </a-button>
@@ -289,7 +289,7 @@ onMounted(() => {
               @click="showPromptDropdown = !showPromptDropdown"
             >
               <template #icon>
-                <AppstoreOutlined/>
+                <AppstoreOutlined />
               </template>
               热门提示词
             </a-button>
@@ -305,7 +305,7 @@ onMounted(() => {
               @click="createApp"
             >
               <template #icon>
-                <RocketOutlined/>
+                <RocketOutlined />
               </template>
               开始生成
             </a-button>
@@ -333,7 +333,7 @@ onMounted(() => {
               @click="handlePromptSelect(option.value)"
             >
               <div :style="{backgroundColor: option.color}" class="prompt-card-icon">
-                <component :is="option.icon"/>
+                <component :is="option.icon" />
               </div>
               <div class="prompt-card-content">
                 <div class="prompt-card-title">{{ option.label }}</div>
@@ -355,7 +355,7 @@ onMounted(() => {
                   Agent智能生成模式基于训练后的 AI 模型直接构建数字产物，速度更快但可能不够完善。
                 </div>
               </template>
-              <question-circle-outlined class="help-icon"/>
+              <question-circle-outlined class="help-icon" />
             </a-tooltip>
           </div>
 
@@ -368,8 +368,8 @@ onMounted(() => {
               @click="useAgentMode = option.value"
             >
               <div class="card-icon">
-                <robot-outlined v-if="option.value"/>
-                <code-outlined v-else/>
+                <robot-outlined v-if="option.value" />
+                <code-outlined v-else />
               </div>
               <div class="card-content">
                 <div class="card-title">{{ option.label }}</div>
@@ -378,7 +378,7 @@ onMounted(() => {
                 </div>
               </div>
               <div class="card-check">
-                <check-circle-filled v-if="useAgentMode === option.value"/>
+                <check-circle-filled v-if="useAgentMode === option.value" />
               </div>
             </div>
           </div>
@@ -452,7 +452,7 @@ onMounted(() => {
                   />
                   <div v-if="!isAppGenerated(app)" class="app-overlay-disabled">
                     <div class="overlay-content">
-                      <a-spin size="small"/>
+                      <a-spin size="small" />
                       <span>生成中...</span>
                     </div>
                   </div>

@@ -3,7 +3,6 @@ package com.rich.social.service;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.service.IService;
 import com.rich.model.entity.AppFavorite;
-import com.rich.model.vo.AppHotStatVO;
 
 /**
  * 产物收藏 服务层

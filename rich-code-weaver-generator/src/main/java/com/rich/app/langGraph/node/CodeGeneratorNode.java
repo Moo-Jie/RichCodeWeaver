@@ -69,15 +69,15 @@ public class CodeGeneratorNode {
             // 获取增强后的提示词（由 PromptEnhancerNode 优化后的提示词）
             String enhancedPrompt = context.getEnhancedPrompt();
             Long appId = context.getAppId();
-            
+
             // 从 Spring 容器中获取代码生成工具类
-            AIGenerateCodeAndSaveToFileUtils aIGenerateCodeAndSaveToFileUtils = 
+            AIGenerateCodeAndSaveToFileUtils aIGenerateCodeAndSaveToFileUtils =
                     SpringContextUtil.getBean(AIGenerateCodeAndSaveToFileUtils.class);
 
             // 执行 AI 代码生成逻辑，返回流式代码生成结果
             Flux<String> codeStream = aIGenerateCodeAndSaveToFileUtils
                     .aiGenerateAndSaveCodeStream(enhancedPrompt, generationType, appId);
-            
+
             // 获取注册的流式输出发射器，将代码生成流实时转发到前端
             Consumer<String> emitter = STREAM_EMITTERS.get(appId);
             if (emitter != null) {
@@ -88,9 +88,9 @@ public class CodeGeneratorNode {
                 // 无发射器：静默等待流完成（非工作流模式或测试场景）
                 codeStream.blockLast(Duration.ofMinutes(10));
             }
-            
+
             // 根据代码生成类型和产物ID构建生成目录路径
-            String generatedCodeDir = String.format("%s/%s_%s", 
+            String generatedCodeDir = String.format("%s/%s_%s",
                     AppConstant.CODE_OUTPUT_ROOT_DIR, generationType.getValue(), appId);
             log.info("AI 代码生成完成，生成目录: {}", generatedCodeDir);
 
@@ -98,7 +98,7 @@ public class CodeGeneratorNode {
             context.setOutputDir(generatedCodeDir);  // 保存生成目录路径
             context.setCurrentStep("AI 代码生成已完成");  // 更新当前步骤
             log.info("\n AI 代码生成节点运行完成。\n");
-            
+
             // 保存更新后的上下文并返回
             return WorkflowContext.saveContext(context);
         });

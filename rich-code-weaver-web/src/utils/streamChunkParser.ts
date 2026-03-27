@@ -98,6 +98,12 @@ export class StreamChunkParserContext {
     }
   }
 
+  /** 重置解析上下文 */
+  reset(): void {
+    this.seenToolIds.clear()
+    this.toolCallCount = 0
+  }
+
   /** 处理工具请求消息 */
   private handleToolRequest(obj: { id?: string; name?: string }): string {
     const toolId = obj.id
@@ -136,12 +142,6 @@ export class StreamChunkParserContext {
 
     return `\n\n[工具调用结束] ${displayName} 执行完成\n\n`
   }
-
-  /** 重置解析上下文 */
-  reset(): void {
-    this.seenToolIds.clear()
-    this.toolCallCount = 0
-  }
 }
 
 /**
@@ -159,8 +159,8 @@ export function parseBatchContent(content: string): string {
   // 快速判断：是否为 VUE_PROJECT 模式的 JSON 消息块格式
   // 必须包含至少一个类型标记，避免误解析 HTML/多文件模式的代码内容
   if (!content.includes('"type":"ai_response"') &&
-      !content.includes('"type":"tool_request"') &&
-      !content.includes('"type":"tool_executed"')) {
+    !content.includes('"type":"tool_request"') &&
+    !content.includes('"type":"tool_executed"')) {
     return content
   }
 

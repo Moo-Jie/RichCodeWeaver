@@ -40,7 +40,7 @@ public class CodeResultSaveExecutor {
             case VUE_PROJECT -> multiFileCodeFileSaver.saveCodeResult(
                     (MultiFileCodeResponse) codeResult, appId, codeGenType.getValue());
             // 默认情况：不支持的类型，抛出异常
-            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, 
+            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
                     "不支持的代码生成类型: " + codeGenType.getValue());
         };
     }

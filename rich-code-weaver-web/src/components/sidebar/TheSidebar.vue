@@ -43,7 +43,8 @@
             <span v-show="!appStore.sidebarCollapsed" class="nav-label">系统管理</span>
           </transition>
           <transition name="fade-text">
-            <DownOutlined v-show="!appStore.sidebarCollapsed" :class="['nav-arrow', { expanded: adminMenuExpanded }]" />
+            <DownOutlined v-show="!appStore.sidebarCollapsed"
+                          :class="['nav-arrow', { expanded: adminMenuExpanded }]" />
           </transition>
         </div>
         <transition name="submenu-slide">
@@ -72,7 +73,8 @@
         <span v-show="!appStore.sidebarCollapsed" class="nav-label">其他</span>
       </transition>
       <transition name="fade-text">
-        <DownOutlined v-show="!appStore.sidebarCollapsed" :class="['nav-arrow', { expanded: aboutMenuExpanded }]" />
+        <DownOutlined v-show="!appStore.sidebarCollapsed"
+                      :class="['nav-arrow', { expanded: aboutMenuExpanded }]" />
       </transition>
     </div>
     <transition name="submenu-slide">
@@ -177,25 +179,25 @@ const adminMenuExpanded = ref(false)
 const aboutMenuExpanded = ref(false)
 
 const baseNavItems = [
-  {path: '/', label: '主页', icon: HomeOutlined},
-  {path: '/my/apps', label: '我的产物', icon: AppstoreOutlined},
-  {path: '/my/favorites', label: '我的收藏', icon: StarOutlined},
-  {path: '/all/apps', label: '热门产物', icon: GlobalOutlined},
+  { path: '/', label: '主页', icon: HomeOutlined },
+  { path: '/my/apps', label: '我的产物', icon: AppstoreOutlined },
+  { path: '/my/favorites', label: '我的收藏', icon: StarOutlined },
+  { path: '/all/apps', label: '热门产物', icon: GlobalOutlined }
 ]
 
 const aboutNavItems = [
-  {path: '/other/about', label: '关于', icon: FileTextOutlined},
-  {path: '/other/privacy', label: '隐私政策', icon: SecurityScanOutlined},
-  {path: '/other/terms', label: '用户协议', icon: SafetyOutlined}
+  { path: '/other/about', label: '关于', icon: FileTextOutlined },
+  { path: '/other/privacy', label: '隐私政策', icon: SecurityScanOutlined },
+  { path: '/other/terms', label: '用户协议', icon: SafetyOutlined }
 ]
 
 const adminNavItems = [
-  {path: '/admin/userManage', label: '用户管理', icon: UserOutlined},
-  {path: '/admin/appManage', label: '产物管理', icon: AppstoreOutlined},
-  {path: '/admin/chatHistory', label: '会话管理', icon: CommentOutlined},
-  {path: '/admin/promptTemplate', label: '模板管理', icon: CopyOutlined},
-  {path: '/admin/systemPrompt', label: '提示词管理', icon: AlignLeftOutlined},
-  {path: '/admin/ragManage', label: '知识库管理', icon: ReadOutlined}
+  { path: '/admin/userManage', label: '用户管理', icon: UserOutlined },
+  { path: '/admin/appManage', label: '产物管理', icon: AppstoreOutlined },
+  { path: '/admin/chatHistory', label: '会话管理', icon: CommentOutlined },
+  { path: '/admin/promptTemplate', label: '模板管理', icon: CopyOutlined },
+  { path: '/admin/systemPrompt', label: '提示词管理', icon: AlignLeftOutlined },
+  { path: '/admin/ragManage', label: '知识库管理', icon: ReadOutlined }
 ]
 
 const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')
@@ -252,7 +254,7 @@ const doLogout = async () => {
   try {
     const res = await userLogout()
     if (res.data.code === 0) {
-      loginUserStore.setLoginUser({userName: '未登录'})
+      loginUserStore.setLoginUser({ userName: '未登录' })
       message.success('退出登录成功')
       appStore.clearSelectedApp()
       await router.push('/user/login')
@@ -461,7 +463,7 @@ const doLogout = async () => {
   transition: all 0.2s ease;
   z-index: 10;
   opacity: 0;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .sidebar:hover .collapse-toggle {

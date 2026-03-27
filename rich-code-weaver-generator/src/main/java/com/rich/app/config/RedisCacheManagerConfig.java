@@ -64,13 +64,13 @@ public class RedisCacheManagerConfig {
     private ObjectMapper createObjectMapperWithJavaTimeSupport() {
         // 创建 Jackson 对象映射器
         ObjectMapper objectMapper = new ObjectMapper();
-        
+
         // 注册 Java 8 时间模块，支持 LocalDate、LocalDateTime 等类型
         objectMapper.registerModule(new JavaTimeModule());
-        
+
         // 禁用将日期写为时间戳，使用 ISO-8601 格式字符串（更可读）
         objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
+
         return objectMapper;
     }
 

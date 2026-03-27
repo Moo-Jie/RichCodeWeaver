@@ -27,7 +27,8 @@
         class="view-more-btn"
         @click="router.push('/my/apps')"
       >
-        查看更多 <RightOutlined />
+        查看更多
+        <RightOutlined />
       </button>
     </transition>
   </div>

@@ -14,9 +14,9 @@
           <a-input
             v-model:value="searchParams.userAccount"
             allow-clear
+            aria-label="搜索用户账号"
             placeholder="输入用户账号"
             suffix-icon="search"
-            aria-label="搜索用户账号"
           />
         </a-form-item>
 
@@ -24,18 +24,18 @@
           <a-input
             v-model:value="searchParams.userName"
             allow-clear
+            aria-label="搜索用户名"
             placeholder="输入用户名"
             suffix-icon="user"
-            aria-label="搜索用户名"
           />
         </a-form-item>
 
         <a-form-item class="search-item" label="用户角色">
           <a-select
             v-model:value="searchParams.userRole"
+            aria-label="选择用户角色"
             placeholder="全部角色"
             style="width: 120px"
-            aria-label="选择用户角色"
           >
             <a-select-option value="">全部角色</a-select-option>
             <a-select-option value="admin">管理员</a-select-option>
@@ -44,16 +44,16 @@
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button html-type="submit" type="primary" aria-label="搜索用户">
+          <a-button aria-label="搜索用户" html-type="submit" type="primary">
             <template #icon>
-              <SearchOutlined/>
+              <SearchOutlined />
             </template>
             搜索
           </a-button>
           &nbsp;
-          <a-button @click="resetSearch" aria-label="重置搜索条件">
+          <a-button aria-label="重置搜索条件" @click="resetSearch">
             <template #icon>
-              <ReloadOutlined/>
+              <ReloadOutlined />
             </template>
             重置
           </a-button>
@@ -90,7 +90,7 @@
               class="avatar-img"
             />
             <div v-else class="no-avatar">
-              <UserOutlined/>
+              <UserOutlined />
               <span>无头像</span>
             </div>
           </template>
@@ -98,7 +98,7 @@
           <template v-else-if="column.dataIndex === 'userProfile'">
             <a-tooltip :title="record.userProfile">
               <div class="profile-text">
-                <EllipsisOutlined/>
+                <EllipsisOutlined />
                 {{ record.userProfile || '无简介' }}
               </div>
             </a-tooltip>
@@ -112,7 +112,7 @@
 
           <template v-else-if="column.dataIndex === 'createTime'">
             <div class="time-cell">
-              <CalendarOutlined/>
+              <CalendarOutlined />
               {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm') }}
             </div>
           </template>
@@ -120,26 +120,26 @@
           <template v-else-if="column.key === 'action'">
             <a-space class="action-buttons">
               <a-button
+                :aria-label="`编辑用户 ${record.userName}`"
                 size="small"
                 type="default"
                 @click="showEditModal(record)"
-                :aria-label="`编辑用户 ${record.userName}`"
               >
                 <template #icon>
-                  <EditOutlined/>
+                  <EditOutlined />
                 </template>
                 编辑
               </a-button>
 
               <a-button
+                :aria-label="`重置用户 ${record.userName} 的密码`"
                 class="reset-btn"
                 size="small"
                 type="default"
                 @click="showResetPasswordModal(record)"
-                :aria-label="`重置用户 ${record.userName} 的密码`"
               >
                 <template #icon>
-                  <LockOutlined/>
+                  <LockOutlined />
                 </template>
                 重置密码
               </a-button>
@@ -148,9 +148,9 @@
                 title="确定删除此用户吗？操作不可恢复"
                 @confirm="doDelete(record.id)"
               >
-                <a-button danger size="small" :aria-label="`删除用户 ${record.userName}`">
+                <a-button :aria-label="`删除用户 ${record.userName}`" danger size="small">
                   <template #icon>
-                    <DeleteOutlined/>
+                    <DeleteOutlined />
                   </template>
                   删除
                 </a-button>
@@ -174,13 +174,15 @@
     >
       <a-form :label-col="{ span: 6 }" :model="editForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户账号">
-          <a-input v-model:value="editForm.userAccount" disabled aria-label="用户账号（不可编辑）"/>
+          <a-input v-model:value="editForm.userAccount" aria-label="用户账号（不可编辑）" disabled />
         </a-form-item>
         <a-form-item label="用户昵称">
-          <a-input v-model:value="editForm.userName" placeholder="请输入用户昵称" aria-label="编辑用户昵称"/>
+          <a-input v-model:value="editForm.userName" aria-label="编辑用户昵称"
+                   placeholder="请输入用户昵称" />
         </a-form-item>
         <a-form-item label="用户角色">
-          <a-select v-model:value="editForm.userRole" placeholder="请选择用户角色" aria-label="选择用户角色">
+          <a-select v-model:value="editForm.userRole" aria-label="选择用户角色"
+                    placeholder="请选择用户角色">
             <a-select-option value="admin">管理员</a-select-option>
             <a-select-option value="user">普通用户</a-select-option>
           </a-select>
@@ -190,8 +192,8 @@
             v-model:value="editForm.userProfile"
             :maxlength="200"
             :rows="4"
-            placeholder="请输入用户简介..."
             aria-label="编辑用户个人简介"
+            placeholder="请输入用户简介..."
           />
         </a-form-item>
       </a-form>
@@ -410,7 +412,7 @@ const showResetPasswordModal = (user: API.UserVO) => {
 // 提交重置密码
 const handlePasswordSubmit = async () => {
   try {
-    const res = await resetUserPassword({userId: passwordForm.id})
+    const res = await resetUserPassword({ userId: passwordForm.id })
     if (res.data.code === 0) {
       message.success(`密码重置成功，新密码为：zmrq@${passwordForm.userName}`)
       passwordVisible.value = false
@@ -428,7 +430,7 @@ const doDelete = async (id: string | undefined) => {
   if (!id) return
 
   try {
-    const res = await deleteUser({id})
+    const res = await deleteUser({ id })
     if (res.data.code === 0) {
       message.success('用户删除成功')
       await fetchData()

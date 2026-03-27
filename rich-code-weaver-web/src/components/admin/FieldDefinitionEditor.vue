@@ -7,18 +7,23 @@
           <template #overlay>
             <a-menu @click="handleLoadTemplate">
               <a-menu-item key="colorLayout">
-                <ThunderboltOutlined /> 色系+布局模板
+                <ThunderboltOutlined />
+                色系+布局模板
               </a-menu-item>
               <a-menu-item key="logoSwitch">
-                <ThunderboltOutlined /> LOGO开关模板
+                <ThunderboltOutlined />
+                LOGO开关模板
               </a-menu-item>
               <a-menu-item key="identityText">
-                <ThunderboltOutlined /> 身份描述模板
+                <ThunderboltOutlined />
+                身份描述模板
               </a-menu-item>
             </a-menu>
           </template>
           <a-button size="small">
-            <template #icon><ThunderboltOutlined /></template>
+            <template #icon>
+              <ThunderboltOutlined />
+            </template>
             快速模板
           </a-button>
         </a-dropdown>
@@ -26,18 +31,23 @@
           <template #overlay>
             <a-menu @click="handleAddField">
               <a-menu-item key="select">
-                <SelectOutlined /> 下拉选择
+                <SelectOutlined />
+                下拉选择
               </a-menu-item>
               <a-menu-item key="text">
-                <EditOutlined /> 文本输入
+                <EditOutlined />
+                文本输入
               </a-menu-item>
               <a-menu-item key="switch">
-                <CheckOutlined /> 开关选项
+                <CheckOutlined />
+                开关选项
               </a-menu-item>
             </a-menu>
           </template>
           <a-button size="small" type="primary">
-            <template #icon><PlusOutlined /></template>
+            <template #icon>
+              <PlusOutlined />
+            </template>
             添加字段
             <DownOutlined />
           </a-button>
@@ -52,14 +62,21 @@
             {{ getFieldTypeLabel(field.type) }}
           </a-tag>
           <div class="field-actions">
-            <a-button size="small" @click="moveField(index, -1)" :disabled="index === 0">
-              <template #icon><UpOutlined /></template>
+            <a-button :disabled="index === 0" size="small" @click="moveField(index, -1)">
+              <template #icon>
+                <UpOutlined />
+              </template>
             </a-button>
-            <a-button size="small" @click="moveField(index, 1)" :disabled="index === fields.length - 1">
-              <template #icon><DownOutlined /></template>
+            <a-button :disabled="index === fields.length - 1" size="small"
+                      @click="moveField(index, 1)">
+              <template #icon>
+                <DownOutlined />
+              </template>
             </a-button>
             <a-button danger size="small" @click="removeField(index)">
-              <template #icon><DeleteOutlined /></template>
+              <template #icon>
+                <DeleteOutlined />
+              </template>
             </a-button>
           </div>
         </div>
@@ -93,7 +110,8 @@
             <div class="field-input-group">
               <label>选项列表</label>
               <div class="options-editor">
-                <div v-for="(option, optIndex) in field.options" :key="optIndex" class="option-item">
+                <div v-for="(option, optIndex) in field.options" :key="optIndex"
+                     class="option-item">
                   <a-input
                     v-model:value="field.options[optIndex]"
                     placeholder="选项值"
@@ -104,11 +122,15 @@
                     size="small"
                     @click="removeOption(field, optIndex)"
                   >
-                    <template #icon><DeleteOutlined /></template>
+                    <template #icon>
+                      <DeleteOutlined />
+                    </template>
                   </a-button>
                 </div>
-                <a-button size="small" @click="addOption(field)" style="width: 100%;">
-                  <template #icon><PlusOutlined /></template>
+                <a-button size="small" style="width: 100%;" @click="addOption(field)">
+                  <template #icon>
+                    <PlusOutlined />
+                  </template>
                   添加选项
                 </a-button>
               </div>
@@ -118,8 +140,8 @@
               <a-select
                 v-model:value="field.defaultValue"
                 :options="field.options?.map(o => ({ value: o, label: o }))"
-                placeholder="选择默认值"
                 allow-clear
+                placeholder="选择默认值"
                 @change="emitChange"
               />
             </div>
@@ -192,7 +214,9 @@
       <div class="json-header">
         <span>JSON 预览</span>
         <a-button size="small" @click="copyJSON">
-          <template #icon><CopyOutlined /></template>
+          <template #icon>
+            <CopyOutlined />
+          </template>
           复制
         </a-button>
       </div>
@@ -233,7 +257,7 @@ watch(() => props.modelValue, (val) => {
     fields.value = []
     return
   }
-  
+
   try {
     const parsed = JSON.parse(val)
     if (Array.isArray(parsed)) {
@@ -284,7 +308,7 @@ const removeField = (index: number) => {
 const moveField = (index: number, direction: number) => {
   const newIndex = index + direction
   if (newIndex < 0 || newIndex >= fields.value.length) return
-  
+
   const temp = fields.value[index]
   fields.value[index] = fields.value[newIndex]
   fields.value[newIndex] = temp

@@ -6,7 +6,7 @@ import request from '@/request'
 export async function checkUserHealth(options?: { [key: string]: any }) {
   return request<any>('/user/health/check', {
     method: 'GET',
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -14,7 +14,7 @@ export async function checkUserHealth(options?: { [key: string]: any }) {
 export async function checkGeneratorHealth(options?: { [key: string]: any }) {
   return request<any>('/app/health/check', {
     method: 'GET',
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -22,7 +22,7 @@ export async function checkGeneratorHealth(options?: { [key: string]: any }) {
 export async function checkFileHealth(options?: { [key: string]: any }) {
   return request<any>('/file/health/check', {
     method: 'GET',
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -30,7 +30,7 @@ export async function checkFileHealth(options?: { [key: string]: any }) {
 export async function checkPromptHealth(options?: { [key: string]: any }) {
   return request<any>('/systemPrompt/health/check', {
     method: 'GET',
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -38,7 +38,7 @@ export async function checkPromptHealth(options?: { [key: string]: any }) {
 export async function checkSocialHealth(options?: { [key: string]: any }) {
   return request<any>('/social/health/check', {
     method: 'GET',
-    ...(options || {}),
+    ...(options || {})
   })
 }
 

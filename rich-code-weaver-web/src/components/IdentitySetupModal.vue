@@ -1,13 +1,13 @@
 <template>
   <a-modal
-    :open="visible"
     :closable="false"
+    :footer="null"
     :keyboard="false"
     :maskClosable="false"
-    :footer="null"
-    width="480px"
+    :open="visible"
     centered
     class="identity-modal"
+    width="480px"
   >
     <div class="identity-modal-body">
       <div class="identity-header">
@@ -16,34 +16,34 @@
         <p class="identity-sub">完善身份信息后即可开始对话，系统将为您推荐专属模板</p>
       </div>
 
-      <a-form layout="vertical" class="identity-form">
+      <a-form class="identity-form" layout="vertical">
         <a-form-item label="您的身份" required>
           <a-select
             v-model:value="form.userIdentity"
+            :options="identitySelectOptions"
             placeholder="请选择您的身份"
             size="large"
-            :options="identitySelectOptions"
           />
         </a-form-item>
 
         <a-form-item label="所属行业领域" required>
           <a-auto-complete
             v-model:value="form.userIndustry"
+            :filter-option="filterIndustry"
             :options="industryAutoOptions"
             placeholder="请选择或输入您的行业领域"
             size="large"
-            :filter-option="filterIndustry"
           />
         </a-form-item>
       </a-form>
 
       <a-button
-        type="primary"
-        size="large"
+        :disabled="!form.userIdentity || !form.userIndustry"
+        :loading="submitting"
         block
         class="identity-submit"
-        :loading="submitting"
-        :disabled="!form.userIdentity || !form.userIndustry"
+        size="large"
+        type="primary"
         @click="handleSubmit"
       >
         开始使用

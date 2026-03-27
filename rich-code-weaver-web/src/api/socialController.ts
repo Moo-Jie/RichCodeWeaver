@@ -12,7 +12,7 @@ export async function getAppHotStat(
   return request<API.BaseResponseAppHotStatVO>('/social/hotStat/get', {
     method: 'GET',
     params: { ...params },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -25,7 +25,7 @@ export async function listHotApps(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -39,7 +39,7 @@ export async function toggleAppLike(
   return request<API.BaseResponseBoolean>('/social/like', {
     method: 'POST',
     params: { ...params },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -53,7 +53,7 @@ export async function toggleAppFavorite(
   return request<API.BaseResponseBoolean>('/social/favorite', {
     method: 'POST',
     params: { ...params },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -66,7 +66,7 @@ export async function listMyFavorites(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -80,7 +80,7 @@ export async function doAppShare(
   return request<API.BaseResponseBoolean>('/social/share', {
     method: 'POST',
     params: { ...params },
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -95,7 +95,7 @@ export async function addAppComment(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -108,7 +108,7 @@ export async function deleteAppComment(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -121,7 +121,7 @@ export async function listAppCommentByPage(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {}),
+    ...(options || {})
   })
 }
 
@@ -133,6 +133,6 @@ export async function toggleCommentLike(
   return request<API.BaseResponseBoolean>('/social/comment/like', {
     method: 'POST',
     params: { ...params },
-    ...(options || {}),
+    ...(options || {})
   })
 }

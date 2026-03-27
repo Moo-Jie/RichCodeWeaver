@@ -85,7 +85,7 @@ public class AiCodeGeneratorTypeStrategyNode {
                     String promptForStrategy = context.getEnhancedPrompt() != null ? context.getEnhancedPrompt() : context.getOriginalPrompt();
                     finalType = aiCodeGeneratorTypeStrategyService.getCodeGenStrategy(promptForStrategy);
                     log.info("AI 智能选择代码生成方案: {} ({})", finalType.getValue(), finalType.getText());
-                    
+
                     // 更新数据库中的 codeGenType 为 AI 判断后的实际类型
                     context.updateAppCodeGenType(finalType);
                 } else {

@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.rich.common.constant.UserConstant.*;
+
 /**
  * 用户服务层实现
  * 实现用户注册、登录、信息管理等核心业务逻辑

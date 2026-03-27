@@ -6,7 +6,6 @@ import com.rich.app.service.DownloadCodeFileService;
 import com.rich.common.constant.AppConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
-import com.rich.common.exception.ThrowUtils;
 import com.rich.model.entity.App;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -91,7 +90,7 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
             log.warn("路径过滤失败：路径参数为空");
             return false;
         }
-        
+
         try {
             // 计算相对于项目根目录的相对路径
             Path relativePath = projectRoot.relativize(fullPath);
@@ -99,7 +98,7 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
             // 遍历路径的每一部分，检查是否需要过滤
             for (Path pathSegment : relativePath) {
                 String segmentName = pathSegment.toString();
-                
+
                 // 空值保护
                 if (segmentName == null || segmentName.isEmpty()) {
                     continue;
@@ -115,7 +114,7 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
                 if (pathSegment.equals(relativePath.getFileName())) {
                     // 将文件名转换为小写进行大小写不敏感的扩展名匹配
                     String fileNameLowerCase = segmentName.toLowerCase();
-                    
+
                     // 检查文件扩展名是否在过滤列表中（如 .log、.map 等）
                     boolean shouldFilter = IGNORED_EXTENSIONS.stream()
                             .anyMatch(fileNameLowerCase::endsWith);
@@ -125,11 +124,11 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
                     }
                 }
             }
-            
+
             // 路径通过过滤，允许打包
             return true;
         } catch (Exception e) {
-            log.error("路径过滤异常: projectRoot={}, fullPath={}, error={}", 
+            log.error("路径过滤异常: projectRoot={}, fullPath={}, error={}",
                     projectRoot, fullPath, e.getMessage());
             return false;
         }
@@ -155,24 +154,24 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
             log.error("下载代码压缩包失败：响应对象为空 - appId={}", app.getId());
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "响应对象为空");
         }
-        
+
         Long appId = app.getId();
         String codeGenType = app.getCodeGenType();
-        
+
         // 步骤1：构建代码输出目录的绝对路径并校验
         String absoluteDirPath = buildCodeAbsolutePath(app);
         File projectDir = new File(absoluteDirPath);
-        
+
         // 再次校验目录是否存在且为目录（双重保护）
         if (!projectDir.exists() || !projectDir.isDirectory()) {
-            log.error("下载代码压缩包失败：项目目录不存在或不是目录 - appId={}, path={}", 
+            log.error("下载代码压缩包失败：项目目录不存在或不是目录 - appId={}, path={}",
                     appId, absoluteDirPath);
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "项目目录不存在，请先生成代码");
         }
 
         // 步骤2：构建压缩包文件名（格式：appId_codeGenType.zip）
         String zipFileName = appId + "_" + codeGenType;
-        log.info("开始下载代码压缩包: appId={}, zipFileName={}, projectDir={}", 
+        log.info("开始下载代码压缩包: appId={}, zipFileName={}, projectDir={}",
                 appId, zipFileName, absoluteDirPath);
 
         // 步骤3：设置 HTTP 响应头，告诉浏览器这是一个下载文件
@@ -199,13 +198,13 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
                     false,                       // 不递归压缩子目录（由过滤器控制递归逻辑）
                     fileFilter,                  // 文件过滤器（过滤node_modules等不必要文件）
                     projectDir);                 // 要压缩的项目目录
-            
+
             log.info("项目代码文件压缩包下载完成: appId={}, zipFileName={}", appId, zipFileName);
         } catch (Exception e) {
             // 记录错误日志并抛出业务异常
-            log.error("项目代码文件压缩包下载失败: appId={}, zipFileName={}, error={}", 
+            log.error("项目代码文件压缩包下载失败: appId={}, zipFileName={}, error={}",
                     appId, zipFileName, e.getMessage(), e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, 
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,
                     "项目代码文件压缩包下载失败： " + e.getMessage());
         }
     }
@@ -225,10 +224,10 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
             log.error("构建代码路径失败：产物对象为空");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "产物对象为空");
         }
-        
+
         Long appId = app.getId();
         String codeGenType = app.getCodeGenType();
-        
+
         // 校验产物ID和代码生成类型
         if (appId == null || appId <= 0) {
             log.error("构建代码路径失败：产物ID无效 - appId={}", appId);
@@ -238,31 +237,31 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
             log.error("构建代码路径失败：代码生成类型为空 - appId={}", appId);
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "代码生成类型为空");
         }
-        
+
         // 构建代码输出目录的绝对路径（格式：根目录/codeGenType_appId）
-        String absoluteDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR 
-                + File.separator 
+        String absoluteDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR
+                + File.separator
                 + codeGenType
-                + "_" 
+                + "_"
                 + appId;
-        
+
         // 路径校验：确保目录存在且是有效目录
         File sourceDir = new File(absoluteDirPath);
-        
+
         // 校验目录是否存在
         if (!sourceDir.exists()) {
             log.error("构建代码路径失败：目录不存在 - appId={}, path={}", appId, absoluteDirPath);
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, 
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR,
                     "项目资源所在目录不存在，请先生成代码");
         }
-        
+
         // 校验是否为目录
         if (!sourceDir.isDirectory()) {
             log.error("构建代码路径失败：路径不是目录 - appId={}, path={}", appId, absoluteDirPath);
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, 
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,
                     "项目资源路径异常，请联系管理员");
         }
-        
+
         log.debug("构建代码路径成功: appId={}, path={}", appId, absoluteDirPath);
         return absoluteDirPath;
     }

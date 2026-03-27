@@ -6,13 +6,13 @@
         <a class="social-link"
            href="https://github.com/Moo-Jie"
            target="_blank">
-          <GithubOutlined/>
+          <GithubOutlined />
         </a>
         <a class="social-link" href="#" target="_blank">
-          <WeiboOutlined/>
+          <WeiboOutlined />
         </a>
         <a class="social-link" href="#" target="_blank">
-          <WechatOutlined/>
+          <WechatOutlined />
         </a>
       </div>
 

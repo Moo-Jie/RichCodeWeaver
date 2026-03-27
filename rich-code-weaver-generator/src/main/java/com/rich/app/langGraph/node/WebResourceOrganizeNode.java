@@ -32,17 +32,17 @@ public class WebResourceOrganizeNode {
             log.info("产物ID: {}", context.getAppId());
             log.info("原始提示词: {}", context.getOriginalPrompt());
             log.info("========================================\n");
-            
+
             // 单独调用专精于网络资源整理的 AI 模型服务获取网络资源
             try {
                 AiWebResourceOrganizeService aiWebResourceOrganizeService = SpringContextUtil.getBean(AiWebResourceOrganizeService.class);
                 log.info("[网络资源整理节点] 正在调用 AI 网络资源整理服务...");
-                
+
                 String webResourceListStr = aiWebResourceOrganizeService.webResource(context.getOriginalPrompt());
-                
+
                 // 录入工作流状态
                 context.setWebResourceListStr(webResourceListStr);
-                
+
                 long duration = System.currentTimeMillis() - startTime;
                 log.info("\n========================================");
                 log.info("[网络资源整理节点] 执行成功");
@@ -50,7 +50,7 @@ public class WebResourceOrganizeNode {
                 log.info("整理结果长度: {} 字符", webResourceListStr != null ? webResourceListStr.length() : 0);
                 log.info("整理结果内容: {}", webResourceListStr != null && webResourceListStr.length() > 200 ? webResourceListStr.substring(0, 200) + "..." : webResourceListStr);
                 log.info("========================================\n");
-                
+
             } catch (Exception e) {
                 long duration = System.currentTimeMillis() - startTime;
                 log.error("\n========================================");
@@ -61,7 +61,7 @@ public class WebResourceOrganizeNode {
                 log.error("异常消息: {}", e.getMessage());
                 log.error("详细堆栈信息:", e);
                 log.error("========================================\n");
-                
+
                 context.setErrorMessage("网络资源整理节点运行失败: " + e.getMessage());
                 return WorkflowContext.saveContext(context);
             }

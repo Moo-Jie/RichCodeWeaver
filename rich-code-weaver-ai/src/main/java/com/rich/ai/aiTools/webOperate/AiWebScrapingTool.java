@@ -35,21 +35,21 @@ public class AiWebScrapingTool extends BaseTool {
     public String getResultMsg(JSONObject arguments) {
         // 从参数中提取网页URL
         String scrapUrl = arguments.getStr("ScrapUrl");
-        
+
         // 处理URL为空的情况
         if (scrapUrl == null || scrapUrl.trim().isEmpty()) {
             return "[工具调用结束] 成功抓取网页内容";
         }
-        
+
         // 对超长URL进行截取（避免日志过长）
         String displayUrl = scrapUrl;
         if (scrapUrl.length() > 100) {
             displayUrl = scrapUrl.substring(0, 100) + "...(超长省略)";
         }
-        
+
         // 格式化显示文本
         String formattedUrl = "\n[\n" + displayUrl + "\n]\n";
-        
+
         return String.format("[工具调用结束] %s %s", "成功抓取以下网页内容", formattedUrl);
     }
 
@@ -68,7 +68,7 @@ public class AiWebScrapingTool extends BaseTool {
             log.warn(errorMsg);
             return errorMsg;
         }
-        
+
         // 参数校验：检查URL格式是否合法（简单验证）
         String normalizedUrl = scrapUrl.trim();
         if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
@@ -76,33 +76,33 @@ public class AiWebScrapingTool extends BaseTool {
             log.warn(errorMsg);
             return errorMsg;
         }
-        
+
         try {
             log.info("开始抓取网页: {}", normalizedUrl);
-            
+
             // 使用Jsoup连接并获取网页纯文本内容（去除HTML标签，减少噪音）
             String textContent = Jsoup.connect(normalizedUrl)
                     .timeout(10000)  // 设置10秒超时时间
                     .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")  // 设置User-Agent
                     .get()
                     .text();
-            
+
             // 检查抓取到的内容是否为空
             if (textContent == null || textContent.trim().isEmpty()) {
                 String warningMsg = "警告：抓取到的网页内容为空 - " + normalizedUrl;
                 log.warn(warningMsg);
                 return warningMsg;
             }
-            
+
             // 截取前2000个字符（提供足够的上下文信息）
             int maxLength = 2000;
             String truncatedContent = textContent.substring(0, Math.min(textContent.length(), maxLength));
-            
-            log.info("成功抓取网页: {}, 纯文本长度: {} 字符（已截取至 {} 字符）", 
+
+            log.info("成功抓取网页: {}, 纯文本长度: {} 字符（已截取至 {} 字符）",
                     normalizedUrl, textContent.length(), truncatedContent.length());
-            
+
             return truncatedContent;
-            
+
         } catch (IOException e) {
             // 捕获IO异常（网络错误、连接超时、404等）
             String errorMsg = String.format("网页抓取失败: %s, 错误: %s", normalizedUrl, e.getMessage());
