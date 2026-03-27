@@ -83,6 +83,64 @@
       </template>
     </a-table>
 
+    <!-- RAG 参数配置 -->
+    <a-card class="params-panel" :loading="paramsLoading">
+      <div class="params-header">
+        <h2>RAG 参数配置</h2>
+        <p class="params-sub">动态调整向量化、检索和注入各阶段参数，修改后立即生效（无需重新索引）</p>
+      </div>
+
+      <div v-if="paramGroups.length > 0">
+        <div v-for="group in paramGroups" :key="group.key" class="param-group">
+          <div class="param-group-title">
+            <a-tag :color="group.color">{{ group.label }}</a-tag>
+            <span class="param-group-desc">{{ group.desc }}</span>
+          </div>
+          <div v-for="param in group.params" :key="param.id" class="param-row">
+            <div class="param-meta">
+              <span class="param-name">{{ param.paramName }}</span>
+              <span class="param-desc">{{ param.description }}</span>
+            </div>
+            <div class="param-input-area">
+              <a-input-number
+                v-if="param.paramType === 'int'"
+                v-model:value="paramDrafts[param.paramKey || '']"
+                :min="1"
+                :precision="0"
+                style="width: 120px"
+              />
+              <a-input-number
+                v-else-if="param.paramType === 'double'"
+                v-model:value="paramDrafts[param.paramKey || '']"
+                :min="0"
+                :max="1"
+                :step="0.05"
+                :precision="2"
+                style="width: 120px"
+              />
+              <a-textarea
+                v-else-if="param.paramType === 'textarea'"
+                v-model:value="paramDrafts[param.paramKey || '']"
+                :rows="5"
+                :style="{ width: '100%', fontFamily: 'monospace', fontSize: '12px' }"
+                placeholder="模板需包含 {{userMessage}} 和 {{contents}} 占位符"
+              />
+              <a-button
+                type="primary"
+                size="small"
+                class="param-save-btn"
+                :loading="paramSaving[param.paramKey || '']"
+                @click="handleSaveParam(param)"
+              >
+                保存
+              </a-button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <a-empty v-else description="暂无参数配置（请检查 rag_param 表是否已初始化）" />
+    </a-card>
+
     <!-- 新增/编辑元数据模态框 -->
     <a-modal
       v-model:open="metaModalVisible"
@@ -241,6 +299,7 @@ import {
   reindexRagDocuments,
   updateRagDocument
 } from '@/api/ragDocumentController'
+import { listRagParams, updateRagParam } from '@/api/ragParamController'
 
 // ── 通用状态 ──────────────────────────────────────────────
 const loading = ref(false)
@@ -553,7 +612,76 @@ const handleDelete = async (id: number) => {
 
 onMounted(() => {
   fetchData()
+  fetchParams()
 })
+
+// ── RAG 参数配置 ──────────────────────────────────────────
+const paramsLoading = ref(false)
+const rawParams = ref<API.RagParamVO[]>([])
+const paramDrafts = reactive<Record<string, any>>({})
+const paramSaving = reactive<Record<string, boolean>>({})
+
+const groupMeta: Record<string, { label: string; color: string; desc: string }> = {
+  etl: { label: 'ETL 切分', color: 'blue', desc: '文档收集与切片阶段参数（修改后需重新刷新向量数据库才能生效）' },
+  retrieval: { label: '向量检索', color: 'purple', desc: '向量搜索阶段参数（实时生效，无需重新索引）' },
+  injection: { label: '提示词注入', color: 'cyan', desc: 'RAG 内容注入到提示词的模板（实时生效，无需重新索引）' }
+}
+
+const paramGroups = computed(() => {
+  const groups: { key: string; label: string; color: string; desc: string; params: API.RagParamVO[] }[] = []
+  const order = ['etl', 'retrieval', 'injection']
+  for (const key of order) {
+    const params = rawParams.value.filter(p => p.paramGroup === key)
+    if (params.length > 0) {
+      groups.push({ key, ...groupMeta[key], params })
+    }
+  }
+  return groups
+})
+
+const fetchParams = async () => {
+  paramsLoading.value = true
+  try {
+    const res = await listRagParams()
+    if (res.data.code === 0 && res.data.data) {
+      rawParams.value = res.data.data
+      res.data.data.forEach(p => {
+        if (p.paramKey) {
+          paramDrafts[p.paramKey] = p.paramType === 'int'
+            ? Number(p.paramValue)
+            : p.paramType === 'double'
+              ? Number(p.paramValue)
+              : p.paramValue
+        }
+      })
+    }
+  } catch (e) {
+    console.error('加载 RAG 参数失败', e)
+  } finally {
+    paramsLoading.value = false
+  }
+}
+
+const handleSaveParam = async (param: API.RagParamVO) => {
+  const key = param.paramKey
+  if (!key) return
+  paramSaving[key] = true
+  try {
+    const newVal = String(paramDrafts[key])
+    const res = await updateRagParam({ id: param.id, paramValue: newVal })
+    if (res.data.code === 0) {
+      message.success(`「${param.paramName}」已保存`)
+      const target = rawParams.value.find(p => p.paramKey === key)
+      if (target) target.paramValue = newVal
+    } else {
+      message.error('保存失败：' + res.data.message)
+    }
+  } catch (e: any) {
+    message.error('保存失败：' + (e.message || '请重试'))
+  } finally {
+    paramSaving[key] = false
+  }
+}
 </script>
 
 <style lang="less" scoped>
@@ -903,6 +1031,111 @@ onMounted(() => {
 
   :deep(.ant-btn) {
     min-width: 100px;
+  }
+}
+
+// ── RAG 参数配置面板 ──────────────────────────────────────
+.params-panel {
+  margin-top: 24px;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+}
+
+.params-header {
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f0f0f0;
+
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 4px;
+  }
+}
+
+.params-sub {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+.param-group {
+  margin-bottom: 28px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.param-group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.param-group-desc {
+  font-size: 12px;
+  color: #999;
+}
+
+.param-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #f5f5f5;
+  background: #fafafa;
+  margin-bottom: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.param-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.param-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.param-desc {
+  font-size: 12px;
+  color: #999;
+  line-height: 1.5;
+}
+
+.param-input-area {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 200px;
+  max-width: 520px;
+  width: 100%;
+  flex-direction: row;
+}
+
+.param-save-btn {
+  flex-shrink: 0;
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
+  color: #fff !important;
+  border-radius: 6px !important;
+
+  &:hover {
+    background: #333 !important;
+    border-color: #333 !important;
   }
 }
 </style>

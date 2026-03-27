@@ -13,6 +13,7 @@ import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
@@ -35,29 +36,20 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
 public class RagContentRetrieverAugmentorFactory {
 
     /**
-     * 检索结果的最大返回数量
-     * 返回 Top-5 最相关的文档片段注入到提示词中
-     * 过多会增加 token 消耗和噪声，过少可能遗漏关键信息
+     * 兜底提示词模板（当数据库无配置时使用）
      **/
-    private static final int MAX_RESULTS = 5;
-
-    /**
-     * 检索结果的最低相似度分数阈值（余弦相似度，范围 0~1）
-     * 低于此阈值的结果会被过滤掉，避免注入与用户查询关联度低的内容
-     * 0.6 是相对保守的阈值，能有效过滤无关内容同时保留有用信息
-     **/
-    private static final double MIN_SCORE = 0.6;
-
-    /**
-     * RAG 内容注入的提示词模板
-     * 将检索到的知识库内容以权威参考信息的形式附加到用户消息之后
-     **/
-    private static final String RAG_INJECTION_PROMPT_TEMPLATE =
+    private static final String DEFAULT_INJECTION_TEMPLATE =
             "{{userMessage}}\n\n" +
                     "---\n" +
                     "【权威参考知识】以下内容来自系统知识库，是你生成代码时必须严格遵循的开发规范与约束，不可违反或忽略：\n\n" +
                     "{{contents}}\n" +
                     "---";
+
+    /**
+     * RAG 参数提供者（动态从数据库加载参数，可选注入）
+     **/
+    @Autowired(required = false)
+    private RagParamProvider ragParamProvider;
 
     /**
      * Embedding 向量模型，检索阶段用于将用户查询向量化
@@ -88,11 +80,16 @@ public class RagContentRetrieverAugmentorFactory {
 
         // 1.构建 ContentRetriever（内容检索器）
         // 基于 PGVector 的向量相似度检索，附加 codeGenType 元数据过滤
+        int maxResults = ragParamProvider != null ? ragParamProvider.getMaxResults() : 5;
+        double minScore = ragParamProvider != null ? ragParamProvider.getMinScore() : 0.6;
+        String injectionTemplate = ragParamProvider != null
+                ? ragParamProvider.getInjectionPromptTemplate() : DEFAULT_INJECTION_TEMPLATE;
+
         ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingStore(embeddingStore)       // 向量存储（PGVector）
                 .embeddingModel(embeddingModel)       // 向量模型（用于查询向量化）
-                .maxResults(MAX_RESULTS)              // 最多返回 5 个最相关的片段
-                .minScore(MIN_SCORE)                  // 最低相似度阈值，过滤不相关内容
+                .maxResults(maxResults)               // 最大检索结果数（从 DB 动态加载）
+                .minScore(minScore)                   // 最低相似度阈值（从 DB 动态加载）
                 // 元数据过滤器：只检索与当前代码生成类型匹配的知识库文档片段
                 // 或者匹配通用类型（GENERAL）的文档，确保通用规范也能被检索到
                 .filter(metadataKey("codeGenType").isEqualTo(codeGenTypeName)
@@ -102,8 +99,8 @@ public class RagContentRetrieverAugmentorFactory {
         // 2.构建 ContentInjector（内容注入器）
         // 使用自定义提示词模板，将检索到的知识库内容以权威参考形式注入用户消息
         ContentInjector contentInjector = DefaultContentInjector.builder()
-                // 自定义注入模板，明确标注为权威参考知识
-                .promptTemplate(PromptTemplate.from(RAG_INJECTION_PROMPT_TEMPLATE))
+                // 自定义注入模板（从 DB 动态加载）
+                .promptTemplate(PromptTemplate.from(injectionTemplate))
                 // 在注入内容中包含来源文件名元数据，方便追溯和调试
                 .metadataKeysToInclude(List.of("source", "title"))
                 .build();
@@ -117,7 +114,7 @@ public class RagContentRetrieverAugmentorFactory {
                 .build();
 
         log.info("【RAG 检索增强】RetrievalAugmentor 创建完成，codeGenType={}, maxResults={}, minScore={}",
-                codeGenTypeName, MAX_RESULTS, MIN_SCORE);
+                codeGenTypeName, maxResults, minScore);
 
         return augmentor;
     }

@@ -636,4 +636,35 @@ declare namespace API {
     data?: PageRagDocumentVO
     message?: string
   }
+
+  // ===== RAG Param Types =====
+
+  type RagParamVO = {
+    id?: number
+    paramKey?: string
+    paramName?: string
+    paramValue?: string
+    paramType?: string
+    paramGroup?: string
+    description?: string
+    sortOrder?: number
+    updateTime?: string
+  }
+
+  type RagParamUpdateRequest = {
+    id?: number
+    paramValue?: string
+  }
+
+  type BaseResponseListRagParamVO = {
+    code?: number
+    data?: RagParamVO[]
+    message?: string
+  }
+
+  type BaseResponseBoolean = {
+    code?: number
+    data?: boolean
+    message?: string
+  }
 }

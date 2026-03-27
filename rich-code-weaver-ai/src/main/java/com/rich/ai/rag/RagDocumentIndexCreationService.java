@@ -42,20 +42,6 @@ import java.util.Map;
 public class RagDocumentIndexCreationService {
 
     /**
-     * 文档切分参数：每个文本片段的最大字符数
-     * 500 个中文字符约等于 200-300 个 token，能覆盖一个完整的小节内容
-     * 过大则检索精度下降（噪声增多），过小则丢失上下文（信息不完整）
-     **/
-    private static final int MAX_SEGMENT_SIZE_IN_CHARS = 500;
-
-    /**
-     * 文档切分参数：相邻片段之间的重叠字符数
-     * 重叠部分用于保留跨片段的上下文连续性，避免关键信息因切分而断裂
-     * 50 个字符约为片段大小的 10%，兼顾上下文保留和存储效率
-     **/
-    private static final int MAX_OVERLAP_SIZE_IN_CHARS = 50;
-
-    /**
      * 文件名前缀 → 代码生成类型的映射表
      * 用于自动识别知识库文档对应的代码生成类型
      * key: 文件名中的关键字（匹配规则：文件名包含该关键字）
@@ -91,6 +77,12 @@ public class RagDocumentIndexCreationService {
      **/
     @Autowired
     private RagDocumentProvider ragDocumentProvider;
+
+    /**
+     * RAG 参数提供者（动态从数据库加载参数，可选注入）
+     **/
+    @Autowired(required = false)
+    private RagParamProvider ragParamProvider;
 
     /**
      * 应用启动完成后自动执行文档摄入检查
@@ -158,9 +150,12 @@ public class RagDocumentIndexCreationService {
         // 使用递归分割器，按照 Markdown 文档结构进行智能切分
         // 切分优先级：段落（\n\n）→ 行（\n）→ 空格 → 字符
         // 这样能最大程度保持文档的语义完整性
+        int maxSegmentSize = ragParamProvider != null ? ragParamProvider.getMaxSegmentSize() : 500;
+        int maxOverlapSize = ragParamProvider != null ? ragParamProvider.getMaxOverlapSize() : 50;
+        log.info("【RAG 文档摄入】切分参数：maxSegmentSize={}, maxOverlapSize={}", maxSegmentSize, maxOverlapSize);
         DocumentSplitter splitter = DocumentSplitters.recursive(
-                MAX_SEGMENT_SIZE_IN_CHARS,   // 每个片段最大 500 个字符
-                MAX_OVERLAP_SIZE_IN_CHARS    // 相邻片段重叠 50 个字符
+                maxSegmentSize,   // 每个片段最大字符数（从 DB 动态加载）
+                maxOverlapSize    // 相邻片段重叠字符数（从 DB 动态加载）
         );
 
         // 5.使用 EmbeddingStoreIngestor 执行摄入管道
