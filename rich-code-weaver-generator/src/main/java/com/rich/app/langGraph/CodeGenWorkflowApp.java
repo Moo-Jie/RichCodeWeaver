@@ -71,7 +71,7 @@ public class CodeGenWorkflowApp {
 
     /**
      * 创建完整的工作流
-     * 工作流包含以下步骤：网络资源整理 → 图片资源采集 → 提示词增强 → 代码类型策略 → 代码生成 → AI代码审查 → 项目构建(条件性)
+     * 工作流包含以下步骤：资源收集(并行) → 提示词增强 → 代码类型策略 → 代码生成 → AI代码审查 → 项目构建(条件性)
      *
      * @return CompiledGraph<MessagesState < String>> 编译后的工作流实例
      * @throws BusinessException 当工作流创建失败时抛出
@@ -82,10 +82,8 @@ public class CodeGenWorkflowApp {
         try {
             return new MessagesStateGraph<String>()
                     // 添加工作流节点
-                    // 网络资源采集节点：收集与项目相关的网络资源
-                    .addNode("web_resource_organizer", WebResourceOrganizeNode.create())
-                    // 图片采集节点：收集与项目相关的图像资源（单独调用专精于图片收集的 AI 模型）
-                    .addNode("image_collector", ImageResourceNode.create())
+                    // 资源收集合并节点：并行执行网络资源整理和图片资源收集
+                    .addNode("resource_collector", ResourceCollectorNode.create())
                     // 提示词增强节点：优化和丰富原始提示词
                     .addNode("prompt_enhancer", PromptEnhancerNode.create())
                     // AI 自主选择代码类型节点：确定最适合的代码生成类型
@@ -98,9 +96,8 @@ public class CodeGenWorkflowApp {
                     .addNode("project_builder", ProjectBuilderNode.create())
 
                     // 添加边，连接节点形成工作流
-                    .addEdge(START, "web_resource_organizer")  // 起始节点到网络资源整理
-                    .addEdge("web_resource_organizer", "image_collector")  // 网络资源整理到图片采集
-                    .addEdge("image_collector", "prompt_enhancer")  // 图片采集到提示词增强
+                    .addEdge(START, "resource_collector")  // 起始节点到资源收集（并行）
+                    .addEdge("resource_collector", "prompt_enhancer")  // 资源收集到提示词增强
                     .addEdge("prompt_enhancer", "ai_code_generator_type_strategy")  // 提示词增强到类型策略
                     .addEdge("ai_code_generator_type_strategy", "code_generator")  // 类型策略到代码生成
                     .addEdge("code_generator", "ai_code_reviewer")  // 代码生成到代码审查
@@ -202,7 +199,7 @@ public class CodeGenWorkflowApp {
                     CompiledGraph<MessagesState<String>> workflow;
                     if (isModification) {
                         workflow = createModificationWorkflow();
-                        emitStreamText(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_START -->\n\n" +
+                        emitStreamBlock(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_START -->\n\n" +
                                 "# \uD83D\uDD04 代码修改 Agent 启动\n\n" +
                                 "---\n\n");
                     } else {
@@ -218,18 +215,17 @@ public class CodeGenWorkflowApp {
                                 "| 执行模式 | **分布式工作流** |\n" +
                                 "| 原始需求 | " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + " |\n\n" +
                                 "</div>\n\n";
-                        emitStreamText(sink, aiResponseBuilder, startInfo);
-                        emitStreamText(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_EXECUTION_START -->\n\n" +
+                        emitStreamBlock(sink, aiResponseBuilder, startInfo);
+                        emitStreamBlock(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_EXECUTION_START -->\n\n" +
                                 "## \uD83D\uDCCB 工作流执行计划\n\n" +
                                 "<div class='workflow-steps'>\n\n" +
                                 "**执行阶段:**\n\n" +
-                                "1. \uD83C\uDF10 网络资源整理\n" +
-                                "2. \uD83D\uDDBC\uFE0F 图片资源收集\n" +
-                                "3. ✨ 提示词智能增强\n" +
-                                "4. \uD83C\uDFAF 代码类型策略分析\n" +
-                                "5. \uD83D\uDCBB AI 代码生成\n" +
-                                "6. \uD83D\uDD0D 代码质量审查\n" +
-                                "7. \uD83C\uDFD7\uFE0F 项目构建部署\n\n" +
+                                "1. \uD83C\uDF10 资源收集（网络资源 + 图片资源并行）\n" +
+                                "2. ✨ 提示词智能增强\n" +
+                                "3. \uD83C\uDFAF 代码类型策略分析\n" +
+                                "4. \uD83D\uDCBB AI 代码生成\n" +
+                                "5. \uD83D\uDD0D 代码质量审查\n" +
+                                "6. \uD83C\uDFD7\uFE0F 项目构建部署\n\n" +
                                 "</div>\n\n" +
                                 "---\n\n");
                     }
@@ -255,30 +251,21 @@ public class CodeGenWorkflowApp {
                             
                             // 根据节点类型输出特定信息，采用更清晰的展示格式
                             switch (nodeName) {
-                                case "web_resource_organizer":
-                                    stepInfo.append("**🌐 网络资源整理节点**\n\n");
+                                case "resource_collector":
+                                    stepInfo.append("**🌐 资源收集节点（并行执行）**\n\n");
                                     String webResource = currentContext.getWebResourceListStr();
+                                    String imageResource = currentContext.getImageListStr();
                                     if (StrUtil.isNotBlank(webResource) && !"无".equals(webResource.trim())) {
-                                        int length = webResource.length();
-                                        stepInfo.append(String.format("- ✓ 整理完成：收集到 **%d** 字符的网络资源\n", length));
-                                        stepInfo.append("- ✓ 资源类型：文本素材、URL链接等\n");
-                                        stepInfo.append("- ✓ 状态：已整合到工作流上下文\n");
+                                        stepInfo.append(String.format("- ✓ 网络资源整理完成：收集到 **%d** 字符\n", webResource.length()));
                                     } else {
                                         stepInfo.append("- ℹ️ 未找到相关网络资源或无需收集\n");
                                     }
-                                    break;
-                                    
-                                case "image_collector":
-                                    stepInfo.append("**🖼️ 图片资源收集节点**\n\n");
-                                    String imageResource = currentContext.getImageListStr();
                                     if (StrUtil.isNotBlank(imageResource) && !"无".equals(imageResource.trim())) {
-                                        int length = imageResource.length();
-                                        stepInfo.append(String.format("- ✓ 收集完成：获取到 **%d** 字符的图片资源信息\n", length));
-                                        stepInfo.append("- ✓ 资源来源：AI生成 + 网络搜索\n");
-                                        stepInfo.append("- ✓ 状态：已准备用于代码生成\n");
+                                        stepInfo.append(String.format("- ✓ 图片资源收集完成：获取到 **%d** 字符\n", imageResource.length()));
                                     } else {
                                         stepInfo.append("- ℹ️ 未找到相关图片资源或无需收集\n");
                                     }
+                                    stepInfo.append("- ✓ 执行模式：网络资源 + 图片资源**并行收集**\n");
                                     break;
                                     
                                 case "prompt_enhancer":
@@ -357,7 +344,7 @@ public class CodeGenWorkflowApp {
                             stepInfo.append("\n\n</div>\n\n");
                             stepInfo.append(String.format("<!-- NODE_END:%s -->\n\n", nodeName));
                             
-                            emitStreamText(sink, aiResponseBuilder, stepInfo.toString());
+                            emitStreamBlock(sink, aiResponseBuilder, stepInfo.toString());
                             log.info("当前步骤: {} - {}", nodeName, currentContext.getCurrentStep());
 
                             // 如果是项目构建节点，说明是最后一步，主动结束循环，防止流迭代器阻塞
@@ -386,7 +373,7 @@ public class CodeGenWorkflowApp {
                             "- 🚀 点击「部署」发布到线上\n" +
                             "- 💾 点击「下载」获取源代码\n\n" +
                             "</div>\n\n";
-                    emitStreamText(sink, aiResponseBuilder, completeInfo);
+                    emitStreamBlock(sink, aiResponseBuilder, completeInfo);
                     
                     log.info("代码生成工作流执行完成！产物ID: {}", appId);
                     sink.complete();
@@ -408,7 +395,7 @@ public class CodeGenWorkflowApp {
                             "3. 如问题持续，请联系技术支持\n\n" +
                             "</div>\n\n";
 
-                    emitStreamText(sink, aiResponseBuilder, errorInfo);
+                    emitStreamBlock(sink, aiResponseBuilder, errorInfo);
                     sink.error(e);
                 } finally {
                     // 确保流式输出发射器被注销，防止内存泄漏
@@ -426,7 +413,7 @@ public class CodeGenWorkflowApp {
     }
 
     /**
-     * 辅助方法：流式输出文本，模拟打字效果
+     * 辅助方法：流式输出文本，模拟打字效果（仅用于需要打字效果的场景，如 AI 代码生成流）
      *
      * @param sink            SSE事件流
      * @param aiResponseBuilder 响应内容构建器
@@ -444,6 +431,19 @@ public class CodeGenWorkflowApp {
             sink.next(ch);
             aiResponseBuilder.append(ch);
         });
+    }
+
+    /**
+     * 辅助方法：批量发送文本，一次性推送整段内容（用于工作流状态信息，无需模拟打字效果）
+     * 相比 emitStreamText 逐字符发送，可节省大量延迟时间
+     *
+     * @param sink            SSE事件流
+     * @param aiResponseBuilder 响应内容构建器
+     * @param text            需要输出的文本
+     */
+    private void emitStreamBlock(FluxSink<String> sink, StringBuilder aiResponseBuilder, String text) {
+        sink.next(text);
+        aiResponseBuilder.append(text);
     }
 
     /**

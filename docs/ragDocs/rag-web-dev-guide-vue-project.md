@@ -186,6 +186,18 @@ Vue 项目通过 package.json 管理依赖。可以使用的 npm 包需满足：
 - 禁止出现注释掉的代码块
 - 禁止出现 `placeholder` 样式的临时内容
 
+### 运行时错误防范（Vue 项目重点）
+
+Vue 项目中以下问题会导致构建失败或运行时白屏：
+
+- 组件内 `ref()` / `reactive()` 声明的响应式变量必须在模板中正确引用，名称必须一致
+- `v-for` 指令必须配合 `:key` 使用，且 key 值唯一
+- 组件 `import` 路径必须与实际创建的文件路径完全匹配（大小写敏感）
+- 路由配置中的 `component` 引用必须指向已创建的 `.vue` 文件
+- 父组件的 `components` 选项中必须注册所有使用的子组件（Options API 模式）
+- 禁止在模板中引用未在 `<script setup>` 或 `setup()` 中声明的变量/函数
+- 事件处理方法 `@click="methodName"` 中的 methodName 必须已定义
+
 ### 确保可运行
 
 - 所有组件的 import 路径必须正确
