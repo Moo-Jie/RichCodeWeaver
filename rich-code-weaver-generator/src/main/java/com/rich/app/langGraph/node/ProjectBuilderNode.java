@@ -1,7 +1,7 @@
 package com.rich.app.langGraph.node;
 
 import com.rich.app.langGraph.state.WorkflowContext;
-import com.rich.app.utils.deployWebProjectUtils.BuildWebProjectExecutor;
+import com.rich.common.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.utils.SpringContextUtil;

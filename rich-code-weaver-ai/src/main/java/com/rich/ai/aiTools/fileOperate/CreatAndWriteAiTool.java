@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 文件创建并写入工具，支持 AI 通过工具调用的创建并写入文件
@@ -24,6 +25,14 @@ import java.nio.file.StandardOpenOption;
 @Slf4j
 @Component
 public class CreatAndWriteAiTool extends BaseTool {
+
+    /**
+     * Agent 模式当前 appId 对应的代码生成类型缓存
+     * key: appId, value: codeGenType（如 single_html / multi_file / vue_project）
+     * 由 SetCodeGenTypeTool 调用 setCodeGenType 后更新
+     */
+    public static final ConcurrentHashMap<Long, String> APP_CODE_GEN_TYPE_CACHE = new ConcurrentHashMap<>();
+    
     @Override
     public String getToolName() {
         return "creatAndWrite";
@@ -87,7 +96,9 @@ public class CreatAndWriteAiTool extends BaseTool {
 
             // 如果不是绝对路径，则拼接项目根目录
             if (!targetPath.isAbsolute()) {
-                String projectDirName = "vue_project_" + appId;
+                // 从缓存获取当前代码生成类型，默认为 vue_project（工作流模式兼容）
+                String codeGenType = APP_CODE_GEN_TYPE_CACHE.getOrDefault(appId, "vue_project");
+                String projectDirName = codeGenType + "_" + appId;
                 Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
                 targetPath = projectRoot.resolve(relativeFilePath);
             }

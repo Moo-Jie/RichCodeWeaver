@@ -33,6 +33,10 @@ public class AppVO implements Serializable {
      */
     private String codeGenType;
     /**
+     * 生成模式：workflow(工作流模式) / agent(Agent自主模式)
+     */
+    private String genMode;
+    /**
      * 部署标识
      */
     private String deployKey;

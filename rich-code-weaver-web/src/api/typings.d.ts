@@ -2,6 +2,7 @@ declare namespace API {
   type AppAddRequest = {
     initPrompt?: string
     generatorType?: 'AI_STRATEGY' | 'HTML' | 'MULTI_FILE' | 'VUE_PROJECT'
+    genMode?: 'workflow' | 'agent'
   }
 
   type AppAdminUpdateRequest = {
@@ -46,6 +47,7 @@ declare namespace API {
     cover?: string
     initPrompt?: string
     codeGenType?: string
+    genMode?: 'workflow' | 'agent'
     deployKey?: string
     deployedTime?: string
     priority?: number

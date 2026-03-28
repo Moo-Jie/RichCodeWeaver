@@ -20,4 +20,10 @@ public class AppAddRequest implements Serializable {
      * 产物生成类型
      */
     private CodeGeneratorTypeEnum generatorType;
+
+    /**
+     * 生成模式：workflow(工作流模式) / agent(Agent自主模式)
+     * 默认为 workflow
+     */
+    private String genMode;
 } 

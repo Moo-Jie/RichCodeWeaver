@@ -1,4 +1,4 @@
-package com.rich.app.utils.deployWebProjectUtils;
+package com.rich.common.utils.deployWebProjectUtils;
 
 import cn.hutool.core.util.RuntimeUtil;
 import cn.hutool.core.util.StrUtil;
@@ -168,6 +168,59 @@ public class ExecuteSysCommandUtil {
             return content.toString();
         });
     }
+
+    /**
+     * 执行命令并返回完整日志（stdout + stderr），用于需要将结果反馈给 AI 的场景
+     *
+     * @param projectDir     工作目录
+     * @param command        命令
+     * @param timeoutSeconds 超时时间（秒）
+     * @return CommandResult 包含是否成功和完整日志
+     */
+    public static CommandResult executeCommandWithLog(File projectDir, String command, int timeoutSeconds) {
+        log.info("在目录 {} 中执行命令（带日志捕获）: {}", projectDir.getAbsolutePath(), command);
+        Process process = null;
+        try {
+            String[] parsedCommand = parseCommand(command);
+            process = RuntimeUtil.exec(null, projectDir, parsedCommand);
+
+            CompletableFuture<String> outputFuture = readStream(process.getInputStream());
+            CompletableFuture<String> errorFuture = readStream(process.getErrorStream());
+
+            boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                return new CommandResult(false, "命令执行超时（" + timeoutSeconds + "秒），已强制终止");
+            }
+
+            String output = outputFuture.get(1, TimeUnit.SECONDS);
+            String error = errorFuture.get(1, TimeUnit.SECONDS);
+            int exitCode = process.exitValue();
+
+            StringBuilder logSb = new StringBuilder();
+            if (StrUtil.isNotBlank(output)) {
+                logSb.append("[stdout]\n").append(truncateLongText(output)).append("\n");
+            }
+            if (StrUtil.isNotBlank(error)) {
+                logSb.append("[stderr]\n").append(truncateLongText(error));
+            }
+
+            return new CommandResult(exitCode == 0, logSb.toString());
+        } catch (TimeoutException e) {
+            return new CommandResult(false, "读取输出超时: " + command);
+        } catch (Exception e) {
+            return new CommandResult(false, "执行异常: " + e.getMessage());
+        } finally {
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+            }
+        }
+    }
+
+    /**
+     * 命令执行结果封装
+     */
+    public record CommandResult(boolean success, String log) {}
 
     /**
      * 截断过长的文本

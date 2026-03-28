@@ -9,6 +9,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.rich.ai.service.AiCodeGeneratorTypeStrategyService;
+import com.rich.app.agent.CodeGenAgentApp;
 import com.rich.app.langGraph.CodeGenWorkflowApp;
 import com.rich.app.mapper.AppMapper;
 import com.rich.app.model.StreamEvent;
@@ -98,6 +99,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private CodeGenWorkflowApp codeGenWorkflowApp;
 
     @Resource
+    private CodeGenAgentApp codeGenAgentApp;
+
+    @Resource
     private StreamSessionService streamSessionService;
 
     /**
@@ -168,10 +172,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 判断是否为二次修改模式：非 AI_STRATEGY 表示类型已确定（即已经过首次生成）
         boolean isModification = codeGenType != CodeGeneratorTypeEnum.AI_STRATEGY;
 
-        // 通过工作流执行代码生成对话
-        // TODO: 后续增加 Agent 自主规划模式（根据isWorkflow参数选择执行模式）
-        Flux<ServerSentEvent<String>> generationFlux = codeGenWorkflowApp.executeWorkflow(
-                message, codeGenType, appId, chatHistoryService, userId, isModification);
+        // 根据产物的生成模式选择执行路径：Agent 自主规划模式 或 工作流分布执行模式
+        Flux<ServerSentEvent<String>> generationFlux;
+        boolean isAgentMode = "agent".equals(app.getGenMode());
+        if (isAgentMode) {
+            log.info("产物 {} 使用 Agent 自主规划模式执行代码生成", appId);
+            generationFlux = codeGenAgentApp.executeAgent(message, appId, chatHistoryService, userId);
+        } else {
+            log.info("产物 {} 使用工作流分布执行模式执行代码生成", appId);
+            generationFlux = codeGenWorkflowApp.executeWorkflow(
+                    message, codeGenType, appId, chatHistoryService, userId, isModification);
+        }
 
         // 独立订阅生成流：AI 生成与客户端连接解耦（核心设计）
         // 客户端断开不影响生成过程，所有事件缓存到会话中，支持断线重连
@@ -339,7 +350,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 return ResponseEntity.notFound().build();
             }
 
-            // 构建 viewKey，用于定位产物输出目录
+            // viewKey：所有模式均使用 codeGenType_appId 命名（Agent/工作流模式一致）
             String codeGenType = app.getCodeGenType();
             String viewKey = codeGenType + "_" + appId;
 
@@ -366,8 +377,17 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 resourcePath = "/index.html";
             }
 
-            // 拼装完整的文件路径（统一使用系统文件分隔符）
-            String filePath = CODE_OUTPUT_ROOT_DIR + File.separator + viewKey + resourcePath.replace("/", File.separator);
+            // vue_project 类型优先服务 dist/（构建产物），未构建时回退到根目录（兼容 Agent 模式构建中的预览）
+            String normalizedPath = resourcePath.replace("/", File.separator);
+            String basePath = CODE_OUTPUT_ROOT_DIR + File.separator + viewKey;
+            String filePath;
+            if (CodeGeneratorTypeEnum.VUE_PROJECT.getValue().equals(codeGenType)) {
+                File distFile = new File(basePath + File.separator + "dist" + normalizedPath);
+                File rootFile = new File(basePath + normalizedPath);
+                filePath = distFile.exists() ? distFile.getAbsolutePath() : rootFile.getAbsolutePath();
+            } else {
+                filePath = basePath + normalizedPath;
+            }
             File file = new File(filePath);
 
             // 安全检查：防止路径穿越攻击
@@ -528,12 +548,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Override
     public File getOutputDir(App app) {
         String codeGenType = app.getCodeGenType();
-        // 通过代码生成类型、产物 ID 构建生成目录名称
+        // 所有模式（Agent/工作流）统一使用 codeGenType_appId 目录
         String outputDirName = codeGenType + "_" + app.getId();
         if (codeGenType.equals(CodeGeneratorTypeEnum.VUE_PROJECT.getValue())) {
             outputDirName += File.separator + "dist";
         }
-        // 拼接到绝对路径
         return new File(CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
     }
 
@@ -545,10 +564,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      **/
     @Override
     public File getDelOutputDir(App app) {
-        String codeGenType = app.getCodeGenType();
-        // 通过代码生成类型、产物 ID 构建生成目录名称
-        String outputDirName = codeGenType + "_" + app.getId();
-        // 拼接到绝对路径
+        // 所有模式（Agent/工作流）统一使用 codeGenType_appId 目录
+        String outputDirName = app.getCodeGenType() + "_" + app.getId();
         return new File(CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
     }
 
@@ -693,10 +710,18 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         String appName = initPrompt.substring(0, nameLength);
         app.setAppName(appName);
 
+        // 设置生成模式（workflow / agent），默认为 workflow
+        String genMode = StrUtil.blankToDefault(appAddRequest.getGenMode(), "workflow");
+        app.setGenMode(genMode);
+
         // 设置代码生成策略
-        // 保存用户选择的生成策略（包括 AI_STRATEGY），不在此处预先解析
-        // 让工作流的策略节点根据增强后的提示词（含网络资源、图片等）智能选择最优方案
-        app.setCodeGenType(generatorType.getValue());
+        // Agent 模式固定使用 vue_project（工具默认写入该目录，构建和预览均依赖此类型）
+        // 工作流模式保存用户选择的策略，由工作流策略节点智能选择最优方案
+        if ("agent".equals(genMode)) {
+            app.setCodeGenType(CodeGeneratorTypeEnum.VUE_PROJECT.getValue());
+        } else {
+            app.setCodeGenType(generatorType.getValue());
+        }
 
         // 设置默认封面图片
         app.setCover(AppConstant.APP_COVER);
@@ -705,8 +730,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean saveSuccess = appService.save(app);
         ThrowUtils.throwIf(!saveSuccess, ErrorCode.OPERATION_ERROR, "保存产物失败");
 
-        log.info("创建AI产物成功: appId={}, userId={}, appName={}, codeGenType={}",
-                app.getId(), loginUser.getId(), appName, generatorType.getValue());
+        log.info("创建AI产物成功: appId={}, userId={}, appName={}, codeGenType={}, genMode={}",
+                app.getId(), loginUser.getId(), appName, app.getCodeGenType(), genMode);
 
         return app.getId();
     }

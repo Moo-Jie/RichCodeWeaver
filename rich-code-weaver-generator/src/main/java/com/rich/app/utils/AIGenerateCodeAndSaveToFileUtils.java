@@ -2,6 +2,7 @@ package com.rich.app.utils;
 
 import com.rich.ai.service.AiCodeGeneratorService;
 import com.rich.app.factory.AiCodeGeneratorServiceFactory;
+import com.rich.app.utils.ConvertTokenStreamToFluxUtils.ConvertWorkflowTokenStreamToFluxUtils;
 import com.rich.app.utils.codeParse.CodeParseExecutor;
 import com.rich.app.utils.codeSave.CodeResultSaveExecutor;
 import com.rich.common.exception.BusinessException;
@@ -25,7 +26,7 @@ import reactor.core.publisher.Flux;
 @Service
 public class AIGenerateCodeAndSaveToFileUtils {
     @Resource
-    private ConvertTokenStreamToFluxUtils convertTokenStreamToFluxUtils;
+    private ConvertWorkflowTokenStreamToFluxUtils convertWorkflowTokenStreamToFluxUtils;
 
     /**
      * 通过判断代码生成业务类型，调用对应的 AI 服务生成代码流，并保存到本地（流式）
@@ -73,7 +74,7 @@ public class AIGenerateCodeAndSaveToFileUtils {
                 case VUE_PROJECT -> {
                     TokenStream resultStream = aiCodeGeneratorService.generateVueProjectCodeStream(userMessage, appId);
                     // 将 LangChain4j 的 TokenStream 转换为 Reactor 的 Flux<String>
-                    yield convertTokenStreamToFluxUtils.convertTokenStreamToFlux(resultStream, appId);
+                    yield convertWorkflowTokenStreamToFluxUtils.convertTokenStreamToFlux(resultStream, appId);
                 }
                 // 默认情况：不支持的类型，抛出异常
                 default -> {

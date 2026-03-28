@@ -1,11 +1,11 @@
-package com.rich.app.utils;
+package com.rich.app.utils.ConvertTokenStreamToFluxUtils;
 
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.rich.ai.model.msgResponse.StreamAiChatMsgResponse;
 import com.rich.ai.model.msgResponse.StreamToolExecutedMsgResponse;
 import com.rich.ai.model.msgResponse.StreamToolInvocMsgResponse;
-import com.rich.app.utils.deployWebProjectUtils.BuildWebProjectExecutor;
+import com.rich.common.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import com.rich.common.constant.AppConstant;
 import com.rich.common.exception.ThrowUtils;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -22,15 +22,14 @@ import java.util.Set;
 import static com.rich.common.exception.ErrorCode.OPERATION_ERROR;
 
 /**
- * 将 LangChain4j 的 TokenStream 转换为 Reactor 的 Flux<String> 工具类
- * （用于推理模型的流式输出，因为推理模型的流式输出是一个个 Token 逐个输出 ，而不是一次输出完，此处处理为通用 Flux 流）
+ * Workflow 模式 TokenStream → Flux<String> 转换器
  *
  * @author DuRuiChi
  * @create 2025/12/25
  **/
 @Slf4j
 @Component
-public class ConvertTokenStreamToFluxUtils {
+public class ConvertWorkflowTokenStreamToFluxUtils {
     /**
      * 构建 Web 项目的执行器
      */

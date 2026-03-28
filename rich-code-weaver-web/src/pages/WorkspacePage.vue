@@ -487,7 +487,8 @@ const handleCreate = async () => {
       try {
         const res = await addApp({
           initPrompt: userPrompt.value.trim(),
-          generatorType: 'AI_STRATEGY'
+          generatorType: 'AI_STRATEGY',
+          genMode: useAgentMode.value ? 'workflow' : 'agent'
         })
         if (res.data.code === 0 && res.data.data) {
           const newAppId = res.data.data

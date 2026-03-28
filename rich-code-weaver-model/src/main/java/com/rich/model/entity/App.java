@@ -57,6 +57,12 @@ public class App implements Serializable {
     private String codeGenType;
 
     /**
+     * 生成模式：workflow(工作流模式) / agent(Agent自主模式)
+     */
+    @Column("genMode")
+    private String genMode;
+
+    /**
      * 部署标识
      */
     @Column("deployKey")

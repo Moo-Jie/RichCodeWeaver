@@ -1,4 +1,4 @@
-package com.rich.app.utils.deployWebProjectUtils;
+package com.rich.common.utils.deployWebProjectUtils;
 
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.rich.app.utils.deployWebProjectUtils.ExecuteSysCommandUtil.executeNpmCommand;
+import static com.rich.common.utils.deployWebProjectUtils.ExecuteSysCommandUtil.executeNpmCommand;
 
 /**
  * 打包构建 web 工程项目执行器
@@ -56,6 +56,48 @@ public class BuildWebProjectExecutor {
         // 返回初始状态（注：由于是异步执行，此时可能还未完成）
         return isBuild.get();
     }
+
+    /**
+     * 同步构建项目并返回详细结果日志（供 Agent 工具使用，将构建结果反馈给 AI）
+     *
+     * @param projectPath 项目路径
+     * @return BuildResult 包含是否成功、阶段信息和详细日志
+     */
+    public BuildResult buildProjectWithLog(String projectPath) {
+        File projectDir = validateProject(projectPath);
+        if (projectDir == null) {
+            return new BuildResult(false, "install", "项目目录不存在或缺少 package.json: " + projectPath);
+        }
+
+        log.info("开始带日志的构建，项目路径: {}", projectPath);
+        ensureEsmConfig(projectDir);
+
+        String npmCmd = System.getProperty("os.name").toLowerCase().contains("win") ? "npm.cmd install" : "npm install";
+        ExecuteSysCommandUtil.CommandResult installResult =
+                ExecuteSysCommandUtil.executeCommandWithLog(projectDir, npmCmd, 300);
+        if (!installResult.success()) {
+            return new BuildResult(false, "npm install", installResult.log());
+        }
+
+        String buildCmd = System.getProperty("os.name").toLowerCase().contains("win") ? "npm.cmd run build" : "npm run build";
+        ExecuteSysCommandUtil.CommandResult buildResult =
+                ExecuteSysCommandUtil.executeCommandWithLog(projectDir, buildCmd, 300);
+        if (!buildResult.success()) {
+            return new BuildResult(false, "npm run build", buildResult.log());
+        }
+
+        boolean distExists = verifyDistDirectory(projectDir);
+        if (!distExists) {
+            return new BuildResult(false, "dist验证", "构建命令执行成功但未找到 dist 目录，请检查 vite.config.js 的 outDir 配置");
+        }
+
+        return new BuildResult(true, "完成", "构建成功！dist 目录已生成：" + projectPath + "/dist");
+    }
+
+    /**
+     * 构建结果封装
+     */
+    public record BuildResult(boolean success, String phase, String log) {}
 
     /**
      * 打包构建项目 （Npm 包管理器下的前端 Web 工程项目）

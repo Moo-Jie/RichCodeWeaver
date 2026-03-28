@@ -89,7 +89,8 @@ public class FileModifyTool extends BaseTool {
 
             // 如果不是绝对路径，则拼接项目根目录
             if (!targetPath.isAbsolute()) {
-                String projectDirName = "vue_project_" + appId;
+                String codeGenType = CreatAndWriteAiTool.APP_CODE_GEN_TYPE_CACHE.getOrDefault(appId, "vue_project");
+                String projectDirName = codeGenType + "_" + appId;
                 Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
                 targetPath = projectRoot.resolve(relativeFilePath);
             }
