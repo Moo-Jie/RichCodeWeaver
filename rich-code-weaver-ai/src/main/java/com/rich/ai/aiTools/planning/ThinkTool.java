@@ -36,9 +36,34 @@ public class ThinkTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         String category = arguments.getStr("category", "general");
-        return "[思考完成] 类型: " + category;
+        String thought = arguments.getStr("thought", "");
+        String conclusion = arguments.getStr("conclusion", "");
+        
+        // 构建包含完整思考内容的结果消息（供前端展示）
+        StringBuilder sb = new StringBuilder();
+        sb.append("[思考完成] 类型: ").append(category);
+        
+        // 附加结论摘要（用于卡片标题显示）
+        if (conclusion != null && !conclusion.trim().isEmpty()) {
+            String summary = conclusion.length() > 50 
+                ? conclusion.substring(0, 50) + "..." 
+                : conclusion;
+            sb.append(" | 结论: ").append(summary);
+        }
+        
+        // 附加完整思考内容（供前端折叠展示）
+        sb.append("\n[思考内容]\n");
+        if (thought != null && !thought.trim().isEmpty()) {
+            sb.append("【思考过程】\n").append(thought).append("\n");
+        }
+        if (conclusion != null && !conclusion.trim().isEmpty()) {
+            sb.append("【结论】\n").append(conclusion);
+        }
+        sb.append("\n[/思考内容]");
+        
+        return sb.toString();
     }
 
     /**
@@ -50,9 +75,14 @@ public class ThinkTool extends BaseTool {
      * @param appId 产物ID
      * @return 思考记录确认
      */
-    @Tool("进行深度思考和推理。在分析需求、规划方案、遇到问题反思、做重要决策前使用此工具记录思考过程。")
+    @Tool("进行深度思考和推理，在每个关键节点都应使用。" +
+          "【阶段一】analyze分析需求+plan制定方案；" +
+          "【阶段二】decide决定项目类型；" +
+          "【阶段三】decide决定技术选型；" +
+          "【阶段四/五】reflect反思问题原因；" +
+          "【阶段六】summarize总结完成的工作。")
     public String think(
-            @P("思考类型：analyze（需求分析）、plan（规划）、reflect（反思）、decide（决策）、summarize（总结）")
+            @P("思考类型：analyze（阶段一：分析用户需求，提取功能点）、plan（阶段一：制定技术方案）、decide（阶段二/三：做技术决策）、reflect（阶段四/五：反思问题原因）、summarize（阶段六：总结工作）")
             String category,
             @P("详细的思考内容，包括分析过程、考虑的因素、权衡的选项等")
             String thought,

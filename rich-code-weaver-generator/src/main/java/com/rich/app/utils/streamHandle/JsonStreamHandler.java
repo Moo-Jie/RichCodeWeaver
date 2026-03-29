@@ -140,8 +140,9 @@ public class JsonStreamHandler {
                 BaseTool tool = toolsManager.getToolByName(streamToolExecutedMsgResponse.getName());
                 // 解析 Arguments 属性为 JSON 对象
                 JSONObject argumentsJson = JSONUtil.parseObj(streamToolExecutedMsgResponse.getArguments());
-                // 获取工具执行结果
-                return String.format("\n\n%s\n\n", tool.getResultMsg(argumentsJson));
+                // 获取工具执行结果（传递实际的工具执行结果，供部分工具提取信息）
+                String toolResult = streamToolExecutedMsgResponse.getResult();
+                return String.format("\n\n%s\n\n", tool.getResultMsg(argumentsJson, toolResult));
             }
             default -> {
                 log.error("不支持的消息类型: {}", type);

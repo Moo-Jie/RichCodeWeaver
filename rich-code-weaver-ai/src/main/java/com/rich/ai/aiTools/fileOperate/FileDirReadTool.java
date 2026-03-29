@@ -50,7 +50,7 @@ public class FileDirReadTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         // 从参数中提取目录路径，若为空则使用默认值
         String relativeDirPath = arguments.getStr("relativeDirPath");
         String displayPath = (relativeDirPath == null || relativeDirPath.trim().isEmpty())

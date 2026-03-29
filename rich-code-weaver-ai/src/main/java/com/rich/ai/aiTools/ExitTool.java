@@ -27,7 +27,7 @@ public class ExitTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         return "\n\n[任务执行结束，已无需继续调用工具]\n\n";
     }
 

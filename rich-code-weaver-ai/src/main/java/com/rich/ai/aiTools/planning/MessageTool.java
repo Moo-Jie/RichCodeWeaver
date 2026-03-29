@@ -36,9 +36,20 @@ public class MessageTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         String type = arguments.getStr("type", "info");
-        return "[消息已发送] 类型: " + type;
+        String title = arguments.getStr("title", "");
+        
+        // 构建包含消息标题的结果消息
+        StringBuilder sb = new StringBuilder();
+        sb.append("[消息已发送] 类型: ").append(type);
+        
+        // 如果有标题，附加标题内容
+        if (title != null && !title.trim().isEmpty()) {
+            sb.append(" | ").append(title);
+        }
+        
+        return sb.toString();
     }
 
     /**

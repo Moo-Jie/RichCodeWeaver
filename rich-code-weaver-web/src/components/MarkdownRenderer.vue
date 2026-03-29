@@ -7,6 +7,8 @@ import { computed, nextTick, onMounted, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
+import { processToolCallMarkers } from '@/utils/toolCallParser'
+import { processWorkflowMarkers, fixCodeBlockFormat } from '@/utils/workflowMarkerParser'
 
 interface Props {
   content: string
@@ -39,159 +41,14 @@ const md: MarkdownIt = new MarkdownIt({
 const preprocessMarkdown = (content: string): string => {
   if (!content) return ''
 
-  // 识别并包裹工作流开始标记
-  content = content.replace(
-    /<!-- WORKFLOW_START -->/g,
-  '<div class="workflow-start-marker"></div>'
-)
+  // 1. 处理工作流标记（工作流模式）
+  content = processWorkflowMarkers(content)
 
-  // 识别并包裹工作流执行开始标记
-  content = content.replace(
-    /<!-- WORKFLOW_EXECUTION_START -->/g,
-  '<div class="workflow-execution-marker"></div>'
-)
-
-  // 识别并包裹工作流完成标记
-  content = content.replace(
-    /<!-- WORKFLOW_COMPLETE -->/g,
-  '<div class="workflow-complete-marker"></div>'
-)
-
-  // 识别并包裹工作流错误标记
-  content = content.replace(
-    /<!-- WORKFLOW_ERROR -->/g,
-  '<div class="workflow-error-marker"></div>'
-)
-
-  // 识别并包裹节点开始/结束标记
-  content = content.replace(
-    /<!-- NODE_START:(\w+) -->/g,
-  '<div class="node-start-marker" data-node="$1"></div>'
-)
-  content = content.replace(
-    /<!-- NODE_END:(\w+) -->/g,
-  '<div class="node-end-marker" data-node="$1"></div>'
-)
-
-  // ====== 工具调用处理 ======
-  // 核心问题：并行工具调用时，所有 [开始调用系统工具] 先出现，然后所有 [工具调用结束] 再出现，
-  // 因此不能用简单的「开始+结束」配对正则，需要按顺序 1:1 匹配。
+  // 2. 处理工具调用标记（Agent 模式）
   content = processToolCallMarkers(content)
 
-  // 修复代码块格式
-  content = content.replace(/( {4}```[\s\S]*? {4}```)/g, (match) => {
-    return match.replace(/^ {4}/gm, '')
-  })
-
-  // 确保代码块有正确的换行
-  content = content.replace(/```(\w+)\s*\n([\s\S]*?)```/g, '```$1\n$2```')
-
-  return content
-}
-
-// 处理工具调用标记：按出现顺序收集所有 starts 和 ends，1:1 配对，生成 HTML
-const processToolCallMarkers = (content: string): string => {
-  // 收集所有标记及其位置
-  interface Marker {
-    type: 'start' | 'end'
-    text: string        // 工具名 或 结果描述
-    detail?: string     // [\n...\n] 中的附加详情（如搜索关键词）
-    index: number
-    endIndex: number
-  }
-
-  const markers: Marker[] = []
-
-  // 匹配 [开始调用系统工具] toolName
-  const startRegex = /\[开始调用系统工具\]\s*(.+)/g
-  let m
-  while ((m = startRegex.exec(content)) !== null) {
-    markers.push({
-      type: 'start',
-      text: m[1].trim(),
-      index: m.index,
-      endIndex: m.index + m[0].length
-    })
-  }
-
-  // 匹配 [工具调用结束] result，可能后跟 [\n detail \n]
-  const endRegex = /\[工具调用结束\]\s*([^\n]+?)(?:\s*\[\s*\n([\s\S]*?)\n\s*\])?(?=\s*(?:\[|$|\n))/g
-  while ((m = endRegex.exec(content)) !== null) {
-    markers.push({
-      type: 'end',
-      text: m[1].trim(),
-      detail: m[2] ? m[2].trim() : undefined,
-      index: m.index,
-      endIndex: m.index + m[0].length
-    })
-  }
-
-  if (markers.length === 0) return content
-
-  // 按位置排序
-  markers.sort((a, b) => a.index - b.index)
-
-  // 从后往前替换，避免索引偏移
-  const starts: Marker[] = []
-  const ends: Marker[] = []
-  markers.forEach(mk => {
-    if (mk.type === 'start') starts.push(mk)
-    else ends.push(mk)
-  })
-
-  // 1:1 配对：第 i 个 start 对应第 i 个 end
-  const pairedStartCount = Math.min(starts.length, ends.length)
-
-  // 构建替换列表（从后往前替换）
-  interface Replacement {
-    index: number
-    endIndex: number
-    html: string
-  }
-
-  const replacements: Replacement[] = []
-
-  // 处理已完成的 ends（每个 end 生成一个完成卡片）
-  ends.forEach((end) => {
-    let html = `<div class="tool-call-item tool-call-done">`
-    html += `<span class="tci-icon">✅</span>`
-    html += `<span class="tci-label">完成</span>`
-    html += `<span class="tci-text">${end.text}</span>`
-    html += `</div>`
-    if (end.detail) {
-      html += `<div class="tool-call-item tool-call-detail">`
-      html += `<span class="tci-icon">📄</span>`
-      html += `<span class="tci-text">${end.detail}</span>`
-      html += `</div>`
-    }
-    replacements.push({ index: end.index, endIndex: end.endIndex, html })
-  })
-
-  // 处理已配对的 starts（隐藏，因为 end 卡片已包含完成信息）
-  for (let i = 0; i < pairedStartCount; i++) {
-    const start = starts[i]
-    replacements.push({
-      index: start.index,
-      endIndex: start.endIndex,
-      html: `<div class="tool-call-item tool-call-paired"><span class="tci-icon">⚙️</span><span class="tci-label">调用</span><span class="tci-text">${start.text}</span></div>`
-    })
-  }
-
-  // 处理未配对的 starts（流式传输中，还没有对应的 end）→ 显示为加载中
-  for (let i = pairedStartCount; i < starts.length; i++) {
-    const start = starts[i]
-    replacements.push({
-      index: start.index,
-      endIndex: start.endIndex,
-      html: `<div class="tool-call-item tool-call-loading"><span class="tci-icon">⚙️</span><span class="tci-label">调用中</span><span class="tci-text">${start.text}</span></div>`
-    })
-  }
-
-  // 按位置从后往前替换
-  replacements.sort((a, b) => b.index - a.index)
-  replacements.forEach(r => {
-    content = content.substring(0, r.index) + r.html + content.substring(r.endIndex)
-  })
+  // 3. 修复代码块格式
+  content = fixCodeBlockFormat(content)
 
   return content
 }
@@ -409,20 +266,28 @@ const highlightCode = () => {
 .markdown-content :deep(.tool-call-item) {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  margin: 2px 0;
-  border-radius: 8px;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  border-radius: 6px;
+  background: #f5f5f5;
   font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
+  transition: all 0.2s;
 }
 
 .markdown-content :deep(.tool-call-item .tci-icon) {
-  font-size: 15px;
   flex-shrink: 0;
-  width: 20px;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.markdown-content :deep(.tool-call-item .tci-icon svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .markdown-content :deep(.tool-call-item .tci-label) {
@@ -751,5 +616,277 @@ const highlightCode = () => {
   overflow-x: auto;
   margin: 12px 0;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ====== 任务列表折叠容器样式 ====== */
+.markdown-content :deep(.task-list-wrapper) {
+  margin: 4px 0 8px 44px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fafbfc;
+}
+
+.markdown-content :deep(.task-list-toggle) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e8e8e8;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.markdown-content :deep(.task-list-toggle:hover) {
+  background: #ebebeb;
+}
+
+.markdown-content :deep(.task-list-toggle .toggle-icon) {
+  font-size: 10px;
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.markdown-content :deep(.task-list-toggle .toggle-text) {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.markdown-content :deep(.task-list-content) {
+  padding: 8px 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+}
+
+/* 折叠状态 */
+.markdown-content :deep(.task-list-wrapper.collapsed .task-list-content) {
+  max-height: 0;
+  padding: 0 12px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.markdown-content :deep(.task-list-wrapper.collapsed .task-list-toggle) {
+  border-bottom: none;
+}
+
+/* ====== 任务项样式 ====== */
+.markdown-content :deep(.task-item) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin: 2px 0;
+  transition: background 0.2s;
+}
+
+.markdown-content :deep(.task-item:hover) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.markdown-content :deep(.task-item .task-icon) {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.markdown-content :deep(.task-item .task-icon svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.markdown-content :deep(.task-item .task-index) {
+  color: #999;
+  font-size: 11px;
+  min-width: 24px;
+}
+
+.markdown-content :deep(.task-item .task-step) {
+  flex: 1;
+  color: #333;
+  font-weight: 500;
+}
+
+.markdown-content :deep(.task-item .task-label) {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.markdown-content :deep(.task-item .task-notes) {
+  font-size: 11px;
+  color: #666;
+  font-style: italic;
+}
+
+/* 任务状态样式 */
+.markdown-content :deep(.task-completed) {
+  background: #f6ffed;
+}
+
+.markdown-content :deep(.task-completed .task-step) {
+  color: #389e0d;
+}
+
+.markdown-content :deep(.task-completed .task-label) {
+  background: #d9f7be;
+  color: #389e0d;
+}
+
+.markdown-content :deep(.task-in-progress) {
+  background: #e6f7ff;
+}
+
+.markdown-content :deep(.task-in-progress .task-step) {
+  color: #1890ff;
+}
+
+.markdown-content :deep(.task-in-progress .task-label) {
+  background: #bae7ff;
+  color: #1890ff;
+}
+
+.markdown-content :deep(.task-pending) {
+  background: #fff;
+}
+
+.markdown-content :deep(.task-pending .task-step) {
+  color: #666;
+}
+
+.markdown-content :deep(.task-pending .task-label) {
+  background: #f0f0f0;
+  color: #999;
+}
+
+/* ====== 思考内容折叠样式 ====== */
+.markdown-content :deep(.think-content-wrapper) {
+  margin: 4px 0 8px 44px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fefefe;
+}
+
+.markdown-content :deep(.think-content-toggle) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e8e8e8;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.markdown-content :deep(.think-content-toggle:hover) {
+  background: #f0f0f0;
+}
+
+.markdown-content :deep(.think-content-toggle .toggle-icon) {
+  font-size: 10px;
+  color: #666;
+}
+
+.markdown-content :deep(.think-content-toggle .toggle-text) {
+  font-size: 12px;
+  color: #555;
+  font-weight: 500;
+}
+
+.markdown-content :deep(.think-content-body) {
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+}
+
+.markdown-content :deep(.think-content-wrapper.collapsed .think-content-body) {
+  max-height: 0;
+  padding: 0 12px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.markdown-content :deep(.think-content-wrapper.collapsed .think-content-toggle) {
+  border-bottom: none;
+}
+
+.markdown-content :deep(.think-conclusion) {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.markdown-content :deep(.think-section-title) {
+  display: block;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0 4px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #eee;
+}
+
+.markdown-content :deep(.think-section-title:first-child) {
+  margin-top: 0;
+}
+
+/* Ant Design 图标通用样式 */
+.markdown-content :deep(.antd-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.125em;
+}
+
+.markdown-content :deep(.antd-icon svg) {
+  display: block;
+}
+
+.markdown-content :deep(.tool-type-icon) {
+  margin-right: 4px;
+}
+
+.markdown-content :deep(.think-icon),
+.markdown-content :deep(.conclusion-icon) {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.markdown-content :deep(.plan-icon) {
+  margin-right: 4px;
+}
+
+/* 工具调用加载中动画 */
+.markdown-content :deep(.tool-call-loading .tci-icon svg) {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 任务列表滚动目标标记 */
+.markdown-content :deep(.task-scroll-target) {
+  scroll-margin-top: 8px;
 }
 </style>

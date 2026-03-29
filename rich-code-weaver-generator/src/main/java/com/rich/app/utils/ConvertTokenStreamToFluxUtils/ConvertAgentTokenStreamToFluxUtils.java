@@ -32,13 +32,28 @@ public class ConvertAgentTokenStreamToFluxUtils {
 
     /**
      * 循环检测：滑动窗口大小
+     * 增大窗口以减少正常连续文件操作时的误报
      */
-    private static final int STUCK_WINDOW_SIZE = 5;
+    private static final int STUCK_WINDOW_SIZE = 10;
 
     /**
      * 循环检测：触发阈值（同一工具在窗口内出现次数 >= 此值则判定为循环）
+     * 提高阈值，因为连续创建多个文件是正常行为
      */
-    private static final int STUCK_DUPLICATE_THRESHOLD = 4;
+    private static final int STUCK_DUPLICATE_THRESHOLD = 8;
+    
+    /**
+     * 不参与循环检测的工具列表（这些工具连续调用是正常行为）
+     */
+    private static final Set<String> EXCLUDED_TOOLS = Set.of(
+            "creatAndWrite",  // 连续创建多个文件是正常的
+            "taskPlan",       // 连续更新任务状态是正常的
+            "readFile",       // 连续读取多个文件进行自检是正常的
+            "readDir",        // 连续读取多个目录是正常的
+            "modifyFile",     // 连续修改多个文件是正常的
+            "think",          // 连续思考是正常的
+            "sendMessage"     // 连续发送消息是正常的
+    );
 
     /**
      * 每个 appId 对应的最近工具调用名称滑动窗口
@@ -138,6 +153,8 @@ public class ConvertAgentTokenStreamToFluxUtils {
     /**
      * 循环检测与处理
      * 若同一工具名在滑动窗口内重复次数 >= 阈值，则向流中注入警告，提示 AI 更换策略
+     * 
+     * 优化：排除正常连续调用的工具（如文件创建、任务更新等），避免误报
      *
      * @param appId    产物 ID
      * @param toolName 本次调用的工具名称
@@ -145,6 +162,11 @@ public class ConvertAgentTokenStreamToFluxUtils {
      */
     private void checkAndHandleStuckState(Long appId, String toolName,
                                           reactor.core.publisher.FluxSink<String> sink) {
+        // 排除列表中的工具不参与循环检测
+        if (EXCLUDED_TOOLS.contains(toolName)) {
+            return;
+        }
+        
         Deque<String> window = recentToolCallsMap.computeIfAbsent(appId, k -> new ArrayDeque<>());
 
         // 维护固定大小滑动窗口

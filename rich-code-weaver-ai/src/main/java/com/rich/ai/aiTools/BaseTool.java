@@ -46,7 +46,8 @@ public abstract class BaseTool {
      * 获取工具执行结束后的结果
      *
      * @param arguments 工具执行参数
+     * @param result    工具执行的实际结果（可选，部分工具需要从结果中提取信息）
      * @return 格式化的工具执行结果
      */
-    public abstract String getResultMsg(JSONObject arguments);
+    public abstract String getResultMsg(JSONObject arguments, String result);
 }

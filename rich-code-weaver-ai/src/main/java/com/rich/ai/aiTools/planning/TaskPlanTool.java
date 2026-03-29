@@ -21,6 +21,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * - 更新任务状态（pending → in_progress → completed）
  * - 查看当前任务列表
  * - 标记任务完成
+ * 
+ * 返回格式：
+ * - 返回结构化 JSON，前端可直接解析并渲染任务列表面板
+ * - 格式：{"action": "xxx", "tasks": [...], "summary": {...}, "message": "xxx"}
  *
  * @author DuRuiChi
  * @create 2026/3/28
@@ -34,7 +38,7 @@ public class TaskPlanTool extends BaseTool {
      * key: appId, value: JSONArray of tasks
      * 每个 task: {id, step, status, notes}
      */
-    private static final ConcurrentHashMap<Long, JSONArray> TASK_PLANS = new ConcurrentHashMap<>();
+    public static final ConcurrentHashMap<Long, JSONArray> TASK_PLANS = new ConcurrentHashMap<>();
 
     @Override
     public String getToolName() {
@@ -47,9 +51,56 @@ public class TaskPlanTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
+        // 直接返回工具执行的实际结果，包含完整的任务列表信息
+        // result 格式示例: "任务计划已创建\n─────...\n[任务计划] {JSON}"
+        if (result != null && result.contains("[任务计划]")) {
+            // 提取 [任务计划] 后的 JSON 部分
+            int idx = result.lastIndexOf("[任务计划]");
+            return result.substring(idx);
+        }
+        // 兜底：返回简单格式
         String action = arguments.getStr("action");
-        return "[工具调用结束] 任务计划操作: " + action;
+        return "[任务计划] {\"type\":\"taskPlan\",\"action\":\"" + action + "\"}";
+    }
+    
+    /**
+     * 构建任务计划结果消息（供前端解析渲染）
+     */
+    private String buildTaskPlanResultMsg(String action, Long appId) {
+        JSONObject result = new JSONObject();
+        result.set("type", "taskPlan");
+        result.set("action", action);
+        
+        // appId 为 null 时直接返回空任务列表
+        if (appId == null) {
+            return "[任务计划] " + JSONUtil.toJsonStr(result);
+        }
+        
+        JSONArray tasks = TASK_PLANS.get(appId);
+        
+        if (tasks != null && !tasks.isEmpty()) {
+            result.set("tasks", tasks);
+            
+            // 统计信息
+            int completed = 0, inProgress = 0, pending = 0;
+            for (int i = 0; i < tasks.size(); i++) {
+                String status = tasks.getJSONObject(i).getStr("status", "pending");
+                switch (status) {
+                    case "completed" -> completed++;
+                    case "in_progress" -> inProgress++;
+                    default -> pending++;
+                }
+            }
+            JSONObject summary = new JSONObject();
+            summary.set("total", tasks.size());
+            summary.set("completed", completed);
+            summary.set("inProgress", inProgress);
+            summary.set("pending", pending);
+            result.set("summary", summary);
+        }
+        
+        return "[任务计划] " + JSONUtil.toJsonStr(result);
     }
 
     /**
@@ -94,6 +145,9 @@ public class TaskPlanTool extends BaseTool {
      * 创建任务计划
      */
     private String createPlan(String tasksJson, Long appId) {
+        if (appId == null) {
+            return "错误：appId 不能为空";
+        }
         if (tasksJson == null || tasksJson.trim().isEmpty()) {
             return "错误：任务列表不能为空";
         }
@@ -124,6 +178,9 @@ public class TaskPlanTool extends BaseTool {
      * 更新任务状态
      */
     private String updateTask(Integer taskId, String newStatus, String notes, Long appId) {
+        if (appId == null) {
+            return "错误：appId 不能为空";
+        }
         JSONArray tasks = TASK_PLANS.get(appId);
         if (tasks == null || tasks.isEmpty()) {
             return "错误：当前没有任务计划，请先使用 create 创建计划";
@@ -157,6 +214,9 @@ public class TaskPlanTool extends BaseTool {
      * 查看任务列表
      */
     private String listTasks(Long appId) {
+        if (appId == null) {
+            return "错误：appId 不能为空";
+        }
         JSONArray tasks = TASK_PLANS.get(appId);
         if (tasks == null || tasks.isEmpty()) {
             return "当前没有任务计划。使用 create 操作创建新计划。";
@@ -174,6 +234,9 @@ public class TaskPlanTool extends BaseTool {
 
     /**
      * 格式化任务列表输出
+     * 返回格式包含两部分：
+     * 1. 人类可读的任务列表文本
+     * 2. [任务计划] JSON 标记（供前端解析渲染）
      */
     private String formatTaskList(JSONArray tasks, String header) {
         StringBuilder sb = new StringBuilder();
@@ -212,6 +275,20 @@ public class TaskPlanTool extends BaseTool {
         sb.append("─".repeat(40)).append("\n");
         sb.append(String.format("进度: %d/%d 完成 | %d 进行中 | %d 待处理", 
                 completed, tasks.size(), inProgress, pending));
+        
+        // 附加结构化 JSON 数据，供前端解析渲染任务面板
+        JSONObject result = new JSONObject();
+        result.set("type", "taskPlan");
+        result.set("action", header.contains("创建") ? "create" : header.contains("更新") ? "update" : "list");
+        result.set("tasks", tasks);
+        JSONObject summary = new JSONObject();
+        summary.set("total", tasks.size());
+        summary.set("completed", completed);
+        summary.set("inProgress", inProgress);
+        summary.set("pending", pending);
+        result.set("summary", summary);
+        
+        sb.append("\n[任务计划] ").append(JSONUtil.toJsonStr(result));
         
         return sb.toString();
     }

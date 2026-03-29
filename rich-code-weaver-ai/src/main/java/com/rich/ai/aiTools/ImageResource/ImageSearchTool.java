@@ -53,7 +53,7 @@ public class ImageSearchTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         // 从参数中提取搜索关键词
         String query = arguments.getStr("query");
         String displayQuery = (query == null || query.trim().isEmpty())
@@ -69,8 +69,10 @@ public class ImageSearchTool extends BaseTool {
      * @param query 搜索关键词，用于指定要搜索的图片内容
      * @return 返回图片资源列表，包含图片URL、描述和分类信息（失败时返回空列表）
      */
-    @Tool("搜索内容相关的图片，用于网站内容展示")
-    public List<ImageResource> searchImages(@P("清晰、凝练的搜索关键词") String query) {
+    @Tool("【重要】搜索在线图片URL，用于网站内容展示。" +
+          "当用户需求涉及图片、照片、背景图、轮播图、头像、产品图等视觉内容时必须调用此工具。" +
+          "禁止使用本地图片路径，必须使用此工具获取在线图片URL。")
+    public List<ImageResource> searchImages(@P("清晰、凝练的搜索关键词，如：浪漫情侣照片、求婚场景、爱心背景") String query) {
         // 初始化图片列表（用于存储搜索结果）
         List<ImageResource> imageList = new ArrayList<>();
 

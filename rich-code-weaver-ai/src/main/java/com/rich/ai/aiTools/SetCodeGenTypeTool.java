@@ -34,7 +34,7 @@ public class SetCodeGenTypeTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         String type = arguments.getStr("codeGenType");
         return "[工具调用结束] 代码生成类型已设置为: " + type;
     }

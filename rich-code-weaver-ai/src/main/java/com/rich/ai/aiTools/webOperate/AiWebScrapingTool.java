@@ -32,7 +32,7 @@ public class AiWebScrapingTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         // 从参数中提取网页URL
         String scrapUrl = arguments.getStr("ScrapUrl");
 

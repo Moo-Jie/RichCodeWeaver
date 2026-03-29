@@ -42,7 +42,7 @@
 </template>
 
 <script lang="ts" setup>
-import { nextTick, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import aiAvatarSrc from '@/assets/aiAvatar.png'
 
@@ -64,23 +64,100 @@ const props = defineProps<Props>()
 defineEmits(['loadMore'])
 
 const containerRef = ref<HTMLElement>()
+const userScrolledUp = ref(false)
+let lastScrollHeight = 0
+let scrollTimeout: number | null = null
+
+// 检测用户是否主动向上滚动
+const handleScroll = () => {
+  if (!containerRef.value) return
+  
+  const { scrollTop, scrollHeight, clientHeight } = containerRef.value
+  const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+  
+  // 如果用户距离底部超过 100px，认为用户主动向上滚动
+  userScrolledUp.value = distanceFromBottom > 100
+  
+  // 清除之前的定时器
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout)
+  }
+  
+  // 如果用户滚动到底部附近，重置标记
+  scrollTimeout = window.setTimeout(() => {
+    if (distanceFromBottom < 50) {
+      userScrolledUp.value = false
+    }
+  }, 150)
+}
 
 const scrollToBottom = (force = false) => {
   if (!containerRef.value) return
+  
+  const container = containerRef.value
+  const { scrollTop, scrollHeight, clientHeight } = container
+  
+  // 强制滚动（新消息添加时）
   if (force) {
-    containerRef.value.scrollTop = containerRef.value.scrollHeight
+    // 使用 requestAnimationFrame 确保 DOM 更新后再滚动，防止抽搐
+    requestAnimationFrame(() => {
+      container.scrollTop = container.scrollHeight
+    })
     return
   }
-  // 智能滚动：仅当用户已在底部附近时自动滚动，避免流式输出时强制拉回底部
-  const { scrollTop, scrollHeight, clientHeight } = containerRef.value
-  const isNearBottom = scrollHeight - scrollTop - clientHeight < 150
-  if (isNearBottom) {
-    containerRef.value.scrollTop = scrollHeight
+  
+  // 智能滚动：仅当用户未主动向上滚动时才自动置底
+  if (!userScrolledUp.value) {
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+    if (isNearBottom) {
+      requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight
+      })
+    }
   }
 }
 
+// 监听消息变化（新消息）
 watch(() => props.messages.length, () => {
   nextTick(() => scrollToBottom(true))
+})
+
+// 监听消息内容变化（流式更新）
+watch(() => props.messages.map(m => m.content).join(''), () => {
+  if (!containerRef.value) return
+  
+  const currentScrollHeight = containerRef.value.scrollHeight
+  
+  // 内容增长时的智能滚动
+  if (currentScrollHeight > lastScrollHeight) {
+    nextTick(() => scrollToBottom(false))
+  }
+  
+  lastScrollHeight = currentScrollHeight
+  
+  // 滚动到任务列表中的进行中任务
+  nextTick(() => {
+    const taskScrollTarget = containerRef.value?.querySelector('.task-scroll-target')
+    if (taskScrollTarget && !userScrolledUp.value) {
+      taskScrollTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  })
+})
+
+onMounted(() => {
+  if (containerRef.value) {
+    containerRef.value.addEventListener('scroll', handleScroll, { passive: true })
+    lastScrollHeight = containerRef.value.scrollHeight
+  }
+})
+
+onUnmounted(() => {
+  if (containerRef.value) {
+    containerRef.value.removeEventListener('scroll', handleScroll)
+  }
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout)
+  }
 })
 
 defineExpose({ scrollToBottom })
@@ -121,8 +198,12 @@ defineExpose({ scrollToBottom })
 .messages-scroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px 24px;
   scroll-behavior: smooth;
+  /* 防止内容突然变化导致的抽搐 */
+  will-change: scroll-position;
+  contain: layout style paint;
 }
 
 .messages-scroll::-webkit-scrollbar {

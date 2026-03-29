@@ -34,7 +34,7 @@ public class FileDeleteTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         // 从参数中提取文件路径，若为空则使用默认值
         String relativeFilePath = arguments.getStr("relativeFilePath");
         String displayPath = (relativeFilePath == null || relativeFilePath.trim().isEmpty())

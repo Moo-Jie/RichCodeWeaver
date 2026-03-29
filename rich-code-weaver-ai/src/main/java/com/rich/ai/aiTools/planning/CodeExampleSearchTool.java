@@ -53,7 +53,7 @@ public class CodeExampleSearchTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         String query = arguments.getStr("query");
         return "[工具调用结束] 搜索代码示例: " + (query != null ? query : "");
     }

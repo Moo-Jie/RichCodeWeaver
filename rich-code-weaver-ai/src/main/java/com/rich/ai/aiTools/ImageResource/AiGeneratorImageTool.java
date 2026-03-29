@@ -74,7 +74,7 @@ public class AiGeneratorImageTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         // 从参数中提取图片类型和描述信息
         String type = arguments.getStr("type");
         String description = arguments.getStr("description");

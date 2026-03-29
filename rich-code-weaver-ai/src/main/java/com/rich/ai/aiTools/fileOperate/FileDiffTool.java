@@ -37,7 +37,7 @@ public class FileDiffTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         return "[工具调用结束] 文件差异对比完成";
     }
 

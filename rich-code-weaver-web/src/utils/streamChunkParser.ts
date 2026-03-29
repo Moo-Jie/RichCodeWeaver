@@ -15,6 +15,12 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   scrapeWebPage: '网页抓取工具',
   aiGeneratorImage: 'AI图片生成工具',
   searchImages: '图片搜索工具',
+  searchCodeExample: '代码示例搜索',
+  taskPlan: '任务计划管理',
+  think: '思考与推理',
+  sendMessage: '发送消息',
+  setCodeGenType: '设置代码生成类型',
+  buildProject: '构建 Vue 工程项目',
   exit: '退出工具调用'
 }
 
@@ -29,7 +35,31 @@ const TOOL_ICONS: Record<string, string> = {
   scrapeWebPage: '🕸️',
   aiGeneratorImage: '🎨',
   searchImages: '🖼️',
-  exit: '🚪'
+  searchCodeExample: '📚',
+  taskPlan: '📋',
+  think: '🧠',
+  sendMessage: '💬',
+  setCodeGenType: '⚙️',
+  buildProject: '�',
+  exit: '�'
+}
+
+/** 任务计划数据接口 */
+export interface TaskPlanData {
+  type: 'taskPlan'
+  action: string
+  tasks?: Array<{
+    id: number
+    step: string
+    status: 'pending' | 'in_progress' | 'completed'
+    notes?: string
+  }>
+  summary?: {
+    total: number
+    completed: number
+    inProgress: number
+    pending: number
+  }
 }
 
 /** 获取文件扩展名对应的语言标识 */
@@ -52,6 +82,8 @@ export class StreamChunkParserContext {
   private seenToolIds = new Set<string>()
   /** 当前正在进行的工具调用数量统计 */
   private toolCallCount = 0
+  /** 任务计划更新回调 */
+  private taskPlanCallback?: (data: TaskPlanData) => void
 
   /**
    * 解析单个 SSE 数据块内容
@@ -104,6 +136,11 @@ export class StreamChunkParserContext {
     this.toolCallCount = 0
   }
 
+  /** 设置任务计划更新回调 */
+  setTaskPlanCallback(callback: (data: TaskPlanData) => void): void {
+    this.taskPlanCallback = callback
+  }
+
   /** 处理工具请求消息 */
   private handleToolRequest(obj: { id?: string; name?: string }): string {
     const toolId = obj.id
@@ -123,9 +160,14 @@ export class StreamChunkParserContext {
   }
 
   /** 处理工具执行完成消息 */
-  private handleToolExecuted(obj: { name?: string; arguments?: string }): string {
+  private handleToolExecuted(obj: { name?: string; arguments?: string; result?: string }): string {
     const toolName = obj.name || 'unknown'
     const displayName = TOOL_DISPLAY_NAMES[toolName] || toolName
+
+    // 特殊处理任务计划工具：解析结果中的任务列表数据
+    if (toolName === 'taskPlan' && obj.result) {
+      this.parseTaskPlanResult(obj.result)
+    }
 
     // 尝试解析 arguments 获取文件路径摘要（不含完整文件内容，避免存入数据库的冗余信息）
     if (obj.arguments) {
@@ -141,6 +183,24 @@ export class StreamChunkParserContext {
     }
 
     return `\n\n[工具调用结束] ${displayName} 执行完成\n\n`
+  }
+
+  /** 解析任务计划工具返回的结果 */
+  private parseTaskPlanResult(result: string): void {
+    if (!this.taskPlanCallback) return
+
+    // 结果格式: "[任务计划] {JSON}"
+    const jsonMatch = result.match(/\[任务计划\]\s*(\{.*\})/)
+    if (!jsonMatch) return
+
+    try {
+      const data = JSON.parse(jsonMatch[1]) as TaskPlanData
+      if (data.type === 'taskPlan' && data.tasks) {
+        this.taskPlanCallback(data)
+      }
+    } catch {
+      // JSON 解析失败，忽略
+    }
   }
 }
 

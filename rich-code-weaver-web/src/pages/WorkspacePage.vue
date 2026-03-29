@@ -7,7 +7,7 @@
           <!-- Greeting -->
           <div ref="greetingRef" class="greeting">
             <img alt="Logo" class="greeting-logo" src="@/assets/logo.png" />
-            <h1 class="greeting-title">RichCodeWeaver - 织码睭奇</h1>
+            <h1 class="greeting-title">RichCodeWeaver - 织码睿奇</h1>
             <p class="greeting-sub">工作大幅提效，成果触手可及</p>
           </div>
 
@@ -105,6 +105,12 @@
       <div class="workspace-body">
         <!-- Chat mode: full-width chat page (code response) -->
         <div v-show="appStore.currentMode === 'chat'" class="pane-full">
+          <!-- Task Plan Panel (real-time rendering during generation) -->
+          <TaskPlanPanel
+            v-if="taskPlanData && taskPlanData.tasks"
+            :tasks="taskPlanData.tasks"
+            :summary="taskPlanData.summary || { total: 0, completed: 0, inProgress: 0, pending: 0 }"
+          />
           <ChatMessages
             ref="chatMessagesRef"
             :has-more="hasMore"
@@ -227,7 +233,7 @@ import {
 } from '@/config/env'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { listMatchedTemplates } from '@/api/promptTemplateController'
-import { parseBatchContent, StreamChunkParserContext } from '@/utils/streamChunkParser'
+import { parseBatchContent, StreamChunkParserContext, type TaskPlanData } from '@/utils/streamChunkParser'
 import request from '@/request'
 import ChatInput from '@/components/workspace/ChatInput.vue'
 import ChatMessages from '@/components/workspace/ChatMessages.vue'
@@ -239,6 +245,7 @@ import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
 import IdentitySetupModal from '@/components/IdentitySetupModal.vue'
 import PromptTemplateDialog from '@/components/PromptTemplateDialog.vue'
 import CommentDialog from '@/components/CommentDialog.vue'
+import TaskPlanPanel from '@/components/workspace/TaskPlanPanel.vue'
 import { doAppShare, getAppHotStat, toggleAppFavorite, toggleAppLike } from '@/api/socialController'
 
 const route = useRoute()
@@ -399,6 +406,9 @@ const appDetailVisible = ref(false)
 // === Social State ===
 const hotStat = ref<API.AppHotStatVO | null>(null)
 const commentDialogOpen = ref(false)
+
+// === Task Plan State ===
+const taskPlanData = ref<TaskPlanData | null>(null)
 
 // === Timer ===
 const generatingTime = ref(0)
@@ -733,6 +743,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   const existingContentLength = isReconnect ? (messages.value[aiMessageIndex]?.content?.length || 0) : 0
   // 创建流式 JSON 消息块解析上下文，用于解析 VUE_PROJECT 模式下的 ai_response / tool_request / tool_executed 类型
   const chunkParser = new StreamChunkParserContext()
+  // 设置任务计划更新回调，用于实时渲染任务列表
+  chunkParser.setTaskPlanCallback((data: TaskPlanData) => {
+    taskPlanData.value = data
+  })
 
   if (!isReconnect) markGeneratingStart(userMessage)
 
@@ -746,6 +760,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       timer.value = null
     }
     isGenerating.value = false
+    // 清理任务计划状态（生成结束后不再显示任务面板）
+    taskPlanData.value = null
     if (fullContent) {
       messages.value[aiMessageIndex].content = fullContent
     }

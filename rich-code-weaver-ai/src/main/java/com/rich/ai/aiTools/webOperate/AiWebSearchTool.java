@@ -54,7 +54,7 @@ public class AiWebSearchTool extends BaseTool {
     }
 
     @Override
-    public String getResultMsg(JSONObject arguments) {
+    public String getResultMsg(JSONObject arguments, String result) {
         // 从参数中提取搜索关键词
         String query = arguments.getStr("query");
 
