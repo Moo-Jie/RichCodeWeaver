@@ -29,20 +29,6 @@
 - vite.config.js 未配置 `base: './'`（导致部署路径问题）
 - 路由未使用 hash 模式（createWebHashHistory）
 
-### 1.2 JavaScript 运行时错误（必须标记为不通过）
-以下问题虽然不会导致语法报错，但会在浏览器运行时抛出异常，导致功能失效：
-- JS 代码引用了不存在的 DOM 元素（如 `document.getElementById('xxx')` 但 HTML 中无对应 id）
-- JS 代码中的 DOM 选择器与 HTML 实际的 class/id 不匹配
-- 事件监听绑定到不存在的元素上（导致 `Cannot read properties of null`）
-- 函数调用了未定义的变量或方法
-- 数组/对象操作未进行空值检查，可能导致 `TypeError`
-- script.js 中引用的 DOM 元素在 index.html 中不存在（多文件模式常见问题）
-
-### 1.3 素材资源引用错误（必须标记为不通过）
-- 引用了本地文件路径（如 `./images/logo.png`、`src/assets/xxx.png`）但文件实际不存在
-- 系统消息中已提供素材图片 URL，但代码中未使用或用了占位图替代
-- img 标签的 src 属性指向不可访问的本地路径
-
 ### 2. 严重问题（应标记为不通过）
 - 代码结构导致页面无法正常渲染
 - 关键交互逻辑存在明显错误
