@@ -21,13 +21,13 @@ import java.util.stream.Collectors;
  * 将 DashScope 原生 SDK 的 {@link TextEmbedding} 包装为 langchain4j 的 {@link EmbeddingModel} 接口，
  * 使得 text-embedding-v4 等不支持 OpenAI 兼容模式的文本向量模型可以无缝集成到 langchain4j 的 RAG 管道中。
  *
- * <p>text-embedding-v4 是通义实验室基于 Qwen3 训练的多语言文本统一向量模型，
+ * text-embedding-v4 是通义实验室基于 Qwen3 训练的多语言文本统一向量模型，
  * 相较 V3 版本在文本检索、聚类、分类性能大幅提升（MTEB 评测提升 15%~40%），
- * 支持 64~2048 维用户自定义向量维度。</p>
+ * 支持 64~2048 维用户自定义向量维度。
  *
- * <p>核心优势：使用 DashScope 原生 {@link TextEmbedding#call(TextEmbeddingParam)} 接口，
+ * 核心优势：使用 DashScope 原生 {@link TextEmbedding#call(TextEmbeddingParam)} 接口，
  * 通过 {@link TextEmbeddingParam#builder()}.texts() 方法原生支持批量文本向量化，
- * 单次请求最多处理 {@value #MAX_BATCH_SIZE} 条文本，大幅减少网络往返次数。</p>
+ * 单次请求最多处理 {@value #MAX_BATCH_SIZE} 条文本，大幅减少网络往返次数。
  *
  * @author DuRuiChi
  * @create 2026/3/27

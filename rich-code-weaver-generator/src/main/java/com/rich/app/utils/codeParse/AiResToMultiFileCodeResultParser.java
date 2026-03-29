@@ -43,7 +43,7 @@ public class AiResToMultiFileCodeResultParser implements CodeParser<MultiFileCod
      * @param content 原始文本内容
      * @param pattern 匹配用的正则模式
      * @return 提取到的代码内容，未找到时返回null
-     * <p>
+     *
      * 该方法使用预定义的正则表达式模式进行代码块匹配，
      * 适用于各种类型的代码块提取。
      */
@@ -57,7 +57,7 @@ public class AiResToMultiFileCodeResultParser implements CodeParser<MultiFileCod
      *
      * @param codeContent 包含多种代码类型的原始文本
      * @return MultiFileCodeResponse 包含解析后的各类型代码
-     * <p>
+     *
      * 支持解析的类型：
      * - HTML代码块（```html）
      * - CSS代码块（```css）

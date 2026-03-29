@@ -64,58 +64,107 @@ public class RagContentRetrieverAugmentorFactory {
     private EmbeddingStore<TextSegment> embeddingStore;
 
     /**
-     * 根据代码生成类型创建 RetrievalAugmentor（检索增强器）
-     * 这是 RAG 管道的核心组件，集成到 AiServices 后会自动在每次 AI 调用前执行：
-     * 1. 将用户查询向量化
-     * 2. 在 PGVector 中搜索相似的知识库片段（按 codeGenType 过滤）
-     * 3. 将检索到的片段注入到用户消息中
-     * 4. 将增强后的消息发送给 AI 模型
+     * Agent 模式专用的 codeGenType 标识
+     * Agent 模式下检索此类型的 RAG 文档，与工作流模式的类型完全隔离
+     */
+    public static final String AGENT_CODE_GEN_TYPE = "AGENT";
+
+    /**
+     * 通用类型标识，表示该文档适用于所有代码生成类型
+     */
+    private static final String GENERAL_CODE_GEN_TYPE = "GENERAL";
+
+    /**
+     * 为工作流模式创建 RetrievalAugmentor（检索增强器）
+     * 工作流模式的 RAG 过滤策略：
+     * - 检索与当前 codeGenType 匹配的文档（HTML/MULTI_FILE/VUE_PROJECT）
+     * - 同时检索 GENERAL 类型的通用文档
+     * - 不检索 AGENT 类型的文档，实现与 Agent 模式的完全隔离
      *
-     * @return RetrievalAugmentor 检索增强器实例，用于注入 AiServices.builder()
+     * @param codeGenTypeName 代码生成类型（HTML/MULTI_FILE/VUE_PROJECT）
+     * @return RetrievalAugmentor 检索增强器实例
      * @author DuRuiChi
      * @create 2026/3/26
      **/
-    public RetrievalAugmentor createRetrievalAugmentor(String codeGenTypeName) {
-        log.info("【RAG 检索增强】为代码生成类型 {} 创建 RetrievalAugmentor", codeGenTypeName);
+    public RetrievalAugmentor createWorkflowRetrievalAugmentor(String codeGenTypeName) {
+        log.info("【RAG 检索增强-工作流】为代码生成类型 {} 创建 RetrievalAugmentor", codeGenTypeName);
 
-        // 1.构建 ContentRetriever（内容检索器）
-        // 基于 PGVector 的向量相似度检索，附加 codeGenType 元数据过滤
+        // 工作流模式：检索指定类型 + GENERAL 类型的文档
+        RetrievalAugmentor augmentor = buildRetrievalAugmentor(
+                metadataKey("codeGenType").isEqualTo(codeGenTypeName)
+                        .or(metadataKey("codeGenType").isEqualTo(GENERAL_CODE_GEN_TYPE))
+        );
+
+        log.info("【RAG 检索增强-工作流】RetrievalAugmentor 创建完成，codeGenType={}", codeGenTypeName);
+        return augmentor;
+    }
+
+    /**
+     * 为 Agent 模式创建 RetrievalAugmentor（检索增强器）
+     * Agent 模式的 RAG 过滤策略：
+     * - 只检索 codeGenType=AGENT 的专用文档
+     * - 不检索 GENERAL 类型的文档，避免与工作流模式的通用规范混淆
+     * - 与工作流模式的 RAG 完全隔离，互不干扰
+     *
+     * @return RetrievalAugmentor 检索增强器实例
+     * @author DuRuiChi
+     * @create 2026/3/29
+     **/
+    public RetrievalAugmentor createAgentRetrievalAugmentor() {
+        log.info("【RAG 检索增强-Agent】为 Agent 模式创建 RetrievalAugmentor");
+
+        // Agent 模式：只检索 AGENT 类型的文档
+        RetrievalAugmentor augmentor = buildRetrievalAugmentor(
+                metadataKey("codeGenType").isEqualTo(AGENT_CODE_GEN_TYPE)
+        );
+
+        log.info("【RAG 检索增强-Agent】RetrievalAugmentor 创建完成，codeGenType={}", AGENT_CODE_GEN_TYPE);
+        return augmentor;
+    }
+
+    /**
+     * 构建 RetrievalAugmentor（检索增强器）的通用方法
+     * 该方法封装了 RAG 检索增强器的完整构建流程：
+     * 1. 从数据库或默认值加载 RAG 参数（maxResults、minScore、injectionTemplate）
+     * 2. 构建 ContentRetriever（内容检索器）：基于向量相似度检索，附加元数据过滤
+     * 3. 构建 ContentInjector（内容注入器）：将检索到的内容注入到用户消息中
+     * 4. 组装 RetrievalAugmentor：封装完整的检索增强管道
+     *
+     * @param metadataFilter 元数据过滤器，用于按 codeGenType 过滤文档
+     * @return RetrievalAugmentor 检索增强器实例
+     */
+    private RetrievalAugmentor buildRetrievalAugmentor(
+            dev.langchain4j.store.embedding.filter.Filter metadataFilter) {
+
+        // 步骤1：加载 RAG 参数（从数据库或使用默认值）
         int maxResults = ragParamProvider != null ? ragParamProvider.getMaxResults() : 5;
         double minScore = ragParamProvider != null ? ragParamProvider.getMinScore() : 0.6;
         String injectionTemplate = ragParamProvider != null
                 ? ragParamProvider.getInjectionPromptTemplate() : DEFAULT_INJECTION_TEMPLATE;
 
+        // 步骤2：构建 ContentRetriever（内容检索器）
+        // 基于 PGVector 的向量相似度检索，附加 codeGenType 元数据过滤
         ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingStore(embeddingStore)       // 向量存储（PGVector）
                 .embeddingModel(embeddingModel)       // 向量模型（用于查询向量化）
-                .maxResults(maxResults)               // 最大检索结果数（从 DB 动态加载）
-                .minScore(minScore)                   // 最低相似度阈值（从 DB 动态加载）
-                // 元数据过滤器：只检索与当前代码生成类型匹配的知识库文档片段
-                // 或者匹配通用类型（GENERAL）的文档，确保通用规范也能被检索到
-                .filter(metadataKey("codeGenType").isEqualTo(codeGenTypeName)
-                        .or(metadataKey("codeGenType").isEqualTo("GENERAL")))
+                .maxResults(maxResults)               // 最大检索结果数
+                .minScore(minScore)                   // 最低相似度阈值
+                .filter(metadataFilter)               // 元数据过滤器（按 codeGenType 过滤）
                 .build();
 
-        // 2.构建 ContentInjector（内容注入器）
+        // 步骤3：构建 ContentInjector（内容注入器）
         // 使用自定义提示词模板，将检索到的知识库内容以权威参考形式注入用户消息
         ContentInjector contentInjector = DefaultContentInjector.builder()
-                // 自定义注入模板（从 DB 动态加载）
-                .promptTemplate(PromptTemplate.from(injectionTemplate))
-                // 在注入内容中包含来源文件名元数据，方便追溯和调试
-                .metadataKeysToInclude(List.of("source", "title"))
+                .promptTemplate(PromptTemplate.from(injectionTemplate))  // 注入模板
+                .metadataKeysToInclude(List.of("source", "title"))      // 包含的元数据字段
                 .build();
 
-        // 3.组装 RetrievalAugmentor（检索增强器）
-        // DefaultRetrievalAugmentor 是 langchain4j 的标准实现，封装了完整的检索增强管道：
+        // 步骤4：组装 RetrievalAugmentor（检索增强器）
+        // DefaultRetrievalAugmentor 封装了完整的检索增强管道：
         //   用户查询 → ContentRetriever 检索 → ContentInjector 注入 → 增强后的消息
-        RetrievalAugmentor augmentor = DefaultRetrievalAugmentor.builder()
-                .contentRetriever(contentRetriever)  // 内容检索器
-                .contentInjector(contentInjector)    // 内容注入器
+        return DefaultRetrievalAugmentor.builder()
+                .contentRetriever(contentRetriever)   // 内容检索器
+                .contentInjector(contentInjector)     // 内容注入器
                 .build();
-
-        log.info("【RAG 检索增强】RetrievalAugmentor 创建完成，codeGenType={}, maxResults={}, minScore={}",
-                codeGenTypeName, maxResults, minScore);
-
-        return augmentor;
     }
 }

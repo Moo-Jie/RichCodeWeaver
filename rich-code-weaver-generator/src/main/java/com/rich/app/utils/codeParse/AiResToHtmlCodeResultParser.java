@@ -39,7 +39,6 @@ public class AiResToHtmlCodeResultParser implements CodeParser<HtmlCodeResponse>
      *
      * @param codeContent 包含HTML代码的原始文本
      * @return HtmlCodeResponse 包含解析后的HTML代码
-     * <p>
      * 处理逻辑：
      * 1. 尝试从内容中提取标准HTML代码块
      * 2. 如果未找到代码块，则将整个输入内容视为HTML代码

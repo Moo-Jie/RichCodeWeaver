@@ -36,7 +36,7 @@ import java.time.Duration;
  **/
 @Slf4j
 @Configuration
-public class AiCodeGeneratorServiceFactory {
+public class AiCodeGenWorkflowServiceFactory {
 
     /**
      * 创建 Caffeine 缓存服务，用于存储 AI 服务实例
@@ -168,7 +168,7 @@ public class AiCodeGeneratorServiceFactory {
         // 这样 AI 生成代码时会参考知识库中的开发规范，降低幻觉概率
         if (ragContentRetrieverAugmentorFactory != null) {
             RetrievalAugmentor ragAugmentor = ragContentRetrieverAugmentorFactory
-                    .createRetrievalAugmentor(codeGenTypeEnum.name());
+                    .createWorkflowRetrievalAugmentor(codeGenTypeEnum.name());
             aiCodeGenServices.retrievalAugmentor(ragAugmentor);
             log.info("为 appId: {} 注入 RAG 知识库检索增强，codeGenType: {}", appId, codeGenTypeEnum.name());
         } else {

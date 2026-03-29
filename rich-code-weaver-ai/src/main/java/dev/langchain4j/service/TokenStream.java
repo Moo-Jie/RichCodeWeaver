@@ -33,7 +33,7 @@ public interface TokenStream {
 
     /**
      * The provided consumer will be invoked if any {@link Content}s are retrieved using {@link RetrievalAugmentor}.
-     * <p>
+     *
      * The invocation happens before any call is made to the language model.
      *
      * @param contentHandler lambda that consumes all retrieved contents
@@ -43,7 +43,7 @@ public interface TokenStream {
 
     /**
      * The provided consumer will be invoked if any tool is executed.
-     * <p>
+     *
      * The invocation happens after the tool method has finished and before any other tool is executed.
      *
      * @param toolExecuteHandler lambda that consumes {@link ToolExecution}
@@ -76,7 +76,7 @@ public interface TokenStream {
 
     /**
      * Completes the current token stream building and starts processing.
-     * <p>
+     *
      * Will send a request to LLM and start response streaming.
      */
     void start();

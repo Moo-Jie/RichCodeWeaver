@@ -10,11 +10,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 /**
  * 百度千帆搜索工具测试类
  * 用于手动测试百度千帆平台搜索API的调用
- * <p>
+ *
  * 配置要求：
  * 需要在 application-local.yml 中配置：
  * baidu.qianfan.appbuilder-api-key
- * <p>
+ *
  * 获取API Key：https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
  *
  * @author DuRuiChi

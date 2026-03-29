@@ -354,6 +354,7 @@ const codeGenTypeOptions = [
   { value: 'HTML', label: 'HTML — 单文件模式' },
   { value: 'MULTI_FILE', label: 'MULTI_FILE — 多文件模式' },
   { value: 'VUE_PROJECT', label: 'VUE_PROJECT — Vue 项目模式' },
+  { value: 'AGENT', label: 'AGENT — Agent 自主模式专用' },
   { value: 'GENERAL', label: 'GENERAL — 通用（所有类型）' }
 ]
 
@@ -361,6 +362,7 @@ const codeGenTypeLabelMap: Record<string, string> = {
   HTML: '单文件',
   MULTI_FILE: '多文件',
   VUE_PROJECT: 'Vue项目',
+  AGENT: 'Agent专用',
   GENERAL: '通用'
 }
 
@@ -368,6 +370,7 @@ const codeGenTypeColorMap: Record<string, string> = {
   HTML: 'blue',
   MULTI_FILE: 'purple',
   VUE_PROJECT: 'cyan',
+  AGENT: 'green',
   GENERAL: 'orange'
 }
 

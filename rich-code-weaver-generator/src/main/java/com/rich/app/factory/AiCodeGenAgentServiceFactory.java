@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.ai.agent.AiCodeGenAgentService;
 import com.rich.ai.aiTools.ToolsManager;
+import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.client.innerService.InnerSystemPromptService;
 import com.rich.common.exception.BusinessException;
@@ -14,10 +15,12 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
@@ -74,6 +77,13 @@ public class AiCodeGenAgentServiceFactory {
     private InnerSystemPromptService innerSystemPromptService;
 
     /**
+     * RAG 检索增强器工厂（可选注入，RAG 未启用时为 null）
+     * 用于为 Agent 模式创建专用的 RAG 检索增强器
+     */
+    @Autowired(required = false)
+    private RagContentRetrieverAugmentorFactory ragContentRetrieverAugmentorFactory;
+
+    /**
      * 从缓存中获取或创建 Agent 服务实例
      *
      * @param appId 产物 ID
@@ -118,8 +128,8 @@ public class AiCodeGenAgentServiceFactory {
         StreamingChatModel reasoningStreamingChatModel =
                 SpringContextUtil.getBean("reasoningStreamingChatModel", StreamingChatModel.class);
 
-        // 步骤5：构建 Agent 服务（注入所有工具 + 系统提示词 + 对话记忆）
-        return AiServices.builder(AiCodeGenAgentService.class)
+        // 步骤5：构建 Agent 服务（注入所有工具 + 系统提示词 + 对话记忆 + RAG）
+        AiServices<AiCodeGenAgentService> builder = AiServices.builder(AiCodeGenAgentService.class)
                 .streamingChatModel(reasoningStreamingChatModel)
                 .systemMessageProvider(memoryId -> systemPrompt)
                 .tools(toolsManager.getAllTools())
@@ -130,7 +140,18 @@ public class AiCodeGenAgentServiceFactory {
                 // 当 AI 幻觉调用不存在的工具时，返回错误提示（防止异常中断）
                 .hallucinatedToolNameStrategy(toolExecutionRequest ->
                         ToolExecutionResultMessage.from(toolExecutionRequest,
-                                "Error: there is no tool called " + toolExecutionRequest.name()))
-                .build();
+                                "Error: there is no tool called " + toolExecutionRequest.name()));
+
+        // 步骤6：如果 RAG 已启用，注入 Agent 专用的 RAG 检索增强器
+        // Agent 模式只检索 codeGenType=AGENT 的知识库文档，与工作流模式完全隔离
+        if (ragContentRetrieverAugmentorFactory != null) {
+            RetrievalAugmentor agentRagAugmentor = ragContentRetrieverAugmentorFactory.createAgentRetrievalAugmentor();
+            builder.retrievalAugmentor(agentRagAugmentor);
+            log.info("为 appId: {} 的 Agent 服务注入 RAG 检索增强器（codeGenType=AGENT）", appId);
+        } else {
+            log.info("RAG 未启用，appId: {} 的 Agent 服务不使用 RAG 检索增强", appId);
+        }
+
+        return builder.build();
     }
 }

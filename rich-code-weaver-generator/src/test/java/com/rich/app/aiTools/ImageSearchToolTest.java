@@ -13,13 +13,13 @@ import java.util.List;
 /**
  * 接口盒子图片搜索工具测试类
  * 用于手动测试接口盒子（apihz.cn）图片搜索API的调用
- * <p>
+ *
  * 配置说明：
  * 默认使用公共测试ID和KEY（已在代码中配置）
  * 如需使用自己的账号，请在 application-local.yml 中配置：
  * apihz.image-search.id: 你的接口盒子ID
  * apihz.image-search.key: 你的开发者KEY
- * <p>
+ *
  * 注册地址：https://www.apihz.cn/user/
  *
  * @author DuRuiChi

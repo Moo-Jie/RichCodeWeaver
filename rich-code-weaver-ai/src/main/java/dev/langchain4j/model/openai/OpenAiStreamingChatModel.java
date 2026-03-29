@@ -276,7 +276,7 @@ public class OpenAiStreamingChatModel implements StreamingChatModel {
 
         /**
          * Sets default common {@link ChatRequestParameters} or OpenAI-specific {@link OpenAiChatRequestParameters}.
-         * <br>
+         *
          * When a parameter is set via an individual builder method (e.g., {@link #modelName(String)}),
          * its value takes precedence over the same parameter set via {@link ChatRequestParameters}.
          */

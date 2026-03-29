@@ -1,7 +1,7 @@
 package com.rich.app.utils;
 
 import com.rich.ai.service.AiCodeGeneratorService;
-import com.rich.app.factory.AiCodeGeneratorServiceFactory;
+import com.rich.app.factory.AiCodeGenWorkflowServiceFactory;
 import com.rich.app.utils.ConvertTokenStreamToFluxUtils.ConvertWorkflowTokenStreamToFluxUtils;
 import com.rich.app.utils.codeParse.CodeParseExecutor;
 import com.rich.app.utils.codeSave.CodeResultSaveExecutor;
@@ -48,12 +48,12 @@ public class AIGenerateCodeAndSaveToFileUtils {
             log.info("（流式）开始生成{}类型代码，用户需求：{}", codeGenTypeEnum.getValue(), userMessage);
 
             // 步骤2：从 Spring 容器中获取 AI 代码生成器工厂
-            AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory =
-                    SpringContextUtil.getBean(AiCodeGeneratorServiceFactory.class);
+            AiCodeGenWorkflowServiceFactory aiCodeGenWorkflowServiceFactory =
+                    SpringContextUtil.getBean(AiCodeGenWorkflowServiceFactory.class);
 
             // 步骤3：通过工厂获取或创建 AI 服务实例（带缓存）
             AiCodeGeneratorService aiCodeGeneratorService =
-                    aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
+                    aiCodeGenWorkflowServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
 
             // 步骤4：根据代码生成类型选择对应的生成策略
             return switch (codeGenTypeEnum) {
