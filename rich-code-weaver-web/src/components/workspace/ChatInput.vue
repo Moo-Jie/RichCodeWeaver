@@ -30,7 +30,7 @@
           class="material-text-btn"
           @click="$emit('openMaterialSelector')"
         >
-          <PictureOutlined />
+          <PaperClipOutlined />
           选择素材
           <span v-if="selectedMaterials.length > 0" class="material-count">{{ selectedMaterials.length }}</span>
         </button>
@@ -55,7 +55,7 @@
       <!-- Selected materials hint -->
       <div v-if="selectedMaterials.length > 0" class="materials-hint">
         <div class="materials-list">
-          <span class="materials-label"><PictureOutlined /> 已选素材：</span>
+          <span class="materials-label"><PaperClipOutlined /> 已选素材：</span>
           <span
             v-for="(m, idx) in selectedMaterials.slice(0, 3)"
             :key="m.id"
@@ -118,7 +118,7 @@
 
 <script lang="ts" setup>
 import { computed, h, nextTick, onMounted, ref } from 'vue'
-import { LoadingOutlined, SendOutlined, QuestionCircleOutlined, PictureOutlined } from '@ant-design/icons-vue'
+import { LoadingOutlined, SendOutlined, QuestionCircleOutlined, PaperClipOutlined } from '@ant-design/icons-vue'
 
 interface ElementInfo {
   tagName: string

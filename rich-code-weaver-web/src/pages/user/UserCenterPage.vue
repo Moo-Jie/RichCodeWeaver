@@ -199,6 +199,54 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 绑定手机号模态框 -->
+    <a-modal
+      v-model:visible="phoneVisible"
+      class="custom-modal"
+      title="绑定手机号"
+      @ok="handlePhoneSubmit"
+    >
+      <br>
+      <a-form :label-col="{ span: 6 }" :model="phoneForm" :wrapper-col="{ span: 18 }">
+        <a-form-item label="手机号">
+          <a-input 
+            v-model:value="phoneForm.phone" 
+            placeholder="请输入11位手机号" 
+            maxlength="11"
+          />
+        </a-form-item>
+        <a-form-item>
+          <div style="color: #999; font-size: 12px;">
+            请输入正确的11位手机号码，格式：1开头的11位数字
+          </div>
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- 绑定邮箱模态框 -->
+    <a-modal
+      v-model:visible="emailVisible"
+      class="custom-modal"
+      title="绑定邮箱"
+      @ok="handleEmailSubmit"
+    >
+      <br>
+      <a-form :label-col="{ span: 6 }" :model="emailForm" :wrapper-col="{ span: 18 }">
+        <a-form-item label="邮箱地址">
+          <a-input 
+            v-model:value="emailForm.email" 
+            placeholder="请输入邮箱地址" 
+            type="email"
+          />
+        </a-form-item>
+        <a-form-item>
+          <div style="color: #999; font-size: 12px;">
+            请输入正确的邮箱地址，如：example@domain.com
+          </div>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -221,7 +269,9 @@ import {
   updateUser,
   updateUserAvatar,
   updateUserPassword,
-  userLogout
+  userLogout,
+  bindPhone,
+  bindEmail
 } from '@/api/userController'
 import { identityLabelMap, identityOptions, industryOptions } from '@/constants/identityOptions'
 
@@ -245,6 +295,8 @@ const userInfo = reactive({
 // 模态框状态
 const editVisible = ref(false)
 const passwordVisible = ref(false)
+const phoneVisible = ref(false)
+const emailVisible = ref(false)
 
 // 编辑表单
 const editForm = reactive({
@@ -272,6 +324,16 @@ const passwordForm = reactive({
   oldPassword: '',
   newPassword: '',
   confirmPassword: ''
+})
+
+// 手机绑定表单
+const phoneForm = reactive({
+  phone: ''
+})
+
+// 邮箱绑定表单
+const emailForm = reactive({
+  email: ''
 })
 
 // 获取用户信息
@@ -316,7 +378,7 @@ const handleEditSubmit = async () => {
     }
   } catch (error) {
     console.error('更新用户信息失败：', error)
-    message.error('更新失败:' + res.data.message)
+    message.error('更新失败，请稍后重试')
   }
 }
 
@@ -356,18 +418,72 @@ const handlePasswordSubmit = async () => {
     }
   } catch (error) {
     console.error('修改密码失败：', error)
-    message.error('修改失败:' + res.data.message)
+    message.error('修改失败，请稍后重试')
   }
 }
 
-// TODO 处理手机操作
+// 处理手机操作
 const handleMobile = () => {
-  message.info('手机绑定功能即将上线')
+  phoneForm.phone = userInfo.phone || ''
+  phoneVisible.value = true
 }
 
-// TODO 处理邮箱操作
+// 处理邮箱操作
 const handleEmail = () => {
-  message.info('邮箱绑定功能即将上线')
+  emailForm.email = userInfo.email || ''
+  emailVisible.value = true
+}
+
+// 提交手机绑定
+const handlePhoneSubmit = async () => {
+  const phone = phoneForm.phone.trim()
+  
+  // 验证手机号格式
+  if (!isValidPhone(phone)) {
+    message.error('请输入正确的手机号格式')
+    return
+  }
+
+  try {
+    const res = await bindPhone({ phone })
+    if (res.data.code === 0) {
+      message.success('手机号绑定成功')
+      userInfo.phone = phone
+      phoneVisible.value = false
+      phoneForm.phone = ''
+    } else {
+      message.error('绑定失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('绑定手机号失败：', error)
+    message.error('绑定失败，请稍后重试')
+  }
+}
+
+// 提交邮箱绑定
+const handleEmailSubmit = async () => {
+  const email = emailForm.email.trim()
+  
+  // 验证邮箱格式
+  if (!isValidEmail(email)) {
+    message.error('请输入正确的邮箱格式')
+    return
+  }
+
+  try {
+    const res = await bindEmail({ email })
+    if (res.data.code === 0) {
+      message.success('邮箱绑定成功')
+      userInfo.email = email
+      emailVisible.value = false
+      emailForm.email = ''
+    } else {
+      message.error('绑定失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('绑定邮箱失败：', error)
+    message.error('绑定失败，请稍后重试')
+  }
 }
 
 // 处理头像上传
@@ -393,7 +509,7 @@ const handleAvatarUpload = async (file: File) => {
     }
   } catch (error) {
     console.error('头像上传失败：', error)
-    message.error('头像上传失败:' + res.data.message)
+    message.error('头像上传失败，请稍后重试')
   }
   return false // 阻止默认上传行为
 }
@@ -424,6 +540,26 @@ const maskEmail = (email: string) => {
   const [username, domain] = email.split('@')
   if (!username || !domain) return email
   return `${username.substring(0, 2)}***@${domain}`
+}
+
+// 验证手机号格式
+const isValidPhone = (phone: string) => {
+  if (!phone || phone.trim().length === 0) {
+    return false
+  }
+  // 中国大陆手机号正则：1开头，第二位为3-9，总共11位数字
+  const phoneRegex = /^1[3-9]\d{9}$/
+  return phoneRegex.test(phone.trim())
+}
+
+// 验证邮箱格式
+const isValidEmail = (email: string) => {
+  if (!email || email.trim().length === 0) {
+    return false
+  }
+  // 邮箱正则
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  return emailRegex.test(email.trim())
 }
 
 onMounted(() => {

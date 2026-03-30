@@ -42,4 +42,12 @@ public class UserUpdateRequest implements Serializable {
      * 用户行业领域
      */
     private String userIndustry;
+    /**
+     * 手机号
+     */
+    private String phone;
+    /**
+     * 邮箱
+     */
+    private String email;
 }

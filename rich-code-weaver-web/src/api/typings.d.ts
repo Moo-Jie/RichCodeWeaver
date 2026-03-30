@@ -194,6 +194,8 @@ declare namespace API {
     userRole?: string
     userIdentity?: string
     userIndustry?: string
+    phone?: string
+    email?: string
     createTime?: string
     updateTime?: string
   }
@@ -296,6 +298,16 @@ declare namespace API {
     userRole?: string
     userIdentity?: string
     userIndustry?: string
+    phone?: string
+    email?: string
+  }
+
+  type UserBindPhoneRequest = {
+    phone?: string
+  }
+
+  type UserBindEmailRequest = {
+    email?: string
   }
 
   type UserVO = {
@@ -307,6 +319,8 @@ declare namespace API {
     userRole?: string
     userIdentity?: string
     userIndustry?: string
+    phone?: string
+    email?: string
     createTime?: string
   }
 

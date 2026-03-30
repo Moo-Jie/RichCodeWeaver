@@ -292,7 +292,7 @@
         </a-form-item>
         <a-form-item label="图标">
           <a-select v-model:value="cForm.categoryIcon" placeholder="选择图标" allow-clear>
-            <a-select-option value="PictureOutlined">PictureOutlined (图片)</a-select-option>
+            <a-select-option value="PaperClipOutlined">PaperClipOutlined (图片)</a-select-option>
             <a-select-option value="FileTextOutlined">FileTextOutlined (文本)</a-select-option>
             <a-select-option value="VideoCameraOutlined">VideoCameraOutlined (视频)</a-select-option>
             <a-select-option value="SoundOutlined">SoundOutlined (音频)</a-select-option>
@@ -322,7 +322,7 @@ import 'md-editor-v3/lib/style.css'
 import { message } from 'ant-design-vue'
 import {
   PlusOutlined, UploadOutlined, EditOutlined, CheckOutlined,
-  PictureOutlined, FileTextOutlined, VideoCameraOutlined,
+  PaperClipOutlined, FileTextOutlined, VideoCameraOutlined,
   SoundOutlined, LinkOutlined, FolderOutlined, FileOutlined
 } from '@ant-design/icons-vue'
 import {
@@ -350,7 +350,7 @@ const loadCategories = async () => {
 }
 
 const iconMap: Record<string, any> = {
-  PictureOutlined, FileTextOutlined, VideoCameraOutlined,
+  PaperClipOutlined, FileTextOutlined, VideoCameraOutlined,
   SoundOutlined, LinkOutlined, FolderOutlined, FileOutlined
 }
 const getIconComponent = (name: string) => iconMap[name] || null

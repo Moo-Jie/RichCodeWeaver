@@ -323,7 +323,7 @@ const detailItem = ref<API.MaterialVO | null>(null)
 // 文本编辑器弹窗
 const textEditorVisible = ref(false)
 const textEditorContent = ref('')
-const TEXT_MATERIAL_MAX_LENGTH = 20000
+const TEXT_MATERIAL_MAX_LENGTH = 1800
 
 const openTextEditor = () => {
   textEditorContent.value = formData.value.content || ''

@@ -182,3 +182,33 @@ export async function updateUserPassword(
     ...(options || {})
   })
 }
+
+/** 绑定手机号 POST /user/bind/phone */
+export async function bindPhone(
+  body: API.UserBindPhoneRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean>('/user/bind/phone', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    data: body,
+    ...(options || {})
+  })
+}
+
+/** 绑定邮箱 POST /user/bind/email */
+export async function bindEmail(
+  body: API.UserBindEmailRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean>('/user/bind/email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    data: body,
+    ...(options || {})
+  })
+}

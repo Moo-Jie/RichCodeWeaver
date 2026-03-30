@@ -336,7 +336,7 @@ CREATE TABLE `material_category` (
 
 LOCK TABLES `material_category` WRITE;
 /*!40000 ALTER TABLE `material_category` DISABLE KEYS */;
-INSERT INTO `material_category` VALUES (1,'图片','image','PictureOutlined','图片类素材，支持jpg、png、gif、webp等格式的在线URL',1,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0),(2,'文本','text','FileTextOutlined','文本类素材，如文章内容、产品描述、公司简介等',2,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0),(3,'视频','video','VideoCameraOutlined','视频类素材，支持mp4、webm等格式的在线URL',3,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0),(4,'音频','audio','SoundOutlined','音频类素材，支持mp3、wav等格式的在线URL',4,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0),(5,'链接','link','LinkOutlined','外部链接素材，如参考网站、API文档等',5,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0);
+INSERT INTO `material_category` VALUES (1,'图片','image','PaperClipOutlined','图片类素材，支持jpg、png、gif、webp等格式的在线URL',1,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0),(2,'文本','text','FileTextOutlined','文本类素材，如文章内容、产品描述、公司简介等',2,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0),(3,'视频','video','VideoCameraOutlined','视频类素材，支持mp4、webm等格式的在线URL',3,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0),(4,'音频','audio','SoundOutlined','音频类素材，支持mp3、wav等格式的在线URL',4,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0),(5,'链接','link','LinkOutlined','外部链接素材，如参考网站、API文档等',5,1,NULL,'2026-03-30 12:13:52','2026-03-30 12:13:52',0);
 /*!40000 ALTER TABLE `material_category` ENABLE KEYS */;
 UNLOCK TABLES;
 

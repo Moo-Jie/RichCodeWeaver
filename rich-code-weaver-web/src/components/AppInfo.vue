@@ -85,7 +85,7 @@
 
         <a-descriptions-item label="数字产物封面">
           <div class="meta-item">
-            <PictureOutlined />
+            <PaperClipOutlined />
             <img v-if="app?.cover" :src="app.cover" alt="数字产物封面" class="cover-img" />
             <span v-else>--</span>
           </div>
@@ -151,7 +151,7 @@ import {
   FlagOutlined,
   IdcardOutlined,
   MessageOutlined,
-  PictureOutlined,
+  PaperClipOutlined,
   SyncOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'

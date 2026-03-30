@@ -59,7 +59,7 @@
                   placeholder="输入封面图片URL链接"
                 >
                   <template #prefix>
-                    <PictureOutlined />
+                    <PaperClipOutlined />
                   </template>
                 </a-input>
                 <a-upload
@@ -233,7 +233,7 @@ import {
   CloudServerOutlined,
   ExportOutlined,
   MessageOutlined,
-  PictureOutlined,
+  PaperClipOutlined,
   SaveOutlined,
   SyncOutlined,
   TagOutlined,

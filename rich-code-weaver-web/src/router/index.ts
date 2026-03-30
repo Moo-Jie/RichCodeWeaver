@@ -15,6 +15,7 @@ import PromptTemplateManagePage from '@/pages/admin/PromptTemplateManagePage.vue
 import SystemPromptManagePage from '@/pages/admin/SystemPromptManagePage.vue'
 import RagManagePage from '@/pages/admin/RagManagePage.vue'
 import MaterialManagePage from '@/pages/admin/MaterialManagePage.vue'
+import HigressManagePage from '@/pages/admin/HigressManagePage.vue'
 import MyMaterialPage from '@/pages/material/MyMaterialPage.vue'
 import DocsPage from '@/pages/other/DocsPage.vue'
 import AboutPage from '@/pages/other/AboutPage.vue'
@@ -107,6 +108,11 @@ const router = createRouter({
           path: 'admin/materialManage',
           name: '素材管理',
           component: MaterialManagePage
+        },
+        {
+          path: 'admin/higressManage',
+          name: '网关管理',
+          component: HigressManagePage
         },
         {
           path: 'other/docs',

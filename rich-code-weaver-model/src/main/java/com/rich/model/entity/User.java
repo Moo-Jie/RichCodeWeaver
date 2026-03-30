@@ -86,6 +86,18 @@ public class User implements Serializable {
     private String userIndustry;
 
     /**
+     * 手机号
+     */
+    @Column("phone")
+    private String phone;
+
+    /**
+     * 邮箱
+     */
+    @Column("email")
+    private String email;
+
+    /**
      * 编辑时间
      */
     @Column("editTime")

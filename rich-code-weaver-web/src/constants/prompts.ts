@@ -5,7 +5,7 @@ import {
   ExperimentOutlined,
   HomeOutlined,
   MedicineBoxOutlined,
-  PictureOutlined,
+  PaperClipOutlined,
   ReadOutlined,
   RocketOutlined,
   SecurityScanOutlined,
@@ -21,7 +21,7 @@ export const promptOptions = ref([
     value: '设计一个极简风格艺术日历页面，展示月份和日期网格，支持节日高亮显示，包含月份切换功能和优雅的动画过渡效果。',
     label: '艺术日历',
     desc: '节日展示页面',
-    icon: PictureOutlined,
+    icon: PaperClipOutlined,
     color: '#ff9f7f'
   },
   {

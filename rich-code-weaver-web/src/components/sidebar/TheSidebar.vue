@@ -51,9 +51,9 @@
           <div v-show="adminMenuExpanded && !appStore.sidebarCollapsed" class="nav-submenu">
             <div
               v-for="subItem in adminNavItems"
-              :key="subItem.path"
-              :class="['nav-subitem', { active: isActive(subItem.path) }]"
-              @click.stop="navigateTo(subItem.path)"
+              :key="subItem.path || subItem.url"
+              :class="['nav-subitem', { active: subItem.path && isActive(subItem.path) }]"
+              @click.stop="handleAdminNavClick(subItem)"
             >
               <component :is="subItem.icon" class="nav-icon" />
               <span class="nav-label">{{ subItem.label }}</span>
@@ -165,11 +165,13 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  PictureOutlined,
+  PaperClipOutlined,
   PlusOutlined, ReadOutlined, SafetyOutlined, SecurityScanOutlined,
   SettingOutlined,
   StarOutlined,
-  UserOutlined
+  UserOutlined,
+  ApiOutlined,
+  CloudServerOutlined
 } from '@ant-design/icons-vue'
 
 const appStore = useAppStore()
@@ -182,7 +184,7 @@ const aboutMenuExpanded = ref(false)
 const baseNavItems = [
   { path: '/', label: '主页', icon: HomeOutlined },
   { path: '/my/apps', label: '我的产物', icon: AppstoreOutlined },
-  { path: '/my/materials', label: '我的素材', icon: PictureOutlined },
+  { path: '/my/materials', label: '我的素材', icon: PaperClipOutlined },
   { path: '/my/favorites', label: '我的收藏', icon: StarOutlined },
   { path: '/all/apps', label: '热门产物', icon: GlobalOutlined }
 ]
@@ -200,7 +202,9 @@ const adminNavItems = [
   { path: '/admin/promptTemplate', label: '模板管理', icon: CopyOutlined },
   { path: '/admin/systemPrompt', label: '提示词管理', icon: AlignLeftOutlined },
   { path: '/admin/ragManage', label: '知识库管理', icon: ReadOutlined },
-  { path: '/admin/materialManage', label: '素材管理', icon: PictureOutlined }
+  { path: '/admin/materialManage', label: '素材管理', icon: PaperClipOutlined },
+  { path: '/admin/higressManage', label: '网关管理', icon: ApiOutlined },
+  { url: import.meta.env.VITE_NACOS_URL || 'http://192.168.43.4:8848/nacos/index.html', label: 'Nacos配置', icon: CloudServerOutlined }
 ]
 
 const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')
@@ -223,6 +227,16 @@ const navigateTo = (path: string) => {
     appStore.clearSelectedApp()
   }
   router.push(path)
+}
+
+const handleAdminNavClick = (item: any) => {
+  if (item.url) {
+    // External URL - open in new tab
+    window.open(item.url, '_blank')
+  } else if (item.path) {
+    // Internal route - navigate normally
+    navigateTo(item.path)
+  }
 }
 
 const handleLogoClick = () => {

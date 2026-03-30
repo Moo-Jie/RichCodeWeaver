@@ -34,6 +34,15 @@
             {{ t.label }}
           </span>
         </div>
+        <a-button 
+          type="primary" 
+          size="small" 
+          @click="handleAddMaterial"
+          class="add-material-btn"
+        >
+          <template #icon><PlusOutlined /></template>
+          添加素材
+        </a-button>
       </div>
     </div>
 
@@ -129,17 +138,34 @@
             </div>
             <span v-if="selectedMaterials.length > 5" class="more-count">+{{ selectedMaterials.length - 5 }}</span>
           </div>
-          <span class="selected-text">已选 <b>{{ selectedIds.length }}</b> 个</span>
+          <div class="selection-stats">
+            <span class="selected-text">已选 <b>{{ selectedIds.length }}</b> 个</span>
+            <div class="limit-counters">
+              <span class="counter-item" :class="{ warning: currentTextLength > 1500 }">
+                文字：{{ currentTextLength }}/1800
+              </span>
+              <span class="counter-item" :class="{ warning: currentUrlCount > 8 }">
+                链接：{{ currentUrlCount }}/10
+              </span>
+            </div>
+          </div>
           <a-button type="link" size="small" @click="clearSelection" class="clear-btn">清除</a-button>
         </template>
-        <span v-else class="no-select-hint">请选择素材（最多20个）</span>
+        <span v-else class="no-select-hint">请选择素材</span>
       </div>
       <div class="footer-actions">
-        <a-button @click="handleClose">取消</a-button>
-        <a-button type="primary" @click="handleConfirm" :disabled="selectedIds.length === 0">
-          <template #icon><CheckOutlined /></template>
-          确认选择
-        </a-button>
+        <!-- 警告提示 -->
+        <div v-if="showWarning" class="warning-tip">
+          <ExclamationCircleOutlined class="warning-icon" />
+          <span>素材体量过大时会使AI产生理解偏差和响应延迟，建议适当凝练素材内容</span>
+        </div>
+        <div class="action-buttons">
+          <a-button @click="handleClose">取消</a-button>
+          <a-button type="primary" @click="handleConfirm" :disabled="selectedIds.length === 0">
+            <template #icon><CheckOutlined /></template>
+            确认选择
+          </a-button>
+        </div>
       </div>
     </div>
   </a-modal>
@@ -150,7 +176,7 @@
  import { defineComponent, h, reactive } from 'vue'
  import {
   CheckOutlined as CheckOutlinedIcon,
-  PictureOutlined as PictureOutlinedIcon,
+  PaperClipOutlined as PaperClipOutlinedIcon,
   VideoCameraOutlined as VideoCameraOutlinedIcon,
   SoundOutlined as SoundOutlinedIcon,
   FileTextOutlined as FileTextOutlinedIcon,
@@ -168,7 +194,7 @@ const TYPE_LABEL: Record<string, string> = {
   image: '图片', text: '文本', video: '视频', audio: '音频', link: '链接'
  }
  const TYPE_ICON = {
-  image: PictureOutlinedIcon,
+  image: PaperClipOutlinedIcon,
   text: FileTextOutlinedIcon,
   video: VideoCameraOutlinedIcon,
   audio: SoundOutlinedIcon,
@@ -218,7 +244,7 @@ const TYPE_LABEL: Record<string, string> = {
           item.materialType === 'image'
             ? h('div', { class: 'image-preview-wrap' }, [
                 getImageStatus(item.id) !== 'loaded'
-                  ? h('div', { class: 'image-placeholder' }, [h(PictureOutlinedIcon, { class: 'image-placeholder-icon' })])
+                  ? h('div', { class: 'image-placeholder' }, [h(PaperClipOutlinedIcon, { class: 'image-placeholder-icon' })])
                   : null,
                 h('img', {
                   src: getSafePreviewSrc(item),
@@ -242,10 +268,16 @@ const TYPE_LABEL: Record<string, string> = {
             : null,
           h('div', { class: 'item-meta' }, [
             h('span', { class: 'item-category' }, item.categoryName || ''),
-            h('span', {
-              class: 'item-type-badge',
-              style: { background: TYPE_COLOR[item.materialType || ''] || '#aaa' }
-            }, TYPE_LABEL[item.materialType || ''] || item.materialType || '')
+            h('div', { class: 'meta-right' }, [
+              // 显示字符数（仅文本类型）
+              item.materialType === 'text' && item.content
+                ? h('span', { class: 'char-count' }, `${item.content.length}字`)
+                : null,
+              h('span', {
+                class: 'item-type-badge',
+                style: { background: TYPE_COLOR[item.materialType || ''] || '#aaa' }
+              }, TYPE_LABEL[item.materialType || ''] || item.materialType || '')
+            ])
           ])
         ])
       ])
@@ -260,12 +292,13 @@ import { message } from 'ant-design-vue'
 import {
   CheckOutlined,
   DownOutlined,
+  ExclamationCircleOutlined,
   FileTextOutlined,
   GlobalOutlined,
   InboxOutlined,
   LinkOutlined,
   PaperClipOutlined,
-  PictureOutlined,
+  PlusOutlined,
   SoundOutlined,
   UserOutlined,
   VideoCameraOutlined
@@ -276,8 +309,10 @@ import {
   listEnabledCategories
 } from '@/api/materialController'
 import { useLoginUserStore } from '@/stores/loginUser'
+import { useRouter } from 'vue-router'
 
 const loginUserStore = useLoginUserStore()
+const router = useRouter()
 
 const props = defineProps<{
   open: boolean
@@ -324,6 +359,24 @@ const selectedIds = ref<number[]>([])
 const selectedMaterials = ref<API.MaterialVO[]>([])
 
 const isSelected = (id?: number) => !!id && selectedIds.value.includes(id)
+
+// 计算当前选中素材的统计信息
+const currentTextLength = computed(() => {
+  return selectedMaterials.value
+    .filter(m => m.materialType === 'text')
+    .reduce((total, m) => total + (m.content?.length || 0), 0)
+})
+
+const currentUrlCount = computed(() => {
+  return selectedMaterials.value
+    .filter(m => m.materialType === 'link' || (m.materialType === 'image' && m.content))
+    .length
+})
+
+// 是否显示警告
+const showWarning = computed(() => {
+  return currentTextLength.value > 1500 || currentUrlCount.value > 8 || selectedIds.value.length > 15
+})
 
 const loadCategories = async () => {
   try {
@@ -403,7 +456,7 @@ const toggleTypeFilter = (val: string) => {
 
 const getTypeIcon = (type?: string) => {
   const map = {
-    image: PictureOutlined,
+    image: PaperClipOutlined,
     text: FileTextOutlined,
     video: VideoCameraOutlined,
     audio: SoundOutlined,
@@ -418,11 +471,39 @@ const loadMorePublic = () => { publicPage.value++; loadPublic() }
 const toggleSelect = (item: API.MaterialVO) => {
   const id = item.id!
   const idx = selectedIds.value.indexOf(id)
+
   if (idx > -1) {
+    // 取消选择
     selectedIds.value.splice(idx, 1)
     selectedMaterials.value = selectedMaterials.value.filter(m => m.id !== id)
   } else {
-    if (selectedIds.value.length >= 20) { message.warning('最多选择20个素材'); return }
+    // 添加选择 - 先进行各种限制检查
+
+    // 检查文字类型限制
+    if (item.materialType === 'text') {
+      const newTextLength = currentTextLength.value + (item.content?.length || 0)
+      if (newTextLength > 1800) {
+        const remaining = 1800 - currentTextLength.value
+        message.warning(`文字素材总长度不能超过1800字符，当前已选${currentTextLength.value}字符，最多还能选择${remaining}字符`)
+        return
+      }
+    }
+
+    // 检查链接类型限制（包括图片URL）
+    if (item.materialType === 'link' || (item.materialType === 'image' && item.content)) {
+      if (currentUrlCount.value >= 10) {
+        message.warning('链接类型素材（包括图片URL）最多选择10个')
+        return
+      }
+    }
+
+    // 检查总数限制
+    if (selectedIds.value.length >= 20) {
+      message.warning('最多选择20个素材')
+      return
+    }
+
+    // 通过所有检查，添加素材
     selectedIds.value.push(id)
     selectedMaterials.value.push(item)
   }
@@ -438,6 +519,12 @@ const handleClose = () => { visible.value = false }
 const handleConfirm = () => {
   emit('confirm', selectedMaterials.value)
   visible.value = false
+}
+
+const handleAddMaterial = () => {
+  // 关闭当前弹框并跳转到素材管理页面
+  visible.value = false
+  router.push('/my/materials')
 }
 
 watch(() => props.open, (val) => {
@@ -546,6 +633,21 @@ watch(() => props.open, (val) => {
   color: #fff;
   border-color: #1a1a1a;
   font-weight: 500;
+}
+
+.add-material-btn {
+  border-radius: 6px !important;
+  font-size: 12px;
+  height: 28px;
+  padding: 0 12px !important;
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
+  box-shadow: none !important;
+}
+
+.add-material-btn:hover {
+  background: #333 !important;
+  border-color: #333 !important;
 }
 
 /* ── Tab 切换栏 ── */
@@ -790,6 +892,21 @@ watch(() => props.open, (val) => {
   gap: 6px;
 }
 
+:deep(.meta-right) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+:deep(.char-count) {
+  font-size: 10px;
+  color: #999;
+  background: #f5f5f5;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
 :deep(.item-category) {
   font-size: 11px;
   color: #999;
@@ -827,6 +944,34 @@ watch(() => props.open, (val) => {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+}
+
+.selection-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.limit-counters {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+}
+
+.counter-item {
+  color: #666;
+  font-weight: 500;
+  padding: 2px 6px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.counter-item.warning {
+  color: #ff4d4f;
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
 }
 
 .selected-preview {
@@ -892,18 +1037,52 @@ watch(() => props.open, (val) => {
 
 .footer-actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.action-buttons {
+  display: flex;
   gap: 10px;
 }
 
+.warning-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #d46b08;
+  max-width: 500px;
+  text-align: right;
+}
+
+.warning-icon {
+  color: #fa8c16;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
 .footer-actions :deep(.ant-btn-primary) {
-  background: #b3b3b3;
+  background: #1a1a1a;
   border-color: #1a1a1a;
   box-shadow: none;
 }
 
 .footer-actions :deep(.ant-btn-primary:hover) {
-  background: #787878;
+  background: #333333;
   border-color: #333333;
+}
+
+.footer-actions :deep(.ant-btn-primary:disabled) {
+  background: #b3b3b3;
+  border-color: #b3b3b3;
+  color: #fff;
+  opacity: 0.6;
 }
 
 /* ── 响应式 ── */

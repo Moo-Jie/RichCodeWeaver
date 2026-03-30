@@ -195,7 +195,7 @@
           >
             <a-select-option value="image">
               <div class="code-option">
-                <PictureOutlined /> image — 图片类
+                <PaperClipOutlined /> image — 图片类
               </div>
             </a-select-option>
             <a-select-option value="text">
@@ -272,7 +272,7 @@ import { ref, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   PlusOutlined,
-  PictureOutlined,
+  PaperClipOutlined,
   FileTextOutlined,
   VideoCameraOutlined,
   SoundOutlined,
@@ -299,7 +299,7 @@ const viewMode = ref<'card' | 'table'>('card')
 
 // 图标映射
 const iconMap: Record<string, any> = {
-  PictureOutlined,
+  PaperClipOutlined,
   FileTextOutlined,
   VideoCameraOutlined,
   SoundOutlined,
@@ -309,7 +309,7 @@ const iconMap: Record<string, any> = {
 }
 
 const iconOptions = [
-  { value: 'PictureOutlined', label: '图片' },
+  { value: 'PaperClipOutlined', label: '图片' },
   { value: 'FileTextOutlined', label: '文本' },
   { value: 'VideoCameraOutlined', label: '视频' },
   { value: 'SoundOutlined', label: '音频' },

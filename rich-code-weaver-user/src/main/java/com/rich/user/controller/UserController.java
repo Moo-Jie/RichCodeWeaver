@@ -12,6 +12,7 @@ import com.rich.common.utils.ResultUtils;
 import com.rich.file.service.FileService;
 import com.rich.model.annotation.AuthCheck;
 import com.rich.model.dto.user.*;
+import java.util.regex.Pattern;
 import com.rich.model.entity.User;
 import com.rich.model.vo.LoginUserVO;
 import com.rich.model.vo.UserVO;
@@ -259,5 +260,83 @@ public class UserController {
     public BaseResponse<Boolean> resetUserPassword(long userId) {
         ThrowUtils.throwIf(userId <= 0, ErrorCode.PARAMS_ERROR);
         return ResultUtils.success(userService.resetPassword(userId));
+    }
+
+    /**
+     * 绑定手机号
+     *
+     * @param userBindPhoneRequest 绑定手机号请求
+     * @param request              请求对象
+     * @return 绑定结果
+     */
+    @PostMapping("/bind/phone")
+    public BaseResponse<Boolean> bindPhone(@RequestBody UserBindPhoneRequest userBindPhoneRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(userBindPhoneRequest == null, ErrorCode.PARAMS_ERROR);
+        String phone = userBindPhoneRequest.getPhone();
+        
+        // 验证手机号格式
+        if (!isValidPhone(phone)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号格式不正确");
+        }
+        
+        User loginUser = userService.getLoginUser(request);
+        loginUser.setPhone(phone);
+        boolean result = userService.updateById(loginUser);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "绑定手机号失败");
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 绑定邮箱
+     *
+     * @param userBindEmailRequest 绑定邮箱请求
+     * @param request              请求对象
+     * @return 绑定结果
+     */
+    @PostMapping("/bind/email")
+    public BaseResponse<Boolean> bindEmail(@RequestBody UserBindEmailRequest userBindEmailRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(userBindEmailRequest == null, ErrorCode.PARAMS_ERROR);
+        String email = userBindEmailRequest.getEmail();
+        
+        // 验证邮箱格式
+        if (!isValidEmail(email)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱格式不正确");
+        }
+        
+        User loginUser = userService.getLoginUser(request);
+        loginUser.setEmail(email);
+        boolean result = userService.updateById(loginUser);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "绑定邮箱失败");
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 验证手机号格式
+     *
+     * @param phone 手机号
+     * @return 是否有效
+     */
+    private boolean isValidPhone(String phone) {
+        if (phone == null || phone.trim().isEmpty()) {
+            return false;
+        }
+        // 中国大陆手机号正则：1开头，第二位为3-9，总共11位数字
+        String phoneRegex = "^1[3-9]\\d{9}$";
+        return Pattern.matches(phoneRegex, phone.trim());
+    }
+
+    /**
+     * 验证邮箱格式
+     *
+     * @param email 邮箱
+     * @return 是否有效
+     */
+    private boolean isValidEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        // 邮箱正则
+        String emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+        return Pattern.matches(emailRegex, email.trim());
     }
 }
