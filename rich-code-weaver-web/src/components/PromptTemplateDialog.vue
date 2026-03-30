@@ -45,18 +45,6 @@
             <a-switch v-model:checked="fieldValues[field.key]" />
           </a-form-item>
         </div>
-
-        <!-- 额外内容输入框 -->
-        <a-form-item label="网站展示内容">
-          <a-textarea
-            v-model:value="additionalContent"
-            :maxlength="500"
-            :rows="4"
-            placeholder="请输入需要在网站中展示的具体信息，例如：个人简介、产品列表、服务项目等"
-            show-count
-          />
-          <div class="field-hint">此内容将自动添加到生成的提示词末尾，用于补充具体展示信息</div>
-        </a-form-item>
       </a-form>
 
       <div class="template-preview">

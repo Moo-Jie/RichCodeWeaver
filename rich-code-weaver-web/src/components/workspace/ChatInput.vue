@@ -25,6 +25,15 @@
     <div v-else class="input-area">
       <!-- Capsule mode selector (above input, only for create mode) -->
       <div v-if="showModeSelector" class="mode-and-tour">
+        <button
+          v-if="showMaterialButton"
+          class="material-text-btn"
+          @click="$emit('openMaterialSelector')"
+        >
+          <PictureOutlined />
+          选择素材
+          <span v-if="selectedMaterials.length > 0" class="material-count">{{ selectedMaterials.length }}</span>
+        </button>
         <div class="capsule-switch">
           <button
             :class="['capsule-item', { active: generatorMode }]"
@@ -41,6 +50,25 @@
           <QuestionCircleOutlined />
           新手引导
         </button>
+      </div>
+
+      <!-- Selected materials hint -->
+      <div v-if="selectedMaterials.length > 0" class="materials-hint">
+        <div class="materials-list">
+          <span class="materials-label"><PictureOutlined /> 已选素材：</span>
+          <span
+            v-for="(m, idx) in selectedMaterials.slice(0, 3)"
+            :key="m.id"
+            class="material-tag"
+          >
+            {{ m.materialName }}
+            <span class="tag-remove" @click="removeMaterial(idx)">×</span>
+          </span>
+          <span v-if="selectedMaterials.length > 3" class="more-count">
+            +{{ selectedMaterials.length - 3 }}
+          </span>
+        </div>
+        <button class="clear-materials" @click="clearMaterials">清空</button>
       </div>
 
       <div class="input-row">
@@ -89,8 +117,8 @@
 </template>
 
 <script lang="ts" setup>
-import { h, nextTick, onMounted, ref } from 'vue'
-import { LoadingOutlined, SendOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { computed, h, nextTick, onMounted, ref } from 'vue'
+import { LoadingOutlined, SendOutlined, QuestionCircleOutlined, PictureOutlined } from '@ant-design/icons-vue'
 
 interface ElementInfo {
   tagName: string
@@ -112,6 +140,13 @@ function getElementTypeLabel(tagName: string): string {
   return ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
 }
 
+interface MaterialItem {
+  id?: number
+  materialName?: string
+  materialType?: string
+  content?: string
+}
+
 interface Props {
   modelValue: string
   sending?: boolean
@@ -124,6 +159,8 @@ interface Props {
   showOptimizeButton?: boolean
   optimizing?: boolean
   showTourButton?: boolean
+  showMaterialButton?: boolean
+  selectedMaterials?: MaterialItem[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -135,10 +172,22 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: '描述您想要创建的数字产物...',
   showOptimizeButton: false,
   optimizing: false,
-  showTourButton: false
+  showTourButton: false,
+  showMaterialButton: false,
+  selectedMaterials: () => []
 })
 
-const emit = defineEmits(['update:modelValue', 'send', 'clearSelection', 'update:generatorMode', 'optimize', 'startTour'])
+const emit = defineEmits(['update:modelValue', 'send', 'clearSelection', 'update:generatorMode', 'optimize', 'startTour', 'openMaterialSelector', 'removeMaterial', 'clearMaterials'])
+
+const selectedMaterials = computed(() => props.selectedMaterials || [])
+
+const removeMaterial = (index: number) => {
+  emit('removeMaterial', index)
+}
+
+const clearMaterials = () => {
+  emit('clearMaterials')
+}
 
 const inputRef = ref<HTMLTextAreaElement>()
 const baseHeight = ref(0)
@@ -515,5 +564,109 @@ defineExpose({
   background: #e5e5e5;
   color: #bbb;
   cursor: not-allowed;
+}
+
+/* Material related styles */
+.materials-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  background: #f0f9ff;
+  border: 1px solid #bae7ff;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.materials-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.materials-label {
+  color: #1890ff;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.material-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.tag-remove {
+  cursor: pointer;
+  color: #999;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.tag-remove:hover {
+  color: #ff4d4f;
+}
+
+.more-count {
+  color: #1890ff;
+  font-size: 12px;
+}
+
+.clear-materials {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.clear-materials:hover {
+  color: #ff4d4f;
+}
+
+.material-text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 20px;
+  background: #fff;
+  color: #666;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.material-text-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+  background: #f0f9ff;
+}
+
+.material-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: #1890ff;
+  color: #fff;
+  font-size: 10px;
+  border-radius: 8px;
 }
 </style>

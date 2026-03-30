@@ -165,6 +165,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  PictureOutlined,
   PlusOutlined, ReadOutlined, SafetyOutlined, SecurityScanOutlined,
   SettingOutlined,
   StarOutlined,
@@ -181,6 +182,7 @@ const aboutMenuExpanded = ref(false)
 const baseNavItems = [
   { path: '/', label: '主页', icon: HomeOutlined },
   { path: '/my/apps', label: '我的产物', icon: AppstoreOutlined },
+  { path: '/my/materials', label: '我的素材', icon: PictureOutlined },
   { path: '/my/favorites', label: '我的收藏', icon: StarOutlined },
   { path: '/all/apps', label: '热门产物', icon: GlobalOutlined }
 ]
@@ -197,7 +199,8 @@ const adminNavItems = [
   { path: '/admin/chatHistory', label: '会话管理', icon: CommentOutlined },
   { path: '/admin/promptTemplate', label: '模板管理', icon: CopyOutlined },
   { path: '/admin/systemPrompt', label: '提示词管理', icon: AlignLeftOutlined },
-  { path: '/admin/ragManage', label: '知识库管理', icon: ReadOutlined }
+  { path: '/admin/ragManage', label: '知识库管理', icon: ReadOutlined },
+  { path: '/admin/materialManage', label: '素材管理', icon: PictureOutlined }
 ]
 
 const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')

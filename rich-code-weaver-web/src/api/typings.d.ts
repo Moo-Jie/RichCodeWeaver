@@ -669,4 +669,156 @@ declare namespace API {
     data?: boolean
     message?: string
   }
+
+  // ===== Material Module Types =====
+
+  type MaterialCategoryVO = {
+    id?: number
+    categoryName?: string
+    categoryCode?: string
+    categoryIcon?: string
+    description?: string
+    sortOrder?: number
+    isEnabled?: number
+    materialCount?: number
+    createTime?: string
+    updateTime?: string
+  }
+
+  type MaterialCategoryAddRequest = {
+    categoryName?: string
+    categoryCode?: string
+    categoryIcon?: string
+    description?: string
+    sortOrder?: number
+    isEnabled?: number
+  }
+
+  type MaterialCategoryUpdateRequest = {
+    id?: number
+    categoryName?: string
+    categoryCode?: string
+    categoryIcon?: string
+    description?: string
+    sortOrder?: number
+    isEnabled?: number
+  }
+
+  type MaterialCategoryQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    id?: number
+    categoryName?: string
+    categoryCode?: string
+    isEnabled?: number
+  }
+
+  type PageMaterialCategoryVO = {
+    records?: MaterialCategoryVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponseMaterialCategoryVO = {
+    code?: number
+    data?: MaterialCategoryVO
+    message?: string
+  }
+
+  type BaseResponsePageMaterialCategoryVO = {
+    code?: number
+    data?: PageMaterialCategoryVO
+    message?: string
+  }
+
+  type BaseResponseListMaterialCategoryVO = {
+    code?: number
+    data?: MaterialCategoryVO[]
+    message?: string
+  }
+
+  type MaterialVO = {
+    id?: number
+    materialName?: string
+    categoryId?: number
+    categoryName?: string
+    materialType?: string
+    content?: string
+    thumbnailUrl?: string
+    fileSize?: number
+    description?: string
+    tags?: string
+    isPublic?: number
+    useCount?: number
+    userId?: number
+    user?: UserVO
+    createTime?: string
+    updateTime?: string
+  }
+
+  type MaterialAddRequest = {
+    materialName?: string
+    categoryId?: number
+    materialType?: string
+    content?: string
+    thumbnailUrl?: string
+    fileSize?: number
+    description?: string
+    tags?: string
+    isPublic?: number
+  }
+
+  type MaterialUpdateRequest = {
+    id?: number
+    materialName?: string
+    categoryId?: number
+    materialType?: string
+    content?: string
+    thumbnailUrl?: string
+    fileSize?: number
+    description?: string
+    tags?: string
+    isPublic?: number
+  }
+
+  type MaterialQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    id?: number
+    materialName?: string
+    categoryId?: number
+    materialType?: string
+    tags?: string
+    isPublic?: number
+    userId?: number
+    searchText?: string
+  }
+
+  type PageMaterialVO = {
+    records?: MaterialVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponseMaterialVO = {
+    code?: number
+    data?: MaterialVO
+    message?: string
+  }
+
+  type BaseResponsePageMaterialVO = {
+    code?: number
+    data?: PageMaterialVO
+    message?: string
+  }
+
+  type BaseResponseListMaterialVO = {
+    code?: number
+    data?: MaterialVO[]
+    message?: string
+  }
 }

@@ -16,6 +16,7 @@ import com.rich.app.model.StreamEvent;
 import com.rich.app.model.StreamSession;
 import com.rich.app.service.AppService;
 import com.rich.app.service.ChatHistoryService;
+import com.rich.app.service.MaterialService;
 import com.rich.app.service.StreamSessionService;
 import com.rich.app.utils.AIGenerateCodeAndSaveToFileUtils;
 import com.rich.client.innerService.InnerScreenshotService;
@@ -31,6 +32,7 @@ import com.rich.model.dto.app.AppAdminUpdateRequest;
 import com.rich.model.dto.app.AppQueryRequest;
 import com.rich.model.dto.app.AppUpdateRequest;
 import com.rich.model.entity.App;
+import com.rich.model.entity.Material;
 import com.rich.model.entity.User;
 import com.rich.model.enums.ChatHistoryTypeEnum;
 import com.rich.model.enums.CodeGeneratorTypeEnum;
@@ -104,6 +106,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     private StreamSessionService streamSessionService;
 
+    @Resource
+    private MaterialService materialService;
+
     /**
      * 执行 AI 对话并并生成代码(流式，支持断线重连)
      * 使用工作流分布执行节点模式
@@ -111,14 +116,16 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      * @param appId       AI 产物id
      * @param userId      用户id
      * @param message     对话消息
+     * @param materialIds 选中的素材ID列表（可选）
      * @param isWorkflow  是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
      * @param lastEventId 最后接收到的事件ID（用于断线重连）
+     * @param reconnect   是否为重连请求
      * @return 代码流
      * @author DuRuiChi
      * @create 2025/12/27
      **/
     @Override
-    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, Boolean isWorkflow, String lastEventId, Boolean reconnect) {
+    public Flux<ServerSentEvent<String>> aiChatAndGenerateCodeStreamWithReconnect(Long appId, Long userId, String message, List<Long> materialIds, Boolean isWorkflow, String lastEventId, Boolean reconnect) {
         // 参数校验：确保必要参数有效
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID无效");
@@ -165,7 +172,35 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         CodeGeneratorTypeEnum codeGenType = CodeGeneratorTypeEnum.getEnumByValue(codeGenTypeValue);
         ThrowUtils.throwIf(codeGenType == null, ErrorCode.SYSTEM_ERROR, "代码生成类型不合法: " + codeGenTypeValue);
 
+        // 素材处理：将选中的素材内容拼接到消息中
+        String finalMessage = message;
+        if (CollUtil.isNotEmpty(materialIds)) {
+            // 限制素材数量，避免消息过长
+            ThrowUtils.throwIf(materialIds.size() > 20, ErrorCode.PARAMS_ERROR, "一次最多选择20个素材");
+
+            // 查询素材列表（只查询用户有权访问的素材：自己的 + 公开的）
+            List<Material> materials = materialService.listByIds(materialIds);
+            List<Material> accessibleMaterials = materials.stream()
+                    .filter(m -> m.getUserId().equals(userId) || m.getIsPublic() == 1)
+                    .toList();
+
+            if (CollUtil.isNotEmpty(accessibleMaterials)) {
+                // 格式化素材内容并拼接到消息末尾
+                String materialPrompt = materialService.formatMaterialsForPrompt(accessibleMaterials);
+                finalMessage = message + materialPrompt;
+
+                // 异步增加素材使用次数
+                List<Long> usedMaterialIds = accessibleMaterials.stream()
+                        .map(Material::getId)
+                        .toList();
+                materialService.batchIncrementUseCount(usedMaterialIds);
+
+                log.info("产物 {} 对话使用了 {} 个素材", appId, accessibleMaterials.size());
+            }
+        }
+
         // 保存用户消息到对话历史（仅新建会话时保存，重连不保存）
+        // 注意：保存的是原始消息，不包含素材内容（素材内容仅用于AI生成）
         boolean isSaveMsgSuccess = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsgSuccess, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
 
@@ -177,11 +212,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean isAgentMode = "agent".equals(app.getGenMode());
         if (isAgentMode) {
             log.info("产物 {} 使用 Agent 自主规划模式执行代码生成", appId);
-            generationFlux = codeGenAgentApp.executeAgent(message, appId, chatHistoryService, userId);
+            // 使用包含素材的完整消息
+            generationFlux = codeGenAgentApp.executeAgent(finalMessage, appId, chatHistoryService, userId);
         } else {
             log.info("产物 {} 使用工作流分布执行模式执行代码生成", appId);
+            // 使用包含素材的完整消息
             generationFlux = codeGenWorkflowApp.executeWorkflow(
-                    message, codeGenType, appId, chatHistoryService, userId, isModification);
+                    finalMessage, codeGenType, appId, chatHistoryService, userId, isModification);
         }
 
         // 独立订阅生成流：AI 生成与客户端连接解耦（核心设计）

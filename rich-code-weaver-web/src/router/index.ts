@@ -14,6 +14,8 @@ import ChatHistoryManagePage from '@/pages/admin/ChatHistoryManagePage.vue'
 import PromptTemplateManagePage from '@/pages/admin/PromptTemplateManagePage.vue'
 import SystemPromptManagePage from '@/pages/admin/SystemPromptManagePage.vue'
 import RagManagePage from '@/pages/admin/RagManagePage.vue'
+import MaterialManagePage from '@/pages/admin/MaterialManagePage.vue'
+import MyMaterialPage from '@/pages/material/MyMaterialPage.vue'
 import DocsPage from '@/pages/other/DocsPage.vue'
 import AboutPage from '@/pages/other/AboutPage.vue'
 import PrivacyPage from '@/pages/other/PrivacyPage.vue'
@@ -62,6 +64,11 @@ const router = createRouter({
           component: MyFavoritesPage
         },
         {
+          path: 'my/materials',
+          name: '我的素材',
+          component: MyMaterialPage
+        },
+        {
           path: 'user/userCenter',
           name: '个人中心',
           component: UserCenterPage
@@ -95,6 +102,11 @@ const router = createRouter({
           path: 'admin/ragManage',
           name: 'RAG知识库管理',
           component: RagManagePage
+        },
+        {
+          path: 'admin/materialManage',
+          name: '素材管理',
+          component: MaterialManagePage
         },
         {
           path: 'other/docs',

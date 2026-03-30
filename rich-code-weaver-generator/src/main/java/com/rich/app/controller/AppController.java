@@ -16,6 +16,7 @@ import com.rich.model.dto.app.*;
 import com.rich.model.entity.App;
 import com.rich.model.entity.User;
 import com.rich.model.vo.AppVO;
+import java.util.List;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -53,6 +54,7 @@ public class AppController {
      *
      * @param appId       产物id
      * @param message     用户消息
+     * @param materialIds 选中的素材ID列表（逗号分隔，可选）
      * @param isWorkflow  是否开启 Agent 模式（前端参数，暂时保留用于未来 Agent 模式）
      * @param reconnect   是否为重连请求
      * @param lastEventId 最后接收到的事件ID
@@ -62,6 +64,7 @@ public class AppController {
     @GetMapping(value = "/gen/code/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId,
                                                              @RequestParam String message,
+                                                             @RequestParam(required = false) String materialIds,
                                                              @RequestParam(defaultValue = "false") Boolean isWorkflow,
                                                              @RequestParam(defaultValue = "false") Boolean reconnect,
                                                              @RequestParam(required = false) String lastEventId,
@@ -75,9 +78,23 @@ public class AppController {
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID无效");
         ThrowUtils.throwIf(message == null || message.trim().isEmpty(), ErrorCode.PARAMS_ERROR, "消息内容不能为空");
 
+        // 解析素材ID列表（逗号分隔的字符串转为Long列表）
+        List<Long> materialIdList = null;
+        if (materialIds != null && !materialIds.trim().isEmpty()) {
+            try {
+                materialIdList = java.util.Arrays.stream(materialIds.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .map(Long::parseLong)
+                        .toList();
+            } catch (NumberFormatException e) {
+                ThrowUtils.throwIf(true, ErrorCode.PARAMS_ERROR, "素材ID格式错误");
+            }
+        }
+
         // 执行 AI 生成产物代码（支持断线重连）
         return appService.aiChatAndGenerateCodeStreamWithReconnect(
-                appId, userId, message.trim(), isWorkflow, lastEventId, reconnect);
+                appId, userId, message.trim(), materialIdList, isWorkflow, lastEventId, reconnect);
     }
 
     /**

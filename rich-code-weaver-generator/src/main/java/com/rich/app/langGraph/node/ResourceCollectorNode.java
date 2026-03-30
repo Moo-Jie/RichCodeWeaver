@@ -39,6 +39,16 @@ public class ResourceCollectorNode {
 
             String originalPrompt = context.getOriginalPrompt();
 
+            // 检测用户是否已提供素材（由 MaterialService.formatMaterialsForPrompt 生成的标记）
+            // 若已提供素材，跳过全部资源收集，直接使用用户素材，避免产生两套互相冲突的"必须使用"指令
+            if (originalPrompt.contains("【必须使用的素材资源】")) {
+                log.info("[资源收集节点] 检测到用户已提供素材，跳过资源收集，直接使用用户素材");
+                context.setWebResourceListStr("无");
+                context.setImageListStr("无");
+                context.setCurrentStep("资源收集已跳过（用户已提供素材，优先使用用户素材）");
+                return WorkflowContext.saveContext(context);
+            }
+
             // 并行执行：网络资源整理 + 图片资源收集
             CompletableFuture<String> webFuture = CompletableFuture.supplyAsync(() -> {
                 try {

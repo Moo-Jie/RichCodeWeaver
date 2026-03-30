@@ -77,11 +77,16 @@
           :show-mode-selector="true"
           :show-optimize-button="true"
           :show-tour-button="true"
+          :show-material-button="true"
+          :selected-materials="selectedMaterials"
           placeholder="描述您想要创建的数字产物..."
           @optimize="handleOptimizePrompt"
           @send="handleCreate"
           @update:generator-mode="useAgentMode = $event"
           @start-tour="startTour"
+          @open-material-selector="openMaterialSelector"
+          @remove-material="removeMaterial"
+          @clear-materials="clearMaterials"
         />
       </div>
 
@@ -206,6 +211,13 @@
     <!-- Tour 漫游引导 -->
     <a-tour v-model:open="tourOpen" :steps="tourSteps" @close="tourOpen = false"
             @finish="tourOpen = false" />
+
+    <!-- Material Selector Modal -->
+    <MaterialSelector
+      v-model:open="materialSelectorOpen"
+      :selected="selectedMaterials"
+      @confirm="handleMaterialConfirm"
+    />
   </div>
 </template>
 
@@ -246,6 +258,7 @@ import IdentitySetupModal from '@/components/IdentitySetupModal.vue'
 import PromptTemplateDialog from '@/components/PromptTemplateDialog.vue'
 import CommentDialog from '@/components/CommentDialog.vue'
 import TaskPlanPanel from '@/components/workspace/TaskPlanPanel.vue'
+import MaterialSelector from '@/components/workspace/MaterialSelector.vue'
 import { doAppShare, getAppHotStat, toggleAppFavorite, toggleAppLike } from '@/api/socialController'
 
 const route = useRoute()
@@ -259,6 +272,26 @@ const useAgentMode = ref(true)
 const creating = ref(false)
 const optimizing = ref(false)
 const chatInputRef = ref()
+
+// === Material Selector State ===
+const materialSelectorOpen = ref(false)
+const selectedMaterials = ref<API.MaterialVO[]>([])
+
+const openMaterialSelector = () => {
+  materialSelectorOpen.value = true
+}
+
+const handleMaterialConfirm = (materials: API.MaterialVO[]) => {
+  selectedMaterials.value = materials
+}
+
+const removeMaterial = (index: number) => {
+  selectedMaterials.value.splice(index, 1)
+}
+
+const clearMaterials = () => {
+  selectedMaterials.value = []
+}
 
 // === Tour State ===
 const tourOpen = ref(false)
@@ -504,7 +537,12 @@ const handleCreate = async () => {
           const newAppId = res.data.data
           message.success('数字产物创建成功')
           userPrompt.value = ''
-          await router.push(`/app/chat/${newAppId}?useAgent=${useAgentMode.value}`)
+          // 将素材ID传递到路由query中
+          const materialIds = selectedMaterials.value.map(m => m.id).filter(Boolean).join(',')
+          const query: Record<string, string> = { useAgent: String(useAgentMode.value) }
+          if (materialIds) query.materialIds = materialIds
+          selectedMaterials.value = [] // 清空已选素材
+          await router.push({ path: `/app/chat/${newAppId}`, query })
           await appStore.loadMyApps()
         } else {
           message.error('创建失败：' + (res.data.message || '请稍后重试'))
@@ -777,6 +815,8 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
 
   // Agent mode from route query
   const useAgent = route.query.useAgent !== 'false'
+  // 素材ID从路由query中获取（仅首次发送时使用）
+  const materialIdsFromQuery = route.query.materialIds as string || ''
   let reconnectMode = isReconnect
 
   const connectSSE = () => {
@@ -790,6 +830,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       })
       if (lastEventId.value) {
         params.set('lastEventId', lastEventId.value)
+      }
+      // 添加素材ID参数（仅首次发送时使用，重连时不需要）
+      if (materialIdsFromQuery && !reconnectMode) {
+        params.set('materialIds', materialIdsFromQuery)
       }
       const url = `${baseURL}/app/gen/code/stream?${params}`
       eventSource = new EventSource(url, { withCredentials: true })

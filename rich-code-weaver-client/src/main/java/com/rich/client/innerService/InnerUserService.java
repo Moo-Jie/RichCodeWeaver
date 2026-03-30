@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
+import static com.rich.common.constant.UserConstant.ADMIN_ROLE;
 import static com.rich.common.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
@@ -34,6 +35,16 @@ public interface InnerUserService {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
         }
         return currentUser;
+    }
+
+    /**
+     * 判断用户是否为管理员
+     *
+     * @param user 用户对象
+     * @return 是否为管理员
+     */
+    static boolean isAdmin(User user) {
+        return user != null && ADMIN_ROLE.equals(user.getUserRole());
     }
 
     /**
