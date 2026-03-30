@@ -909,7 +909,7 @@ watch(() => props.open, (val) => {
 /* ── 响应式 ── */
 @media (max-width: 768px) {
   .material-grid {
-    column-count: 2;
+    column-count: 4;
   }
   .header-filters {
     flex-wrap: wrap;

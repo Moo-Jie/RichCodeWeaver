@@ -236,10 +236,10 @@ onMounted(() => {
 .skeleton-card {
   background: #fff;
   border: 1px solid #f0f0f0;
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   break-inside: avoid;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .skeleton-image {
@@ -285,14 +285,15 @@ onMounted(() => {
 }
 
 .apps-masonry {
-  columns: 4 260px;
-  column-gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 
 @media (max-width: 900px) {
   .apps-masonry {
-    columns: 2 200px;
-    column-gap: 14px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 }
 
@@ -323,7 +324,7 @@ onMounted(() => {
   position: relative;
   width: 100%;
   aspect-ratio: 4/3;
-  min-height: 180px;
+  min-height: 160px;
   background: #f5f5f5;
   overflow: hidden;
   display: flex;
@@ -367,7 +368,7 @@ onMounted(() => {
 }
 
 .card-body {
-  padding: 14px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -376,7 +377,7 @@ onMounted(() => {
 }
 
 .card-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: #1a1a1a;
   white-space: nowrap;
@@ -393,7 +394,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px 14px;
+  padding: 0 12px 12px;
   gap: 8px;
 }
 

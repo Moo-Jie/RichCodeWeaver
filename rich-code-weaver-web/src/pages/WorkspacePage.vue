@@ -815,8 +815,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
 
   // Agent mode from route query
   const useAgent = route.query.useAgent !== 'false'
-  // 素材ID从路由query中获取（仅首次发送时使用）
+  // 获取当前选中的素材ID列表（优先使用当前UI选择，回退到路由query）
+  const currentMaterialIds = selectedMaterials.value.map(m => m.id).filter(Boolean).join(',')
   const materialIdsFromQuery = route.query.materialIds as string || ''
+  const materialIdsToSend = currentMaterialIds || materialIdsFromQuery
   let reconnectMode = isReconnect
 
   const connectSSE = () => {
@@ -831,9 +833,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       if (lastEventId.value) {
         params.set('lastEventId', lastEventId.value)
       }
-      // 添加素材ID参数（仅首次发送时使用，重连时不需要）
-      if (materialIdsFromQuery && !reconnectMode) {
-        params.set('materialIds', materialIdsFromQuery)
+      // 添加素材ID参数（首次发送或有选中素材时使用，重连时不需要）
+      if (materialIdsToSend && !reconnectMode) {
+        params.set('materialIds', materialIdsToSend)
       }
       const url = `${baseURL}/app/gen/code/stream?${params}`
       eventSource = new EventSource(url, { withCredentials: true })

@@ -135,7 +135,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         String sessionKey = generateSessionKey(appId, userId, message);
         StreamSession existingSession = streamSessionService.getSession(sessionKey);
 
-        // ========== 重连模式：仅跟随已有会话，绝不创建新的生成任务 ==========
+        // 重连模式：仅跟随已有会话，绝不创建新的生成任务
         if (Boolean.TRUE.equals(reconnect)) {
             if (existingSession != null) {
                 // 会话存在，返回跟随流（从lastEventId之后继续推送）

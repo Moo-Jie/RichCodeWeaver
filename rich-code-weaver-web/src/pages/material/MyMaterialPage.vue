@@ -1,33 +1,37 @@
 <template>
   <div class="my-material-page">
     <div class="page-header">
-      <h2>我的素材</h2>
-      <a-button type="primary" @click="showAddModal">
-        <template #icon><PlusOutlined /></template>
-        添加素材
-      </a-button>
+      <div class="header-left">
+        <h2 class="page-title">我的素材</h2>
+        <p class="page-desc">管理您上传和创建的所有素材资源</p>
+      </div>
+      <div class="header-right">
+        <a-input-search
+          v-model:value="searchText"
+          placeholder="搜索素材名称、描述、标签"
+          style="width: 280px; margin-right: 12px"
+          @search="handleSearch"
+          allow-clear
+        />
+        <a-select
+          v-model:value="filterCategoryId"
+          placeholder="选择分类"
+          style="width: 150px; margin-right: 12px"
+          allow-clear
+          @change="handleSearch"
+        >
+          <a-select-option v-for="cat in categories" :key="cat.id" :value="cat.id">
+            {{ cat.categoryName }}
+          </a-select-option>
+        </a-select>
+        <a-button class="create-btn" @click="showAddModal">
+          <template #icon><PlusOutlined /></template>
+          添加素材
+        </a-button>
+      </div>
     </div>
 
-    <!-- 筛选区域 -->
     <div class="filter-bar">
-      <a-input-search
-        v-model:value="searchText"
-        placeholder="搜索素材名称、描述、标签"
-        style="width: 280px"
-        @search="handleSearch"
-        allow-clear
-      />
-      <a-select
-        v-model:value="filterCategoryId"
-        placeholder="选择分类"
-        style="width: 150px"
-        allow-clear
-        @change="handleSearch"
-      >
-        <a-select-option v-for="cat in categories" :key="cat.id" :value="cat.id">
-          {{ cat.categoryName }}
-        </a-select-option>
-      </a-select>
       <a-select
         v-model:value="filterType"
         placeholder="素材类型"
@@ -54,7 +58,7 @@
         <!-- 缩略图/预览 -->
         <div class="material-preview">
           <template v-if="item.materialType === 'image'">
-            <img :src="item.content || item.thumbnailUrl" :alt="item.materialName" />
+            <img :src="item.content || item.thumbnailUrl" :alt="item.materialName" class="preview-image" />
           </template>
           <template v-else-if="item.materialType === 'video'">
             <div class="preview-icon video">
@@ -152,7 +156,7 @@
               <img
                 v-if="formData.materialType === 'image' && formData.content"
                 :src="formData.content"
-                style="width:120px;height:80px;object-fit:cover;border-radius:4px;border:1px solid #f0f0f0"
+                class="form-preview-image"
               />
             </div>
           </template>
@@ -167,7 +171,9 @@
             <template #icon><EditOutlined /></template>
             打开编辑器
           </a-button>
-          <span v-if="formData.content" class="text-hint">已有 {{ formData.content.length }} 字符</span>
+          <span v-if="formData.content" class="text-hint">
+            已有 {{ formData.content.length }} 字符 / {{ TEXT_MATERIAL_MAX_LENGTH }} 上限
+          </span>
         </a-form-item>
         <a-form-item label="描述">
           <a-textarea v-model:value="formData.description" placeholder="素材描述/用途说明" :rows="2" />
@@ -197,7 +203,7 @@
       <div class="text-editor-wrapper">
         <div class="text-editor-toolbar">
           <div class="toolbar-info">
-            <span class="char-count">{{ textEditorContent.length }} 字符</span>
+            <span class="char-count">{{ textEditorContent.length }} 字符 / {{ TEXT_MATERIAL_MAX_LENGTH }} 上限</span>
             <span class="toolbar-tip">支持 Markdown 语法</span>
           </div>
           <div class="toolbar-actions">
@@ -215,6 +221,7 @@
             :preview="true"
             :show-code-row-number="true"
             theme="light"
+            @on-change="handleTextEditorChange"
             style="height: 100%"
           />
         </div>
@@ -316,13 +323,27 @@ const detailItem = ref<API.MaterialVO | null>(null)
 // 文本编辑器弹窗
 const textEditorVisible = ref(false)
 const textEditorContent = ref('')
+const TEXT_MATERIAL_MAX_LENGTH = 20000
 
 const openTextEditor = () => {
   textEditorContent.value = formData.value.content || ''
   textEditorVisible.value = true
 }
 
+const handleTextEditorChange = (value: string) => {
+  if (value.length > TEXT_MATERIAL_MAX_LENGTH) {
+    message.warning(`文本素材最多 ${TEXT_MATERIAL_MAX_LENGTH} 字符`)
+    textEditorContent.value = value.slice(0, TEXT_MATERIAL_MAX_LENGTH)
+    return
+  }
+  textEditorContent.value = value
+}
+
 const confirmTextEditor = () => {
+  if (textEditorContent.value.length > TEXT_MATERIAL_MAX_LENGTH) {
+    message.warning(`文本素材最多 ${TEXT_MATERIAL_MAX_LENGTH} 字符`)
+    return
+  }
   formData.value.content = textEditorContent.value
   textEditorVisible.value = false
 }
@@ -487,6 +508,10 @@ const handleSubmit = async () => {
     message.warning('请输入素材内容')
     return
   }
+  if (formData.value.materialType === 'text' && formData.value.content.length > TEXT_MATERIAL_MAX_LENGTH) {
+    message.warning(`文本素材最多 ${TEXT_MATERIAL_MAX_LENGTH} 字符`)
+    return
+  }
 
   formData.value.tags = tagsArray.value.join(',')
   submitLoading.value = true
@@ -541,7 +566,8 @@ onMounted(() => {
 
 <style scoped>
 .my-material-page {
-  padding: 24px;
+  padding: 32px;
+  width: 100%;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -553,10 +579,43 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
-.page-header h2 {
+.header-left {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.page-title {
   margin: 0;
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.page-desc {
+  margin: 0;
+  color: #999;
+  font-size: 14px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.create-btn {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.create-btn:hover,
+.create-btn:focus {
+  background: #333;
+  border-color: #333;
+  color: #fff;
 }
 
 .filter-bar {
@@ -567,28 +626,41 @@ onMounted(() => {
 
 .material-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .material-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
 }
 
 .material-card {
   background: #fff;
   border: 1px solid #f0f0f0;
-  border-radius: 8px;
+  border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  break-inside: avoid;
+  margin-bottom: 20px;
 }
 
 .material-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  border-color: #d0d0d0;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 .material-preview {
-  height: 140px;
-  background: #fafafa;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 180px;
+  background: #f5f5f5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -596,9 +668,15 @@ onMounted(() => {
 }
 
 .material-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  display: block;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 .preview-icon {
@@ -623,12 +701,15 @@ onMounted(() => {
 }
 
 .material-info {
-  padding: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .material-name {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #1a1a1a;
   white-space: nowrap;
   overflow: hidden;
@@ -662,6 +743,15 @@ onMounted(() => {
   border-radius: 4px;
 }
 
+.material-card:hover .material-preview img {
+  transform: scale(1.05);
+  transition: transform 0.3s;
+}
+
+.material-card:hover .material-preview .preview-image {
+  transform: scale(1.05);
+}
+
 .load-more {
   text-align: center;
   margin-top: 24px;
@@ -674,6 +764,16 @@ onMounted(() => {
   white-space: pre-wrap;
   max-height: 300px;
   overflow-y: auto;
+}
+
+.form-preview-image {
+  max-width: 100%;
+  max-height: 220px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
 }
 
 /* 文本编辑器弹窗样式 */
@@ -723,5 +823,10 @@ onMounted(() => {
   margin-left: 12px;
   font-size: 12px;
   color: #52c41a;
+}
+
+.text-hint.warning,
+.char-count.warning {
+  color: #faad14;
 }
 </style>
