@@ -1,7 +1,9 @@
 package com.rich.ai.config;
 
+import com.rich.ai.monitor.AiModelMonitorListener;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -9,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 支持多例模式的普通流式模型（用于构建简单的产物，如：构建单文件产物、多文件产物等）
@@ -23,8 +26,8 @@ public class StreamingChatModelConfig {
     /**
      * AI 模型指标监控监听器
      **/
-//    @Resource
-//    private AiModelMetricsMonitorListener aiModelMetricsMonitorListener;
+    @Resource
+    private AiModelMonitorListener aiModelMonitorListener;
 
     /**
      * 模型名称
@@ -121,11 +124,10 @@ public class StreamingChatModelConfig {
             builder.logResponses(logResponses);
         }
 
-        // 添加监听器（可选参数，用于监控模型指标）
-        // 注意：当前已注释，如需启用请取消注释
-        // if (aiModelMetricsMonitorListener != null) {
-        //     builder.listeners(List.of(aiModelMetricsMonitorListener));
-        // }
+        // 添加监听器（用于监控模型指标）
+        if (aiModelMonitorListener != null) {
+            builder.listeners(List.of(aiModelMonitorListener));
+        }
 
         // 构建并返回流式聊天模型实例
         return builder.build();

@@ -79,6 +79,11 @@
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+        <!-- Micrometer Prometheus Registry -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
         <!-- Dubbo 核心框架,提供服务治理、远程调用、流量控制、可扩展架构 -->
         <dependency>
             <groupId>org.apache.dubbo</groupId>

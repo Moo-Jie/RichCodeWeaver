@@ -50,7 +50,7 @@ management:
   endpoints:
     web:
       exposure:
-        # 暴露所有端点
+        # 暴露所有端点（包括 prometheus）
         include: '*'
   endpoint:
     health:

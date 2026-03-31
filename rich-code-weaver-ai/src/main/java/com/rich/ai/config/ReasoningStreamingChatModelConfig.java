@@ -1,7 +1,9 @@
 package com.rich.ai.config;
 
+import com.rich.ai.monitor.AiModelMonitorListener;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -9,6 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * 支持多例模式的推理流式模型（用于构建复杂的产物，如：构建工程化项目等）
@@ -20,6 +23,12 @@ import java.time.Duration;
 @Configuration
 @ConfigurationProperties(prefix = "langchain4j.open-ai.reasoning-streaming-chat-model")
 public class ReasoningStreamingChatModelConfig {
+    /**
+     * AI 模型指标监控监听器
+     **/
+    @Resource
+    private AiModelMonitorListener aiModelMonitorListener;
+
     /**
      * 模型名称
      **/
@@ -105,6 +114,11 @@ public class ReasoningStreamingChatModelConfig {
         // 设置是否记录响应日志（可选参数，用于调试）
         if (logResponses != null) {
             builder.logResponses(logResponses);
+        }
+
+        // 添加监听器（用于监控模型指标）
+        if (aiModelMonitorListener != null) {
+            builder.listeners(List.of(aiModelMonitorListener));
         }
 
         // 构建并返回流式聊天模型实例

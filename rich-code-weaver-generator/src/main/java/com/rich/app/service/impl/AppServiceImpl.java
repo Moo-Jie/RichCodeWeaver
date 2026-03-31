@@ -8,6 +8,8 @@ import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.rich.ai.monitor.MonitorContext;
+import com.rich.ai.monitor.MonitorContextHolder;
 import com.rich.ai.service.AiCodeGeneratorTypeStrategyService;
 import com.rich.app.agent.CodeGenAgentApp;
 import com.rich.app.langGraph.CodeGenWorkflowApp;
@@ -207,9 +209,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 判断是否为二次修改模式：非 AI_STRATEGY 表示类型已确定（即已经过首次生成）
         boolean isModification = codeGenType != CodeGeneratorTypeEnum.AI_STRATEGY;
 
+        // 确定生成模式（agent: Agent自主规划模式, workflow: 工作流分布执行模式）
+        boolean isAgentMode = "agent".equals(app.getGenMode());
+        String genMode = isAgentMode ? "agent" : "workflow";
+
+        // 设置监控上下文（在 AI 调用前设置，确保监听器能获取到上下文信息）
+        // 注意：必须在流结束时清理上下文，避免 ThreadLocal 内存泄漏
+        MonitorContext monitorContext = MonitorContext.builder()
+                .userId(userId.toString())
+                .appId(appId.toString())
+                .genMode(genMode)
+                .build();
+        MonitorContextHolder.setContext(monitorContext);
+        log.debug("设置监控上下文: userId={}, appId={}, genMode={}", userId, appId, genMode);
+
         // 根据产物的生成模式选择执行路径：Agent 自主规划模式 或 工作流分布执行模式
         Flux<ServerSentEvent<String>> generationFlux;
-        boolean isAgentMode = "agent".equals(app.getGenMode());
         if (isAgentMode) {
             log.info("产物 {} 使用 Agent 自主规划模式执行代码生成", appId);
             // 使用包含素材的完整消息
@@ -247,11 +262,29 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                     String errorMessage = error.getMessage() != null ? error.getMessage() : "未知错误";
                     streamSessionService.markError(sessionKey, errorMessage);
                     log.error("流式会话生成错误: sessionKey={}, error={}", sessionKey, errorMessage, error);
+
+                    // 清理监控上下文（错误场景）
+                    // 注意：必须清理，避免 ThreadLocal 内存泄漏
+                    try {
+                        MonitorContextHolder.clearContext();
+                        log.debug("清理监控上下文（错误场景）: userId={}, appId={}", userId, appId);
+                    } catch (Exception e) {
+                        log.error("清理监控上下文失败", e);
+                    }
                 },
                 () -> {
                     // 生成过程完成，标记会话完成状态
                     streamSessionService.markCompleted(sessionKey);
                     log.info("流式会话生成完成: sessionKey={}", sessionKey);
+
+                    // 清理监控上下文（正常完成场景）
+                    // 注意：必须清理，避免 ThreadLocal 内存泄漏
+                    try {
+                        MonitorContextHolder.clearContext();
+                        log.debug("清理监控上下文（完成场景）: userId={}, appId={}", userId, appId);
+                    } catch (Exception e) {
+                        log.error("清理监控上下文失败", e);
+                    }
                 }
         );
 

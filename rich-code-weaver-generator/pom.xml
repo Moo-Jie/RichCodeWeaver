@@ -121,6 +121,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Micrometer Prometheus Registry（用于暴露 Prometheus 格式的监控指标） -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
         <!-- PGVector 向量数据库（显式声明，确保运行时 classpath 包含） -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
