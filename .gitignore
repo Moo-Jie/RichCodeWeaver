@@ -1,5 +1,6 @@
 ### CUSTOM ###
 application-local.yml
+application-prod.yml
 tmp
 
 HELP.md
@@ -38,11 +39,5 @@ build/
 .vscode/
 /appCode/
 /jar/AliyunJavaAgent/
-*/application-prod.yml
-
-/rich-code-weaver-ai/src/main/resources/application-prod.yml
-/rich-code-weaver-app/src/main/resources/application-prod.yml
-/rich-code-weaver-file/src/main/resources/application-prod.yml
-/rich-code-weaver-user/src/main/resources/application-prod.yml
 /sysCache/
 /logs/

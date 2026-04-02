@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 删除产物响应�?
+ * 删除产物响应
  *
  * @author DuRuiChi
  * @since 2026-03-08

@@ -90,9 +90,9 @@ public class RedisChatMemoryConfig {
 
         // 设置密码（可选参数，生产环境建议启用）
         // 注意：当前已注释，上线时需要取消注释以启用认证
-        // if (password != null && !password.trim().isEmpty()) {
-        //     builder.password(password);
-        // }
+         if (password != null && !password.trim().isEmpty()) {
+             builder.password(password);
+         }
 
         // 设置TTL（生存时间，单位：秒）
         // TTL用于自动清理过期的对话记录，避免Redis内存占用过高

@@ -28,7 +28,7 @@ public class RedissonConfig {
 
     // Redis访问密码
     @Value("${spring.data.redis.password}")
-    private String redisPassword;
+    private String password;
 
     // Redis数据库索引
     @Value("${spring.data.redis.database}")
@@ -90,8 +90,8 @@ public class RedissonConfig {
                 .setRetryInterval(retryInterval);  // 命令重试间隔时间
 
         // 如果配置了 Redis 密码，则设置密码（排除 null、空字符串和纯空白字符串）
-        if (redisPassword != null && !redisPassword.trim().isEmpty()) {
-            singleServerConfig.setPassword(redisPassword);
+        if (password != null && !password.trim().isEmpty()) {
+            singleServerConfig.setPassword(password);
         }
 
         // 创建并返回 Redisson 客户端实例

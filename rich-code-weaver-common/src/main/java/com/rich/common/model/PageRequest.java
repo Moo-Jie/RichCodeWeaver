@@ -3,7 +3,7 @@ package com.rich.common.model;
 import lombok.Data;
 
 /**
- * 分页响应�?
+ * 分页响应
  *
  * @author DuRuiChi
  * @since 2026-03-08

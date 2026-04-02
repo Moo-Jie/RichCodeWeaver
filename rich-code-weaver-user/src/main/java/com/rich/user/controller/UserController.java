@@ -76,7 +76,7 @@ public class UserController {
         return ResultUtils.success(loginUserVO);
     }
 
-    @GetMapping("/get/login")
+    @GetMapping("/get/ ")
 //    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);

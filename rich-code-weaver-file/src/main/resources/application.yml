@@ -2,8 +2,8 @@ spring:
   application:
     name: rich-code-weaver-file
   profiles:
-    active: local
-
+#    active: local
+    active: prod
 server:
   port: 8103
   servlet:

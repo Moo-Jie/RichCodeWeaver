@@ -2,8 +2,8 @@ spring:
   application:
     name: rich-code-weaver-ai
   profiles:
-    active: local
-
+#    active: local
+    active: prod
 # knife4j
 knife4j:
   enable: true
