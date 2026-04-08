@@ -835,4 +835,158 @@ declare namespace API {
     data?: MaterialVO[]
     message?: string
   }
+
+  // ===== User Friendship Types =====
+
+  type UserFriendshipVO = {
+    id?: number
+    userId?: number
+    friendId?: number
+    status?: number
+    remark?: string
+    friendName?: string
+    friendAvatar?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  type FriendAddRequest = {
+    friendId?: number
+    remark?: string
+  }
+
+  type FriendHandleRequest = {
+    id?: number
+    action?: number
+  }
+
+  type BaseResponseListUserFriendshipVO = {
+    code?: number
+    data?: UserFriendshipVO[]
+    message?: string
+  }
+
+  type BaseResponseListUserVO = {
+    code?: number
+    data?: UserVO[]
+    message?: string
+  }
+
+  // ===== User Chat Types =====
+
+  type ChatConversationVO = {
+    id?: number
+    targetUserId?: number
+    targetUserName?: string
+    targetUserAvatar?: string
+    lastMessageContent?: string
+    lastMessageType?: string
+    lastMessageTime?: string
+    unreadCount?: number
+    createTime?: string
+  }
+
+  type ChatMessageVO = {
+    id?: number
+    conversationId?: number
+    senderId?: number
+    senderName?: string
+    senderAvatar?: string
+    receiverId?: number
+    content?: string
+    messageType?: string
+    collabId?: number
+    appId?: number
+    appName?: string
+    appCover?: string
+    collabRole?: string
+    collabStatus?: number
+    isRead?: number
+    createTime?: string
+  }
+
+  type ChatMessageSendRequest = {
+    receiverId?: number
+    content?: string
+    messageType?: string
+  }
+
+  type ChatMessageQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    conversationId?: number
+  }
+
+  type PageChatMessageVO = {
+    records?: ChatMessageVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponseListChatConversationVO = {
+    code?: number
+    data?: ChatConversationVO[]
+    message?: string
+  }
+
+  type BaseResponsePageChatMessageVO = {
+    code?: number
+    data?: PageChatMessageVO
+    message?: string
+  }
+
+  type BaseResponseChatMessageVO = {
+    code?: number
+    data?: ChatMessageVO
+    message?: string
+  }
+
+  type BaseResponseInteger = {
+    code?: number
+    data?: number
+    message?: string
+  }
+
+  // ===== App Collaborator Types =====
+
+  /** 产物协作者视图对象 */
+  type AppCollaboratorVO = {
+    id?: number
+    appId?: number
+    appName?: string
+    appCover?: string
+    userId?: number
+    userName?: string
+    userAvatar?: string
+    inviterId?: number
+    inviterName?: string
+    /** 状态: 0=待确认, 1=已接受, 2=已拒绝, 3=已移除 */
+    status?: number
+    /** 协作角色: editor(编辑者), viewer(查看者) */
+    role?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  /** 协作者邀请请求 */
+  type CollaboratorInviteRequest = {
+    appId?: number
+    userId?: number
+    role?: string
+  }
+
+  /** 协作邀请处理请求 */
+  type CollaboratorHandleRequest = {
+    id?: number
+    /** 1=接受, 2=拒绝 */
+    action?: number
+  }
+
+  type BaseResponseListAppCollaboratorVO = {
+    code?: number
+    data?: AppCollaboratorVO[]
+    message?: string
+  }
 }

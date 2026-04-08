@@ -4,11 +4,17 @@
     <div class="main-area">
       <router-view />
     </div>
+    <!-- 好友抽屉 -->
+    <FriendDrawer />
+    <!-- 聊天抽屉 -->
+    <ChatDrawer />
   </div>
 </template>
 
 <script lang="ts" setup>
 import TheSidebar from '@/components/sidebar/TheSidebar.vue'
+import FriendDrawer from '@/components/chat/FriendDrawer.vue'
+import ChatDrawer from '@/components/chat/ChatDrawer.vue'
 </script>
 
 <style scoped>

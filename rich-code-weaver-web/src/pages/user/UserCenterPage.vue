@@ -373,6 +373,8 @@ const handleEditSubmit = async () => {
       message.success('用户信息更新成功')
       Object.assign(userInfo, editForm)
       editVisible.value = false
+      // 刷新全局登录用户缓存，确保身份等变更立即生效
+      await loginUserStore.fetchLoginUser()
     } else {
       message.error('更新失败：' + res.data.message)
     }

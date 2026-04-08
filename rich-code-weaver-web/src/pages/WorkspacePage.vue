@@ -127,7 +127,7 @@
           <ChatInput
             v-model="userInput"
             :is-app-mode="true"
-            :is-owner="isOwner"
+            :is-owner="canEditApp"
             :selected-element="selectedElement"
             :sending="isGenerating"
             placeholder="✨  描述越详尽，创作越符合您的预期"
@@ -154,6 +154,7 @@
           :downloading="downloading"
           :hot-stat="hotStat"
           :is-admin="isAdmin"
+          :can-edit-app="canEditApp"
           :is-deployed="isDeployed"
           :is-edit-mode="isEditMode"
           :is-generating="isGenerating"
@@ -173,6 +174,7 @@
           @toggle-favorite="handleToggleFavorite"
           @toggle-like="handleToggleLike"
           @visit-site="visitDeployedSite"
+          @invite-collab="inviteCollabOpen = true"
         />
       </div>
     </div>
@@ -218,6 +220,12 @@
       :selected="selectedMaterials"
       @confirm="handleMaterialConfirm"
     />
+
+    <!-- Invite Collaborator Modal -->
+    <InviteCollabModal
+      v-model:open="inviteCollabOpen"
+      :app-id="appStore.selectedApp?.id ?? null"
+    />
   </div>
 </template>
 
@@ -247,6 +255,7 @@ import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { listMatchedTemplates } from '@/api/promptTemplateController'
 import { parseBatchContent, StreamChunkParserContext, type TaskPlanData } from '@/utils/streamChunkParser'
 import request from '@/request'
+import { checkCollaborator } from '@/api/collaboratorController'
 import ChatInput from '@/components/workspace/ChatInput.vue'
 import ChatMessages from '@/components/workspace/ChatMessages.vue'
 import ModeSwitch from '@/components/workspace/ModeSwitch.vue'
@@ -259,6 +268,7 @@ import PromptTemplateDialog from '@/components/PromptTemplateDialog.vue'
 import CommentDialog from '@/components/CommentDialog.vue'
 import TaskPlanPanel from '@/components/workspace/TaskPlanPanel.vue'
 import MaterialSelector from '@/components/workspace/MaterialSelector.vue'
+import InviteCollabModal from '@/components/workspace/InviteCollabModal.vue'
 import { doAppShare, getAppHotStat, toggleAppFavorite, toggleAppLike } from '@/api/socialController'
 
 const route = useRoute()
@@ -275,6 +285,8 @@ const chatInputRef = ref()
 
 // === Material Selector State ===
 const materialSelectorOpen = ref(false)
+/** 协作邀请弹窗可见状态 */
+const inviteCollabOpen = ref(false)
 const selectedMaterials = ref<API.MaterialVO[]>([])
 
 const openMaterialSelector = () => {
@@ -451,6 +463,7 @@ const timer = ref<ReturnType<typeof setInterval> | null>(null)
 const lastEventId = ref<string | null>(null)
 const reconnectAttempts = ref(0)
 const maxReconnectAttempts = 5
+const isAcceptedCollaborator = ref(false)
 
 // === Computed ===
 const isOwner = computed(() => {
@@ -459,6 +472,10 @@ const isOwner = computed(() => {
 
 const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
+})
+
+const canEditApp = computed(() => {
+  return isOwner.value || isAdmin.value || isAcceptedCollaborator.value
 })
 
 const isDeployed = computed(() => {
@@ -594,6 +611,7 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appStore.refreshSelectedApp(res.data.data)
       appStore.rightPanelVisible = true
+      await refreshCollaboratorPermission(id as unknown as number)
 
       await fetchChatHistory()
       updatePreview()
@@ -680,7 +698,7 @@ const fetchChatHistory = async (loadMore = false) => {
 }
 
 const checkAndResumeGeneration = () => {
-  if (!isOwner.value) return
+  if (!canEditApp.value) return
   const generatingInfo = getGeneratingInfo()
   if (!generatingInfo) return
 
@@ -727,6 +745,7 @@ const loadMoreHistory = async () => {
 
 // === Send Messages ===
 const sendInitialMessage = async (prompt: string) => {
+  if (!ensureEditPermission()) return
   messages.value.push({ type: 'user', content: prompt })
   const aiMessageIndex = messages.value.length
   messages.value.push({ type: 'ai', content: '', loading: true })
@@ -738,6 +757,7 @@ const sendInitialMessage = async (prompt: string) => {
 
 const sendMessage = async () => {
   if (!userInput.value.trim() || isGenerating.value) return
+  if (!ensureEditPermission()) return
 
   const msg = userInput.value.trim()
   userInput.value = ''
@@ -770,6 +790,14 @@ const sendMessage = async () => {
 
 // === SSE Code Generation ===
 const generateCode = async (userMessage: string, aiMessageIndex: number, isReconnect = false) => {
+  if (!canEditApp.value) {
+    if (messages.value[aiMessageIndex]) {
+      messages.value[aiMessageIndex].content = '你还没有该产物的编辑权限，请先接受协作邀请后再操作。'
+      messages.value[aiMessageIndex].loading = false
+    }
+    isGenerating.value = false
+    return
+  }
   generatingTime.value = 0
   timer.value = setInterval(() => generatingTime.value++, 1000)
   reconnectAttempts.value = 0
@@ -940,10 +968,32 @@ const onIframeLoad = () => {
 }
 
 const toggleEditMode = () => {
+  if (!ensureEditPermission()) return
   if (visualEditor.value) {
     isEditMode.value = visualEditor.value.toggleEditMode()
     if (!isEditMode.value) clearSelection()
   }
+}
+
+const refreshCollaboratorPermission = async (targetAppId: number) => {
+  if (isOwner.value || isAdmin.value) {
+    isAcceptedCollaborator.value = false
+    return
+  }
+  try {
+    const res = await checkCollaborator({ appId: targetAppId })
+    isAcceptedCollaborator.value = !!(res.data.code === 0 && res.data.data)
+  } catch (error) {
+    isAcceptedCollaborator.value = false
+  }
+}
+
+const ensureEditPermission = () => {
+  if (canEditApp.value) {
+    return true
+  }
+  message.warning('当前仅产物所有者或已接受协作者可以编辑，请先接受协作邀请。')
+  return false
 }
 
 const handleModeSwitch = (newMode: 'chat' | 'app') => {

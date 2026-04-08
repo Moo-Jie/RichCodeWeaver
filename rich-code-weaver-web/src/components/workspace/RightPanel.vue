@@ -22,9 +22,9 @@
         <!-- App Mode Actions -->
         <div v-if="mode === 'app'" class="panel-section">
           <div class="section-label">数字产物操作</div>
-          <button class="panel-btn" @click="$emit('toggleEdit')">
+          <button :disabled="!canEditApp" class="panel-btn" @click="$emit('toggleEdit')">
             <EditOutlined />
-            <span>{{ isEditMode ? '退出编辑' : '可视化编辑' }}</span>
+            <span>{{ canEditApp ? (isEditMode ? '退出编辑' : '可视化编辑') : '暂无编辑权限' }}</span>
           </button>
           <button v-if="previewUrl" class="panel-btn" @click="$emit('previewFullscreen')">
             <ExpandOutlined />
@@ -79,6 +79,15 @@
           </button>
         </div>
 
+        <!-- Collaboration Actions -->
+        <div v-if="isOwner" class="panel-section">
+          <div class="section-label">团队协作</div>
+          <button class="panel-btn" @click="$emit('inviteCollab')">
+            <TeamOutlined />
+            <span>邀请协作</span>
+          </button>
+        </div>
+
         <!-- Common Actions -->
         <div class="panel-section">
           <div class="section-label">通用操作</div>
@@ -110,7 +119,8 @@ import {
   LikeOutlined,
   ShareAltOutlined,
   StarFilled,
-  StarOutlined
+  StarOutlined,
+  TeamOutlined
 } from '@ant-design/icons-vue'
 
 interface Props {
@@ -119,6 +129,7 @@ interface Props {
   app?: API.AppVO | null
   isOwner: boolean
   isAdmin: boolean
+  canEditApp?: boolean
   isDeployed: boolean
   isGenerating: boolean
   previewUrl: string
@@ -129,13 +140,15 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  isEditMode: false
+  isEditMode: false,
+  canEditApp: false
 })
 
 defineEmits([
   'toggle', 'showDetail', 'previewFullscreen', 'download',
   'deploy', 'reDeploy', 'visitSite', 'toggleEdit',
-  'toggleLike', 'toggleFavorite', 'doShare', 'openComment'
+  'toggleLike', 'toggleFavorite', 'doShare', 'openComment',
+  'inviteCollab'
 ])
 
 const typeLabel = computed(() => {

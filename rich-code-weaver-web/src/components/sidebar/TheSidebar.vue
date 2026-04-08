@@ -102,6 +102,30 @@
       <SidebarAppList />
     </div>
 
+    <!-- Friend & Chat Icons -->
+    <div class="sidebar-social">
+      <a-tooltip placement="right" :title="appStore.sidebarCollapsed ? '好友' : ''">
+        <div class="social-icon-btn" @click="chatStore.toggleFriendDrawer()">
+          <a-badge :count="chatStore.pendingCount" :offset="[-2, 2]" size="small">
+            <TeamOutlined class="social-icon" />
+          </a-badge>
+          <transition name="fade-text">
+            <span v-show="!appStore.sidebarCollapsed" class="social-label">好友</span>
+          </transition>
+        </div>
+      </a-tooltip>
+      <a-tooltip placement="right" :title="appStore.sidebarCollapsed ? '消息' : ''">
+        <div class="social-icon-btn" @click="chatStore.toggleChatDrawer()">
+          <a-badge :count="chatStore.totalUnreadCount" :offset="[-2, 2]" size="small">
+            <MessageOutlined class="social-icon" />
+          </a-badge>
+          <transition name="fade-text">
+            <span v-show="!appStore.sidebarCollapsed" class="social-label">消息</span>
+          </transition>
+        </div>
+      </a-tooltip>
+    </div>
+
     <!-- User Profile -->
     <div class="sidebar-user">
       <a-dropdown :trigger="['click']" placement="topRight">
@@ -146,11 +170,12 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAppStore } from '@/stores/appStore'
 import { useLoginUserStore } from '@/stores/loginUser'
+import { useChatStore } from '@/stores/chatStore'
 import { userLogout } from '@/api/userController'
 import SidebarAppList from './SidebarAppList.vue'
 import {
@@ -165,10 +190,12 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MessageOutlined,
   PaperClipOutlined,
   PlusOutlined, ReadOutlined, SafetyOutlined, SecurityScanOutlined,
   SettingOutlined,
   StarOutlined,
+  TeamOutlined,
   UserOutlined,
   ApiOutlined,
   CloudServerOutlined
@@ -176,6 +203,7 @@ import {
 
 const appStore = useAppStore()
 const loginUserStore = useLoginUserStore()
+const chatStore = useChatStore()
 const router = useRouter()
 const route = useRoute()
 const adminMenuExpanded = ref(false)
@@ -249,19 +277,28 @@ const handleNewChat = () => {
   router.push('/')
 }
 
-// Load apps when sidebar mounts and user is logged in
+// Load apps and init chat when sidebar mounts and user is logged in
 onMounted(() => {
   if (loginUserStore.loginUser?.id) {
     appStore.loadMyApps()
+    chatStore.initChat()
   }
 })
 
-// Reload apps when login state changes (watch entire loginUser object to catch async updates)
+// Cleanup WebSocket on unmount
+onUnmounted(() => {
+  chatStore.disconnectWebSocket()
+})
+
+// Reload apps and init chat when login state changes
 watch(
   () => loginUserStore.loginUser,
   (newUser) => {
     if (newUser?.id) {
       appStore.loadMyApps()
+      chatStore.initChat()
+    } else {
+      chatStore.disconnectWebSocket()
     }
   },
   { deep: true, immediate: true }
@@ -429,6 +466,44 @@ const doLogout = async () => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex-shrink: 0;
+}
+
+/* Social Icons (Friend & Chat) */
+.sidebar-social {
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.social-icon-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #666;
+  font-size: 14px;
+}
+
+.social-icon-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.social-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.social-label {
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 /* User Profile */

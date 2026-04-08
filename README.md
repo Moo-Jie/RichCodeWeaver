@@ -84,8 +84,7 @@ rich-code-weaver-parent/
 ├── rich-code-weaver-ai              # AI模块 - AI服务封装、提示词管理（端口：8103）
 ├── rich-code-weaver-file            # 文件模块 - 文件上传、存储管理（端口：8104）
 ├── rich-code-weaver-prompt          # 提示词模板模块 - 模板管理与匹配（端口：8105）
-├── rich-code-weaver-social          # 社交模块 - 点赞、收藏、评论、分享（端口：8106）
-└── rich-code-weaver-tmp             # 临时模块 - 临时文件处理（端口：8107）
+└── rich-code-weaver-social          # 社交模块 - 点赞、收藏、评论、分享（端口：8106）
 ```
 
 #### 模块详细说明
@@ -133,11 +132,6 @@ rich-code-weaver-parent/
 - 文件上传（支持图片、文档等）
 - 文件存储管理
 - 文件访问控制
-
-**7. rich-code-weaver-tmp（临时模块）**
-
-- 临时文件生成与清理
-- 缓存管理
 
 ### 前端模块
 
@@ -248,10 +242,6 @@ mvn spring-boot:run
 
 # 6. 社交模块
 cd rich-code-weaver-social
-mvn spring-boot:run
-
-# 7. 临时模块
-cd rich-code-weaver-tmp
 mvn spring-boot:run
 ```
 

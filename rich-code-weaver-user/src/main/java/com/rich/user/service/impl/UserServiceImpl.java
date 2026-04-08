@@ -408,6 +408,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     /**
+     * 根据用户名模糊搜索用户（排除指定用户）
+     * 最多返回20条结果，用于好友搜索场景
+     *
+     * @param keyword       搜索关键词
+     * @param excludeUserId 需要排除的用户id
+     * @return 匹配的用户VO列表
+     */
+    @Override
+    public List<UserVO> searchUsersByName(String keyword, Long excludeUserId) {
+        QueryWrapper query = QueryWrapper.create()
+                .from(User.class)
+                .where("userName LIKE CONCAT('%', ?, '%') AND id != ?", keyword, excludeUserId)
+                .limit(20);
+        List<User> users = list(query);
+        return getUserVOList(users);
+    }
+
+    /**
      * 密码加密方法
      *
      * @param password

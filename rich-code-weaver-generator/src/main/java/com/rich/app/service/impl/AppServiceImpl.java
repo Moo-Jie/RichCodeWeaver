@@ -21,6 +21,7 @@ import com.rich.app.service.ChatHistoryService;
 import com.rich.app.service.MaterialService;
 import com.rich.app.service.StreamSessionService;
 import com.rich.app.utils.AIGenerateCodeAndSaveToFileUtils;
+import com.rich.client.innerService.InnerCollaboratorService;
 import com.rich.client.innerService.InnerScreenshotService;
 import com.rich.client.innerService.InnerUserService;
 import com.rich.common.constant.AppConstant;
@@ -96,6 +97,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @DubboReference
     private InnerUserService userService;
 
+    // 注入外部协作者服务的代理对象（用于协作权限校验）
+    @DubboReference
+    private InnerCollaboratorService collaboratorService;
+
     @Resource
     private AiCodeGeneratorTypeStrategyService aiCodeGeneratorTypeStrategyService;
 
@@ -162,10 +167,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         streamSessionService.createSession(sessionKey, appId, userId);
         log.info("创建新的流式会话: sessionKey={}, appId={}, userId={}", sessionKey, appId, userId);
 
-        // 查询 AI 产物并进行权限校验
+        // 查询 AI 产物并进行权限校验（所有者或已接受的协作者均可访问）
         App app = appService.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
-        ThrowUtils.throwIf(!app.getUserId().equals(userId), ErrorCode.FORBIDDEN_ERROR, "无权访问该产物");
+        boolean isOwner = app.getUserId().equals(userId);
+        boolean isCollaborator = !isOwner && collaboratorService.isCollaborator(appId, userId);
+        ThrowUtils.throwIf(!isOwner && !isCollaborator, ErrorCode.FORBIDDEN_ERROR, "无权访问该产物");
 
         // 获取代码生成类型并校验
         String codeGenTypeValue = app.getCodeGenType();

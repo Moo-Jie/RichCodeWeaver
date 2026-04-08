@@ -12,7 +12,6 @@ import com.rich.common.utils.ResultUtils;
 import com.rich.file.service.FileService;
 import com.rich.model.annotation.AuthCheck;
 import com.rich.model.dto.user.*;
-import java.util.regex.Pattern;
 import com.rich.model.entity.User;
 import com.rich.model.vo.LoginUserVO;
 import com.rich.model.vo.UserVO;
@@ -24,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * 用户控制器
@@ -76,7 +76,7 @@ public class UserController {
         return ResultUtils.success(loginUserVO);
     }
 
-    @GetMapping("/get/ ")
+    @GetMapping("/get/login")
 //    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);

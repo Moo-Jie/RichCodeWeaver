@@ -110,4 +110,13 @@ public interface UserService extends IService<User> {
      * @return 重置密码是否成功
      */
     Boolean resetPassword(long userId);
+
+    /**
+     * 根据用户名模糊搜索用户（排除指定用户）
+     *
+     * @param keyword       搜索关键词
+     * @param excludeUserId 需要排除的用户id（通常为当前登录用户）
+     * @return 匹配的用户VO列表（最多20条）
+     */
+    List<UserVO> searchUsersByName(String keyword, Long excludeUserId);
 }
