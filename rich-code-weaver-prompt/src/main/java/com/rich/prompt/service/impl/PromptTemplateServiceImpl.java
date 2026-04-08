@@ -1,4 +1,4 @@
-package com.rich.template.service.impl;
+package com.rich.prompt.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
@@ -7,8 +7,8 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.rich.model.dto.prompttemplate.PromptTemplateQueryRequest;
 import com.rich.model.entity.PromptTemplate;
 import com.rich.model.vo.PromptTemplateVO;
-import com.rich.template.mapper.PromptTemplateMapper;
-import com.rich.template.service.PromptTemplateService;
+import com.rich.prompt.mapper.PromptTemplateMapper;
+import com.rich.prompt.service.PromptTemplateService;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;

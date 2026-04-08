@@ -1,4 +1,4 @@
-package com.rich.template.mapper;
+package com.rich.prompt.mapper;
 
 import com.mybatisflex.core.BaseMapper;
 import com.rich.model.entity.PromptTemplate;

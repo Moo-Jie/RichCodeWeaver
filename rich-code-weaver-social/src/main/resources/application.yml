@@ -6,13 +6,13 @@ spring:
     # session 30 天过期
     timeout: 2592000
   profiles:
-#    active: local
-    active: prod  # 允许 Bean 定义覆盖
+    active: local
+#    active: prod  
   main:
     allow-bean-definition-overriding: true
 
 server:
-  port: 8106
+  port: 8104
   servlet:
     context-path: /api
     # cookie 30 天过期

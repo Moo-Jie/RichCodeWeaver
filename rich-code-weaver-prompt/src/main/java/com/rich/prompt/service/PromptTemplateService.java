@@ -1,4 +1,4 @@
-package com.rich.template.service;
+package com.rich.prompt.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;

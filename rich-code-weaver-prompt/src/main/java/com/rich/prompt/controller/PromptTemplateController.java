@@ -1,4 +1,4 @@
-package com.rich.template.controller;
+package com.rich.prompt.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
@@ -16,7 +16,7 @@ import com.rich.model.dto.prompttemplate.PromptTemplateQueryRequest;
 import com.rich.model.dto.prompttemplate.PromptTemplateUpdateRequest;
 import com.rich.model.entity.PromptTemplate;
 import com.rich.model.vo.PromptTemplateVO;
-import com.rich.template.service.PromptTemplateService;
+import com.rich.prompt.service.PromptTemplateService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 提示词模板控制器
- * 提供提示词模板的查询、创建、更新、删除等接口
+ * 用户提示词管理 控制层
+ * 提供用户提示词的增删改查接口
  *
  * @author DuRuiChi
  * @since 2026-03-12

@@ -2,8 +2,8 @@ spring:
   application:
     name: rich-code-weaver-server-admin
   profiles:
-#    active: local
-    active: prod  # Spring Boot Admin Server UI 配置
+    active: local
+#    active: prod  # Spring Boot Admin Server UI 配置
   boot:
     admin:
       ui:
