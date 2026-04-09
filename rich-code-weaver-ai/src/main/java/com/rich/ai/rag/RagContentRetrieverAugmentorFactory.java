@@ -1,6 +1,7 @@
 package com.rich.ai.rag;
 
 import com.rich.ai.config.RagConfig;
+import com.rich.common.constant.RagConstant;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.input.PromptTemplate;
@@ -35,17 +36,39 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
  **/
 @Slf4j
 @Component
-@ConditionalOnProperty(prefix = "rag", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = RagAiConstant.RAG_CONFIG_PREFIX,
+        name = RagAiConstant.RAG_ENABLED_NAME,
+        havingValue = RagAiConstant.RAG_ENABLED_VALUE)
 public class RagContentRetrieverAugmentorFactory {
+
+    /**
+     * 工作流检索日志标识
+     */
+    private static final String WORKFLOW_RETRIEVAL_LOG_TAG = "RAG 检索增强-工作流";
+
+    /**
+     * Agent 检索日志标识
+     */
+    private static final String AGENT_RETRIEVAL_LOG_TAG = "RAG 检索增强-Agent";
+
+    /**
+     * 客服检索日志标识
+     */
+    private static final String CUSTOMER_SERVICE_RETRIEVAL_LOG_TAG = "RAG 检索增强-客服";
+
+    /**
+     * 客服命中日志标识
+     */
+    private static final String CUSTOMER_SERVICE_HIT_LOG_TAG = "RAG 检索-客服";
 
     /**
      * 兜底提示词模板（当数据库无配置时使用）
      **/
     private static final String DEFAULT_INJECTION_TEMPLATE =
-            "{{userMessage}}\n\n" +
+            RagConstant.TEMPLATE_USER_MESSAGE_PLACEHOLDER + "\n\n" +
                     "---\n" +
                     "【权威参考知识】以下内容来自系统知识库，是你生成代码时必须严格遵循的开发规范与约束，不可违反或忽略：\n\n" +
-                    "{{contents}}\n" +
+                    RagConstant.TEMPLATE_CONTENTS_PLACEHOLDER + "\n" +
                     "---";
 
     /**
@@ -57,13 +80,13 @@ public class RagContentRetrieverAugmentorFactory {
     /**
      * Embedding 向量模型，检索阶段用于将用户查询向量化
      **/
-    @Resource(name = "ragEmbeddingModel")
+    @Resource(name = RagAiConstant.RAG_EMBEDDING_MODEL_BEAN)
     private EmbeddingModel embeddingModel;
 
     /**
      * PGVector 向量存储，检索阶段从中搜索相似文档片段
      **/
-    @Resource(name = "ragEmbeddingStore")
+    @Resource(name = RagAiConstant.RAG_EMBEDDING_STORE_BEAN)
     private EmbeddingStore<TextSegment> embeddingStore;
 
     /**
@@ -75,7 +98,7 @@ public class RagContentRetrieverAugmentorFactory {
     /**
      * 通用类型标识，表示该文档适用于所有代码生成类型
      */
-    private static final String GENERAL_CODE_GEN_TYPE = "GENERAL";
+    private static final String GENERAL_CODE_GEN_TYPE = RagConstant.DEFAULT_CODE_GEN_TYPE;
 
     /**
      * AI 客服业务类型标识
@@ -100,16 +123,12 @@ public class RagContentRetrieverAugmentorFactory {
      * @create 2026/3/26
      **/
     public RetrievalAugmentor createWorkflowRetrievalAugmentor(String codeGenTypeName) {
-        log.info("【RAG 检索增强-工作流】为代码生成类型 {} 创建 RetrievalAugmentor", codeGenTypeName);
+        log.info("【{}】为代码生成类型 {} 创建 RetrievalAugmentor", WORKFLOW_RETRIEVAL_LOG_TAG, codeGenTypeName);
 
         // 工作流模式：检索指定类型 + GENERAL 类型的文档
-        RetrievalAugmentor augmentor = buildRetrievalAugmentor(
-                metadataKey("bizType").isEqualTo(CODE_GEN_BIZ_TYPE)
-                        .and(metadataKey("codeGenType").isEqualTo(codeGenTypeName)
-                                .or(metadataKey("codeGenType").isEqualTo(GENERAL_CODE_GEN_TYPE)))
-        );
+        RetrievalAugmentor augmentor = buildRetrievalAugmentor(buildWorkflowMetadataFilter(codeGenTypeName));
 
-        log.info("【RAG 检索增强-工作流】RetrievalAugmentor 创建完成，codeGenType={}", codeGenTypeName);
+        log.info("【{}】RetrievalAugmentor 创建完成，codeGenType={}", WORKFLOW_RETRIEVAL_LOG_TAG, codeGenTypeName);
         return augmentor;
     }
 
@@ -125,15 +144,12 @@ public class RagContentRetrieverAugmentorFactory {
      * @create 2026/3/29
      **/
     public RetrievalAugmentor createAgentRetrievalAugmentor() {
-        log.info("【RAG 检索增强-Agent】为 Agent 模式创建 RetrievalAugmentor");
+        log.info("【{}】为 Agent 模式创建 RetrievalAugmentor", AGENT_RETRIEVAL_LOG_TAG);
 
         // Agent 模式：只检索 AGENT 类型的文档
-        RetrievalAugmentor augmentor = buildRetrievalAugmentor(
-                metadataKey("bizType").isEqualTo(CODE_GEN_BIZ_TYPE)
-                        .and(metadataKey("codeGenType").isEqualTo(AGENT_CODE_GEN_TYPE))
-        );
+        RetrievalAugmentor augmentor = buildRetrievalAugmentor(buildAgentMetadataFilter());
 
-        log.info("【RAG 检索增强-Agent】RetrievalAugmentor 创建完成，codeGenType={}", AGENT_CODE_GEN_TYPE);
+        log.info("【{}】RetrievalAugmentor 创建完成，codeGenType={}", AGENT_RETRIEVAL_LOG_TAG, AGENT_CODE_GEN_TYPE);
         return augmentor;
     }
 
@@ -144,13 +160,44 @@ public class RagContentRetrieverAugmentorFactory {
      * @return RetrievalAugmentor 检索增强器实例
      */
     public RetrievalAugmentor createCustomerServiceRetrievalAugmentor() {
-        log.info("【RAG 检索增强-客服】为 AI 客服创建 RetrievalAugmentor");
+        log.info("【{}】为 AI 客服创建 RetrievalAugmentor", CUSTOMER_SERVICE_RETRIEVAL_LOG_TAG);
         RetrievalAugmentor augmentor = buildRetrievalAugmentor(
-                metadataKey("bizType").isEqualTo(CUSTOMER_SERVICE_BIZ_TYPE),
-                "RAG 检索-客服"
+                buildCustomerServiceMetadataFilter(),
+                CUSTOMER_SERVICE_HIT_LOG_TAG
         );
-        log.info("【RAG 检索增强-客服】RetrievalAugmentor 创建完成，bizType={}", CUSTOMER_SERVICE_BIZ_TYPE);
+        log.info("【{}】RetrievalAugmentor 创建完成，bizType={}", CUSTOMER_SERVICE_RETRIEVAL_LOG_TAG, CUSTOMER_SERVICE_BIZ_TYPE);
         return augmentor;
+    }
+
+    /**
+     * 构建工作流模式的元数据过滤器
+     *
+     * @param codeGenTypeName 代码生成类型
+     * @return 元数据过滤器
+     */
+    private Filter buildWorkflowMetadataFilter(String codeGenTypeName) {
+        return metadataKey(RagConstant.METADATA_BIZ_TYPE).isEqualTo(CODE_GEN_BIZ_TYPE)
+                .and(metadataKey(RagConstant.METADATA_CODE_GEN_TYPE).isEqualTo(codeGenTypeName)
+                        .or(metadataKey(RagConstant.METADATA_CODE_GEN_TYPE).isEqualTo(GENERAL_CODE_GEN_TYPE)));
+    }
+
+    /**
+     * 构建 Agent 模式的元数据过滤器
+     *
+     * @return 元数据过滤器
+     */
+    private Filter buildAgentMetadataFilter() {
+        return metadataKey(RagConstant.METADATA_BIZ_TYPE).isEqualTo(CODE_GEN_BIZ_TYPE)
+                .and(metadataKey(RagConstant.METADATA_CODE_GEN_TYPE).isEqualTo(AGENT_CODE_GEN_TYPE));
+    }
+
+    /**
+     * 构建客服模式的元数据过滤器
+     *
+     * @return 元数据过滤器
+     */
+    private Filter buildCustomerServiceMetadataFilter() {
+        return metadataKey(RagConstant.METADATA_BIZ_TYPE).isEqualTo(CUSTOMER_SERVICE_BIZ_TYPE);
     }
 
     /**
@@ -168,46 +215,111 @@ public class RagContentRetrieverAugmentorFactory {
         return buildRetrievalAugmentor(metadataFilter, null);
     }
 
+    /**
+     * 构建 RetrievalAugmentor（可选附带检索日志）
+     *
+     * @param metadataFilter 元数据过滤器
+     * @param retrieverLogTag 检索日志标识
+     * @return RetrievalAugmentor 检索增强器实例
+     */
     private RetrievalAugmentor buildRetrievalAugmentor(Filter metadataFilter, String retrieverLogTag) {
+        // 1：加载 RAG 参数（从数据库或使用默认值）
+        int maxResults = getMaxResults();
+        double minScore = getMinScore();
+        String injectionTemplate = getInjectionTemplate();
 
-        // 步骤1：加载 RAG 参数（从数据库或使用默认值）
-        int maxResults = ragParamProvider != null ? ragParamProvider.getMaxResults() : 5;
-        double minScore = ragParamProvider != null ? ragParamProvider.getMinScore() : 0.6;
-        String injectionTemplate = ragParamProvider != null
-                ? ragParamProvider.getInjectionPromptTemplate() : DEFAULT_INJECTION_TEMPLATE;
-
-        // 步骤2：构建 ContentRetriever（内容检索器）
+        // 2：构建 ContentRetriever（内容检索器）
         // 基于 PGVector 的向量相似度检索，附加 codeGenType 元数据过滤
-        ContentRetriever delegateContentRetriever = EmbeddingStoreContentRetriever.builder()
-                .embeddingStore(embeddingStore)       // 向量存储（PGVector）
-                .embeddingModel(embeddingModel)       // 向量模型（用于查询向量化）
-                .maxResults(maxResults)               // 最大检索结果数
-                .minScore(minScore)                   // 最低相似度阈值
-                .filter(metadataFilter)               // 元数据过滤器（按 codeGenType 过滤）
-                .build();
+        ContentRetriever delegateContentRetriever = buildDelegateContentRetriever(metadataFilter, maxResults, minScore);
+        ContentRetriever contentRetriever = wrapContentRetrieverWithLog(delegateContentRetriever, retrieverLogTag);
 
-        ContentRetriever contentRetriever = delegateContentRetriever;
-        if (retrieverLogTag != null && !retrieverLogTag.isBlank()) {
-            contentRetriever = query -> {
-                var contents = delegateContentRetriever.retrieve(query);
-                log.info("【{}】已执行知识库检索，命中 {} 条内容", retrieverLogTag, contents.size());
-                return contents;
-            };
-        }
-
-        // 步骤3：构建 ContentInjector（内容注入器）
+        // 3：构建 ContentInjector（内容注入器）
         // 使用自定义提示词模板，将检索到的知识库内容以权威参考形式注入用户消息
-        ContentInjector contentInjector = DefaultContentInjector.builder()
-                .promptTemplate(PromptTemplate.from(injectionTemplate))  // 注入模板
-                .metadataKeysToInclude(List.of("source", "title"))      // 包含的元数据字段
-                .build();
+        ContentInjector contentInjector = buildContentInjector(injectionTemplate);
 
-        // 步骤4：组装 RetrievalAugmentor（检索增强器）
+        // 4：组装 RetrievalAugmentor（检索增强器）
         // DefaultRetrievalAugmentor 封装了完整的检索增强管道：
         //   用户查询 → ContentRetriever 检索 → ContentInjector 注入 → 增强后的消息
         return DefaultRetrievalAugmentor.builder()
                 .contentRetriever(contentRetriever)   // 内容检索器
                 .contentInjector(contentInjector)     // 内容注入器
+                .build();
+    }
+
+    /**
+     * 获取最大检索结果数
+     *
+     * @return 最大检索结果数
+     */
+    private int getMaxResults() {
+        return ragParamProvider != null ? ragParamProvider.getMaxResults() : RagConstant.DEFAULT_MAX_RESULTS;
+    }
+
+    /**
+     * 获取最低相似度阈值
+     *
+     * @return 最低相似度阈值
+     */
+    private double getMinScore() {
+        return ragParamProvider != null ? ragParamProvider.getMinScore() : RagConstant.DEFAULT_MIN_SCORE;
+    }
+
+    /**
+     * 获取内容注入模板
+     *
+     * @return 注入模板
+     */
+    private String getInjectionTemplate() {
+        return ragParamProvider != null ? ragParamProvider.getInjectionPromptTemplate() : DEFAULT_INJECTION_TEMPLATE;
+    }
+
+    /**
+     * 构建基础内容检索器
+     *
+     * @param metadataFilter 元数据过滤器
+     * @param maxResults 最大返回数量
+     * @param minScore 最低分数
+     * @return 内容检索器
+     */
+    private ContentRetriever buildDelegateContentRetriever(Filter metadataFilter, int maxResults, double minScore) {
+        return EmbeddingStoreContentRetriever.builder()
+                .embeddingStore(embeddingStore)
+                .embeddingModel(embeddingModel)
+                .maxResults(maxResults)
+                .minScore(minScore)
+                .filter(metadataFilter)
+                .build();
+    }
+
+    /**
+     * 根据日志标识包装检索器
+     * 没有日志标识时直接返回原检索器
+     *
+     * @param delegateContentRetriever 原始检索器
+     * @param retrieverLogTag 日志标识
+     * @return 包装后的检索器
+     */
+    private ContentRetriever wrapContentRetrieverWithLog(ContentRetriever delegateContentRetriever, String retrieverLogTag) {
+        if (retrieverLogTag == null || retrieverLogTag.isBlank()) {
+            return delegateContentRetriever;
+        }
+        return query -> {
+            var contents = delegateContentRetriever.retrieve(query);
+            log.info("【{}】已执行知识库检索，命中 {} 条内容", retrieverLogTag, contents.size());
+            return contents;
+        };
+    }
+
+    /**
+     * 构建内容注入器
+     *
+     * @param injectionTemplate 注入模板
+     * @return 内容注入器
+     */
+    private ContentInjector buildContentInjector(String injectionTemplate) {
+        return DefaultContentInjector.builder()
+                .promptTemplate(PromptTemplate.from(injectionTemplate))
+                .metadataKeysToInclude(List.of(RagConstant.METADATA_SOURCE, RagConstant.METADATA_TITLE))
                 .build();
     }
 }

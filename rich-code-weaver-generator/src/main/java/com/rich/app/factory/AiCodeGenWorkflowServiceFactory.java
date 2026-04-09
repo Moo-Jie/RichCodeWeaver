@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.ai.aiTools.ToolsManager;
 import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
 import com.rich.ai.service.AiCodeGeneratorService;
+import com.rich.common.constant.AiServiceConstant;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.client.innerService.InnerSystemPromptService;
 import com.rich.common.exception.BusinessException;
@@ -39,6 +40,11 @@ import java.time.Duration;
 public class AiCodeGenWorkflowServiceFactory {
 
     /**
+     * RAG 未启用日志模板
+     */
+    private static final String RAG_DISABLED_LOG_TEMPLATE = "RAG 知识库未启用，appId: {} 跳过检索增强";
+
+    /**
      * 创建 Caffeine 缓存服务，用于存储 AI 服务实例
      *
      * @param appId 产物 id
@@ -49,11 +55,11 @@ public class AiCodeGenWorkflowServiceFactory {
     private final Cache<Long, AiCodeGeneratorService> caffeineService = Caffeine.newBuilder()
             // 防止内存泄露的配置
             // 最大缓存 1000 个实例
-            .maximumSize(1000)
+            .maximumSize(AiServiceConstant.AI_SERVICE_CACHE_MAX_SIZE)
             // 写入后 30 分钟过期
-            .expireAfterWrite(Duration.ofMinutes(30))
+            .expireAfterWrite(Duration.ofMinutes(AiServiceConstant.AI_SERVICE_EXPIRE_AFTER_WRITE_MINUTES))
             // 访问后 10 分钟过期
-            .expireAfterAccess(Duration.ofMinutes(10))
+            .expireAfterAccess(Duration.ofMinutes(AiServiceConstant.AI_SERVICE_EXPIRE_AFTER_ACCESS_MINUTES))
             // 移除时记录日志
             .removalListener((key, value, cause) -> {
                 log.debug("【AI 服务实例缓存】已移除，appId: {}, 原因: {}", key, cause);
@@ -112,7 +118,7 @@ public class AiCodeGenWorkflowServiceFactory {
         // 从 Caffeine 缓存中获取或创建 AI 服务实例
         // 缓存策略：相同 appId 会复用已构建的实例，避免重复从数据库加载历史对话记录
         // 缓存未命中时，会自动调用 createAiCodeGeneratorService 方法创建新实例
-        return caffeineService.get(appId, (key) -> this.createAiCodeGeneratorService(appId, codeGenTypeEnum));
+        return caffeineService.get(appId, key -> this.createAiCodeGeneratorService(appId, codeGenTypeEnum));
     }
 
     /**
@@ -127,77 +133,35 @@ public class AiCodeGenWorkflowServiceFactory {
     private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeGeneratorTypeEnum codeGenTypeEnum) {
         log.info("为 appId: {} 创建新的 AI 服务实例，代码生成类型: {}", appId, codeGenTypeEnum);
 
-        // 步骤1：根据代码生成类型从数据库查询对应的系统提示词
-        String promptKey = getPromptKeyByCodeGenType(codeGenTypeEnum);
-        String systemPromptContent = innerSystemPromptService.getPromptContentByKey(promptKey);
-        if (systemPromptContent == null || systemPromptContent.isBlank()) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,
-                    "未找到系统提示词，promptKey=" + promptKey + "，请在管理后台配置");
-        }
+        // 1：根据代码生成类型从数据库查询对应的系统提示词
+        String systemPromptContent = loadSystemPromptContent(codeGenTypeEnum);
 
-        // 步骤2：根据 appId 创建独立的对话记忆（ChatMemory）
-        MessageWindowChatMemory chatMemory = MessageWindowChatMemory
-                .builder()
-                .id(appId)  // 使用 appId 作为唯一标识
-                .chatMemoryStore(redisChatMemoryStore)  // 指定为 Redis 类型的存储
-                .maxMessages(50)  // 最大保留50条消息（滑动窗口）
-                .build();
+        // 2：根据 appId 创建独立的对话记忆（ChatMemory）
+        MessageWindowChatMemory chatMemory = buildChatMemory(appId);
 
-        // 步骤3：从数据库中加载对话历史到 Redis 类型的 chatMemory 中
-        Boolean isSave = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 10);
-        if (!isSave) {
-            // 若加载失败，添加提示消息并记录日志
-            chatMemory.add(UserMessage.from("历史记录加载失败，可能已经过期。"));
-            log.warn("为 appId: {} 加载历史记录失败", appId);
-        }
+        // 3：从数据库中加载对话历史到 Redis 类型的 chatMemory 中
+        loadWorkflowChatHistory(appId, chatMemory);
 
-        // 步骤4：构建 AI 服务实例的基础配置（使用 systemMessageProvider 编程式指定系统提示词）
-        AiServices<AiCodeGeneratorService> aiCodeGenServices = AiServices.builder(AiCodeGeneratorService.class)
-                .chatModel(chatModel)  // 配置基础 AI 模型
-                .systemMessageProvider(memoryId -> systemPromptContent)  // 从数据库查询的系统提示词
-                // TODO 配置提示词护轨规则，目前规则不够完善，容易导致误判
-//                .inputGuardrails(new PromptSafetyInputGuardrail())
-                .maxSequentialToolsInvocations(25)  // 最大连续调用工具次数（防止无限循环）
-                .chatMemory(chatMemory);  // 配置对话记忆
+        // 4：构建 AI 服务实例的基础配置（使用 systemMessageProvider 编程式指定系统提示词）
+        AiServices<AiCodeGeneratorService> aiCodeGenServices = buildBaseWorkflowAiService(systemPromptContent, chatMemory);
 
-        // 步骤4.5：注入 RAG 知识库检索增强器（如果 RAG 功能已启用）
+        // 4.5：注入 RAG 知识库检索增强器（如果 RAG 功能已启用）
         // RetrievalAugmentor 会在每次 AI 调用前自动执行：
         //   1. 将用户查询向量化
         //   2. 在 PGVector 中按 codeGenType 过滤检索相关知识库片段
         //   3. 将检索到的开发规范以权威参考形式注入到用户消息中
         // 这样 AI 生成代码时会参考知识库中的开发规范，降低幻觉概率
-        if (ragContentRetrieverAugmentorFactory != null) {
-            RetrievalAugmentor ragAugmentor = ragContentRetrieverAugmentorFactory
-                    .createWorkflowRetrievalAugmentor(codeGenTypeEnum.name());
-            aiCodeGenServices.retrievalAugmentor(ragAugmentor);
-            log.info("为 appId: {} 注入 RAG 知识库检索增强，codeGenType: {}", appId, codeGenTypeEnum.name());
-        } else {
-            log.debug("RAG 知识库未启用，appId: {} 跳过检索增强", appId);
-        }
+        attachWorkflowRagAugmentor(aiCodeGenServices, appId, codeGenTypeEnum);
 
-        // 步骤5：根据代码生成类型选择不同的 AI 模型和配置
+        // 5：根据代码生成类型选择不同的 AI 模型和配置
         switch (codeGenTypeEnum) {
             // 单文件模式、多文件模式：使用普通流式模型
             case HTML, MULTI_FILE -> {
-                // 从 Spring 容器中获取普通流式 AI 模型（多例模式）
-                StreamingChatModel streamingChatModel = SpringContextUtil.getBean("streamingChatModel", StreamingChatModel.class);
-                return aiCodeGenServices
-                        .streamingChatModel(streamingChatModel)  // 配置流式模型
-                        .build();
+                return buildStreamingWorkflowService(aiCodeGenServices);
             }
             // Vue 项目工程模式：使用推理流式模型（支持工具调用）
             case VUE_PROJECT -> {
-                // 从 Spring 容器中获取推理流式 AI 模型（多例模式）
-                StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean("reasoningStreamingChatModel", StreamingChatModel.class);
-                return aiCodeGenServices
-                        .streamingChatModel(reasoningStreamingChatModel)  // 配置推理流式模型
-                        .chatMemoryProvider(id -> chatMemory)  // 强制指定 chatMemoryProvider（推理模式要求）
-                        .tools(toolsManager.getAllTools())  // 指定供 AI 调用的自定义工具包
-                        // 当 AI 幻觉调用不存在的工具时，返回错误提示（防止异常）
-                        // 参考：https://blog.csdn.net/qq_52155674/article/details/147238250
-                        .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
-                                toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()))
-                        .build();
+                return buildReasoningWorkflowService(aiCodeGenServices, chatMemory);
             }
             // 默认模式：使用基础配置
             default -> {
@@ -208,6 +172,121 @@ public class AiCodeGenWorkflowServiceFactory {
     }
 
     /**
+     * 构建工作流模式的对话记忆
+     *
+     * @param appId 产物 ID
+     * @return 对话记忆
+     */
+    private MessageWindowChatMemory buildChatMemory(long appId) {
+        return MessageWindowChatMemory
+                .builder()
+                .id(appId)  // 使用 appId 作为唯一标识
+                .chatMemoryStore(redisChatMemoryStore)  // 指定为 Redis 类型的存储
+                .maxMessages(AiServiceConstant.CHAT_MEMORY_MAX_MESSAGES)  // 最大保留固定条数消息（滑动窗口）
+                .build();
+    }
+
+    /**
+     * 加载工作流模式系统提示词
+     *
+     * @param codeGenTypeEnum 代码生成类型
+     * @return 系统提示词内容
+     */
+    private String loadSystemPromptContent(CodeGeneratorTypeEnum codeGenTypeEnum) {
+        String promptKey = getPromptKeyByCodeGenType(codeGenTypeEnum);
+        String systemPromptContent = innerSystemPromptService.getPromptContentByKey(promptKey);
+        if (systemPromptContent == null || systemPromptContent.isBlank()) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,
+                    "未找到系统提示词，promptKey=" + promptKey + "，请在管理后台配置");
+        }
+        return systemPromptContent;
+    }
+
+    /**
+     * 加载工作流模式历史消息到记忆中
+     *
+     * @param appId 产物 ID
+     * @param chatMemory 对话记忆
+     */
+    private void loadWorkflowChatHistory(long appId, MessageWindowChatMemory chatMemory) {
+        Boolean isSave = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, AiServiceConstant.DEFAULT_HISTORY_LOAD_LIMIT);
+        if (!isSave) {
+            chatMemory.add(UserMessage.from(AiServiceConstant.HISTORY_LOAD_FAILED_MESSAGE));
+            log.warn("为 appId: {} 加载历史记录失败", appId);
+        }
+    }
+
+    /**
+     * 构建工作流模式通用 AI 服务配置
+     *
+     * @param systemPromptContent 系统提示词
+     * @param chatMemory 对话记忆
+     * @return AI 服务构建器
+     */
+    private AiServices<AiCodeGeneratorService> buildBaseWorkflowAiService(String systemPromptContent,
+                                                                          MessageWindowChatMemory chatMemory) {
+        return AiServices.builder(AiCodeGeneratorService.class)
+                .chatModel(chatModel)
+                .systemMessageProvider(memoryId -> systemPromptContent)
+                .maxSequentialToolsInvocations(AiServiceConstant.WORKFLOW_MAX_TOOLS_INVOCATIONS)
+                .chatMemory(chatMemory);
+    }
+
+    /**
+     * 为工作流模式挂载 RAG 检索增强器
+     *
+     * @param aiCodeGenServices AI 服务构建器
+     * @param appId 产物 ID
+     * @param codeGenTypeEnum 代码生成类型
+     */
+    private void attachWorkflowRagAugmentor(AiServices<AiCodeGeneratorService> aiCodeGenServices,
+                                            long appId, CodeGeneratorTypeEnum codeGenTypeEnum) {
+        if (ragContentRetrieverAugmentorFactory == null) {
+            log.debug(RAG_DISABLED_LOG_TEMPLATE, appId);
+            return;
+        }
+        RetrievalAugmentor ragAugmentor = ragContentRetrieverAugmentorFactory
+                .createWorkflowRetrievalAugmentor(codeGenTypeEnum.name());
+        aiCodeGenServices.retrievalAugmentor(ragAugmentor);
+        log.info("为 appId: {} 注入 RAG 知识库检索增强，codeGenType: {}", appId, codeGenTypeEnum.name());
+    }
+
+    /**
+     * 构建普通流式工作流服务
+     *
+     * @param aiCodeGenServices AI 服务构建器
+     * @return AI 服务实例
+     */
+    private AiCodeGeneratorService buildStreamingWorkflowService(AiServices<AiCodeGeneratorService> aiCodeGenServices) {
+        StreamingChatModel streamingChatModel = SpringContextUtil.getBean(
+                AiServiceConstant.STREAMING_CHAT_MODEL_BEAN, StreamingChatModel.class);
+        return aiCodeGenServices
+                .streamingChatModel(streamingChatModel)
+                .build();
+    }
+
+    /**
+     * 构建推理模式工作流服务
+     *
+     * @param aiCodeGenServices AI 服务构建器
+     * @param chatMemory 对话记忆
+     * @return AI 服务实例
+     */
+    private AiCodeGeneratorService buildReasoningWorkflowService(AiServices<AiCodeGeneratorService> aiCodeGenServices,
+                                                                 MessageWindowChatMemory chatMemory) {
+        StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean(
+                AiServiceConstant.REASONING_STREAMING_CHAT_MODEL_BEAN, StreamingChatModel.class);
+        return aiCodeGenServices
+                .streamingChatModel(reasoningStreamingChatModel)
+                .chatMemoryProvider(id -> chatMemory)
+                .tools(toolsManager.getAllTools())
+                .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
+                        toolExecutionRequest,
+                        String.format(AiServiceConstant.HALLUCINATED_TOOL_MESSAGE_TEMPLATE, toolExecutionRequest.name())))
+                .build();
+    }
+
+    /**
      * 根据代码生成类型获取对应的系统提示词标识
      *
      * @param codeGenTypeEnum 代码生成类型枚举
@@ -215,10 +294,10 @@ public class AiCodeGenWorkflowServiceFactory {
      */
     private String getPromptKeyByCodeGenType(CodeGeneratorTypeEnum codeGenTypeEnum) {
         return switch (codeGenTypeEnum) {
-            case HTML -> "html-system-prompt";
-            case MULTI_FILE -> "multi-file-system-prompt";
-            case VUE_PROJECT -> "vue-project-system-prompt";
-            default -> "html-system-prompt";
+            case HTML -> AiServiceConstant.HTML_SYSTEM_PROMPT_KEY;
+            case MULTI_FILE -> AiServiceConstant.MULTI_FILE_SYSTEM_PROMPT_KEY;
+            case VUE_PROJECT -> AiServiceConstant.VUE_PROJECT_SYSTEM_PROMPT_KEY;
+            default -> AiServiceConstant.HTML_SYSTEM_PROMPT_KEY;
         };
     }
 }

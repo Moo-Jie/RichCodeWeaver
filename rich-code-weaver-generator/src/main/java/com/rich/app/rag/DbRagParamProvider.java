@@ -1,6 +1,7 @@
 package com.rich.app.rag;
 
 import com.rich.ai.rag.RagParamProvider;
+import com.rich.common.constant.RagConstant;
 import com.rich.app.service.RagParamService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -29,28 +30,53 @@ public class DbRagParamProvider implements RagParamProvider {
     @Resource
     private RagParamService ragParamService;
 
+    /**
+     * 获取分段时的最大块大小
+     *
+     * @return 最大块大小
+     */
     @Override
     public int getMaxSegmentSize() {
-        return ragParamService.getIntParam("max_segment_size", 500);
+        return ragParamService.getIntParam(RagConstant.PARAM_MAX_SEGMENT_SIZE, RagConstant.DEFAULT_MAX_SEGMENT_SIZE);
     }
 
+    /**
+     * 获取分段时的最大重叠大小
+     *
+     * @return 最大重叠大小
+     */
     @Override
     public int getMaxOverlapSize() {
-        return ragParamService.getIntParam("max_overlap_size", 50);
+        return ragParamService.getIntParam(RagConstant.PARAM_MAX_OVERLAP_SIZE, RagConstant.DEFAULT_MAX_OVERLAP_SIZE);
     }
 
+    /**
+     * 获取单次检索的最大结果数
+     *
+     * @return 最大结果数
+     */
     @Override
     public int getMaxResults() {
-        return ragParamService.getIntParam("max_results", 5);
+        return ragParamService.getIntParam(RagConstant.PARAM_MAX_RESULTS, RagConstant.DEFAULT_MAX_RESULTS);
     }
 
+    /**
+     * 获取检索结果最低分数阈值
+     *
+     * @return 最低分数阈值
+     */
     @Override
     public double getMinScore() {
-        return ragParamService.getDoubleParam("min_score", 0.6);
+        return ragParamService.getDoubleParam(RagConstant.PARAM_MIN_SCORE, RagConstant.DEFAULT_MIN_SCORE);
     }
 
+    /**
+     * 获取知识注入模板
+     *
+     * @return 注入模板
+     */
     @Override
     public String getInjectionPromptTemplate() {
-        return ragParamService.getParamValue("injection_prompt_template", DEFAULT_INJECTION_TEMPLATE);
+        return ragParamService.getParamValue(RagConstant.PARAM_INJECTION_PROMPT_TEMPLATE, DEFAULT_INJECTION_TEMPLATE);
     }
 }

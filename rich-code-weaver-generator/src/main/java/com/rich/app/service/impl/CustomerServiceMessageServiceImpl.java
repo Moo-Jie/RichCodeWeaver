@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.rich.common.constant.CustomerServiceConstant;
 import com.rich.app.mapper.CustomerServiceMessageMapper;
 import com.rich.app.service.CustomerServiceMessageService;
 import com.rich.common.exception.ErrorCode;
@@ -30,6 +31,16 @@ import java.util.stream.Collectors;
 public class CustomerServiceMessageServiceImpl extends ServiceImpl<CustomerServiceMessageMapper, CustomerServiceMessage>
         implements CustomerServiceMessageService {
 
+    /**
+     * 新增一条客服消息
+     *
+     * @param conversationId 会话 ID
+     * @param senderType 发送方类型
+     * @param content 消息内容
+     * @param userId 登录用户 ID
+     * @param visitorKey 游客标识
+     * @return 消息实体
+     */
     @Override
     public CustomerServiceMessage addMessage(Long conversationId, String senderType, String content, Long userId, String visitorKey) {
         ThrowUtils.throwIf(conversationId == null || conversationId <= 0, ErrorCode.PARAMS_ERROR, "会话ID无效");
@@ -48,11 +59,20 @@ public class CustomerServiceMessageServiceImpl extends ServiceImpl<CustomerServi
         return message;
     }
 
+    /**
+     * 查询指定会话的历史消息
+     *
+     * @param conversationId 会话 ID
+     * @param pageSize 分页大小
+     * @param lastCreateTime 上一页最后一条消息时间
+     * @return 消息列表
+     */
     @Override
     public List<CustomerServiceMessageVO> listConversationMessages(Long conversationId, int pageSize,
                                                                    java.time.LocalDateTime lastCreateTime) {
         ThrowUtils.throwIf(conversationId == null || conversationId <= 0, ErrorCode.PARAMS_ERROR, "会话ID无效");
-        ThrowUtils.throwIf(pageSize <= 0 || pageSize > 100, ErrorCode.PARAMS_ERROR, "页面大小必须在1-100之间");
+        ThrowUtils.throwIf(pageSize <= 0 || pageSize > CustomerServiceConstant.MAX_MESSAGE_PAGE_SIZE,
+                ErrorCode.PARAMS_ERROR, "页面大小必须在1-100之间");
         QueryWrapper queryWrapper = QueryWrapper.create().from(CustomerServiceMessage.class);
         if (lastCreateTime != null) {
             queryWrapper.where("conversationId = ? AND createTime < ?", conversationId, lastCreateTime);
@@ -67,6 +87,14 @@ public class CustomerServiceMessageServiceImpl extends ServiceImpl<CustomerServi
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 将客服历史消息加载到对话记忆
+     *
+     * @param conversationId 会话 ID
+     * @param chatMemory 对话记忆
+     * @param maxCount 最大加载数量
+     * @return 是否加载成功
+     */
     @Override
     public Boolean loadChatHistoryToMemory(Long conversationId, MessageWindowChatMemory chatMemory, int maxCount) {
         try {
@@ -84,15 +112,25 @@ public class CustomerServiceMessageServiceImpl extends ServiceImpl<CustomerServi
             Collections.reverse(messageList);
             chatMemory.clear();
             for (CustomerServiceMessage message : messageList) {
-                if (CustomerServiceMessageRoleEnum.USER.getValue().equals(message.getSenderType())) {
-                    chatMemory.add(UserMessage.from(message.getContent()));
-                } else if (CustomerServiceMessageRoleEnum.AI.getValue().equals(message.getSenderType())) {
-                    chatMemory.add(AiMessage.from(message.getContent()));
-                }
+                addMessageToChatMemory(chatMemory, message);
             }
             return true;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * 按消息角色写入对话记忆
+     *
+     * @param chatMemory 对话记忆
+     * @param message 消息实体
+     */
+    private void addMessageToChatMemory(MessageWindowChatMemory chatMemory, CustomerServiceMessage message) {
+        if (CustomerServiceMessageRoleEnum.USER.getValue().equals(message.getSenderType())) {
+            chatMemory.add(UserMessage.from(message.getContent()));
+        } else if (CustomerServiceMessageRoleEnum.AI.getValue().equals(message.getSenderType())) {
+            chatMemory.add(AiMessage.from(message.getContent()));
         }
     }
 }

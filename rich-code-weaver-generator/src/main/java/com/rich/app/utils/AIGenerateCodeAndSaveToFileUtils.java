@@ -9,7 +9,6 @@ import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.utils.SpringContextUtil;
 import com.rich.model.enums.CodeGeneratorTypeEnum;
-import dev.langchain4j.service.TokenStream;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,6 +24,22 @@ import reactor.core.publisher.Flux;
 @Slf4j
 @Service
 public class AIGenerateCodeAndSaveToFileUtils {
+
+    /**
+     * 生成类型为空提示
+     */
+    private static final String EMPTY_GENERATOR_TYPE_MESSAGE = "生成类型为空";
+
+    /**
+     * 不支持的生成类型提示模板
+     */
+    private static final String UNSUPPORTED_GENERATOR_TYPE_TEMPLATE = "不支持的生成类型：%s";
+
+    /**
+     * 代码生成失败提示前缀
+     */
+    private static final String CODE_GENERATION_FAILED_PREFIX = "代码生成失败: ";
+
     @Resource
     private ConvertWorkflowTokenStreamToFluxUtils convertWorkflowTokenStreamToFluxUtils;
 
@@ -40,45 +55,30 @@ public class AIGenerateCodeAndSaveToFileUtils {
      **/
     public Flux<String> aiGenerateAndSaveCodeStream(String userMessage, CodeGeneratorTypeEnum codeGenTypeEnum, Long appId) {
         try {
-            // 步骤1：校验代码生成类型是否为空
+            // 1：校验代码生成类型是否为空
             if (codeGenTypeEnum == null) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, EMPTY_GENERATOR_TYPE_MESSAGE);
             }
 
             log.info("（流式）开始生成{}类型代码，用户需求：{}", codeGenTypeEnum.getValue(), userMessage);
 
-            // 步骤2：从 Spring 容器中获取 AI 代码生成器工厂
-            AiCodeGenWorkflowServiceFactory aiCodeGenWorkflowServiceFactory =
-                    SpringContextUtil.getBean(AiCodeGenWorkflowServiceFactory.class);
+            // 2：从 Spring 容器中获取 AI 代码生成器工厂
+            AiCodeGeneratorService aiCodeGeneratorService = getAiCodeGeneratorService(appId, codeGenTypeEnum);
 
-            // 步骤3：通过工厂获取或创建 AI 服务实例（带缓存）
-            AiCodeGeneratorService aiCodeGeneratorService =
-                    aiCodeGenWorkflowServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
-
-            // 步骤4：根据代码生成类型选择对应的生成策略
+            // 4：根据代码生成类型选择对应的生成策略
             return switch (codeGenTypeEnum) {
                 // HTML 单文件模式：生成 HTML 代码流
                 // langchain4j 不支持流式输出格式化，故自定义解析逻辑
-                case HTML -> {
-                    Flux<String> resultStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
-                    // 解析并保存代码流
-                    yield parseAndSaveCodeStream(resultStream, codeGenTypeEnum, appId);
-                }
-                // 多文件模式：生成多文件代码流
-                case MULTI_FILE -> {
-                    Flux<String> resultStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
+                case HTML, MULTI_FILE -> {
+                    Flux<String> resultStream = generateCodeStream(aiCodeGeneratorService, userMessage, codeGenTypeEnum, appId);
                     // 解析并保存代码流
                     yield parseAndSaveCodeStream(resultStream, codeGenTypeEnum, appId);
                 }
                 // Vue 项目模式：生成 Vue 项目代码流（使用推理模型）
-                case VUE_PROJECT -> {
-                    TokenStream resultStream = aiCodeGeneratorService.generateVueProjectCodeStream(userMessage, appId);
-                    // 将 LangChain4j 的 TokenStream 转换为 Reactor 的 Flux<String>
-                    yield convertWorkflowTokenStreamToFluxUtils.convertTokenStreamToFlux(resultStream, appId);
-                }
+                case VUE_PROJECT -> generateCodeStream(aiCodeGeneratorService, userMessage, codeGenTypeEnum, appId);
                 // 默认情况：不支持的类型，抛出异常
                 default -> {
-                    String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
+                    String errorMessage = String.format(UNSUPPORTED_GENERATOR_TYPE_TEMPLATE, codeGenTypeEnum.getValue());
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
                 }
             };
@@ -89,8 +89,43 @@ public class AIGenerateCodeAndSaveToFileUtils {
         } catch (Exception e) {
             // 捕获系统异常，记录详细日志并封装为业务异常
             log.error("（流式）AI 生成代码系统异常：{}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "代码生成失败: " + e.getMessage());
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, CODE_GENERATION_FAILED_PREFIX + e.getMessage());
         }
+    }
+
+    /**
+     * 获取 AI 代码生成服务实例
+     *
+     * @param appId 产物 ID
+     * @param codeGenTypeEnum 代码生成类型
+     * @return AI 代码生成服务实例
+     */
+    private AiCodeGeneratorService getAiCodeGeneratorService(Long appId, CodeGeneratorTypeEnum codeGenTypeEnum) {
+        AiCodeGenWorkflowServiceFactory aiCodeGenWorkflowServiceFactory =
+                SpringContextUtil.getBean(AiCodeGenWorkflowServiceFactory.class);
+        return aiCodeGenWorkflowServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
+    }
+
+    /**
+     * 根据生成类型获取对应的代码流
+     *
+     * @param aiCodeGeneratorService AI 代码生成服务
+     * @param userMessage 用户提示词
+     * @param codeGenTypeEnum 代码生成类型
+     * @param appId 产物 ID
+     * @return 代码流
+     */
+    private Flux<String> generateCodeStream(AiCodeGeneratorService aiCodeGeneratorService, String userMessage,
+                                            CodeGeneratorTypeEnum codeGenTypeEnum, Long appId) {
+        return switch (codeGenTypeEnum) {
+            case HTML -> aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
+            case MULTI_FILE -> aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
+            case VUE_PROJECT -> convertWorkflowTokenStreamToFluxUtils.convertTokenStreamToFlux(
+                    aiCodeGeneratorService.generateVueProjectCodeStream(userMessage, appId), appId);
+            default -> throw new BusinessException(
+                    ErrorCode.SYSTEM_ERROR,
+                    String.format(UNSUPPORTED_GENERATOR_TYPE_TEMPLATE, codeGenTypeEnum.getValue()));
+        };
     }
 
     /**
@@ -114,10 +149,10 @@ public class AIGenerateCodeAndSaveToFileUtils {
                 .doOnNext(codeBuilder::append)
                 // doOnComplete：流结束时执行解析和保存逻辑
                 .doOnComplete(() -> {
-                    // 步骤1：将拼接好的代码字符串解析为代码封装类
+                    // 1：将拼接好的代码字符串解析为代码封装类
                     Object codeResult = CodeParseExecutor.executeParseCode(
                             codeBuilder.toString(), codeGeneratorTypeEnum);
-                    // 步骤2：将代码封装类保存为本地文件
+                    // 2：将代码封装类保存为本地文件
                     CodeResultSaveExecutor.executeSaver(codeResult, codeGeneratorTypeEnum, appId);
                 });
     }

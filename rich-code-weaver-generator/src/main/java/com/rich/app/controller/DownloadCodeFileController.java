@@ -7,7 +7,6 @@ import com.rich.common.exception.ThrowUtils;
 import com.rich.model.entity.App;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,7 +24,7 @@ public class DownloadCodeFileController {
     @Resource
     private AppService appService;
 
-    @Autowired
+    @Resource
     private DownloadCodeFileService downloadCodeFileService;
 
     /**
@@ -44,8 +43,8 @@ public class DownloadCodeFileController {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
 
         // 查询产物信息
-        App app = appService.getById(appId);
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+        App targetApp = appService.getById(appId);
+        ThrowUtils.throwIf(targetApp == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
 
         // 权限校验（预留）
         // TODO: 开启权限控制时，只允许下载自己的代码
@@ -54,6 +53,6 @@ public class DownloadCodeFileController {
 //                ErrorCode.NO_AUTH_ERROR, "您无权下载此代码");
 
         // 执行代码文件下载（打包为ZIP并通过HTTP响应返回）
-        downloadCodeFileService.downloadCodeZipFile(app, response);
+        downloadCodeFileService.downloadCodeZipFile(targetApp, response);
     }
 }

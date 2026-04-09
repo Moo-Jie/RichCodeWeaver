@@ -14,7 +14,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @create 2026/3/26
  **/
 @Data
-@ConfigurationProperties(prefix = "rag")
+@ConfigurationProperties(prefix = RagAiConstant.RAG_CONFIG_PREFIX)
 public class RagProperties {
 
     /**

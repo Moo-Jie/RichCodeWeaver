@@ -27,6 +27,27 @@ import java.util.Set;
 @Slf4j
 @Service
 public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
+
+    /**
+     * ZIP 响应内容类型
+     */
+    private static final String ZIP_CONTENT_TYPE = "application/zip";
+
+    /**
+     * 下载响应头名称
+     */
+    private static final String CONTENT_DISPOSITION_HEADER = "Content-Disposition";
+
+    /**
+     * ZIP 文件名模板
+     */
+    private static final String ZIP_FILE_NAME_TEMPLATE = "%s_%s";
+
+    /**
+     * 下载文件名模板
+     */
+    private static final String ATTACHMENT_HEADER_TEMPLATE = "attachment; filename=\"%s.zip\"";
+
     /**
      * 需要过滤的文件和目录名称
      */
@@ -116,8 +137,7 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
                     String fileNameLowerCase = segmentName.toLowerCase();
 
                     // 检查文件扩展名是否在过滤列表中（如 .log、.map 等）
-                    boolean shouldFilter = IGNORED_EXTENSIONS.stream()
-                            .anyMatch(fileNameLowerCase::endsWith);
+                    boolean shouldFilter = isIgnoredExtension(fileNameLowerCase);
                     if (shouldFilter) {
                         log.debug("过滤文件: {}", segmentName);
                         return false;  // 过滤掉该文件
@@ -146,50 +166,30 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
     @Override
     public void downloadCodeZipFile(App app, HttpServletResponse response) {
         // 参数校验：确保产物对象和响应对象有效
-        if (app == null) {
-            log.error("下载代码压缩包失败：产物对象为空");
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "产物对象为空");
-        }
-        if (response == null) {
-            log.error("下载代码压缩包失败：响应对象为空 - appId={}", app.getId());
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "响应对象为空");
-        }
+        validateDownloadRequest(app, response);
 
         Long appId = app.getId();
         String codeGenType = app.getCodeGenType();
 
-        // 步骤1：构建代码输出目录的绝对路径并校验
+        // 1：构建代码输出目录的绝对路径并校验
         String absoluteDirPath = buildCodeAbsolutePath(app);
         File projectDir = new File(absoluteDirPath);
 
         // 再次校验目录是否存在且为目录（双重保护）
-        if (!projectDir.exists() || !projectDir.isDirectory()) {
-            log.error("下载代码压缩包失败：项目目录不存在或不是目录 - appId={}, path={}",
-                    appId, absoluteDirPath);
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "项目目录不存在，请先生成代码");
-        }
+        validateProjectDir(projectDir, appId, absoluteDirPath);
 
-        // 步骤2：构建压缩包文件名（格式：appId_codeGenType.zip）
-        String zipFileName = appId + "_" + codeGenType;
+        // 2：构建压缩包文件名（格式：appId_codeGenType.zip）
+        String zipFileName = buildZipFileName(appId, codeGenType);
         log.info("开始下载代码压缩包: appId={}, zipFileName={}, projectDir={}",
                 appId, zipFileName, absoluteDirPath);
 
-        // 步骤3：设置 HTTP 响应头，告诉浏览器这是一个下载文件
-        try {
-            response.setStatus(HttpServletResponse.SC_OK);  // 设置状态码为 200 OK
-            response.setContentType("application/zip");  // 设置内容类型为 ZIP 文件
-            // 设置 Content-Disposition 头，指定文件名（触发浏览器下载）
-            response.addHeader("Content-Disposition",
-                    String.format("attachment; filename=\"%s.zip\"", zipFileName));
-        } catch (Exception e) {
-            log.error("设置HTTP响应头失败: appId={}, error={}", appId, e.getMessage(), e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "设置HTTP响应头失败");
-        }
+        // 3：设置 HTTP 响应头，告诉浏览器这是一个下载文件
+        setDownloadResponseHeaders(response, appId, zipFileName);
 
-        // 步骤4：创建文件过滤器，过滤掉不必要的文件和目录
+        // 4：创建文件过滤器，过滤掉不必要的文件和目录
         FileFilter fileFilter = file -> pathFiltering(projectDir.toPath(), file.toPath());
 
-        // 步骤5：压缩项目目录并直接写入 HTTP 响应流
+        // 5：压缩项目目录并直接写入 HTTP 响应流
         try {
             // 使用 Hutool 工具包的 ZipUtil.zip() 方法进行压缩
             ZipUtil.zip(
@@ -207,6 +207,79 @@ public class DownloadCodeFileServiceImpl implements DownloadCodeFileService {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,
                     "项目代码文件压缩包下载失败： " + e.getMessage());
         }
+    }
+
+    /**
+     * 校验下载请求参数
+     *
+     * @param app 产物实体
+     * @param response 响应对象
+     */
+    private void validateDownloadRequest(App app, HttpServletResponse response) {
+        if (app == null) {
+            log.error("下载代码压缩包失败：产物对象为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "产物对象为空");
+        }
+        if (response == null) {
+            log.error("下载代码压缩包失败：响应对象为空 - appId={}", app.getId());
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "响应对象为空");
+        }
+    }
+
+    /**
+     * 校验项目目录是否存在且可用
+     *
+     * @param projectDir 项目目录
+     * @param appId 产物 ID
+     * @param absoluteDirPath 目录绝对路径
+     */
+    private void validateProjectDir(File projectDir, Long appId, String absoluteDirPath) {
+        if (!projectDir.exists() || !projectDir.isDirectory()) {
+            log.error("下载代码压缩包失败：项目目录不存在或不是目录 - appId={}, path={}",
+                    appId, absoluteDirPath);
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "项目目录不存在，请先生成代码");
+        }
+    }
+
+    /**
+     * 设置下载响应头
+     *
+     * @param response 响应对象
+     * @param appId 产物 ID
+     * @param zipFileName 压缩包文件名
+     */
+    private void setDownloadResponseHeaders(HttpServletResponse response, Long appId, String zipFileName) {
+        try {
+            response.setStatus(HttpServletResponse.SC_OK);  // 设置状态码为 200 OK
+            response.setContentType(ZIP_CONTENT_TYPE);  // 设置内容类型为 ZIP 文件
+            // 设置 Content-Disposition 头，指定文件名（触发浏览器下载）
+            response.addHeader(CONTENT_DISPOSITION_HEADER,
+                    String.format(ATTACHMENT_HEADER_TEMPLATE, zipFileName));
+        } catch (Exception e) {
+            log.error("设置HTTP响应头失败: appId={}, error={}", appId, e.getMessage(), e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "设置HTTP响应头失败");
+        }
+    }
+
+    /**
+     * 构建压缩包文件名
+     *
+     * @param appId 产物 ID
+     * @param codeGenType 代码生成类型
+     * @return 压缩包文件名
+     */
+    private String buildZipFileName(Long appId, String codeGenType) {
+        return String.format(ZIP_FILE_NAME_TEMPLATE, appId, codeGenType);
+    }
+
+    /**
+     * 判断文件扩展名是否需要忽略
+     *
+     * @param fileNameLowerCase 小写文件名
+     * @return 是否忽略
+     */
+    private boolean isIgnoredExtension(String fileNameLowerCase) {
+        return IGNORED_EXTENSIONS.stream().anyMatch(fileNameLowerCase::endsWith);
     }
 
     /**

@@ -2,18 +2,25 @@ package com.rich.app.controller;
 
 import com.mybatisflex.core.paginate.Page;
 import com.rich.ai.service.AiPromptOptimizationService;
+import com.rich.common.constant.AppOwnershipConstant;
 import com.rich.app.service.AppService;
 import com.rich.client.innerService.InnerCollaboratorService;
 import com.rich.client.innerService.InnerFileService;
 import com.rich.client.innerService.InnerUserService;
+
 import com.rich.common.constant.UserConstant;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
 import com.rich.common.model.DeleteRequest;
 import com.rich.common.utils.ResultUtils;
+
 import com.rich.model.annotation.AuthCheck;
-import com.rich.model.dto.app.*;
+import com.rich.model.dto.app.AppAddRequest;
+import com.rich.model.dto.app.AppAdminUpdateRequest;
+import com.rich.model.dto.app.AppDeployRequest;
+import com.rich.model.dto.app.AppQueryRequest;
+import com.rich.model.dto.app.AppUpdateRequest;
 import com.rich.model.entity.App;
 import com.rich.model.entity.User;
 import com.rich.model.vo.AppVO;
@@ -28,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -39,6 +47,26 @@ import java.util.List;
 @RestController
 @RequestMapping("/generator/app")
 public class AppController {
+
+    /**
+     * 布尔参数默认值
+     */
+    private static final String DEFAULT_BOOLEAN_FALSE = "false";
+
+    /**
+     * 用户相关产物默认查询数量
+     */
+    private static final String DEFAULT_USER_RELATED_PAGE_SIZE = "8";
+
+    /**
+     * 用户相关产物最大查询数量
+     */
+    private static final long MAX_USER_RELATED_PAGE_SIZE = 20L;
+
+    /**
+     * 素材 ID 格式错误提示
+     */
+    private static final String INVALID_MATERIAL_ID_MESSAGE = "素材ID格式错误";
 
     @Resource
     private AppService appService;
@@ -70,8 +98,8 @@ public class AppController {
     public Flux<ServerSentEvent<String>> chatToGenCodeStream(@RequestParam Long appId,
                                                              @RequestParam String message,
                                                              @RequestParam(required = false) String materialIds,
-                                                             @RequestParam(defaultValue = "false") Boolean isWorkflow,
-                                                             @RequestParam(defaultValue = "false") Boolean reconnect,
+                                                             @RequestParam(defaultValue = DEFAULT_BOOLEAN_FALSE) Boolean isWorkflow,
+                                                             @RequestParam(defaultValue = DEFAULT_BOOLEAN_FALSE) Boolean reconnect,
                                                              @RequestParam(required = false) String lastEventId,
                                                              HttpServletRequest request) {
         User loginUser = InnerUserService.getLoginUser(request);
@@ -81,18 +109,7 @@ public class AppController {
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID无效");
         ThrowUtils.throwIf(message == null || message.trim().isEmpty(), ErrorCode.PARAMS_ERROR, "消息内容不能为空");
 
-        List<Long> materialIdList = null;
-        if (materialIds != null && !materialIds.trim().isEmpty()) {
-            try {
-                materialIdList = java.util.Arrays.stream(materialIds.split(","))
-                        .map(String::trim)
-                        .filter(s -> !s.isEmpty())
-                        .map(Long::parseLong)
-                        .toList();
-            } catch (NumberFormatException e) {
-                ThrowUtils.throwIf(true, ErrorCode.PARAMS_ERROR, "素材ID格式错误");
-            }
-        }
+        List<Long> materialIdList = parseMaterialIds(materialIds);
 
         return appService.aiChatAndGenerateCodeStreamWithReconnect(
                 appId, userId, message.trim(), materialIdList, isWorkflow, lastEventId, reconnect);
@@ -104,7 +121,7 @@ public class AppController {
      *
      * @param appId   产物浏览标识，用于定位产物输出目录
      * @param request 请求对象
-     * @return org.springframework.http.ResponseEntity<jakarta.annotation.Resource> 产物资源
+     * @return 产物资源
      * @author DuRuiChi
      * @create 2026/8/9
      **/
@@ -119,7 +136,7 @@ public class AppController {
      *
      * @param appDeployRequest 部署请求参数
      * @param request          请求信息
-     * @return com.rich.app.model.common.BaseResponse<java.lang.String>  部署成功后的 URL
+     * @return 部署成功后的 URL
      * @author DuRuiChi
      * @create 2026/8/10
      **/
@@ -142,7 +159,7 @@ public class AppController {
      *
      * @param appAddRequest 产物添加请求参数
      * @param request       请求对象
-     * @return com.rich.common.model.BaseResponse<java.lang.Long> 新创建的产物ID
+     * @return 新创建的产物ID
      * @author DuRuiChi
      */
     @PostMapping("/add")
@@ -159,7 +176,7 @@ public class AppController {
      *
      * @param appUpdateRequest 更新请求参数
      * @param request          请求对象
-     * @return com.rich.common.model.BaseResponse<java.lang.Boolean> 更新结果
+     * @return 更新结果
      * @author DuRuiChi
      */
     @PostMapping("/update")
@@ -177,7 +194,7 @@ public class AppController {
      *
      * @param deleteRequest 删除请求参数
      * @param request       请求对象
-     * @return com.rich.common.model.BaseResponse<java.lang.Boolean> 删除结果
+     * @return 删除结果
      * @author DuRuiChi
      */
     @PostMapping("/delete")
@@ -194,7 +211,7 @@ public class AppController {
      * 根据 id 查询 AI 产物详情
      *
      * @param id 产物 id
-     * @return com.rich.common.model.BaseResponse<com.rich.model.vo.AppVO> 产物详情
+     * @return 产物详情
      * @author DuRuiChi
      */
     @GetMapping("/get/vo")
@@ -203,25 +220,21 @@ public class AppController {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR, "产物ID必须大于0");
 
         // 查询产物实体
-        App app = appService.getById(id);
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+        App app = getAppOrThrow(id);
 
         // 转换为视图对象并返回
         AppVO appVO = appService.getAppVO(app);
-        try {
-            User loginUser = InnerUserService.getLoginUser(request);
-            if (loginUser != null && loginUser.getId() != null) {
-                if (loginUser.getId().equals(app.getUserId())) {
-                    appVO.setOwnershipType("mine");
-                } else if (collaboratorService.isCollaborator(app.getId(), loginUser.getId())) {
-                    appVO.setOwnershipType("collaborator");
-                }
-            }
-        } catch (Exception ignored) {
-        }
+        fillOwnershipTypeIfPossible(appVO, app, request);
         return ResultUtils.success(appVO);
     }
 
+    /**
+     * 分页获取当前用户的 AI 产物列表
+     *
+     * @param appQueryRequest 查询请求参数
+     * @param request         请求对象
+     * @return 产物分页结果
+     */
     @PostMapping("/my/list/page/vo")
     public BaseResponse<Page<AppVO>> listMyAppVOByPage(@RequestBody AppQueryRequest appQueryRequest, HttpServletRequest request) {
         // 参数校验：验证查询请求参数不为空
@@ -232,11 +245,18 @@ public class AppController {
         return ResultUtils.success(appPage);
     }
 
+    /**
+     * 查询用户相关的产物列表
+     *
+     * @param userId 用户 ID
+     * @param pageSize 查询数量
+     * @return 产物列表
+     */
     @GetMapping("/user/related/list")
     public BaseResponse<List<AppVO>> listUserRelatedApps(@RequestParam Long userId,
-                                                         @RequestParam(defaultValue = "8") long pageSize) {
+                                                         @RequestParam(defaultValue = DEFAULT_USER_RELATED_PAGE_SIZE) long pageSize) {
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID无效");
-        ThrowUtils.throwIf(pageSize <= 0 || pageSize > 20, ErrorCode.PARAMS_ERROR, "查询数量必须在1-20之间");
+        ThrowUtils.throwIf(pageSize <= 0 || pageSize > MAX_USER_RELATED_PAGE_SIZE, ErrorCode.PARAMS_ERROR, "查询数量必须在1-20之间");
         return ResultUtils.success(appService.listUserRelatedApps(userId, pageSize));
     }
 
@@ -244,15 +264,8 @@ public class AppController {
      * 分页获取星标 AI 产物列表
      *
      * @param appQueryRequest 查询请求参数
-     * @return com.rich.app.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.app.model.vo.AppVO>> 星标产物列表
-     * @author DuRuiChi
-     * @description 分页获取星标 AI 产物列表，返回结果包含产物 ID、名称、描述、创建时间等信息
+     * @return 星标产物列表
      */
-//    @Cacheable(
-//            value = STAR_APP_CACHE_NAME, // 缓存名
-//            key = "T( com.rich.app.utils.RedisUtils).genKey(#appQueryRequest)" // 缓存 key 名
-////            condition = "#appQueryRequest.pageNum <= 5" // 缓存条件
-//    )
     @PostMapping("/good/list/page/vo")
     public BaseResponse<Page<AppVO>> listStarAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
         // 参数校验：验证查询请求参数不为空
@@ -267,7 +280,7 @@ public class AppController {
      * 管理员分页获取 AI 产物列表
      *
      * @param appQueryRequest 查询请求参数
-     * @return com.rich.app.model.common.BaseResponse<org.springframework.data.domain.Page < com.rich.app.model.vo.AppVO>> 产物列表
+     * @return 产物列表
      */
     @PostMapping("/list/page/vo/admin")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
@@ -281,7 +294,7 @@ public class AppController {
      * 管理员更新 AI 产物
      *
      * @param appAdminUpdateRequest 更新请求参数
-     * @return com.rich.common.model.BaseResponse<java.lang.Boolean> 更新结果
+     * @return 更新结果
      * @author DuRuiChi
      * @description 管理员更新 AI 产物，支持更新产物名称、描述、标签等信息
      */
@@ -302,7 +315,7 @@ public class AppController {
      * 管理员根据 id 获取 AI 产物详情
      *
      * @param id 产物 id
-     * @return com.rich.common.model.BaseResponse<com.rich.model.vo.AppVO> 产物详情
+     * @return 产物详情
      * @author DuRuiChi
      * @description 管理员根据 id 获取 AI 产物详情，返回结果包含产物 ID、名称、描述、创建时间等信息
      */
@@ -312,9 +325,7 @@ public class AppController {
         // 参数校验
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR, "产物ID必须大于0");
         // 查询 AI 产物实体
-        App app = appService.getById(id);
-        // 检查 AI 产物是否存在
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+        App app = getAppOrThrow(id);
         // 转换为视图对象并返回
         return ResultUtils.success(appService.getAppVO(app));
     }
@@ -325,7 +336,7 @@ public class AppController {
      * @param file    封面图片
      * @param appId   产物 ID
      * @param request 用户信息
-     * @return com.rich.common.model.BaseResponse<java.lang.String> 上传后的图片URL
+     * @return 上传后的图片URL
      * @author DuRuiChi
      * @description 上传产物封面，支持jpg、png等格式图片
      */
@@ -342,8 +353,7 @@ public class AppController {
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
 
         // 查询产物信息
-        App app = appService.getById(appId);
-        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+        App app = getAppOrThrow(appId);
 
         // 权限校验：只能更新自己的产物封面
         ThrowUtils.throwIf(!app.getUserId().equals(loginUser.getId()),
@@ -367,7 +377,7 @@ public class AppController {
      * 优化用户提示词
      *
      * @param userPrompt 用户原始提示词
-     * @return com.rich.common.model.BaseResponse<java.lang.String> 优化后的提示词
+     * @return 优化后的提示词
      * @author DuRuiChi
      */
     @PostMapping("/optimize/prompt")
@@ -379,5 +389,62 @@ public class AppController {
         String optimizedPrompt = aiPromptOptimizationService.optimizePrompt(userPrompt.trim());
         // 返回优化后的提示词
         return ResultUtils.success(optimizedPrompt);
+    }
+
+    /**
+     * 解析素材 ID 列表
+     *
+     * @param materialIds 素材 ID 字符串
+     * @return 素材 ID 列表
+     */
+    private List<Long> parseMaterialIds(String materialIds) {
+        if (materialIds == null || materialIds.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Arrays.stream(materialIds.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(Long::parseLong)
+                    .toList();
+        } catch (NumberFormatException e) {
+            ThrowUtils.throwIf(true, ErrorCode.PARAMS_ERROR, INVALID_MATERIAL_ID_MESSAGE);
+            return null;
+        }
+    }
+
+    /**
+     * 查询产物，不存在时直接抛异常
+     *
+     * @param appId 产物 ID
+     * @return 产物实体
+     */
+    private App getAppOrThrow(Long appId) {
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+        return app;
+    }
+
+    /**
+     * 按当前登录身份补充产物归属类型
+     * 这里只做展示信息补充，异常时维持原行为静默跳过
+     *
+     * @param appVO 产物视图对象
+     * @param app   产物实体
+     * @param request 请求对象
+     */
+    private void fillOwnershipTypeIfPossible(AppVO appVO, App app, HttpServletRequest request) {
+        try {
+            User loginUser = InnerUserService.getLoginUser(request);
+            if (loginUser == null || loginUser.getId() == null) {
+                return;
+            }
+            if (loginUser.getId().equals(app.getUserId())) {
+                appVO.setOwnershipType(AppOwnershipConstant.OWNERSHIP_MINE);
+            } else if (collaboratorService.isCollaborator(app.getId(), loginUser.getId())) {
+                appVO.setOwnershipType(AppOwnershipConstant.OWNERSHIP_COLLABORATOR);
+            }
+        } catch (Exception ignored) {
+        }
     }
 }

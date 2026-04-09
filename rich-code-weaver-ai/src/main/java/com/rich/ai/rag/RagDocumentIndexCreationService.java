@@ -1,6 +1,8 @@
 package com.rich.ai.rag;
 
 import com.rich.ai.config.RagConfig;
+import com.rich.common.constant.RagConstant;
+import com.rich.model.enums.RagDocumentBizTypeEnum;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.DocumentSplitter;
 import dev.langchain4j.data.document.Metadata;
@@ -38,8 +40,60 @@ import java.util.Map;
  **/
 @Slf4j
 @Service
-@ConditionalOnProperty(prefix = "rag", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = RagAiConstant.RAG_CONFIG_PREFIX,
+        name = RagAiConstant.RAG_ENABLED_NAME,
+        havingValue = RagAiConstant.RAG_ENABLED_VALUE)
 public class RagDocumentIndexCreationService {
+
+    /**
+     * 文档摄入日志标识
+     */
+    private static final String INGEST_LOG_TAG = "RAG 文档摄入";
+
+    /**
+     * 重建索引日志标识
+     */
+    private static final String REINDEX_LOG_TAG = "RAG 重新索引";
+
+    /**
+     * Markdown 文件匹配表达式
+     */
+    private static final String MARKDOWN_GLOB_PATTERN = "glob:*.md";
+
+    /**
+     * 文件名元数据键
+     */
+    private static final String FILE_NAME_METADATA_KEY = "file_name";
+
+    /**
+     * 未知文件名默认值
+     */
+    private static final String UNKNOWN_FILE_NAME = "unknown";
+
+    /**
+     * Markdown 一级标题前缀
+     */
+    private static final String TITLE_PREFIX = "# ";
+
+    /**
+     * 标题提取时最多检查的行数
+     */
+    private static final int TITLE_SCAN_LIMIT = 5;
+
+    /**
+     * 检测向量存储是否已有数据时使用的测试文本
+     */
+    private static final String EMBEDDING_STORE_TEST_QUERY = "网页开发代码规范";
+
+    /**
+     * 统计片段失败时的兜底数量
+     */
+    private static final int FALLBACK_SEGMENT_COUNT = 1;
+
+    /**
+     * 代码生成业务类型标识
+     */
+    private static final String CODE_GEN_BIZ_TYPE = RagDocumentBizTypeEnum.CODE_GEN.getValue();
 
     /**
      * 文件名前缀 → 代码生成类型的映射表
@@ -57,13 +111,13 @@ public class RagDocumentIndexCreationService {
      * Embedding 向量模型，将文本转换为高维向量
      * 在索引阶段用于将文档片段向量化
      **/
-    @Resource(name = "ragEmbeddingModel")
+    @Resource(name = RagAiConstant.RAG_EMBEDDING_MODEL_BEAN)
     private EmbeddingModel embeddingModel;
 
     /**
      * PGVector 向量存储，持久化保存文本向量和原始内容
      **/
-    @Resource(name = "ragEmbeddingStore")
+    @Resource(name = RagAiConstant.RAG_EMBEDDING_STORE_BEAN)
     private EmbeddingStore<TextSegment> embeddingStore;
 
     /**
@@ -96,25 +150,25 @@ public class RagDocumentIndexCreationService {
     public void onApplicationReady() {
         // 检查是否开启了启动时自动摄入
         if (!ragProperties.isAutoIngestOnStartup()) {
-            log.info("【RAG 文档摄入】自动摄入已关闭（rag.auto-ingest-on-startup=false），跳过");
+            log.info("【{}】自动摄入已关闭（rag.auto-ingest-on-startup=false），跳过", INGEST_LOG_TAG);
             return;
         }
 
-        log.info("【RAG 文档摄入】应用启动完成，开始检查知识库状态...");
+        log.info("【{}】应用启动完成，开始检查知识库状态...", INGEST_LOG_TAG);
         try {
             // 检查向量存储中是否已有数据，避免重复摄入
             if (isEmbeddingStorePopulated()) {
-                log.info("【RAG 文档摄入】知识库已有数据，跳过自动摄入。如需重新索引，请调用 reindexAll() 方法");
+                log.info("【{}】知识库已有数据，跳过自动摄入。如需重新索引，请调用 reindexAll() 方法", INGEST_LOG_TAG);
                 return;
             }
 
             // 知识库为空，执行首次文档摄入
-            log.info("【RAG 文档摄入】知识库为空，开始首次文档摄入...");
+            log.info("【{}】知识库为空，开始首次文档摄入...", INGEST_LOG_TAG);
             ingestDocuments();
         } catch (Exception e) {
             // 摄入失败不影响主应用启动，仅记录错误日志
             // AI 服务在没有 RAG 的情况下仍可正常工作，只是不会检索知识库
-            log.error("【RAG 文档摄入】启动时自动摄入失败，AI 服务仍可正常使用但不会检索知识库: {}",
+            log.error("【{}】启动时自动摄入失败，AI 服务仍可正常使用但不会检索知识库: {}", INGEST_LOG_TAG,
                     e.getMessage(), e);
         }
     }
@@ -127,53 +181,29 @@ public class RagDocumentIndexCreationService {
      * @create 2026/3/26
      **/
     public void ingestDocuments() {
-        List<Document> enrichedDocuments;
-
-        // 优先使用数据库文档来源（RagDocumentProvider），其次回退到文件系统
-        if (ragDocumentProvider != null) {
-            log.info("【RAG 文档摄入】使用数据库文档来源（RagDocumentProvider）加载文档...");
-            enrichedDocuments = ragDocumentProvider.loadDocuments();
-            if (enrichedDocuments.isEmpty()) {
-                log.warn("【RAG 文档摄入】数据库中无已启用的 RAG 文档（isEnabled=1），跳过摄入");
-                return;
-            }
-            log.info("【RAG 文档摄入】从数据库加载到 {} 个文档，开始处理...", enrichedDocuments.size());
-        } else {
-            // 回退：从文件系统读取
-            enrichedDocuments = loadFromFileSystem();
-            if (enrichedDocuments == null) {
-                return;
-            }
+        List<Document> enrichedDocuments = loadDocumentsForIngestion();
+        if (enrichedDocuments == null) {
+            return;
         }
 
         // 4.构建文档切分器
         // 使用递归分割器，按照 Markdown 文档结构进行智能切分
         // 切分优先级：段落（\n\n）→ 行（\n）→ 空格 → 字符
         // 这样能最大程度保持文档的语义完整性
-        int maxSegmentSize = ragParamProvider != null ? ragParamProvider.getMaxSegmentSize() : 500;
-        int maxOverlapSize = ragParamProvider != null ? ragParamProvider.getMaxOverlapSize() : 50;
-        log.info("【RAG 文档摄入】切分参数：maxSegmentSize={}, maxOverlapSize={}", maxSegmentSize, maxOverlapSize);
-        DocumentSplitter splitter = DocumentSplitters.recursive(
-                maxSegmentSize,   // 每个片段最大字符数（从 DB 动态加载）
-                maxOverlapSize    // 相邻片段重叠字符数（从 DB 动态加载）
-        );
+        DocumentSplitter splitter = buildDocumentSplitter();
 
         // 5.使用 EmbeddingStoreIngestor 执行摄入管道
         // EmbeddingStoreIngestor 是 langchain4j 提供的标准摄入工具，封装了：
         //   文档切分（DocumentSplitter）→ 向量化（EmbeddingModel）→ 存储（EmbeddingStore）
-        EmbeddingStoreIngestor ingestor = EmbeddingStoreIngestor.builder()
-                .documentSplitter(splitter)      // 文档切分器
-                .embeddingModel(embeddingModel)   // 向量模型
-                .embeddingStore(embeddingStore)   // 向量存储（PGVector）
-                .build();
+        EmbeddingStoreIngestor ingestor = buildEmbeddingStoreIngestor(splitter);
 
         // 执行摄入：遍历所有文档，切分为片段，向量化后批量存入 PGVector
         ingestor.ingest(enrichedDocuments);
 
         // 统计摄入结果
         int totalSegments = countTotalSegments(enrichedDocuments, splitter);
-        log.info("【RAG 文档摄入】摄入完成！共处理 {} 个文档，预计生成约 {} 个文本片段，已全部存入 PGVector",
-                enrichedDocuments.size(), totalSegments);
+        log.info("【{}】摄入完成！共处理 {} 个文档，预计生成约 {} 个文本片段，已全部存入 PGVector",
+                INGEST_LOG_TAG, enrichedDocuments.size(), totalSegments);
     }
 
     /**
@@ -184,15 +214,15 @@ public class RagDocumentIndexCreationService {
      * @create 2026/3/26
      **/
     public void reindexAll() {
-        log.info("【RAG 重新索引】开始清空已有向量数据并重新摄入...");
+        log.info("【{}】开始清空已有向量数据并重新摄入...", REINDEX_LOG_TAG);
 
         // 清空向量存储中的所有数据
         embeddingStore.removeAll();
-        log.info("【RAG 重新索引】已清空向量存储");
+        log.info("【{}】已清空向量存储", REINDEX_LOG_TAG);
 
         // 重新执行文档摄入
         ingestDocuments();
-        log.info("【RAG 重新索引】重新索引完成");
+        log.info("【{}】重新索引完成", REINDEX_LOG_TAG);
     }
 
     /**
@@ -209,7 +239,7 @@ public class RagDocumentIndexCreationService {
     private boolean isEmbeddingStorePopulated() {
         try {
             // 使用一段与知识库内容相关的通用文本作为测试查询
-            var testEmbedding = embeddingModel.embed("网页开发代码规范").content();
+            var testEmbedding = embeddingModel.embed(EMBEDDING_STORE_TEST_QUERY).content();
 
             // 在向量存储中搜索，只取 1 条结果，不设最低分数阈值
             var searchResult = embeddingStore.search(
@@ -223,8 +253,8 @@ public class RagDocumentIndexCreationService {
             return !searchResult.matches().isEmpty();
         } catch (Exception e) {
             // 搜索异常（如表不存在）视为无数据，后续会自动创建表并摄入
-            log.debug("【RAG 文档摄入】检测向量存储状态时异常（可能是首次启动，表尚未创建）: {}",
-                    e.getMessage());
+            log.debug("【{}】检测向量存储状态时异常（可能是首次启动，表尚未创建）: {}",
+                    INGEST_LOG_TAG, e.getMessage());
             return false;
         }
     }
@@ -238,37 +268,90 @@ public class RagDocumentIndexCreationService {
     private List<Document> loadFromFileSystem() {
         String docsPath = ragProperties.getDocsPath();
         if (docsPath == null || docsPath.isBlank()) {
-            log.warn("【RAG 文档摄入】未配置数据库文档来源，也未配置文件路径（rag.docs-path），跳过摄入");
+            log.warn("【{}】未配置数据库文档来源，也未配置文件路径（rag.docs-path），跳过摄入", INGEST_LOG_TAG);
             return null;
         }
         Path docsDir = Path.of(docsPath);
         if (!Files.exists(docsDir) || !Files.isDirectory(docsDir)) {
-            log.warn("【RAG 文档摄入】文档目录不存在或不是目录: {}，跳过摄入", docsPath);
+            log.warn("【{}】文档目录不存在或不是目录: {}，跳过摄入", INGEST_LOG_TAG, docsPath);
             return null;
         }
-        log.info("【RAG 文档摄入】从文件系统加载文档: {}", docsPath);
-        PathMatcher mdMatcher = FileSystems.getDefault().getPathMatcher("glob:*.md");
+        log.info("【{}】从文件系统加载文档: {}", INGEST_LOG_TAG, docsPath);
+        PathMatcher mdMatcher = FileSystems.getDefault().getPathMatcher(MARKDOWN_GLOB_PATTERN);
         List<Document> documents = FileSystemDocumentLoader.loadDocuments(
                 docsDir, mdMatcher, new TextDocumentParser());
         if (documents.isEmpty()) {
-            log.warn("【RAG 文档摄入】目录 {} 下未找到 .md 文件，跳过摄入", docsPath);
+            log.warn("【{}】目录 {} 下未找到 .md 文件，跳过摄入", INGEST_LOG_TAG, docsPath);
             return null;
         }
-        log.info("【RAG 文档摄入】共加载 {} 个文档，开始处理...", documents.size());
+        log.info("【{}】共加载 {} 个文档，开始处理...", INGEST_LOG_TAG, documents.size());
+        return enrichFileSystemDocuments(documents);
+    }
+
+    /**
+     * 加载待摄入文档
+     * 优先使用数据库文档来源，没有时回退到文件系统
+     *
+     * @return 待摄入文档列表
+     */
+    private List<Document> loadDocumentsForIngestion() {
+        if (ragDocumentProvider != null) {
+            log.info("【{}】使用数据库文档来源（RagDocumentProvider）加载文档...", INGEST_LOG_TAG);
+            List<Document> enrichedDocuments = ragDocumentProvider.loadDocuments();
+            if (enrichedDocuments.isEmpty()) {
+                log.warn("【{}】数据库中无已启用的 RAG 文档（isEnabled=1），跳过摄入", INGEST_LOG_TAG);
+                return null;
+            }
+            log.info("【{}】从数据库加载到 {} 个文档，开始处理...", INGEST_LOG_TAG, enrichedDocuments.size());
+            return enrichedDocuments;
+        }
+
+        // 回退：从文件系统读取
+        return loadFromFileSystem();
+    }
+
+    /**
+     * 构建文档切分器
+     *
+     * @return 文档切分器
+     */
+    private DocumentSplitter buildDocumentSplitter() {
+        int maxSegmentSize = ragParamProvider != null ? ragParamProvider.getMaxSegmentSize() : RagConstant.DEFAULT_MAX_SEGMENT_SIZE;
+        int maxOverlapSize = ragParamProvider != null ? ragParamProvider.getMaxOverlapSize() : RagConstant.DEFAULT_MAX_OVERLAP_SIZE;
+        log.info("【{}】切分参数：maxSegmentSize={}, maxOverlapSize={}", INGEST_LOG_TAG, maxSegmentSize, maxOverlapSize);
+        return DocumentSplitters.recursive(maxSegmentSize, maxOverlapSize);
+    }
+
+    /**
+     * 构建 EmbeddingStoreIngestor
+     *
+     * @param splitter 文档切分器
+     * @return 摄入器
+     */
+    private EmbeddingStoreIngestor buildEmbeddingStoreIngestor(DocumentSplitter splitter) {
+        return EmbeddingStoreIngestor.builder()
+                .documentSplitter(splitter)
+                .embeddingModel(embeddingModel)
+                .embeddingStore(embeddingStore)
+                .build();
+    }
+
+    /**
+     * 为文件系统文档补充元数据
+     *
+     * @param documents 原始文档列表
+     * @return 补充元数据后的文档列表
+     */
+    private List<Document> enrichFileSystemDocuments(List<Document> documents) {
         List<Document> enriched = new ArrayList<>();
         for (Document doc : documents) {
-            String fileName = doc.metadata().getString("file_name");
-            if (fileName == null) fileName = "unknown";
+            String fileName = getFileNameOrDefault(doc);
             String codeGenType = resolveCodeGenType(fileName);
             String docTitle = extractDocumentTitle(doc.text());
-            Metadata enrichedMetadata = doc.metadata().copy();
-            enrichedMetadata.put("bizType", com.rich.model.enums.RagDocumentBizTypeEnum.CODE_GEN.getValue());
-            enrichedMetadata.put("codeGenType", codeGenType);
-            enrichedMetadata.put("source", fileName);
-            enrichedMetadata.put("title", docTitle);
+            Metadata enrichedMetadata = buildFileDocumentMetadata(doc, fileName, codeGenType, docTitle);
             enriched.add(Document.from(doc.text(), enrichedMetadata));
-            log.info("【RAG 文档摄入】处理文档: {} → codeGenType={}, 标题: {}, 文本长度: {} 字符",
-                    fileName, codeGenType, docTitle, doc.text().length());
+            log.info("【{}】处理文档: {} → codeGenType={}, 标题: {}, 文本长度: {} 字符",
+                    INGEST_LOG_TAG, fileName, codeGenType, docTitle, doc.text().length());
         }
         return enriched;
     }
@@ -290,8 +373,8 @@ public class RagDocumentIndexCreationService {
         }
         // 未匹配到已知类型的文件，标记为通用类型
         // 通用类型的文档在所有代码生成模式下都可被检索到
-        log.warn("【RAG 文档摄入】文件 {} 未匹配到已知的代码生成类型，标记为 GENERAL", fileName);
-        return "GENERAL";
+        log.warn("【{}】文件 {} 未匹配到已知的代码生成类型，标记为 GENERAL", INGEST_LOG_TAG, fileName);
+        return RagConstant.DEFAULT_CODE_GEN_TYPE;
     }
 
     /**
@@ -302,17 +385,17 @@ public class RagDocumentIndexCreationService {
      **/
     private String extractDocumentTitle(String text) {
         if (text == null || text.isBlank()) {
-            return "未知文档";
+            return RagConstant.DEFAULT_DOCUMENT_TITLE;
         }
         // 查找第一行 # 开头的内容作为标题
-        String[] lines = text.split("\n", 5); // 只检查前几行
+        String[] lines = text.split("\n", TITLE_SCAN_LIMIT);
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.startsWith("# ")) {
-                return trimmed.substring(2).trim();
+            if (trimmed.startsWith(TITLE_PREFIX)) {
+                return trimmed.substring(TITLE_PREFIX.length()).trim();
             }
         }
-        return "未知文档";
+        return RagConstant.DEFAULT_DOCUMENT_TITLE;
     }
 
     /**
@@ -331,9 +414,38 @@ public class RagDocumentIndexCreationService {
                 total += segments.size();
             } catch (Exception e) {
                 // 统计失败不影响主流程
-                total += 1;
+                total += FALLBACK_SEGMENT_COUNT;
             }
         }
         return total;
+    }
+
+    /**
+     * 获取文件名元数据，没有时使用默认值
+     *
+     * @param document 文档对象
+     * @return 文件名
+     */
+    private String getFileNameOrDefault(Document document) {
+        String fileName = document.metadata().getString(FILE_NAME_METADATA_KEY);
+        return fileName == null ? UNKNOWN_FILE_NAME : fileName;
+    }
+
+    /**
+     * 构建文件系统文档的补充元数据
+     *
+     * @param document 原始文档
+     * @param fileName 文件名
+     * @param codeGenType 代码生成类型
+     * @param docTitle 文档标题
+     * @return 补充后的元数据
+     */
+    private Metadata buildFileDocumentMetadata(Document document, String fileName, String codeGenType, String docTitle) {
+        Metadata enrichedMetadata = document.metadata().copy();
+        enrichedMetadata.put(RagConstant.METADATA_BIZ_TYPE, CODE_GEN_BIZ_TYPE);
+        enrichedMetadata.put(RagConstant.METADATA_CODE_GEN_TYPE, codeGenType);
+        enrichedMetadata.put(RagConstant.METADATA_SOURCE, fileName);
+        enrichedMetadata.put(RagConstant.METADATA_TITLE, docTitle);
+        return enrichedMetadata;
     }
 }

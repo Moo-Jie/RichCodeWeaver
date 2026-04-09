@@ -36,7 +36,7 @@ public class CodeParseExecutor {
      */
     public static Object executeParseCode(String codeContent, CodeGeneratorTypeEnum codeGeneratorTypeEnum) {
         try {
-            // 步骤1：校验代码生成类型是否为空
+            // 1：校验代码生成类型是否为空
             if (codeGeneratorTypeEnum == null) {
                 log.error("代码生成类型为空，用户输入：{}", codeContent);
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
@@ -46,7 +46,7 @@ public class CodeParseExecutor {
                     codeGeneratorTypeEnum.getValue(),
                     codeContent != null ? codeContent.length() : 0);
 
-            // 步骤2：根据代码生成类型选择对应的解析策略
+            // 2：根据代码生成类型选择对应的解析策略
             return switch (codeGeneratorTypeEnum) {
                 // 单文件 HTML 模式：使用 HTML 代码解析器
                 case HTML -> aiResToHtmlCodeResultParser.parseCode(codeContent);

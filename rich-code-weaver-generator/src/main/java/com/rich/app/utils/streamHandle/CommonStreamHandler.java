@@ -2,6 +2,7 @@ package com.rich.app.utils.streamHandle;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.rich.common.constant.StreamEventConstant;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.model.enums.ChatHistoryTypeEnum;
 import org.springframework.http.codec.ServerSentEvent;
@@ -43,7 +44,7 @@ public class CommonStreamHandler {
                             // 封装为 JSON 字符串，预防直接进行字符串流式传输丢失空格符、换行符等问题
                             // {"b": "代码内容"} 格式，用于前端解析
                             // 注意： 前端应当具备对当前输出格式的解析能力
-                            String jsonStrBlock = JSONUtil.toJsonStr(Map.of("b", strBlock));
+                            String jsonStrBlock = JSONUtil.toJsonStr(Map.of(StreamEventConstant.DATA_BLOCK_KEY, strBlock));
                             // 封装为 SSE 事件
                             return ServerSentEvent.<String>builder()
                                     .data(jsonStrBlock)
@@ -61,8 +62,8 @@ public class CommonStreamHandler {
                     }
                     return Flux.just(
                             ServerSentEvent.<String>builder()
-                                    .event("error")
-                                    .data(JSONUtil.toJsonStr(Map.of("error", msg)))
+                                    .event(StreamEventConstant.EVENT_ERROR)
+                                    .data(JSONUtil.toJsonStr(Map.of(StreamEventConstant.DATA_ERROR_KEY, msg)))
                                     .build()
                     );
                 })
@@ -70,8 +71,8 @@ public class CommonStreamHandler {
                 // Flux 适用于处理 0-N 个项目的情况，而 Mono 适用于处理 0-1 个项目的情况，故使用 Mono.just() 执行一次结束事件拼接
                 .concatWith(Mono.just(
                         ServerSentEvent.<String>builder()
-                                .event("end")
-                                .data("")
+                                .event(StreamEventConstant.EVENT_END)
+                                .data(StreamEventConstant.EMPTY_DATA)
                                 .build()
                 ))
                 .doFinally(signalType -> {
