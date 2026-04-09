@@ -41,7 +41,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 
 const higressUrl = import.meta.env.VITE_HIGRESS_URL || 'http://localhost:8001'

@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { API_BASE_URL } from '@/config/env'
-import { listConversations, getUnreadCount, sendMessage as sendMessageByHttp } from '@/api/chatController'
+import {
+  getUnreadCount,
+  listConversations,
+  sendMessage as sendMessageByHttp
+} from '@/api/chatController'
 import { listFriends, listPendingRequests } from '@/api/friendController'
 
 /**

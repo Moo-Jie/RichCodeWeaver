@@ -83,7 +83,7 @@
 
 <script lang="ts" setup>
 import { computed, ref, watch } from 'vue'
-import { PlusOutlined, DownOutlined, EditOutlined, BulbOutlined } from '@ant-design/icons-vue'
+import { BulbOutlined, DownOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps<{
   modelValue: string

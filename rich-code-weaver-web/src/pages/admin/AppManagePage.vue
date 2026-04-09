@@ -253,7 +253,6 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
   InfoCircleOutlined,
-  PaperClipOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
 import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'

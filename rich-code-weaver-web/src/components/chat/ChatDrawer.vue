@@ -170,7 +170,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watch, nextTick, computed } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { useChatStore } from '@/stores/chatStore'
 import { useLoginUserStore } from '@/stores/loginUser'

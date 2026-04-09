@@ -210,9 +210,9 @@
       <br>
       <a-form :label-col="{ span: 6 }" :model="phoneForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="手机号">
-          <a-input 
-            v-model:value="phoneForm.phone" 
-            placeholder="请输入11位手机号" 
+          <a-input
+            v-model:value="phoneForm.phone"
+            placeholder="请输入11位手机号"
             maxlength="11"
           />
         </a-form-item>
@@ -234,9 +234,9 @@
       <br>
       <a-form :label-col="{ span: 6 }" :model="emailForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="邮箱地址">
-          <a-input 
-            v-model:value="emailForm.email" 
-            placeholder="请输入邮箱地址" 
+          <a-input
+            v-model:value="emailForm.email"
+            placeholder="请输入邮箱地址"
             type="email"
           />
         </a-form-item>
@@ -265,13 +265,13 @@ import {
   UserOutlined
 } from '@ant-design/icons-vue'
 import {
+  bindEmail,
+  bindPhone,
   getLoginUser,
   updateUser,
   updateUserAvatar,
   updateUserPassword,
-  userLogout,
-  bindPhone,
-  bindEmail
+  userLogout
 } from '@/api/userController'
 import { identityLabelMap, identityOptions, industryOptions } from '@/constants/identityOptions'
 
@@ -439,7 +439,7 @@ const handleEmail = () => {
 // 提交手机绑定
 const handlePhoneSubmit = async () => {
   const phone = phoneForm.phone.trim()
-  
+
   // 验证手机号格式
   if (!isValidPhone(phone)) {
     message.error('请输入正确的手机号格式')
@@ -465,7 +465,7 @@ const handlePhoneSubmit = async () => {
 // 提交邮箱绑定
 const handleEmailSubmit = async () => {
   const email = emailForm.email.trim()
-  
+
   // 验证邮箱格式
   if (!isValidEmail(email)) {
     message.error('请输入正确的邮箱格式')

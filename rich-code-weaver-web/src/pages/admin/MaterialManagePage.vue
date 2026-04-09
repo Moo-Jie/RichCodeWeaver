@@ -316,25 +316,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { message } from 'ant-design-vue'
 import {
-  PlusOutlined, UploadOutlined, EditOutlined, CheckOutlined,
-  PaperClipOutlined, FileTextOutlined, VideoCameraOutlined,
-  SoundOutlined, LinkOutlined, FolderOutlined, FileOutlined
+  CheckOutlined,
+  EditOutlined,
+  FileOutlined,
+  FileTextOutlined,
+  FolderOutlined,
+  LinkOutlined,
+  PaperClipOutlined,
+  PlusOutlined,
+  SoundOutlined,
+  UploadOutlined,
+  VideoCameraOutlined
 } from '@ant-design/icons-vue'
 import {
-  listAllMaterialByPage,
   addMaterial,
-  updateMaterial,
+  addMaterialCategory,
   deleteMaterial,
+  deleteMaterialCategory,
+  listAllMaterialByPage,
   listEnabledCategories,
   listMaterialCategoryByPage,
-  addMaterialCategory,
-  updateMaterialCategory,
-  deleteMaterialCategory
+  updateMaterial,
+  updateMaterialCategory
 } from '@/api/materialController'
 import { uploadFile } from '@/api/fileController'
 

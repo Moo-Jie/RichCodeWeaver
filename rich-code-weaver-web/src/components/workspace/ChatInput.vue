@@ -118,7 +118,12 @@
 
 <script lang="ts" setup>
 import { computed, h, nextTick, onMounted, ref } from 'vue'
-import { LoadingOutlined, SendOutlined, QuestionCircleOutlined, PaperClipOutlined } from '@ant-design/icons-vue'
+import {
+  LoadingOutlined,
+  PaperClipOutlined,
+  QuestionCircleOutlined,
+  SendOutlined
+} from '@ant-design/icons-vue'
 
 interface ElementInfo {
   tagName: string

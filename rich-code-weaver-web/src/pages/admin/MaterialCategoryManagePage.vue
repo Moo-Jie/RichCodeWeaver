@@ -268,30 +268,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import {
-  PlusOutlined,
-  PaperClipOutlined,
-  FileTextOutlined,
-  VideoCameraOutlined,
-  SoundOutlined,
-  LinkOutlined,
-  FolderOutlined,
-  FileOutlined,
-  EditOutlined,
-  DeleteOutlined,
   AppstoreOutlined,
-  UnorderedListOutlined,
-  InfoCircleOutlined,
   CheckCircleOutlined,
-  StopOutlined
+  DeleteOutlined,
+  EditOutlined,
+  FileOutlined,
+  FileTextOutlined,
+  FolderOutlined,
+  InfoCircleOutlined,
+  LinkOutlined,
+  PaperClipOutlined,
+  PlusOutlined,
+  SoundOutlined,
+  StopOutlined,
+  UnorderedListOutlined,
+  VideoCameraOutlined
 } from '@ant-design/icons-vue'
 import {
-  listMaterialCategoryByPage,
   addMaterialCategory,
-  updateMaterialCategory,
-  deleteMaterialCategory
+  deleteMaterialCategory,
+  listMaterialCategoryByPage,
+  updateMaterialCategory
 } from '@/api/materialController'
 
 // 视图模式

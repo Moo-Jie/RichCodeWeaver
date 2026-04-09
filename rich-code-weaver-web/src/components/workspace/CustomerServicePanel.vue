@@ -183,8 +183,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import type { CSSProperties } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   BorderOuterOutlined,

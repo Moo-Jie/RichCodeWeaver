@@ -165,7 +165,12 @@
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { useChatStore } from '@/stores/chatStore'
-import { searchUsers, sendFriendRequest, handleFriendRequest, removeFriend } from '@/api/friendController'
+import {
+  handleFriendRequest,
+  removeFriend,
+  searchUsers,
+  sendFriendRequest
+} from '@/api/friendController'
 import UserProfileModal from '@/components/UserProfileModal.vue'
 import {
   BellOutlined,

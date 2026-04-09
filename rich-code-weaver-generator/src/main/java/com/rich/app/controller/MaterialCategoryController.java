@@ -6,7 +6,6 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.rich.app.service.MaterialCategoryService;
 import com.rich.client.innerService.InnerUserService;
-import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;

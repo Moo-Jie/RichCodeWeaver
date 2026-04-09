@@ -278,7 +278,11 @@ import {
 } from '@/config/env'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { listMatchedTemplates } from '@/api/promptTemplateController'
-import { parseBatchContent, StreamChunkParserContext, type TaskPlanData } from '@/utils/streamChunkParser'
+import {
+  parseBatchContent,
+  StreamChunkParserContext,
+  type TaskPlanData
+} from '@/utils/streamChunkParser'
 import request from '@/request'
 import { checkCollaborator, listCollaborators } from '@/api/collaboratorController'
 import ChatInput from '@/components/workspace/ChatInput.vue'

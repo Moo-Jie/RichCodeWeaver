@@ -34,9 +34,9 @@
             {{ t.label }}
           </span>
         </div>
-        <a-button 
-          type="primary" 
-          size="small" 
+        <a-button
+          type="primary"
+          size="small"
           @click="handleAddMaterial"
           class="add-material-btn"
         >
@@ -175,12 +175,12 @@
  <script lang="ts">
  import { defineComponent, h, reactive } from 'vue'
  import {
-  CheckOutlined as CheckOutlinedIcon,
-  PaperClipOutlined as PaperClipOutlinedIcon,
-  VideoCameraOutlined as VideoCameraOutlinedIcon,
-  SoundOutlined as SoundOutlinedIcon,
-  FileTextOutlined as FileTextOutlinedIcon,
-  LinkOutlined as LinkOutlinedIcon
+   CheckOutlined as CheckOutlinedIcon,
+   FileTextOutlined as FileTextOutlinedIcon,
+   LinkOutlined as LinkOutlinedIcon,
+   PaperClipOutlined as PaperClipOutlinedIcon,
+   SoundOutlined as SoundOutlinedIcon,
+   VideoCameraOutlined as VideoCameraOutlinedIcon
  } from '@ant-design/icons-vue'
 
  const stripMd = (s: string) =>

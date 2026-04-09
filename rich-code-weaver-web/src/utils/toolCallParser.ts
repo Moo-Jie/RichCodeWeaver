@@ -11,12 +11,11 @@
  */
 
 import {
-  TOOL_STATUS_ICONS,
+  generateIconHtml,
   TASK_STATUS_ICONS,
-  TOOL_TYPE_ICONS,
   THINK_TYPE_ICONS,
-  MESSAGE_TYPE_ICONS,
-  generateIconHtml
+  TOOL_STATUS_ICONS,
+  TOOL_TYPE_ICONS
 } from './iconMapper'
 
 // ==================== 类型定义 ====================

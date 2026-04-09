@@ -85,7 +85,7 @@
 
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
-import { PlusOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue'
 
 interface ColorScheme {
   name: string

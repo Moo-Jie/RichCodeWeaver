@@ -229,15 +229,15 @@
 import { computed, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
-  PlusOutlined,
-  DeleteOutlined,
-  UpOutlined,
-  DownOutlined,
-  SelectOutlined,
-  EditOutlined,
   CheckOutlined,
   CopyOutlined,
-  ThunderboltOutlined
+  DeleteOutlined,
+  DownOutlined,
+  EditOutlined,
+  PlusOutlined,
+  SelectOutlined,
+  ThunderboltOutlined,
+  UpOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps<{

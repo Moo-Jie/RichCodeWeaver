@@ -17,7 +17,6 @@ import com.rich.model.dto.app.*;
 import com.rich.model.entity.App;
 import com.rich.model.entity.User;
 import com.rich.model.vo.AppVO;
-import java.util.List;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -28,6 +27,8 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 /**
  * AI 产物相关接口

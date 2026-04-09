@@ -8,7 +8,7 @@ import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { processToolCallMarkers } from '@/utils/toolCallParser'
-import { processWorkflowMarkers, fixCodeBlockFormat } from '@/utils/workflowMarkerParser'
+import { fixCodeBlockFormat, processWorkflowMarkers } from '@/utils/workflowMarkerParser'
 
 interface Props {
   content: string

@@ -89,7 +89,11 @@ import {
 } from '@ant-design/icons-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { useChatStore } from '@/stores/chatStore'
-import { inviteCollaborator, listCollaborators, removeCollaborator } from '@/api/collaboratorController'
+import {
+  inviteCollaborator,
+  listCollaborators,
+  removeCollaborator
+} from '@/api/collaboratorController'
 
 interface Props {
   open: boolean

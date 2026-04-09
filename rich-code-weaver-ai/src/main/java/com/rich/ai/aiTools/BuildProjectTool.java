@@ -1,8 +1,8 @@
 package com.rich.ai.aiTools;
 
 import cn.hutool.json.JSONObject;
-import com.rich.common.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import com.rich.common.constant.AppConstant;
+import com.rich.common.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
 import jakarta.annotation.Resource;
