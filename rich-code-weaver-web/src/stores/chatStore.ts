@@ -51,10 +51,10 @@ export const useChatStore = defineStore('chat', () => {
     if (API_BASE_URL && /^https?:\/\//i.test(API_BASE_URL)) {
       const apiUrl = new URL(API_BASE_URL)
       const protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'
-      return `${protocol}//${apiUrl.host}/api/ws/chat`
+      return `${protocol}//${apiUrl.host}/api/user/ws/chat`
     }
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${protocol}//${window.location.host}/api/ws/chat`
+    return `${protocol}//${window.location.host}/api/user/ws/chat`
   }
 
   // ===== WebSocket 管理 =====

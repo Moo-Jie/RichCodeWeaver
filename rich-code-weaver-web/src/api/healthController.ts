@@ -10,9 +10,9 @@ export async function checkUserHealth(options?: { [key: string]: any }) {
   })
 }
 
-/** 产物生成模块健康检查 GET /app/health/check */
+/** 产物生成模块健康检查 GET /generator/app/health/check */
 export async function checkGeneratorHealth(options?: { [key: string]: any }) {
-  return request<any>('/app/health/check', {
+  return request<any>('/generator/app/health/check', {
     method: 'GET',
     ...(options || {})
   })
@@ -26,9 +26,9 @@ export async function checkFileHealth(options?: { [key: string]: any }) {
   })
 }
 
-/** 提示词模板模块健康检查 GET /systemPrompt/health/check */
+/** 提示词模板模块健康检查 GET /prompt/systemPrompt/health/check */
 export async function checkPromptHealth(options?: { [key: string]: any }) {
-  return request<any>('/systemPrompt/health/check', {
+  return request<any>('/prompt/systemPrompt/health/check', {
     method: 'GET',
     ...(options || {})
   })

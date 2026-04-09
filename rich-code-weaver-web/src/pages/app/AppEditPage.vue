@@ -10,7 +10,12 @@
     <div class="edit-panel">
       <a-card :loading="loading" class="info-card">
         <div class="card-header">
-          <h2>数字产物信息</h2>
+          <div class="card-title">
+            <h2>数字产物信息</h2>
+            <span v-if="ownershipLabel" :class="['ownership-pill', `ownership-pill--${appInfo?.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`]">
+              {{ ownershipLabel }}
+            </span>
+          </div>
           <a-button class="view-chat" type="link" @click="goToChat">
             <MessageOutlined />
             <span>进入对话</span>
@@ -64,7 +69,7 @@
                 </a-input>
                 <a-upload
                   :before-upload="beforeUpload"
-                  :custom-request="({ file }) => handleCoverUpload(file as File)"
+                  :custom-request="handleCustomUpload"
                   :show-upload-list="false"
                   accept="image/jpeg,image/png"
                 >
@@ -109,7 +114,7 @@
           </a-form-item>
 
           <a-form-item class="form-item" label="生成类型" name="codeGenType">
-            <a-tag :color="getTypeColor(appInfo?.codeGenType)">
+            <a-tag :color="getTypeColor(appInfo?.codeGenType || '')">
               {{
                 appInfo?.codeGenType === 'single_html' ? '单文件结构' :
                   appInfo?.codeGenType === 'multi_file' ? '多文件结构' :
@@ -169,14 +174,31 @@
       <!-- 元信息卡片 -->
       <a-card class="meta-card">
         <div class="card-header">
-          <h2>元信息</h2>
+          <div class="card-title card-title--stack">
+            <h2>元信息</h2>
+            <span class="card-subtitle">查看归属、创建者与部署状态</span>
+          </div>
+          <span class="meta-id-pill">ID {{ appInfo?.id || '--' }}</span>
         </div>
-        <div class="card-header">
-        <span class="app-id">
-            数字产物ID：<a-tag color="blue">{{ appInfo?.id || '--' }}</a-tag>
+        <div class="meta-summary">
+          <span v-if="ownershipLabel" :class="['ownership-pill', `ownership-pill--${appInfo?.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`]">
+            {{ ownershipLabel }}
           </span>
+          <span :class="['ownership-pill', appInfo?.deployKey ? 'ownership-pill--success' : 'ownership-pill--muted']">
+            {{ appInfo?.deployKey ? '已部署' : '未部署' }}
+          </span>
+          <span class="meta-summary-text">{{ collaborators.length }} 位协作者</span>
         </div>
         <a-descriptions :column="1" class="meta-grid">
+          <a-descriptions-item label="归属类型">
+            <div class="meta-item">
+              <span v-if="ownershipLabel" :class="['ownership-pill', `ownership-pill--${appInfo?.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`]">
+                {{ ownershipLabel }}
+              </span>
+              <span v-else>--</span>
+            </div>
+          </a-descriptions-item>
+
           <a-descriptions-item label="创建者">
             <div class="meta-item">
               <UserOutlined />
@@ -201,10 +223,9 @@
           <a-descriptions-item label="部署状态">
             <div class="meta-item">
               <CloudServerOutlined />
-              <template v-if="appInfo?.deployKey">
-                <a-tag color="green">已部署</a-tag>
-              </template>
-              <a-tag v-else color="red">未部署</a-tag>
+              <span :class="['ownership-pill', appInfo?.deployKey ? 'ownership-pill--success' : 'ownership-pill--muted']">
+                {{ appInfo?.deployKey ? '已部署' : '未部署' }}
+              </span>
             </div>
           </a-descriptions-item>
 
@@ -214,10 +235,11 @@
               <template v-if="appInfo?.deployKey">
                 <span class="time">{{ formatTime(appInfo.deployedTime) }}</span>
               </template>
-              <a-tag v-else color="red"> ——</a-tag>
+              <span v-else>--</span>
             </div>
           </a-descriptions-item>
         </a-descriptions>
+        <AppTeamCard :app="appInfo" :collaborators="collaborators" class="edit-team-card" />
       </a-card>
     </div>
   </div>
@@ -244,9 +266,11 @@ import {
 import { useLoginUserStore } from '@/stores/loginUser'
 import { DEPLOY_DOMAIN } from '@/config/env'
 import { getAppVoById, updateApp, updateAppByAdmin } from '@/api/appController'
-import { formatCodeGenType } from '@/enums/codeGenTypes.ts'
-import { formatTime } from '@/utils/timeUtil.ts'
+import { listCollaborators } from '@/api/collaboratorController'
+import { formatCodeGenType } from '@/enums/codeGenTypes'
+import { formatTime } from '@/utils/timeUtil'
 import UserInfo from '@/components/UserInfo.vue'
+import AppTeamCard from '@/components/AppTeamCard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -255,6 +279,7 @@ const formRef = ref<FormInstance>()
 
 // 数字产物信息
 const appInfo = ref<API.AppVO>()
+const collaborators = ref<API.AppCollaboratorVO[]>([])
 const loading = ref(false)
 const submitting = ref(false)
 
@@ -281,6 +306,12 @@ const isDeployed = computed(() => {
   return !!appInfo.value?.deployKey
 })
 
+const ownershipLabel = computed(() => {
+  if (appInfo.value?.ownershipType === 'mine') return '我的'
+  if (appInfo.value?.ownershipType === 'collaborator') return '协作'
+  return ''
+})
+
 // 获取部署后的访问URL
 const deployedSiteUrl = computed(() => {
   if (appInfo.value?.deployKey) {
@@ -300,7 +331,7 @@ const rules = {
 }
 
 // 根据生成类型获取标签颜色
-const getTypeColor = (type: string) => {
+const getTypeColor = (type?: string) => {
   const colors: Record<string, string> = {
     'react': '#61dafb',
     'vue': '#42b883',
@@ -310,14 +341,14 @@ const getTypeColor = (type: string) => {
     'flutter': '#04599C',
     'swift': '#ff2d55'
   }
-  return colors[type] || 'blue'
+  return type ? (colors[type] || 'blue') : 'blue'
 }
 
 // 获取数字产物信息
 const fetchAppInfo = async () => {
   const id = route.params.id as string
   if (!id) {
-    message.error('数字产物ID无效:' + res.data.message)
+    message.error('数字产物ID无效')
     await router.push('/')
     return
   }
@@ -327,6 +358,7 @@ const fetchAppInfo = async () => {
     const res = await getAppVoById({ id: id as unknown as number })
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
+      await fetchCollaborators(res.data.data.id)
 
       // 检查权限
       if (!isAdmin.value && appInfo.value.userId !== loginUserStore.loginUser.id) {
@@ -348,10 +380,25 @@ const fetchAppInfo = async () => {
     }
   } catch (error) {
     console.error('获取数字产物信息失败:', error)
-    message.error('获取数字产物信息失败:' + res.data.message)
+    message.error('获取数字产物信息失败')
+    collaborators.value = []
     router.push('/')
   } finally {
     loading.value = false
+  }
+}
+
+const fetchCollaborators = async (targetAppId?: number) => {
+  if (!targetAppId) {
+    collaborators.value = []
+    return
+  }
+  try {
+    const res = await listCollaborators({ appId: targetAppId })
+    collaborators.value = res.data.code === 0 ? (res.data.data || []) : []
+  } catch (error) {
+    console.error('获取协作者列表失败:', error)
+    collaborators.value = []
   }
 }
 
@@ -382,19 +429,23 @@ const handleCoverUpload = async (file: File) => {
     }
   } catch (error) {
     console.error('上传失败:', error)
-    message.error('上传过程中出现错误:' + res.data.message)
+    message.error('上传过程中出现错误')
   }
+}
+
+const handleCustomUpload = ({ file }: { file: File }) => {
+  return handleCoverUpload(file)
 }
 
 // 图片上传前检查
 const beforeUpload = (file: File) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
   if (!isJpgOrPng) {
-    message.error('只能上传 JPG/PNG 格式的图片!:' + res.data.message)
+    message.error('只能上传 JPG/PNG 格式的图片!')
   }
   const isLt2M = file.size / 1024 / 1024 < 2
   if (!isLt2M) {
-    message.error('图片大小不能超过 2MB!:' + res.data.message)
+    message.error('图片大小不能超过 2MB!')
   }
   return isJpgOrPng && isLt2M
 }
@@ -428,7 +479,7 @@ const handleSubmit = async () => {
     }
   } catch (error) {
     console.error('修改失败:', error)
-    message.error('提交过程中出现错误:' + res.data.message)
+    message.error('提交过程中出现错误')
     console.error('Error details:', error)
   } finally {
     submitting.value = false
@@ -497,17 +548,19 @@ onMounted(() => {
 }
 
 .info-card, .meta-card {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  border: 1px solid #f0f0f0;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+  border: 1px solid #e8edf2;
   overflow: hidden;
   position: relative;
   z-index: 1;
-  transition: all 0.2s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    border-color: #dbe3ea;
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.08);
   }
 }
 
@@ -519,8 +572,8 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #eef2f5;
     margin-bottom: 25px;
 
     h2 {
@@ -528,6 +581,12 @@ onMounted(() => {
       color: #1a1a1a;
       margin: 0;
       font-weight: 600;
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .app-id {
@@ -544,11 +603,14 @@ onMounted(() => {
       align-items: center;
       gap: 6px;
       font-size: 14px;
-      color: #1a1a1a;
+      color: #374151;
       transition: all 0.2s ease;
+      border-radius: 10px;
+      padding: 0 8px;
 
       &:hover {
-        color: #666;
+        color: #111827;
+        background: #f6f8fa;
       }
     }
   }
@@ -557,18 +619,18 @@ onMounted(() => {
     margin-bottom: 25px;
 
     :deep(.ant-form-item-label) {
-      font-weight: 500;
-      color: #1a1a1a;
+      font-weight: 600;
+      color: #24292f;
       padding-bottom: 5px;
     }
 
     .ant-input-prefix, .ant-input-suffix {
-      color: #999;
+      color: #8c959f;
     }
 
     .max-length {
       font-size: 12px;
-      color: #999;
+      color: #8c959f;
       padding-right: 8px;
     }
 
@@ -580,7 +642,7 @@ onMounted(() => {
 
   .form-tip {
     font-size: 12px;
-    color: #999;
+    color: #8c959f;
     margin-top: 8px;
     padding: 0 3px;
   }
@@ -588,7 +650,7 @@ onMounted(() => {
   .form-actions {
     margin-top: 15px;
     padding-top: 20px;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid #eef2f5;
 
     .ant-btn {
       display: flex;
@@ -618,13 +680,14 @@ onMounted(() => {
     gap: 6px;
     height: 32px;
     padding: 0 12px;
-    background: #1a1a1a;
-    border: none;
+    background: #1f2328;
+    border: 1px solid #1f2328;
     color: white;
 
     &:hover {
-      background: #333;
+      background: #2f363d;
       transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
     }
   }
 }
@@ -632,13 +695,13 @@ onMounted(() => {
 .cover-preview {
   margin-top: 15px;
   padding: 15px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 1px dashed #e6e1da;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px dashed #d9e0e8;
 
   .preview-title {
     font-size: 14px;
-    color: #999;
+    color: #8c959f;
     margin-bottom: 10px;
   }
 
@@ -652,12 +715,12 @@ onMounted(() => {
     display: block;
     margin-top: 10px;
     text-align: center;
-    color: #1a1a1a;
+    color: #374151;
     font-size: 14px;
     transition: all 0.2s ease;
 
     &:hover {
-      color: #666;
+      color: #111827;
     }
   }
 }
@@ -674,9 +737,10 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #f0f0f0;
-    margin-bottom: 25px;
+    gap: 12px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #eef2f5;
+    margin-bottom: 16px;
 
     h2 {
       font-size: 18px;
@@ -684,17 +748,48 @@ onMounted(() => {
       margin: 0;
       font-weight: 600;
     }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title--stack {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: #8c959f;
+      line-height: 1.5;
+    }
+  }
+
+  .meta-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .meta-summary-text {
+    font-size: 12px;
+    color: #8c959f;
   }
 
   .meta-grid {
     :deep(.ant-descriptions-item) {
       padding-bottom: 18px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid #eef2f5;
     }
 
     :deep(.ant-descriptions-item-label) {
-      font-weight: 500;
-      color: #999;
+      font-weight: 600;
+      color: #8c959f;
       width: 100px;
       padding-right: 20px;
     }
@@ -713,26 +808,69 @@ onMounted(() => {
 
     .anticon {
       font-size: 16px;
-      color: #999;
+      color: #6b7280;
     }
 
     .time {
       margin-left: 10px;
       font-size: 14px;
-      color: #999;
+      color: #8c959f;
     }
   }
 }
 
+.edit-team-card {
+  margin-top: 24px;
+}
+
+.ownership-pill,
+.meta-id-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid #d0d7de;
+  background: #f6f8fa;
+  color: #57606a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ownership-pill--mine {
+  background: #eef6ff;
+  border-color: #c6ddff;
+  color: #245ea6;
+}
+
+.ownership-pill--collaborator {
+  background: #f6f8fa;
+  border-color: #d0d7de;
+  color: #57606a;
+}
+
+.ownership-pill--success {
+  background: #ecfdf3;
+  border-color: #b7ebc6;
+  color: #137333;
+}
+
+.ownership-pill--muted {
+  background: #f6f8fa;
+  border-color: #d0d7de;
+  color: #57606a;
+}
+
 /* 按钮样式 */
 .submit-btn {
-  background: #1a1a1a;
-  border: none;
+  background: #1f2328;
+  border: 1px solid #1f2328;
   color: white;
 
   &:hover {
-    background: #333;
+    background: #2f363d;
     transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
   }
 
   &:active {
@@ -742,25 +880,25 @@ onMounted(() => {
 
 .reset-btn {
   background: #fff;
-  border-color: #e0e0e0;
-  color: #666;
+  border-color: #d8dee4;
+  color: #57606a;
 
   &:hover {
-    background: #f5f5f5;
-    border-color: #d0d0d0;
-    color: #1a1a1a;
+    background: #f6f8fa;
+    border-color: #d0d7de;
+    color: #24292f;
   }
 }
 
 .detail-btn {
   background: #fff;
-  border-color: #e0e0e0;
-  color: #666;
+  border-color: #d8dee4;
+  color: #57606a;
 
   &:hover {
-    background: #f5f5f5;
-    border-color: #d0d0d0;
-    color: #1a1a1a;
+    background: #f6f8fa;
+    border-color: #d0d7de;
+    color: #24292f;
   }
 }
 </style>

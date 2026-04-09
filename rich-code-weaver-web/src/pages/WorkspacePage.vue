@@ -150,6 +150,7 @@
         <!-- Right panel -->
         <RightPanel
           :app="appStore.selectedApp"
+          :collaborators="collaborators"
           :deploying="deploying"
           :downloading="downloading"
           :hot-stat="hotStat"
@@ -183,6 +184,7 @@
     <AppInfo
       v-model:open="appDetailVisible"
       :app="appStore.selectedApp ?? undefined"
+      :collaborators="collaborators"
       :show-actions="isOwner || isAdmin"
       @delete="handleDeleteApp"
       @edit="handleEditApp"
@@ -255,7 +257,7 @@ import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { listMatchedTemplates } from '@/api/promptTemplateController'
 import { parseBatchContent, StreamChunkParserContext, type TaskPlanData } from '@/utils/streamChunkParser'
 import request from '@/request'
-import { checkCollaborator } from '@/api/collaboratorController'
+import { checkCollaborator, listCollaborators } from '@/api/collaboratorController'
 import ChatInput from '@/components/workspace/ChatInput.vue'
 import ChatMessages from '@/components/workspace/ChatMessages.vue'
 import ModeSwitch from '@/components/workspace/ModeSwitch.vue'
@@ -410,6 +412,11 @@ interface Message {
   content: string
   loading?: boolean
   createTime?: string
+  userId?: number
+  senderName?: string
+  senderAvatar?: string
+  senderRoleLabel?: string
+  isSelf?: boolean
 }
 
 const messages = ref<Message[]>([])
@@ -451,6 +458,7 @@ const appDetailVisible = ref(false)
 // === Social State ===
 const hotStat = ref<API.AppHotStatVO | null>(null)
 const commentDialogOpen = ref(false)
+const collaborators = ref<API.AppCollaboratorVO[]>([])
 
 // === Task Plan State ===
 const taskPlanData = ref<TaskPlanData | null>(null)
@@ -477,6 +485,51 @@ const isAdmin = computed(() => {
 const canEditApp = computed(() => {
   return isOwner.value || isAdmin.value || isAcceptedCollaborator.value
 })
+
+const getSenderMeta = (userId?: number) => {
+  const currentUserId = loginUserStore.loginUser.id
+  const owner = appStore.selectedApp?.user
+  const collaborator = collaborators.value.find((item) => item.userId === userId)
+
+  if (userId && owner?.id === userId) {
+    return {
+      senderName: owner.userName || '主创',
+      senderAvatar: owner.userAvatar,
+      senderRoleLabel: '主创',
+      isSelf: userId === currentUserId
+    }
+  }
+
+  if (collaborator) {
+    return {
+      senderName: collaborator.userName || '协作者',
+      senderAvatar: collaborator.userAvatar,
+      senderRoleLabel: collaborator.role === 'viewer' ? '协作者' : '编辑者',
+      isSelf: collaborator.userId === currentUserId
+    }
+  }
+
+  return {
+    senderName: userId === currentUserId ? loginUserStore.loginUser.userName || '我' : '协作者',
+    senderAvatar: userId === currentUserId ? loginUserStore.loginUser.userAvatar : undefined,
+    senderRoleLabel: userId === currentUserId ? (isOwner.value ? '主创' : '编辑者') : '协作者',
+    isSelf: userId === currentUserId
+  }
+}
+
+const createUserMessage = (content: string, overrides: Partial<Message> = {}): Message => {
+  const senderMeta = getSenderMeta(loginUserStore.loginUser.id)
+  return {
+    type: 'user',
+    content,
+    userId: loginUserStore.loginUser.id,
+    senderName: senderMeta.senderName,
+    senderAvatar: senderMeta.senderAvatar,
+    senderRoleLabel: senderMeta.senderRoleLabel,
+    isSelf: true,
+    ...overrides
+  }
+}
 
 const isDeployed = computed(() => {
   return !!appStore.selectedApp?.deployKey
@@ -611,6 +664,7 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appStore.refreshSelectedApp(res.data.data)
       appStore.rightPanelVisible = true
+      await fetchCollaborators(id as unknown as number)
       await refreshCollaboratorPermission(id as unknown as number)
 
       await fetchChatHistory()
@@ -642,6 +696,17 @@ const fetchAppInfo = async () => {
     }
   } catch (error) {
     console.error('获取数字产物信息失败：', error)
+    collaborators.value = []
+  }
+}
+
+const fetchCollaborators = async (targetAppId: number) => {
+  try {
+    const res = await listCollaborators({ appId: targetAppId })
+    collaborators.value = res.data.code === 0 ? (res.data.data || []) : []
+  } catch (error) {
+    console.error('获取协作者列表失败：', error)
+    collaborators.value = []
   }
 }
 
@@ -665,11 +730,27 @@ const fetchChatHistory = async (loadMore = false) => {
     const res = await listAppChatHistoryByPage(params)
     if (res.data.code === 0 && res.data.data) {
       const historyData = (res.data.data.records || []).slice().reverse()
-      const newMessages: Message[] = historyData.map((item: any) => ({
-        type: item.messageType === 'user' ? 'user' : 'ai',
-        content: item.messageType === 'user' ? item.message : parseBatchContent(item.message),
-        createTime: item.createTime
-      }))
+      const newMessages: Message[] = historyData.map((item: API.ChatHistory) => {
+        if (item.messageType === 'user') {
+          const senderMeta = getSenderMeta(item.userId)
+          return {
+            type: 'user',
+            content: item.message || '',
+            createTime: item.createTime,
+            userId: item.userId,
+            senderName: senderMeta.senderName,
+            senderAvatar: senderMeta.senderAvatar,
+            senderRoleLabel: senderMeta.senderRoleLabel,
+            isSelf: senderMeta.isSelf
+          }
+        }
+
+        return {
+          type: 'ai',
+          content: parseBatchContent(item.message),
+          createTime: item.createTime
+        }
+      })
 
       if (loadMore) {
         messages.value = [...newMessages, ...messages.value]
@@ -746,7 +827,7 @@ const loadMoreHistory = async () => {
 // === Send Messages ===
 const sendInitialMessage = async (prompt: string) => {
   if (!ensureEditPermission()) return
-  messages.value.push({ type: 'user', content: prompt })
+  messages.value.push(createUserMessage(prompt))
   const aiMessageIndex = messages.value.length
   messages.value.push({ type: 'ai', content: '', loading: true })
   await nextTick()
@@ -772,7 +853,7 @@ const sendMessage = async () => {
     prompt = `[可视化编辑] 我在页面中选中了一个「${typeLabel}」元素${textPreview ? `，内容为“${textPreview}”` : ''}。\n元素定位选择器: \`${el.selector}\`\n我的修改需求：${msg}`
   }
 
-  messages.value.push({ type: 'user', content: displayMsg })
+  messages.value.push(createUserMessage(displayMsg))
   const aiMessageIndex = messages.value.length
   messages.value.push({ type: 'ai', content: '', loading: true })
   await nextTick()
@@ -1088,7 +1169,7 @@ const downloadCode = async () => {
 
   downloading.value = true
   try {
-    const res = await request.get(`/download/code/zip/${appId.value}`, { responseType: 'blob' })
+    const res = await request.get(`/generator/download/code/zip/${appId.value}`, { responseType: 'blob' })
     const blob = new Blob([res.data], { type: 'application/zip' })
     const contentDisposition = res.headers['content-disposition']
     let filename = `${appStore.selectedApp?.appName ?? 'code'}.zip`

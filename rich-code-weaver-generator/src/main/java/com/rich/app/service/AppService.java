@@ -106,6 +106,16 @@ public interface AppService extends IService<App> {
     Page<AppVO> listStarAppVOByPage(AppQueryRequest appQueryRequest);
 
     /**
+     * 获取用户相关的产物列表
+     *
+     * @param userId 用户ID
+     * @param limit  限制条数
+     * @return java.util.List<com.rich.model.vo.AppVO> 产物视图对象列表
+     * @author DuRuiChi
+     */
+    List<AppVO> listUserRelatedApps(Long userId, long limit);
+
+    /**
      * 管理员更新 AI 产物
      *
      * @param appAdminUpdateRequest AI 产物管理员更新请求

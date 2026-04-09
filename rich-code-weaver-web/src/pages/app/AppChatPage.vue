@@ -695,7 +695,7 @@ const downloadCode = async () => {
   }
   downloading.value = true
   try {
-    const res = await request.get(`/download/code/zip/${appId.value}`, {
+    const res = await request.get(`/generator/download/code/zip/${appId.value}`, {
       responseType: 'blob'
     })
 

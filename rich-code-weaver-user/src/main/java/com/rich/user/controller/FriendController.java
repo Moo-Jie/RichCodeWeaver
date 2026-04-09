@@ -26,7 +26,7 @@ import java.util.List;
  * @since 2026-04-07
  */
 @RestController
-@RequestMapping("/friend")
+@RequestMapping("/user/friend")
 public class FriendController {
 
     @Resource

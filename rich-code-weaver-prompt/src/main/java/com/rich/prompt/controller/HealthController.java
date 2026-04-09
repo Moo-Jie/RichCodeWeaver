@@ -13,7 +13,7 @@ import java.util.Map;
  * 健康检查接口
  */
 @RestController
-@RequestMapping("/systemPrompt/health")
+@RequestMapping("/prompt/systemPrompt/health")
 public class HealthController {
 
     @GetMapping("/check")

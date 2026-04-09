@@ -29,4 +29,9 @@ public class InnerCollaboratorServiceImpl implements InnerCollaboratorService {
     public List<Long> listCollaboratorUserIds(Long appId) {
         return appCollaboratorService.listCollaboratorUserIds(appId);
     }
+
+    @Override
+    public List<Long> listCollaboratedAppIds(Long userId) {
+        return appCollaboratorService.listCollaboratedAppIds(userId);
+    }
 }

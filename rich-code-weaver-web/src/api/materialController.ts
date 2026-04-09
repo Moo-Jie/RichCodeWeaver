@@ -8,32 +8,32 @@ import request from '@/request'
 
 // ===== 素材分类接口 =====
 
-/** 获取所有已启用的分类列表 GET /material/category/list/enabled */
+/** 获取所有已启用的分类列表 GET /generator/material/category/list/enabled */
 export async function listEnabledCategories(options?: { [key: string]: any }) {
-  return request<API.BaseResponseListMaterialCategoryVO>('/material/category/list/enabled', {
+  return request<API.BaseResponseListMaterialCategoryVO>('/generator/material/category/list/enabled', {
     method: 'GET',
     ...(options || {})
   })
 }
 
-/** 根据ID获取分类详情 GET /material/category/get/vo */
+/** 根据ID获取分类详情 GET /generator/material/category/get/vo */
 export async function getMaterialCategoryVOById(
   params: { id: number },
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseMaterialCategoryVO>('/material/category/get/vo', {
+  return request<API.BaseResponseMaterialCategoryVO>('/generator/material/category/get/vo', {
     method: 'GET',
     params: { ...params },
     ...(options || {})
   })
 }
 
-/** 添加素材分类（管理员） POST /material/category/add */
+/** 添加素材分类（管理员） POST /generator/material/category/add */
 export async function addMaterialCategory(
   body: API.MaterialCategoryAddRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseLong>('/material/category/add', {
+  return request<API.BaseResponseLong>('/generator/material/category/add', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -41,12 +41,12 @@ export async function addMaterialCategory(
   })
 }
 
-/** 更新素材分类（管理员） POST /material/category/update */
+/** 更新素材分类（管理员） POST /generator/material/category/update */
 export async function updateMaterialCategory(
   body: API.MaterialCategoryUpdateRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseBoolean>('/material/category/update', {
+  return request<API.BaseResponseBoolean>('/generator/material/category/update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -54,12 +54,12 @@ export async function updateMaterialCategory(
   })
 }
 
-/** 删除素材分类（管理员） POST /material/category/delete */
+/** 删除素材分类（管理员） POST /generator/material/category/delete */
 export async function deleteMaterialCategory(
   body: API.DeleteRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseBoolean>('/material/category/delete', {
+  return request<API.BaseResponseBoolean>('/generator/material/category/delete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -67,12 +67,12 @@ export async function deleteMaterialCategory(
   })
 }
 
-/** 分页查询素材分类（管理员） POST /material/category/list/page/vo */
+/** 分页查询素材分类（管理员） POST /generator/material/category/list/page/vo */
 export async function listMaterialCategoryByPage(
   body: API.MaterialCategoryQueryRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponsePageMaterialCategoryVO>('/material/category/list/page/vo', {
+  return request<API.BaseResponsePageMaterialCategoryVO>('/generator/material/category/list/page/vo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -82,12 +82,12 @@ export async function listMaterialCategoryByPage(
 
 // ===== 素材接口 =====
 
-/** 添加素材 POST /material/add */
+/** 添加素材 POST /generator/material/add */
 export async function addMaterial(
   body: API.MaterialAddRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseLong>('/material/add', {
+  return request<API.BaseResponseLong>('/generator/material/add', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -95,12 +95,12 @@ export async function addMaterial(
   })
 }
 
-/** 更新素材 POST /material/update */
+/** 更新素材 POST /generator/material/update */
 export async function updateMaterial(
   body: API.MaterialUpdateRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseBoolean>('/material/update', {
+  return request<API.BaseResponseBoolean>('/generator/material/update', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -108,12 +108,12 @@ export async function updateMaterial(
   })
 }
 
-/** 删除素材 POST /material/delete */
+/** 删除素材 POST /generator/material/delete */
 export async function deleteMaterial(
   body: API.DeleteRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseBoolean>('/material/delete', {
+  return request<API.BaseResponseBoolean>('/generator/material/delete', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -121,24 +121,24 @@ export async function deleteMaterial(
   })
 }
 
-/** 根据ID获取素材详情 GET /material/get/vo */
+/** 根据ID获取素材详情 GET /generator/material/get/vo */
 export async function getMaterialVOById(
   params: { id: number },
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseMaterialVO>('/material/get/vo', {
+  return request<API.BaseResponseMaterialVO>('/generator/material/get/vo', {
     method: 'GET',
     params: { ...params },
     ...(options || {})
   })
 }
 
-/** 分页查询我的素材 POST /material/my/list/page/vo */
+/** 分页查询我的素材 POST /generator/material/my/list/page/vo */
 export async function listMyMaterialByPage(
   body: API.MaterialQueryRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponsePageMaterialVO>('/material/my/list/page/vo', {
+  return request<API.BaseResponsePageMaterialVO>('/generator/material/my/list/page/vo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -146,12 +146,12 @@ export async function listMyMaterialByPage(
   })
 }
 
-/** 分页查询公开素材 POST /material/public/list/page/vo */
+/** 分页查询公开素材 POST /generator/material/public/list/page/vo */
 export async function listPublicMaterialByPage(
   body: API.MaterialQueryRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponsePageMaterialVO>('/material/public/list/page/vo', {
+  return request<API.BaseResponsePageMaterialVO>('/generator/material/public/list/page/vo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -159,12 +159,12 @@ export async function listPublicMaterialByPage(
   })
 }
 
-/** 查询可选素材列表（用于主页素材选择弹窗） POST /material/selectable/list/page/vo */
+/** 查询可选素材列表（用于主页素材选择弹窗） POST /generator/material/selectable/list/page/vo */
 export async function listSelectableMaterialByPage(
   body: API.MaterialQueryRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponsePageMaterialVO>('/material/selectable/list/page/vo', {
+  return request<API.BaseResponsePageMaterialVO>('/generator/material/selectable/list/page/vo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -172,12 +172,12 @@ export async function listSelectableMaterialByPage(
   })
 }
 
-/** 根据ID列表批量获取素材 POST /material/batch/get */
+/** 根据ID列表批量获取素材 POST /generator/material/batch/get */
 export async function batchGetMaterials(
   body: number[],
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponseListMaterialVO>('/material/batch/get', {
+  return request<API.BaseResponseListMaterialVO>('/generator/material/batch/get', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
@@ -185,12 +185,12 @@ export async function batchGetMaterials(
   })
 }
 
-/** 管理员分页查询所有素材 POST /material/admin/list/page/vo */
+/** 管理员分页查询所有素材 POST /generator/material/admin/list/page/vo */
 export async function listAllMaterialByPage(
   body: API.MaterialQueryRequest,
   options?: { [key: string]: any }
 ) {
-  return request<API.BaseResponsePageMaterialVO>('/material/admin/list/page/vo', {
+  return request<API.BaseResponsePageMaterialVO>('/generator/material/admin/list/page/vo', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,

@@ -34,7 +34,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/systemPrompt")
+@RequestMapping("/prompt/systemPrompt")
 public class SystemPromptController {
 
     @Resource

@@ -60,6 +60,8 @@ import java.io.File;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -90,7 +92,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private ChatHistoryService chatHistoryService;
 
     // 注入外部截图服务的代理对象
-    @DubboReference
+    @DubboReference(check = false)
     private InnerScreenshotService screenshotService;
 
     // 注入外部用户服务的代理对象
@@ -1012,29 +1014,130 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      **/
     @Override
     public Page<AppVO> listMyAppVOByPage(AppQueryRequest appQueryRequest, HttpServletRequest request) {
-        // 获取当前登录用户
         User loginUser = InnerUserService.getLoginUser(request);
-
-        // 分页参数处理
         long pageSize = appQueryRequest.getPageSize();
-        // 分页大小限制
         ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "每页最多查询 20 个 AI 产物");
         long pageNum = appQueryRequest.getPageNum();
 
-        // 设置用户ID过滤条件
-        appQueryRequest.setUserId(loginUser.getId());
+        List<Long> collaboratedAppIds = collaboratorService.listCollaboratedAppIds(loginUser.getId());
+        if (collaboratedAppIds == null) {
+            collaboratedAppIds = new ArrayList<>();
+        }
+        List<App> ownedApps = this.list(QueryWrapper.create().where("userId = ?", loginUser.getId()));
+        List<App> collaboratedApps = CollUtil.isEmpty(collaboratedAppIds)
+                ? new ArrayList<>()
+                : this.list(QueryWrapper.create().in("id", collaboratedAppIds));
 
-        // 构建查询条件
-        QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryRequest);
-        // 执行分页查询
-        Page<App> appPage = appService.page(Page.of(pageNum, pageSize), queryWrapper);
+        Map<Long, App> appMap = new LinkedHashMap<>();
+        ownedApps.forEach(app -> appMap.put(app.getId(), app));
+        collaboratedApps.forEach(app -> appMap.putIfAbsent(app.getId(), app));
 
-        // 构造VO分页
-        Page<AppVO> appVOPage = new Page<>(pageNum, pageSize, appPage.getTotalRow());
-        // 转换实体列表为VO列表
-        List<AppVO> appVOList = appService.getAppVOList(appPage.getRecords());
+        List<App> filteredApps = appMap.values().stream()
+                .filter(app -> matchesMyAppQuery(app, appQueryRequest))
+                .sorted(buildMyAppComparator(appQueryRequest))
+                .collect(Collectors.toList());
+
+        int fromIndex = (int) Math.max(0, (pageNum - 1) * pageSize);
+        int toIndex = (int) Math.min(filteredApps.size(), fromIndex + pageSize);
+        List<App> pageRecords = fromIndex >= filteredApps.size()
+                ? new ArrayList<>()
+                : filteredApps.subList(fromIndex, toIndex);
+
+        Page<AppVO> appVOPage = new Page<>(pageNum, pageSize, filteredApps.size());
+        List<AppVO> appVOList = appService.getAppVOList(pageRecords);
+        Set<Long> collaboratedAppIdSet = collaboratedAppIds.stream().collect(Collectors.toSet());
+        appVOList.forEach(appVO -> {
+            if (loginUser.getId().equals(appVO.getUserId())) {
+                appVO.setOwnershipType("mine");
+            } else if (appVO.getId() != null && collaboratedAppIdSet.contains(appVO.getId())) {
+                appVO.setOwnershipType("collaborator");
+            }
+        });
         appVOPage.setRecords(appVOList);
         return appVOPage;
+    }
+
+    @Override
+    public List<AppVO> listUserRelatedApps(Long userId, long limit) {
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID无效");
+        long safeLimit = limit <= 0 ? 8 : Math.min(limit, 20);
+
+        List<Long> collaboratedAppIds = collaboratorService.listCollaboratedAppIds(userId);
+        if (collaboratedAppIds == null) {
+            collaboratedAppIds = new ArrayList<>();
+        }
+
+        List<App> ownedApps = this.list(QueryWrapper.create().where("userId = ?", userId));
+        List<App> collaboratedApps = CollUtil.isEmpty(collaboratedAppIds)
+                ? new ArrayList<>()
+                : this.list(QueryWrapper.create().in("id", collaboratedAppIds));
+
+        Map<Long, App> appMap = new LinkedHashMap<>();
+        ownedApps.forEach(app -> appMap.put(app.getId(), app));
+        collaboratedApps.forEach(app -> appMap.putIfAbsent(app.getId(), app));
+
+        List<App> filteredApps = appMap.values().stream()
+                .sorted(Comparator
+                        .comparing(App::getUpdateTime, Comparator.nullsLast(LocalDateTime::compareTo))
+                        .thenComparing(App::getCreateTime, Comparator.nullsLast(LocalDateTime::compareTo))
+                        .reversed())
+                .limit(safeLimit)
+                .collect(Collectors.toList());
+
+        Set<Long> collaboratedAppIdSet = collaboratedAppIds.stream().collect(Collectors.toSet());
+        List<AppVO> appVOList = appService.getAppVOList(filteredApps);
+        appVOList.forEach(appVO -> {
+            if (userId.equals(appVO.getUserId())) {
+                appVO.setOwnershipType("mine");
+            } else if (appVO.getId() != null && collaboratedAppIdSet.contains(appVO.getId())) {
+                appVO.setOwnershipType("collaborator");
+            }
+        });
+        return appVOList;
+    }
+
+    private boolean matchesMyAppQuery(App app, AppQueryRequest appQueryRequest) {
+        if (appQueryRequest.getId() != null && !appQueryRequest.getId().equals(app.getId())) {
+            return false;
+        }
+        if (StrUtil.isNotBlank(appQueryRequest.getAppName())
+                && !StrUtil.containsIgnoreCase(StrUtil.nullToEmpty(app.getAppName()), appQueryRequest.getAppName())) {
+            return false;
+        }
+        if (StrUtil.isNotBlank(appQueryRequest.getCover())
+                && !StrUtil.containsIgnoreCase(StrUtil.nullToEmpty(app.getCover()), appQueryRequest.getCover())) {
+            return false;
+        }
+        if (StrUtil.isNotBlank(appQueryRequest.getInitPrompt())
+                && !StrUtil.containsIgnoreCase(StrUtil.nullToEmpty(app.getInitPrompt()), appQueryRequest.getInitPrompt())) {
+            return false;
+        }
+        if (StrUtil.isNotBlank(appQueryRequest.getCodeGenType())
+                && !appQueryRequest.getCodeGenType().equals(app.getCodeGenType())) {
+            return false;
+        }
+        if (StrUtil.isNotBlank(appQueryRequest.getDeployKey())
+                && !StrUtil.containsIgnoreCase(StrUtil.nullToEmpty(app.getDeployKey()), appQueryRequest.getDeployKey())) {
+            return false;
+        }
+        return appQueryRequest.getPriority() == null || appQueryRequest.getPriority().equals(app.getPriority());
+    }
+
+    private Comparator<App> buildMyAppComparator(AppQueryRequest appQueryRequest) {
+        String sortField = appQueryRequest.getSortField();
+        boolean asc = "ascend".equalsIgnoreCase(appQueryRequest.getSortOrder())
+                || "asc".equalsIgnoreCase(appQueryRequest.getSortOrder());
+        Comparator<App> comparator;
+        if ("appName".equals(sortField)) {
+            comparator = Comparator.comparing(app -> StrUtil.nullToEmpty(app.getAppName()), String.CASE_INSENSITIVE_ORDER);
+        } else if ("updateTime".equals(sortField)) {
+            comparator = Comparator.comparing(App::getUpdateTime, Comparator.nullsLast(LocalDateTime::compareTo));
+        } else if ("priority".equals(sortField)) {
+            comparator = Comparator.comparing(App::getPriority, Comparator.nullsLast(Integer::compareTo));
+        } else {
+            comparator = Comparator.comparing(App::getCreateTime, Comparator.nullsLast(LocalDateTime::compareTo));
+        }
+        return asc ? comparator : comparator.reversed();
     }
 
     /**

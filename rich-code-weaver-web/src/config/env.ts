@@ -9,7 +9,7 @@ export const DEPLOY_DOMAIN = import.meta.env.VITE_DEPLOY_DOMAIN || 'http://local
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
 // 静态资源地址
-export const STATIC_BASE_URL = `${API_BASE_URL}/app/view`
+export const STATIC_BASE_URL = `${API_BASE_URL}/generator/app/view`
 
 // 获取部署数字产物的完整URL
 export const getDeployUrl = (deployKey: string) => {

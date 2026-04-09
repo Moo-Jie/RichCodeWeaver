@@ -56,17 +56,23 @@
             </div>
           </div>
           <div class="card-body" @click="goToApp(app)">
+            <div class="card-meta-row">
+              <a-tag :color="app.ownershipType === 'collaborator' ? 'default' : 'blue'" class="ownership-tag">
+                {{ app.ownershipType === 'collaborator' ? '协作' : '我的' }}
+              </a-tag>
+              <span class="card-time">{{ formatTime(app.createTime) }}</span>
+            </div>
             <span :title="app.appName" class="card-name">{{ app.appName || '未命名数字产物'
               }}</span>
-            <span class="card-time">{{ formatTime(app.createTime) }}</span>
           </div>
           <div class="card-actions">
-            <button class="action-btn" title="编辑" @click.stop="handleEdit(app)">
+            <button v-if="app.ownershipType !== 'collaborator'" class="action-btn" title="编辑" @click.stop="handleEdit(app)">
               <EditOutlined />
             </button>
-            <button class="action-btn" title="删除" @click.stop="handleDelete(app)">
+            <button v-if="app.ownershipType !== 'collaborator'" class="action-btn" title="删除" @click.stop="handleDelete(app)">
               <DeleteOutlined style="color: #ff4d4f" />
             </button>
+            <span v-if="app.ownershipType === 'collaborator'" class="collab-tip">协作参与</span>
             <span v-if="app.deployKey" class="deploy-tag">已部署</span>
             <span v-else class="status-tag">未部署</span>
           </div>
@@ -405,6 +411,13 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .card-name {
   font-size: 14px;
   font-weight: 600;
@@ -417,6 +430,15 @@ onMounted(() => {
 .card-time {
   font-size: 12px;
   color: #bbb;
+}
+
+.ownership-tag {
+  margin-inline-end: 0;
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  padding-inline: 8px;
 }
 
 .skeleton-card {
@@ -458,6 +480,15 @@ onMounted(() => {
   border-radius: 6px;
   font-weight: 500;
   margin-left: auto;
+}
+
+.collab-tip {
+  font-size: 12px;
+  color: #57606a;
+  background: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  padding: 4px 10px;
 }
 
 .status-tag {

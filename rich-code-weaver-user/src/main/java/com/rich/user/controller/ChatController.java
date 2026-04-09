@@ -28,7 +28,7 @@ import java.util.List;
  * @since 2026-04-07
  */
 @RestController
-@RequestMapping("/chat")
+@RequestMapping("/user/chat")
 public class ChatController {
 
     @Resource

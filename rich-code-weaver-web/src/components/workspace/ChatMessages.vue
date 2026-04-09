@@ -11,14 +11,30 @@
     <!-- Messages -->
     <div ref="containerRef" class="messages-scroll">
       <div v-for="(msg, index) in messages" :key="index" class="message-row">
-        <!-- User Message -->
-        <div v-if="msg.type === 'user'" class="msg-user">
-          <div class="msg-bubble msg-bubble--user">{{ msg.content }}</div>
-          <a-avatar :size="32" :src="loginUser.userAvatar" class="msg-avatar">
-            {{ loginUser.userName?.charAt(0) || 'U' }}
+        <div v-if="msg.type === 'user' && msg.isSelf" class="msg-user msg-user--self">
+          <div class="msg-content-wrap msg-content-wrap--self">
+            <div class="msg-meta msg-meta--self">
+              <span class="msg-sender">{{ msg.senderName || loginUser.userName || '我' }}</span>
+              <span v-if="msg.senderRoleLabel" class="msg-role-pill">{{ msg.senderRoleLabel }}</span>
+            </div>
+            <div class="msg-bubble msg-bubble--user">{{ msg.content }}</div>
+          </div>
+          <a-avatar :size="32" :src="msg.senderAvatar || loginUser.userAvatar" class="msg-avatar">
+            {{ (msg.senderName || loginUser.userName)?.charAt(0) || 'U' }}
           </a-avatar>
         </div>
-        <!-- AI Message -->
+        <div v-else-if="msg.type === 'user'" class="msg-user msg-user--other">
+          <a-avatar :size="32" :src="msg.senderAvatar" class="msg-avatar">
+            {{ msg.senderName?.charAt(0) || 'U' }}
+          </a-avatar>
+          <div class="msg-content-wrap">
+            <div class="msg-meta">
+              <span class="msg-sender">{{ msg.senderName || '协作者' }}</span>
+              <span v-if="msg.senderRoleLabel" class="msg-role-pill">{{ msg.senderRoleLabel }}</span>
+            </div>
+            <div class="msg-bubble msg-bubble--other-user">{{ msg.content }}</div>
+          </div>
+        </div>
         <div v-else class="msg-ai">
           <a-avatar :size="32" :src="aiAvatarSrc" class="msg-avatar msg-avatar--ai" />
           <div class="msg-bubble msg-bubble--ai">
@@ -51,6 +67,10 @@ interface Message {
   content: string
   loading?: boolean
   createTime?: string
+  senderName?: string
+  senderAvatar?: string
+  senderRoleLabel?: string
+  isSelf?: boolean
 }
 
 interface Props {
@@ -233,9 +253,16 @@ defineExpose({ scrollToBottom })
 
 .msg-user {
   display: flex;
-  justify-content: flex-end;
   align-items: flex-start;
   gap: 10px;
+}
+
+.msg-user--self {
+  justify-content: flex-end;
+}
+
+.msg-user--other {
+  justify-content: flex-start;
 }
 
 .msg-ai {
@@ -253,8 +280,48 @@ defineExpose({ scrollToBottom })
   background: #f5f5f5;
 }
 
-.msg-bubble {
+.msg-content-wrap {
   max-width: 70%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.msg-content-wrap--self {
+  align-items: flex-end;
+}
+
+.msg-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.msg-meta--self {
+  justify-content: flex-end;
+}
+
+.msg-sender {
+  font-size: 12px;
+  font-weight: 600;
+  color: #24292f;
+}
+
+.msg-role-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid #d0d7de;
+  background: #f6f8fa;
+  color: #57606a;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.msg-bubble {
   padding: 12px 16px;
   border-radius: 14px;
   line-height: 1.6;
@@ -266,6 +333,13 @@ defineExpose({ scrollToBottom })
   background: #1a1a1a;
   color: #fff;
   border-bottom-right-radius: 4px;
+}
+
+.msg-bubble--other-user {
+  background: #f6f8fa;
+  color: #1f2328;
+  border: 1px solid #e6ebf1;
+  border-bottom-left-radius: 4px;
 }
 
 .msg-bubble--ai {

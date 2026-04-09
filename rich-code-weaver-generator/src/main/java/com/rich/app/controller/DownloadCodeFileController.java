@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @create 2026/1/4
  **/
 @RestController
-@RequestMapping("/download")
+@RequestMapping("/generator/download")
 public class DownloadCodeFileController {
     @Resource
     private AppService appService;

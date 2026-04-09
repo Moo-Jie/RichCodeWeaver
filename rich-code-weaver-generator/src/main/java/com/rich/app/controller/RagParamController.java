@@ -26,7 +26,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/rag/param")
+@RequestMapping("/generator/rag/param")
 public class RagParamController {
 
     @Resource

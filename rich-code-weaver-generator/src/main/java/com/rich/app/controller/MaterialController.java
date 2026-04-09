@@ -36,7 +36,7 @@ import java.util.function.Consumer;
  * @create 2026/3/30
  */
 @RestController
-@RequestMapping("/material")
+@RequestMapping("/generator/material")
 @Slf4j
 public class MaterialController {
 

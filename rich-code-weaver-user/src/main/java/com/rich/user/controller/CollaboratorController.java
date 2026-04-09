@@ -1,6 +1,5 @@
 package com.rich.user.controller;
 
-import cn.hutool.json.JSONUtil;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
@@ -20,7 +19,6 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -32,7 +30,7 @@ import java.util.Map;
  * @since 2026-04-07
  */
 @RestController
-@RequestMapping("/collaborator")
+@RequestMapping("/user/collaborator")
 public class CollaboratorController {
 
     @Resource
@@ -97,7 +95,7 @@ public class CollaboratorController {
                 loginUser.getId(), inviteRequest.getUserId(),
                 contentJson.toString(), "collab_invite");
 
-        // 通过WebSocket实时推送聊天消息
+        // 通过 WebSocket 实时推送聊天消息
         chatWebSocketHandler.pushChatMessage(
                 loginUser.getId(), inviteRequest.getUserId(), messageVO);
 

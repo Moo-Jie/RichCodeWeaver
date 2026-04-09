@@ -31,7 +31,7 @@ import java.util.List;
  * @since 2026-03-12
  */
 @RestController
-@RequestMapping("/promptTemplate")
+@RequestMapping("/prompt/promptTemplate")
 public class PromptTemplateController {
 
     @Resource

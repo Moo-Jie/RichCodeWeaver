@@ -97,9 +97,12 @@
     <!-- App List -->
     <div class="sidebar-apps">
       <transition name="fade-text">
-        <div v-show="!appStore.sidebarCollapsed" class="apps-header">我的产物</div>
+        <div v-show="!appStore.sidebarCollapsed" class="apps-header-row" @click="toggleAppsSection">
+          <div class="apps-header">我的产物</div>
+          <DownOutlined :class="['apps-arrow', { expanded: appsSectionExpanded }]" />
+        </div>
       </transition>
-      <SidebarAppList />
+      <SidebarAppList v-show="appStore.sidebarCollapsed || appsSectionExpanded" />
     </div>
 
     <!-- Friend & Chat Icons -->
@@ -208,6 +211,7 @@ const router = useRouter()
 const route = useRoute()
 const adminMenuExpanded = ref(false)
 const aboutMenuExpanded = ref(false)
+const appsSectionExpanded = ref(true)
 
 const baseNavItems = [
   { path: '/', label: '主页', icon: HomeOutlined },
@@ -243,6 +247,10 @@ const toggleAdminMenu = () => {
 
 const toggleAboutMenu = () => {
   aboutMenuExpanded.value = !aboutMenuExpanded.value
+}
+
+const toggleAppsSection = () => {
+  appsSectionExpanded.value = !appsSectionExpanded.value
 }
 
 const isActive = (path: string) => {
@@ -452,20 +460,34 @@ const doLogout = async () => {
 /* App List */
 .sidebar-apps {
   flex: 1;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
   min-height: 0;
 }
 
+.apps-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 6px;
+  cursor: pointer;
+}
+
 .apps-header {
-  padding: 8px 20px 4px;
-  font-size: 12px;
-  color: #999;
+  font-size: 11px;
   font-weight: 500;
+  color: #bbb;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  flex-shrink: 0;
+}
+
+.apps-arrow {
+  font-size: 10px;
+  color: #bbb;
+  transition: transform 0.2s ease;
+}
+
+.apps-arrow.expanded {
+  transform: rotate(180deg);
 }
 
 /* Social Icons (Friend & Chat) */

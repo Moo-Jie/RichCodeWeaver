@@ -54,6 +54,7 @@ declare namespace API {
     userId?: number
     createTime?: string
     updateTime?: string
+    ownershipType?: 'mine' | 'collaborator'
     user?: UserVO
   }
 
@@ -66,6 +67,12 @@ declare namespace API {
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
+    message?: string
+  }
+
+  type BaseResponseListAppVO = {
+    code?: number
+    data?: AppVO[]
     message?: string
   }
 

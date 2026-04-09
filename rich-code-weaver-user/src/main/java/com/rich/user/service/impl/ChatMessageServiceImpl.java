@@ -128,11 +128,10 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
         // 组装VO分页
         Map<Long, User> finalUserMap = userMap;
-        Map<Long, AppCollaborator> finalCollaboratorMap = collaboratorMap;
         Page<ChatMessageVO> voPage = new Page<>(pageNum, pageSize, messagePage.getTotalRow());
-        List<ChatMessageVO> voList = messagePage.getRecords().stream().map(m -> {
-            return buildMessageVO(m, finalUserMap.get(m.getSenderId()), finalCollaboratorMap);
-        }).collect(Collectors.toList());
+        List<ChatMessageVO> voList = messagePage.getRecords().stream()
+                .map(m -> buildMessageVO(m, finalUserMap.get(m.getSenderId()), collaboratorMap))
+                .collect(Collectors.toList());
         voPage.setRecords(voList);
         return voPage;
     }

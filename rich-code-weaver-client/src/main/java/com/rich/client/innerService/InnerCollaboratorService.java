@@ -27,4 +27,12 @@ public interface InnerCollaboratorService {
      * @return 协作者用户id列表
      */
     List<Long> listCollaboratorUserIds(Long appId);
+
+    /**
+     * 获取用户已接受的协作产物id列表
+     *
+     * @param userId 用户id
+     * @return 协作产物id列表
+     */
+    List<Long> listCollaboratedAppIds(Long userId);
 }

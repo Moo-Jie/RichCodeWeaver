@@ -25,12 +25,14 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     /**
      * 注册WebSocket处理器
-     * 端点: /ws/chat（最终对外路径会自动带上 context-path=/api）
+     * 端点: /user/ws/chat（最终对外路径会自动带上 context-path=/api）
      * 允许所有来源的跨域请求（生产环境应限制来源）
      */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(chatWebSocketHandler, "/ws/chat")
+        // 注册处理器，用于处理 /user/ws/chat 路径的连接
+        registry.addHandler(chatWebSocketHandler, "/user/ws/chat")
+                // 注册监听器
                 .addInterceptors(chatWebSocketInterceptor)
                 .setAllowedOrigins("*");
     }

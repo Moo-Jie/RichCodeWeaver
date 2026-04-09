@@ -47,15 +47,17 @@
           :key="friend.id"
           class="friend-item"
         >
-          <a-avatar :size="38" :src="friend.friendAvatar">
-            {{ friend.friendName?.charAt(0) || 'U' }}
-          </a-avatar>
-          <div class="friend-info">
-            <div class="friend-name">{{ friend.friendName }}</div>
-          </div>
+          <button class="friend-user" type="button" @click="openProfile(friend.friendId, friend.friendName, friend.friendAvatar)">
+            <a-avatar :size="38" :src="friend.friendAvatar">
+              {{ friend.friendName?.charAt(0) || 'U' }}
+            </a-avatar>
+            <div class="friend-info">
+              <div class="friend-name">{{ friend.friendName }}</div>
+            </div>
+          </button>
           <div class="friend-actions">
             <a-tooltip title="发消息">
-              <a-button type="text" size="small" @click="startChat(friend)">
+              <a-button type="text" size="small" @click.stop="startChat(friend)">
                 <MessageOutlined />
               </a-button>
             </a-tooltip>
@@ -83,19 +85,21 @@
           :key="req.id"
           class="friend-item pending-item"
         >
-          <a-avatar :size="38" :src="req.friendAvatar">
-            {{ req.friendName?.charAt(0) || 'U' }}
-          </a-avatar>
-          <div class="friend-info">
-            <div class="friend-name">{{ req.friendName }}</div>
-            <div class="friend-remark" v-if="req.remark">{{ req.remark }}</div>
-          </div>
+          <button class="friend-user" type="button" @click="openProfile(req.userId, req.friendName, req.friendAvatar)">
+            <a-avatar :size="38" :src="req.friendAvatar">
+              {{ req.friendName?.charAt(0) || 'U' }}
+            </a-avatar>
+            <div class="friend-info">
+              <div class="friend-name">{{ req.friendName }}</div>
+              <div class="friend-remark" v-if="req.remark">{{ req.remark }}</div>
+            </div>
+          </button>
           <div class="friend-actions">
-            <a-button type="primary" size="small" @click="doHandleRequest(req.id!, 1)">
+            <a-button type="primary" size="small" @click.stop="req.id && doHandleRequest(req.id, 1)">
               <CheckOutlined />
               同意
             </a-button>
-            <a-button size="small" danger @click="doHandleRequest(req.id!, 2)">
+            <a-button size="small" danger @click.stop="req.id && doHandleRequest(req.id, 2)">
               <CloseOutlined />
               拒绝
             </a-button>
@@ -125,27 +129,35 @@
           :key="user.id"
           class="friend-item"
         >
-          <a-avatar :size="38" :src="user.userAvatar">
-            {{ user.userName?.charAt(0) || 'U' }}
-          </a-avatar>
-          <div class="friend-info">
-            <div class="friend-name">{{ user.userName }}</div>
-            <div class="friend-remark" v-if="user.userProfile">{{ user.userProfile }}</div>
-          </div>
+          <button class="friend-user" type="button" @click="openProfile(user.id, user.userName, user.userAvatar)">
+            <a-avatar :size="38" :src="user.userAvatar">
+              {{ user.userName?.charAt(0) || 'U' }}
+            </a-avatar>
+            <div class="friend-info">
+              <div class="friend-name">{{ user.userName }}</div>
+              <div class="friend-remark" v-if="user.userProfile">{{ user.userProfile }}</div>
+            </div>
+          </button>
           <div class="friend-actions">
             <a-button
               type="primary"
               size="small"
-              :disabled="isFriend(user.id!)"
-              @click="doAddFriend(user.id!)"
+              :disabled="!user.id || isFriend(user.id)"
+              @click.stop="user.id && doAddFriend(user.id)"
             >
               <PlusOutlined />
-              {{ isFriend(user.id!) ? '已是好友' : '添加' }}
+              {{ user.id && isFriend(user.id) ? '已是好友' : '添加' }}
             </a-button>
           </div>
         </div>
       </div>
     </div>
+    <UserProfileModal
+      v-model:open="profileOpen"
+      :seed-avatar="profileSeedAvatar"
+      :seed-name="profileSeedName"
+      :user-id="activeProfileUserId"
+    />
   </a-drawer>
 </template>
 
@@ -154,6 +166,7 @@ import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { useChatStore } from '@/stores/chatStore'
 import { searchUsers, sendFriendRequest, handleFriendRequest, removeFriend } from '@/api/friendController'
+import UserProfileModal from '@/components/UserProfileModal.vue'
 import {
   BellOutlined,
   CheckOutlined,
@@ -178,6 +191,18 @@ const searchResults = ref<API.UserVO[]>([])
 const searching = ref(false)
 /** 是否已执行过搜索 */
 const searchDone = ref(false)
+const profileOpen = ref(false)
+const activeProfileUserId = ref<number>()
+const profileSeedName = ref('')
+const profileSeedAvatar = ref('')
+
+function openProfile(userId?: number, userName?: string, userAvatar?: string) {
+  if (!userId) return
+  activeProfileUserId.value = userId
+  profileSeedName.value = userName || ''
+  profileSeedAvatar.value = userAvatar || ''
+  profileOpen.value = true
+}
 
 /**
  * 搜索用户
@@ -348,6 +373,19 @@ function isFriend(userId: number): boolean {
   padding: 10px 12px;
   border-radius: 8px;
   transition: background 0.15s ease;
+}
+
+.friend-user {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
 }
 
 .friend-item:hover {

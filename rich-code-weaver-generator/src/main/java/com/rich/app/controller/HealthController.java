@@ -13,7 +13,7 @@ import java.util.Map;
  * 健康检查接口
  */
 @RestController
-@RequestMapping("/app/health")
+@RequestMapping("/generator/app/health")
 public class HealthController {
 
     @GetMapping("/check")

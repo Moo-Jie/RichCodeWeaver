@@ -12,9 +12,12 @@
           <img v-else alt="默认封面" class="default-cover" src="@/assets/logo.png" />
         </div>
         <transition name="fade-text">
-          <span v-show="!appStore.sidebarCollapsed" class="app-name">
-            {{ app.appName || '未命名数字产物' }}
-          </span>
+          <div v-show="!appStore.sidebarCollapsed" class="app-info">
+            <span class="app-name">{{ app.appName || '未命名数字产物' }}</span>
+            <a-tag :color="app.ownershipType === 'collaborator' ? 'default' : 'blue'" class="app-tag">
+              {{ app.ownershipType === 'collaborator' ? '协作' : '我的' }}
+            </a-tag>
+          </div>
         </transition>
       </div>
       <div v-if="appStore.myApps.length === 0 && !appStore.sidebarCollapsed" class="empty-tip">
@@ -142,6 +145,23 @@ const handleSelect = (app: API.AppVO) => {
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.3;
+}
+
+.app-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.app-tag {
+  flex-shrink: 0;
+  margin-inline-end: 0;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  padding-inline: 7px;
 }
 
 .empty-tip {

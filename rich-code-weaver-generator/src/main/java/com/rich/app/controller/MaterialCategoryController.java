@@ -33,7 +33,7 @@ import java.util.List;
  * @create 2026/3/30
  */
 @RestController
-@RequestMapping("/material/category")
+@RequestMapping("/generator/material/category")
 @Slf4j
 public class MaterialCategoryController {
 

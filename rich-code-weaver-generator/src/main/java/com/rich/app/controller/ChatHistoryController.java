@@ -26,7 +26,7 @@ import java.time.LocalDateTime;
  * @since 2026-03-10
  */
 @RestController
-@RequestMapping("/chatHistory")
+@RequestMapping("/generator/chatHistory")
 public class ChatHistoryController {
 
     @Resource

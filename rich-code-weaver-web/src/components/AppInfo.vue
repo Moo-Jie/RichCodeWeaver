@@ -7,11 +7,37 @@
     width="600px"
   >
     <div class="app-detail-content">
+      <div class="detail-hero">
+        <img v-if="app?.cover" :src="app.cover" alt="数字产物封面" class="detail-cover" />
+        <div v-else class="detail-cover detail-cover--placeholder">
+          <AppstoreOutlined />
+        </div>
+        <div class="detail-hero-body">
+          <div class="detail-hero-topline">
+            <h3 class="detail-title">{{ app?.appName || '未命名数字产物' }}</h3>
+            <span v-if="ownershipLabel" :class="['detail-pill', `detail-pill--${app?.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`]">
+              {{ ownershipLabel }}
+            </span>
+          </div>
+          <div class="detail-hero-meta">
+            <span>{{ formatCodeGenType(app?.codeGenType) || '未知类型' }}</span>
+            <span>·</span>
+            <span>{{ collaborators.length }} 位协作者</span>
+          </div>
+          <div class="detail-hero-status">
+            <span :class="['detail-pill', app?.deployKey ? 'detail-pill--success' : 'detail-pill--muted']">
+              {{ app?.deployKey ? '已部署' : '未部署' }}
+            </span>
+            <span class="detail-id">ID {{ app?.id || '--' }}</span>
+          </div>
+        </div>
+      </div>
+
       <!-- 基础信息 -->
       <a-descriptions :column="1" class="meta-grid">
         <a-descriptions-item label="数字产物ID">
           <div class="meta-item">
-            <a-tag color="blue">{{ app?.id || '--' }}</a-tag>
+            <span class="inline-pill">{{ app?.id || '--' }}</span>
           </div>
         </a-descriptions-item>
 
@@ -19,6 +45,15 @@
           <div class="meta-item">
             <AppstoreOutlined />
             <span class="app-name">{{ app?.appName || '--' }}</span>
+          </div>
+        </a-descriptions-item>
+
+        <a-descriptions-item label="归属类型">
+          <div class="meta-item">
+            <span v-if="ownershipLabel" :class="['detail-pill', `detail-pill--${app?.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`]">
+              {{ ownershipLabel }}
+            </span>
+            <span v-else>--</span>
           </div>
         </a-descriptions-item>
 
@@ -53,10 +88,9 @@
         <a-descriptions-item label="部署状态">
           <div class="meta-item">
             <CloudServerOutlined />
-            <template v-if="app?.deployKey">
-              <a-tag color="green">已部署</a-tag>
-            </template>
-            <a-tag v-else color="red">未部署</a-tag>
+            <span :class="['detail-pill', app?.deployKey ? 'detail-pill--success' : 'detail-pill--muted']">
+              {{ app?.deployKey ? '已部署' : '未部署' }}
+            </span>
           </div>
         </a-descriptions-item>
 
@@ -66,7 +100,7 @@
             <template v-if="app?.deployKey">
               <span>{{ formatTime(app.deployedTime) }}</span>
             </template>
-            <a-tag v-else color="red"> --</a-tag>
+            <span v-else>--</span>
           </div>
         </a-descriptions-item>
 
@@ -107,6 +141,8 @@
           </div>
         </a-descriptions-item>
       </a-descriptions>
+
+      <AppTeamCard :app="app" :collaborators="collaborators" class="team-card-wrap" />
 
       <!-- 操作栏 -->
       <div v-if="showActions" class="app-actions">
@@ -156,13 +192,16 @@ import {
   UserOutlined
 } from '@ant-design/icons-vue'
 import UserInfo from './UserInfo.vue'
-import { formatTime } from '../utils/timeUtil.ts'
-import { formatCodeGenType } from '../enums/codeGenTypes.ts'
-import AppVO = API.AppVO
+import AppTeamCard from './AppTeamCard.vue'
+import { formatTime } from '../utils/timeUtil'
+import { formatCodeGenType } from '../enums/codeGenTypes'
+
+type AppVO = API.AppVO
 
 interface Props {
   open: boolean
   app?: AppVO
+  collaborators?: API.AppCollaboratorVO[]
   showActions?: boolean
 }
 
@@ -175,6 +214,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  collaborators: () => [],
   showActions: false
 })
 
@@ -183,6 +223,12 @@ const emit = defineEmits<Emits>()
 const visible = computed({
   get: () => props.open,
   set: (value) => emit('update:open', value)
+})
+
+const ownershipLabel = computed(() => {
+  if (props.app?.ownershipType === 'mine') return '我的'
+  if (props.app?.ownershipType === 'collaborator') return '协作'
+  return ''
 })
 
 const getPriorityColor = (priority?: number) => {
@@ -228,17 +274,17 @@ const handleDelete = () => {
 .app-detail-modal {
   :deep(.ant-modal-content) {
     background: #fff;
-    border-radius: 12px;
+    border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    border: 1px solid #f0f0f0;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+    border: 1px solid #e8edf2;
   }
 
   :deep(.ant-modal-header) {
     background: #fff;
-    border-bottom: 1px solid #f0f0f0;
-    border-radius: 12px 12px 0 0;
-    padding: 16px 24px;
+    border-bottom: 1px solid #eef2f5;
+    border-radius: 20px 20px 0 0;
+    padding: 18px 24px;
   }
 
   :deep(.ant-modal-title) {
@@ -253,20 +299,87 @@ const handleDelete = () => {
 }
 
 .app-detail-content {
-  padding: 20px 24px;
+  padding: 22px 24px 24px;
+}
+
+.detail-hero {
+  display: flex;
+  gap: 18px;
+  padding: 16px;
+  margin-bottom: 18px;
+  border: 1px solid #e8edf2;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9fb 100%);
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+.detail-cover {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+}
+
+.detail-cover--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 28px;
+}
+
+.detail-hero-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.detail-hero-topline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 700;
+  color: #24292f;
+}
+
+.detail-hero-meta,
+.detail-hero-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: #656d76;
+}
+
+.detail-id {
+  color: #8c959f;
 }
 
 .meta-grid {
-  background: #fafafa;
-  border-radius: 10px;
-  padding: 16px 20px;
-  border: 1px solid #f0f0f0;
-  margin-bottom: 16px;
+  background: #fbfcfd;
+  border-radius: 18px;
+  padding: 18px 20px;
+  border: 1px solid #e8edf2;
+  margin-bottom: 18px;
 }
 
 :deep(.ant-descriptions-item) {
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #edf1f4;
 }
 
 :deep(.ant-descriptions-item:last-child) {
@@ -276,8 +389,8 @@ const handleDelete = () => {
 
 :deep(.ant-descriptions-item-label) {
   width: 100px;
-  color: #999;
-  font-weight: 500;
+  color: #8c959f;
+  font-weight: 600;
   padding-right: 16px;
   vertical-align: top;
   font-size: 13px;
@@ -292,12 +405,12 @@ const handleDelete = () => {
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 2px 0;
+  gap: 10px;
+  padding: 3px 0;
 
   .anticon {
     font-size: 14px;
-    color: #666;
+    color: #6b7280;
     flex-shrink: 0;
   }
 }
@@ -310,34 +423,76 @@ const handleDelete = () => {
 .cover-img {
   max-width: 120px;
   height: auto;
-  border-radius: 8px;
-  border: 1px solid #f0f0f0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  border: 1px solid #e6ebf1;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.detail-pill,
+.inline-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid #d0d7de;
+  background: #f6f8fa;
+  color: #57606a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.detail-pill--mine {
+  background: #eef6ff;
+  border-color: #c6ddff;
+  color: #245ea6;
+}
+
+.detail-pill--collaborator {
+  background: #f6f8fa;
+  border-color: #d0d7de;
+  color: #57606a;
+}
+
+.detail-pill--success {
+  background: #ecfdf3;
+  border-color: #b7ebc6;
+  color: #137333;
+}
+
+.detail-pill--muted {
+  background: #f6f8fa;
+  border-color: #d0d7de;
+  color: #57606a;
 }
 
 .app-actions {
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  padding: 22px 0 0;
+  border-top: 1px solid #eef2f5;
   display: flex;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.team-card-wrap {
+  margin: 0 0 18px;
 }
 
 .edit-btn {
-  background: #1a1a1a;
-  border: none;
+  background: #1f2328;
+  border: 1px solid #1f2328;
   color: #fff;
-  border-radius: 10px;
-  height: 36px;
-  font-weight: 500;
+  border-radius: 12px;
+  height: 40px;
+  font-weight: 600;
   font-size: 14px;
   transition: all 0.2s ease;
   padding: 0 20px;
 
   &:hover {
-    background: #333;
+    background: #2f363d;
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
   }
 
   &:active {
@@ -346,20 +501,30 @@ const handleDelete = () => {
 }
 
 .delete-btn {
-  border-radius: 10px;
-  height: 36px;
-  font-weight: 500;
+  border-radius: 12px;
+  height: 40px;
+  font-weight: 600;
   font-size: 14px;
   transition: all 0.2s ease;
-  border-color: #ff4d4f;
+  border-color: #f1c0c0;
 
   &:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(255, 77, 79, 0.15);
+    box-shadow: 0 12px 24px rgba(239, 68, 68, 0.12);
   }
 
   &:active {
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .detail-hero {
+    flex-direction: column;
+  }
+
+  .app-actions {
+    justify-content: stretch;
   }
 }
 </style>

@@ -40,7 +40,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private UserFriendshipService userFriendshipService;
 
     /**
-     * WebSocket连接建立后，将用户加入在线映射
+     * WebSocket连接建立后，将用户加入在线用户的映射表中
      *
      * @param session WebSocket会话
      */
