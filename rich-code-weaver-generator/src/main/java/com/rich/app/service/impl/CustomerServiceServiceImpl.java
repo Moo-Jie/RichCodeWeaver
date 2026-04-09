@@ -123,6 +123,8 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     }
 
     private void startAiResponseStreaming(Long conversationId, String sessionKey, String userMessage, VisitorContext visitorContext) {
+        log.info("【AI 客服】开始调用 AI，conversationId={}，CUSTOMER_SERVICE RAG 启用状态={}",
+                conversationId, aiCustomerServiceFactory.isCustomerServiceRagEnabled());
         AiCustomerService customerService = aiCustomerServiceFactory.getCustomerService(conversationId);
         StringBuilder aiResponseBuilder = new StringBuilder();
         Flux<String> responseFlux = convertCustomerServiceTokenStreamToFluxUtils.convertTokenStreamToFlux(

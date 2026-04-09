@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 /**
  * 基于数据库的 RAG 参数提供者实现
- * 从 rag_param 表中读取运行时参数，替代各 RAG 服务中写死的常量
  *
  * @author DuRuiChi
  * @create 2026/3/27

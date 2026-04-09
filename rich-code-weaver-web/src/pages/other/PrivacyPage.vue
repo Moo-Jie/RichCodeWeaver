@@ -22,7 +22,7 @@
         </p>
         <p class="section-text">
           如对本《隐私政策》或相关事宜有任何问题，请通过
-          <strong>NotProvidedTemporarily@xxx.com</strong> 与我们联系。
+          <strong>NotProvidedTemporarilyRUBY 智能助手.com</strong> 与我们联系。
         </p>
       </section>
 

@@ -59,6 +59,10 @@ public class AiCustomerServiceFactory {
         return caffeineCache.get(conversationId, key -> createCustomerService(conversationId));
     }
 
+    public boolean isCustomerServiceRagEnabled() {
+        return ragContentRetrieverAugmentorFactory != null;
+    }
+
     private AiCustomerService createCustomerService(Long conversationId) {
         String systemPrompt = innerSystemPromptService.getPromptContentByKey(CUSTOMER_SERVICE_PROMPT_KEY);
         if (systemPrompt == null || systemPrompt.isBlank()) {

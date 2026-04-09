@@ -146,7 +146,8 @@ public class RagContentRetrieverAugmentorFactory {
     public RetrievalAugmentor createCustomerServiceRetrievalAugmentor() {
         log.info("【RAG 检索增强-客服】为 AI 客服创建 RetrievalAugmentor");
         RetrievalAugmentor augmentor = buildRetrievalAugmentor(
-                metadataKey("bizType").isEqualTo(CUSTOMER_SERVICE_BIZ_TYPE)
+                metadataKey("bizType").isEqualTo(CUSTOMER_SERVICE_BIZ_TYPE),
+                "RAG 检索-客服"
         );
         log.info("【RAG 检索增强-客服】RetrievalAugmentor 创建完成，bizType={}", CUSTOMER_SERVICE_BIZ_TYPE);
         return augmentor;
@@ -164,6 +165,10 @@ public class RagContentRetrieverAugmentorFactory {
      * @return RetrievalAugmentor 检索增强器实例
      */
     private RetrievalAugmentor buildRetrievalAugmentor(Filter metadataFilter) {
+        return buildRetrievalAugmentor(metadataFilter, null);
+    }
+
+    private RetrievalAugmentor buildRetrievalAugmentor(Filter metadataFilter, String retrieverLogTag) {
 
         // 步骤1：加载 RAG 参数（从数据库或使用默认值）
         int maxResults = ragParamProvider != null ? ragParamProvider.getMaxResults() : 5;
@@ -173,13 +178,22 @@ public class RagContentRetrieverAugmentorFactory {
 
         // 步骤2：构建 ContentRetriever（内容检索器）
         // 基于 PGVector 的向量相似度检索，附加 codeGenType 元数据过滤
-        ContentRetriever contentRetriever = EmbeddingStoreContentRetriever.builder()
+        ContentRetriever delegateContentRetriever = EmbeddingStoreContentRetriever.builder()
                 .embeddingStore(embeddingStore)       // 向量存储（PGVector）
                 .embeddingModel(embeddingModel)       // 向量模型（用于查询向量化）
                 .maxResults(maxResults)               // 最大检索结果数
                 .minScore(minScore)                   // 最低相似度阈值
                 .filter(metadataFilter)               // 元数据过滤器（按 codeGenType 过滤）
                 .build();
+
+        ContentRetriever contentRetriever = delegateContentRetriever;
+        if (retrieverLogTag != null && !retrieverLogTag.isBlank()) {
+            contentRetriever = query -> {
+                var contents = delegateContentRetriever.retrieve(query);
+                log.info("【{}】已执行知识库检索，命中 {} 条内容", retrieverLogTag, contents.size());
+                return contents;
+            };
+        }
 
         // 步骤3：构建 ContentInjector（内容注入器）
         // 使用自定义提示词模板，将检索到的知识库内容以权威参考形式注入用户消息
