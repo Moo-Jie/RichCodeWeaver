@@ -2,8 +2,9 @@
   <div class="workspace">
     <!-- Default view: no app selected -->
     <template v-if="!appStore.hasSelectedApp && !appId">
-      <div class="workspace-home">
-        <div class="home-scroll">
+      <div class="workspace-home-layout">
+        <div class="workspace-home">
+          <div class="home-scroll">
           <!-- Greeting -->
           <div ref="greetingRef" class="greeting">
             <img alt="Logo" class="greeting-logo" src="@/assets/logo.png" />
@@ -65,6 +66,26 @@
               </div>
             </div>
           </div>
+
+          <div class="section quick-send-section">
+            <div class="section-header">
+              <span class="section-title">快捷发送</span>
+              <span class="section-tag">静态推荐</span>
+            </div>
+            <div class="quick-send-grid">
+              <button
+                v-for="item in quickSendPrompts"
+                :key="item.title"
+                class="quick-send-card"
+                @click="handleQuickSend(item.prompt)"
+              >
+                <span class="quick-send-kicker">一键发起</span>
+                <span class="quick-send-title">{{ item.title }}</span>
+                <span class="quick-send-desc">{{ item.description }}</span>
+                <span class="quick-send-action">立即发送</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Chat Input at bottom -->
@@ -88,6 +109,8 @@
           @remove-material="removeMaterial"
           @clear-materials="clearMaterials"
         />
+        </div>
+        <CustomerServicePanel />
       </div>
 
     </template>
@@ -259,6 +282,7 @@ import { parseBatchContent, StreamChunkParserContext, type TaskPlanData } from '
 import request from '@/request'
 import { checkCollaborator, listCollaborators } from '@/api/collaboratorController'
 import ChatInput from '@/components/workspace/ChatInput.vue'
+import CustomerServicePanel from '@/components/workspace/CustomerServicePanel.vue'
 import ChatMessages from '@/components/workspace/ChatMessages.vue'
 import ModeSwitch from '@/components/workspace/ModeSwitch.vue'
 import AppPreview from '@/components/workspace/AppPreview.vue'
@@ -283,7 +307,6 @@ const userPrompt = ref('')
 const useAgentMode = ref(true)
 const creating = ref(false)
 const optimizing = ref(false)
-const chatInputRef = ref()
 
 // === Material Selector State ===
 const materialSelectorOpen = ref(false)
@@ -379,7 +402,7 @@ const openTemplateDialog = (tpl: API.PromptTemplateVO) => {
 const handleTemplateConfirm = (prompt: string) => {
   userPrompt.value = prompt
   nextTick(() => {
-    chatInputRef.value?.resetHeight()
+    chatInputWrapRef.value?.resetHeight?.()
   })
 }
 
@@ -402,6 +425,39 @@ const getColorSchemePreview = (tpl: API.PromptTemplateVO): string[] => {
   } catch {
     return []
   }
+}
+
+const quickSendPrompts = [
+  {
+    title: '企业官网首页',
+    description: '适合快速生成品牌介绍、产品亮点与联系方式页面。',
+    prompt: '帮我生成一个简洁高级的企业官网首页，包含品牌介绍、核心服务、成功案例、客户评价和联系我们模块。'
+  },
+  {
+    title: '活动报名落地页',
+    description: '适合发布活动信息、亮点日程和报名入口。',
+    prompt: '帮我生成一个活动报名落地页，包含活动亮点、议程安排、嘉宾介绍、报名表单和常见问题模块。'
+  },
+  {
+    title: '产品展示页',
+    description: '适合展示 SaaS、工具产品或解决方案能力。',
+    prompt: '帮我生成一个科技感产品展示页，突出产品功能、使用流程、价格方案、用户评价和行动按钮。'
+  },
+  {
+    title: '个人作品集',
+    description: '适合设计师、开发者或自由职业者展示案例。',
+    prompt: '帮我生成一个个人作品集网站，包含个人介绍、代表作品、技能清单、服务内容和联系入口。'
+  }
+]
+
+const handleQuickSend = async (prompt: string) => {
+  if (creating.value || optimizing.value) {
+    return
+  }
+  userPrompt.value = prompt
+  await nextTick()
+  chatInputWrapRef.value?.resetHeight?.()
+  await handleCreate()
 }
 
 // === App Chat State ===
@@ -639,7 +695,7 @@ const handleOptimizePrompt = async () => {
     if (res.data.code === 0 && res.data.data) {
       userPrompt.value = res.data.data
       nextTick(() => {
-        chatInputRef.value?.resetHeight()
+        chatInputWrapRef.value?.resetHeight?.()
       })
       message.success('提示词优化成功')
     } else {
@@ -747,7 +803,7 @@ const fetchChatHistory = async (loadMore = false) => {
 
         return {
           type: 'ai',
-          content: parseBatchContent(item.message),
+          content: parseBatchContent(item.message || ''),
           createTime: item.createTime
         }
       })
@@ -946,7 +1002,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       if (materialIdsToSend && !reconnectMode) {
         params.set('materialIds', materialIdsToSend)
       }
-      const url = `${baseURL}/app/gen/code/stream?${params}`
+      const url = `${baseURL}/generator/app/gen/code/stream?${params}`
       eventSource = new EventSource(url, { withCredentials: true })
 
       eventSource.onmessage = function(event) {
@@ -1416,6 +1472,15 @@ const handleIframeMessage = (event: MessageEvent) => {
 }
 
 /* ====== Home view (no app) ====== */
+.workspace-home-layout {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 16px 16px 16px 0;
+}
+
 .workspace-home {
   flex: 1;
   display: flex;
@@ -1427,20 +1492,17 @@ const handleIframeMessage = (event: MessageEvent) => {
 .home-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 36px 32px 0;
+  padding: 24px 32px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
+  gap: 24px;
+  scrollbar-width: none;
 }
 
 .home-scroll::-webkit-scrollbar {
-  width: 4px;
-}
-
-.home-scroll::-webkit-scrollbar-thumb {
-  background: #e0e0e0;
-  border-radius: 4px;
+  width: 0;
+  height: 0;
 }
 
 .greeting {
@@ -1637,6 +1699,70 @@ const handleIframeMessage = (event: MessageEvent) => {
 .prompt-desc {
   font-size: 12px;
   color: #bbb;
+}
+
+.quick-send-section {
+  margin-top: -4px;
+}
+
+.quick-send-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.quick-send-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  background: #fcfcfc;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.quick-send-card:hover {
+  background: #fff;
+  border-color: #dcdcdc;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.quick-send-kicker {
+  font-size: 11px;
+  line-height: 1.2;
+  color: #8c8c8c;
+}
+
+.quick-send-title {
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.quick-send-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #666;
+}
+
+.quick-send-action {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+@media (max-width: 900px) {
+  .quick-send-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ====== App selected view ====== */

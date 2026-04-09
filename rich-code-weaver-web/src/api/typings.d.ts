@@ -602,6 +602,7 @@ declare namespace API {
 
   type RagDocumentVO = {
     id?: number
+    bizType?: string
     docTitle?: string
     docContent?: string
     codeGenType?: string
@@ -614,6 +615,7 @@ declare namespace API {
   }
 
   type RagDocumentAddRequest = {
+    bizType?: string
     docTitle?: string
     docContent?: string
     codeGenType?: string
@@ -624,6 +626,7 @@ declare namespace API {
 
   type RagDocumentUpdateRequest = {
     id?: number
+    bizType?: string
     docTitle?: string
     docContent?: string
     codeGenType?: string
@@ -635,6 +638,7 @@ declare namespace API {
   type RagDocumentQueryRequest = {
     pageNum?: number
     pageSize?: number
+    bizType?: string
     docTitle?: string
     codeGenType?: string
     isEnabled?: number
@@ -658,6 +662,49 @@ declare namespace API {
     code?: number
     data?: PageRagDocumentVO
     message?: string
+  }
+
+  // ===== Customer Service Types =====
+
+  type CustomerServiceConversationVO = {
+    id?: number
+    title?: string
+    lastMessagePreview?: string
+    lastMessageTime?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  type CustomerServiceMessageVO = {
+    id?: number
+    conversationId?: number
+    senderType?: string
+    content?: string
+    createTime?: string
+  }
+
+  type BaseResponseCustomerServiceConversationVO = {
+    code?: number
+    data?: CustomerServiceConversationVO
+    message?: string
+  }
+
+  type BaseResponseListCustomerServiceConversationVO = {
+    code?: number
+    data?: CustomerServiceConversationVO[]
+    message?: string
+  }
+
+  type BaseResponseListCustomerServiceMessageVO = {
+    code?: number
+    data?: CustomerServiceMessageVO[]
+    message?: string
+  }
+
+  type listCustomerServiceMessagesParams = {
+    conversationId: number
+    pageSize?: number
+    lastCreateTime?: string
   }
 
   // ===== RAG Param Types =====

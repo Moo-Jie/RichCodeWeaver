@@ -3,6 +3,7 @@ package com.rich.app.rag;
 import com.rich.ai.rag.RagDocumentProvider;
 import com.rich.app.service.RagDocumentService;
 import com.rich.model.entity.RagDocument;
+import com.rich.model.enums.RagDocumentBizTypeEnum;
 import dev.langchain4j.data.document.Document;
 import dev.langchain4j.data.document.Metadata;
 import jakarta.annotation.Resource;
@@ -49,8 +50,13 @@ public class DbRagDocumentProvider implements RagDocumentProvider {
             }
 
             String title = dbDoc.getDocTitle() != null ? dbDoc.getDocTitle() : "未知文档";
+            String bizType = dbDoc.getBizType();
+            if (bizType == null || bizType.isBlank()) {
+                bizType = RagDocumentBizTypeEnum.CODE_GEN.getValue();
+            }
 
             Metadata metadata = new Metadata();
+            metadata.put("bizType", bizType);
             metadata.put("codeGenType", codeGenType);
             metadata.put("source", title);
             metadata.put("title", title);

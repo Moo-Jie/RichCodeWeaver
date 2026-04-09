@@ -16,6 +16,7 @@ import com.rich.model.dto.ragdocument.RagDocumentAddRequest;
 import com.rich.model.dto.ragdocument.RagDocumentQueryRequest;
 import com.rich.model.dto.ragdocument.RagDocumentUpdateRequest;
 import com.rich.model.entity.RagDocument;
+import com.rich.model.enums.RagDocumentBizTypeEnum;
 import com.rich.model.vo.RagDocumentVO;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,10 +55,14 @@ public class RagDocumentController {
         ThrowUtils.throwIf(addRequest == null, ErrorCode.PARAMS_ERROR);
         ThrowUtils.throwIf(addRequest.getDocTitle() == null || addRequest.getDocTitle().isBlank(),
                 ErrorCode.PARAMS_ERROR, "文档标题不能为空");
-        ThrowUtils.throwIf(addRequest.getDocContent() == null || addRequest.getDocContent().isBlank(),
-                ErrorCode.PARAMS_ERROR, "文档内容不能为空");
         RagDocument ragDocument = new RagDocument();
         BeanUtil.copyProperties(addRequest, ragDocument);
+        if (ragDocument.getBizType() == null || ragDocument.getBizType().isBlank()) {
+            ragDocument.setBizType(RagDocumentBizTypeEnum.CODE_GEN.getValue());
+        }
+        if (ragDocument.getDocContent() == null) {
+            ragDocument.setDocContent("");
+        }
         if (ragDocument.getIsEnabled() == null) {
             ragDocument.setIsEnabled(1);
         }
@@ -80,6 +85,12 @@ public class RagDocumentController {
         }
         RagDocument ragDocument = new RagDocument();
         BeanUtil.copyProperties(updateRequest, ragDocument);
+        if (ragDocument.getBizType() == null || ragDocument.getBizType().isBlank()) {
+            RagDocument oldDoc = ragDocumentService.getById(updateRequest.getId());
+            if (oldDoc != null && oldDoc.getBizType() != null) {
+                ragDocument.setBizType(oldDoc.getBizType());
+            }
+        }
         boolean result = ragDocumentService.updateById(ragDocument);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return ResultUtils.success(true);

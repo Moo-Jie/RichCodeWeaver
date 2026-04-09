@@ -262,6 +262,7 @@ public class RagDocumentIndexCreationService {
             String codeGenType = resolveCodeGenType(fileName);
             String docTitle = extractDocumentTitle(doc.text());
             Metadata enrichedMetadata = doc.metadata().copy();
+            enrichedMetadata.put("bizType", com.rich.model.enums.RagDocumentBizTypeEnum.CODE_GEN.getValue());
             enrichedMetadata.put("codeGenType", codeGenType);
             enrichedMetadata.put("source", fileName);
             enrichedMetadata.put("title", docTitle);

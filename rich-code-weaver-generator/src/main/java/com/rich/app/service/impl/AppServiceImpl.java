@@ -59,12 +59,7 @@ import reactor.core.publisher.Flux;
 import java.io.File;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -440,8 +435,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 return ResponseEntity.badRequest().build();
             }
 
-            // 提取资源文件路径（去除前缀 /app/view/{appId}）
-            String pathPrefix = "/app/view/" + appId;
+            // 提取资源文件路径（去除前缀 /generator/app/view/{appId}）
+            String pathPrefix = "/generator/app/view/" + appId;
             resourcePath = resourcePath.substring(pathPrefix.length());
 
             // 当路径为空时自动添加斜杠，避免路径解析问题（重定向到根路径）

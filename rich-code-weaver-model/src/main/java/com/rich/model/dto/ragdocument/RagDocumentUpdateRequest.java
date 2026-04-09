@@ -23,6 +23,11 @@ public class RagDocumentUpdateRequest implements Serializable {
     private Long id;
 
     /**
+     * 文档业务类型：CODE_GEN / CUSTOMER_SERVICE
+     */
+    private String bizType;
+
+    /**
      * 文档标题
      */
     private String docTitle;

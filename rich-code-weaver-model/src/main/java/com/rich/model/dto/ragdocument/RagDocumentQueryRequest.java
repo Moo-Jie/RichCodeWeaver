@@ -22,6 +22,11 @@ public class RagDocumentQueryRequest implements Serializable {
     private Integer pageSize = 10;
 
     /**
+     * 文档业务类型：CODE_GEN / CUSTOMER_SERVICE
+     */
+    private String bizType;
+
+    /**
      * 文档标题（模糊查询）
      */
     private String docTitle;

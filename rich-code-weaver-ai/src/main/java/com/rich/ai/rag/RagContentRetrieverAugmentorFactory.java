@@ -11,6 +11,7 @@ import dev.langchain4j.rag.content.injector.DefaultContentInjector;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.filter.Filter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+import static com.rich.model.enums.RagDocumentBizTypeEnum.CODE_GEN;
+import static com.rich.model.enums.RagDocumentBizTypeEnum.CUSTOMER_SERVICE;
 import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metadataKey;
 
 /**
@@ -75,6 +78,16 @@ public class RagContentRetrieverAugmentorFactory {
     private static final String GENERAL_CODE_GEN_TYPE = "GENERAL";
 
     /**
+     * AI 客服业务类型标识
+     */
+    private static final String CUSTOMER_SERVICE_BIZ_TYPE = CUSTOMER_SERVICE.getValue();
+
+    /**
+     * 代码生成业务类型标识
+     */
+    private static final String CODE_GEN_BIZ_TYPE = CODE_GEN.getValue();
+
+    /**
      * 为工作流模式创建 RetrievalAugmentor（检索增强器）
      * 工作流模式的 RAG 过滤策略：
      * - 检索与当前 codeGenType 匹配的文档（HTML/MULTI_FILE/VUE_PROJECT）
@@ -91,8 +104,9 @@ public class RagContentRetrieverAugmentorFactory {
 
         // 工作流模式：检索指定类型 + GENERAL 类型的文档
         RetrievalAugmentor augmentor = buildRetrievalAugmentor(
-                metadataKey("codeGenType").isEqualTo(codeGenTypeName)
-                        .or(metadataKey("codeGenType").isEqualTo(GENERAL_CODE_GEN_TYPE))
+                metadataKey("bizType").isEqualTo(CODE_GEN_BIZ_TYPE)
+                        .and(metadataKey("codeGenType").isEqualTo(codeGenTypeName)
+                                .or(metadataKey("codeGenType").isEqualTo(GENERAL_CODE_GEN_TYPE)))
         );
 
         log.info("【RAG 检索增强-工作流】RetrievalAugmentor 创建完成，codeGenType={}", codeGenTypeName);
@@ -115,10 +129,26 @@ public class RagContentRetrieverAugmentorFactory {
 
         // Agent 模式：只检索 AGENT 类型的文档
         RetrievalAugmentor augmentor = buildRetrievalAugmentor(
-                metadataKey("codeGenType").isEqualTo(AGENT_CODE_GEN_TYPE)
+                metadataKey("bizType").isEqualTo(CODE_GEN_BIZ_TYPE)
+                        .and(metadataKey("codeGenType").isEqualTo(AGENT_CODE_GEN_TYPE))
         );
 
         log.info("【RAG 检索增强-Agent】RetrievalAugmentor 创建完成，codeGenType={}", AGENT_CODE_GEN_TYPE);
+        return augmentor;
+    }
+
+    /**
+     * 为 AI 客服创建 RetrievalAugmentor
+     * 只检索 bizType=CUSTOMER_SERVICE 的知识库
+     *
+     * @return RetrievalAugmentor 检索增强器实例
+     */
+    public RetrievalAugmentor createCustomerServiceRetrievalAugmentor() {
+        log.info("【RAG 检索增强-客服】为 AI 客服创建 RetrievalAugmentor");
+        RetrievalAugmentor augmentor = buildRetrievalAugmentor(
+                metadataKey("bizType").isEqualTo(CUSTOMER_SERVICE_BIZ_TYPE)
+        );
+        log.info("【RAG 检索增强-客服】RetrievalAugmentor 创建完成，bizType={}", CUSTOMER_SERVICE_BIZ_TYPE);
         return augmentor;
     }
 
@@ -133,8 +163,7 @@ public class RagContentRetrieverAugmentorFactory {
      * @param metadataFilter 元数据过滤器，用于按 codeGenType 过滤文档
      * @return RetrievalAugmentor 检索增强器实例
      */
-    private RetrievalAugmentor buildRetrievalAugmentor(
-            dev.langchain4j.store.embedding.filter.Filter metadataFilter) {
+    private RetrievalAugmentor buildRetrievalAugmentor(Filter metadataFilter) {
 
         // 步骤1：加载 RAG 参数（从数据库或使用默认值）
         int maxResults = ragParamProvider != null ? ragParamProvider.getMaxResults() : 5;

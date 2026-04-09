@@ -8,6 +8,7 @@ import com.rich.app.mapper.RagDocumentMapper;
 import com.rich.app.service.RagDocumentService;
 import com.rich.model.dto.ragdocument.RagDocumentQueryRequest;
 import com.rich.model.entity.RagDocument;
+import com.rich.model.enums.RagDocumentBizTypeEnum;
 import com.rich.model.vo.RagDocumentVO;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,9 @@ public class RagDocumentServiceImpl extends ServiceImpl<RagDocumentMapper, RagDo
         if (queryRequest == null) {
             return queryWrapper;
         }
+        if (StrUtil.isNotBlank(queryRequest.getBizType())) {
+            queryWrapper.where("bizType = ?", queryRequest.getBizType());
+        }
         if (StrUtil.isNotBlank(queryRequest.getDocTitle())) {
             queryWrapper.where("docTitle LIKE ?", "%" + queryRequest.getDocTitle() + "%");
         }
@@ -48,6 +52,9 @@ public class RagDocumentServiceImpl extends ServiceImpl<RagDocumentMapper, RagDo
     public RagDocumentVO getRagDocumentVO(RagDocument ragDocument) {
         if (ragDocument == null) {
             return null;
+        }
+        if (StrUtil.isBlank(ragDocument.getBizType())) {
+            ragDocument.setBizType(RagDocumentBizTypeEnum.CODE_GEN.getValue());
         }
         RagDocumentVO vo = new RagDocumentVO();
         BeanUtil.copyProperties(ragDocument, vo);

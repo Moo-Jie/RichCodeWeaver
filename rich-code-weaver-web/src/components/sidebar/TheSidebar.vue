@@ -102,7 +102,11 @@
           <DownOutlined :class="['apps-arrow', { expanded: appsSectionExpanded }]" />
         </div>
       </transition>
-      <SidebarAppList v-show="appStore.sidebarCollapsed || appsSectionExpanded" />
+      <transition name="apps-slide">
+        <div v-show="appStore.sidebarCollapsed || appsSectionExpanded" class="apps-panel">
+          <SidebarAppList />
+        </div>
+      </transition>
     </div>
 
     <!-- Friend & Chat Icons -->
@@ -134,7 +138,7 @@
       <a-dropdown :trigger="['click']" placement="topRight">
         <div class="user-trigger">
           <a-avatar
-            :size="appStore.sidebarCollapsed ? 30 : 34"
+            :size="appStore.sidebarCollapsed ? 28 : 32"
             :src="loginUserStore.loginUser.userAvatar"
           >
             {{ loginUserStore.loginUser.userName?.charAt(0) || 'U' }}
@@ -183,8 +187,12 @@ import { userLogout } from '@/api/userController'
 import SidebarAppList from './SidebarAppList.vue'
 import {
   AlignLeftOutlined,
+  ApiOutlined,
   AppstoreOutlined,
-  AuditOutlined, CommentOutlined, CopyOutlined,
+  AuditOutlined,
+  CloudServerOutlined,
+  CommentOutlined,
+  CopyOutlined,
   DownOutlined,
   FileTextOutlined,
   GlobalOutlined,
@@ -195,13 +203,14 @@ import {
   MenuUnfoldOutlined,
   MessageOutlined,
   PaperClipOutlined,
-  PlusOutlined, ReadOutlined, SafetyOutlined, SecurityScanOutlined,
+  PlusOutlined,
+  ReadOutlined,
+  SafetyOutlined,
+  SecurityScanOutlined,
   SettingOutlined,
   StarOutlined,
   TeamOutlined,
-  UserOutlined,
-  ApiOutlined,
-  CloudServerOutlined
+  UserOutlined
 } from '@ant-design/icons-vue'
 
 const appStore = useAppStore()
@@ -241,16 +250,63 @@ const adminNavItems = [
 
 const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')
 
+const collapseAllSections = (except?: 'apps' | 'admin' | 'about') => {
+  appsSectionExpanded.value = except === 'apps'
+  adminMenuExpanded.value = except === 'admin'
+  aboutMenuExpanded.value = except === 'about'
+}
+
+const isAppsGroupRoute = (path: string) => {
+  return path.startsWith('/my/apps') || path.startsWith('/app/chat/')
+}
+
+const syncExpandedSectionWithRoute = () => {
+  if (appStore.sidebarCollapsed) return
+  if (route.path.startsWith('/admin')) {
+    collapseAllSections('admin')
+    return
+  }
+  if (route.path.startsWith('/other')) {
+    collapseAllSections('about')
+    return
+  }
+  if (isAppsGroupRoute(route.path)) {
+    collapseAllSections('apps')
+  }
+}
+
 const toggleAdminMenu = () => {
-  adminMenuExpanded.value = !adminMenuExpanded.value
+  if (appStore.sidebarCollapsed) {
+    appStore.toggleSidebar()
+    collapseAllSections('admin')
+    return
+  }
+  if (adminMenuExpanded.value) {
+    collapseAllSections()
+    return
+  }
+  collapseAllSections('admin')
 }
 
 const toggleAboutMenu = () => {
-  aboutMenuExpanded.value = !aboutMenuExpanded.value
+  if (appStore.sidebarCollapsed) {
+    appStore.toggleSidebar()
+    collapseAllSections('about')
+    return
+  }
+  if (aboutMenuExpanded.value) {
+    collapseAllSections()
+    return
+  }
+  collapseAllSections('about')
 }
 
 const toggleAppsSection = () => {
-  appsSectionExpanded.value = !appsSectionExpanded.value
+  if (appsSectionExpanded.value) {
+    collapseAllSections()
+    return
+  }
+  collapseAllSections('apps')
 }
 
 const isActive = (path: string) => {
@@ -291,6 +347,7 @@ onMounted(() => {
     appStore.loadMyApps()
     chatStore.initChat()
   }
+  syncExpandedSectionWithRoute()
 })
 
 // Cleanup WebSocket on unmount
@@ -310,6 +367,25 @@ watch(
     }
   },
   { deep: true, immediate: true }
+)
+
+watch(
+  () => appStore.sidebarCollapsed,
+  (collapsed) => {
+    if (collapsed) {
+      collapseAllSections()
+      return
+    }
+    syncExpandedSectionWithRoute()
+  }
+)
+
+watch(
+  () => route.path,
+  () => {
+    syncExpandedSectionWithRoute()
+  },
+  { immediate: true }
 )
 
 const doLogout = async () => {
@@ -460,24 +536,33 @@ const doLogout = async () => {
 /* App List */
 .sidebar-apps {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   min-height: 0;
+  padding-bottom: 6px;
+}
+
+.apps-panel {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .apps-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px 6px;
+  padding: 0 12px 6px;
   cursor: pointer;
 }
 
 .apps-header {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 500;
-  color: #bbb;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #666;
+  letter-spacing: 0;
 }
 
 .apps-arrow {
@@ -494,8 +579,8 @@ const doLogout = async () => {
 .sidebar-social {
   flex-shrink: 0;
   display: flex;
-  gap: 4px;
-  padding: 6px 12px;
+  gap: 3px;
+  padding: 4px 10px;
   border-top: 1px solid #f0f0f0;
 }
 
@@ -504,13 +589,13 @@ const doLogout = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 6px;
+  padding: 6px 8px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
-  color: #666;
-  font-size: 14px;
+  color: #555;
+  font-size: 13px;
 }
 
 .social-icon-btn:hover {
@@ -519,12 +604,13 @@ const doLogout = async () => {
 }
 
 .social-icon {
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
 .social-label {
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -532,14 +618,14 @@ const doLogout = async () => {
 .sidebar-user {
   flex-shrink: 0;
   border-top: 1px solid #f0f0f0;
-  padding: 10px 12px;
+  padding: 8px 10px;
 }
 
 .user-trigger {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
+  gap: 8px;
+  padding: 5px 7px;
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s ease;
@@ -550,9 +636,9 @@ const doLogout = async () => {
 }
 
 .user-name {
-  font-size: 14px;
+  font-size: 13px;
   color: #333;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -660,5 +746,25 @@ const doLogout = async () => {
 .submenu-slide-leave-from {
   max-height: 200px;
   opacity: 1;
+}
+
+.apps-slide-enter-active,
+.apps-slide-leave-active {
+  transition: all 0.24s ease;
+  overflow: hidden;
+}
+
+.apps-slide-enter-from,
+.apps-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.apps-slide-enter-to,
+.apps-slide-leave-from {
+  max-height: 520px;
+  opacity: 1;
+  transform: translateY(0);
 }
 </style>

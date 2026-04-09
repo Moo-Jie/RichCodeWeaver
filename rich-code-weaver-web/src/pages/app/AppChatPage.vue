@@ -989,7 +989,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
         params.set('lastEventId', lastEventId.value)
       }
 
-      const url = `${baseURL}/app/gen/code/stream?${params}`
+      const url = `${baseURL}/generator/app/gen/code/stream?${params}`
 
       // 创建 EventSource 连接
       eventSource = new EventSource(url, {

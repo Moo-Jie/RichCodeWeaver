@@ -14,7 +14,7 @@
         <transition name="fade-text">
           <div v-show="!appStore.sidebarCollapsed" class="app-info">
             <span class="app-name">{{ app.appName || '未命名数字产物' }}</span>
-            <a-tag :color="app.ownershipType === 'collaborator' ? 'default' : 'blue'" class="app-tag">
+            <a-tag class="app-tag" :class="app.ownershipType === 'collaborator' ? 'is-collaborator' : 'is-owner'">
               {{ app.ownershipType === 'collaborator' ? '协作' : '我的' }}
             </a-tag>
           </div>
@@ -105,9 +105,9 @@ const handleSelect = (app: API.AppVO) => {
   gap: 10px;
   padding: 8px 12px;
   margin: 2px 8px;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.16s ease;
   min-height: 44px;
 }
 
@@ -116,7 +116,7 @@ const handleSelect = (app: API.AppVO) => {
 }
 
 .app-item.active {
-  background: #f0f0f0;
+  background: #f2f2f2;
 }
 
 .app-cover {
@@ -160,8 +160,23 @@ const handleSelect = (app: API.AppVO) => {
   margin-inline-end: 0;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   padding-inline: 7px;
+  border: 1px solid #e5e5e5;
+  color: #666;
+  background: #fafafa;
+}
+
+.app-tag.is-owner {
+  border-color: #dddddd;
+  color: #444;
+  background: #f7f7f7;
+}
+
+.app-tag.is-collaborator {
+  border-color: #e8e8e8;
+  color: #777;
+  background: #fcfcfc;
 }
 
 .empty-tip {

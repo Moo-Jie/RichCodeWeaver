@@ -12,6 +12,15 @@
         <a-form-item class="search-item" label="文档标题">
           <a-input v-model:value="searchParams.docTitle" allow-clear placeholder="输入标题关键词" />
         </a-form-item>
+        <a-form-item class="search-item" label="业务类型">
+          <a-select v-model:value="searchParams.bizType" allow-clear
+                    placeholder="全部业务" style="width: 180px">
+            <a-select-option v-for="item in bizTypeOptions" :key="item.value"
+                             :value="item.value">
+              {{ item.label }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
         <a-form-item class="search-item" label="适用类型">
           <a-select v-model:value="searchParams.codeGenType" allow-clear
                     placeholder="全部类型" style="width: 280px">
@@ -67,20 +76,28 @@
       @change="handleTableChange"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.dataIndex === 'codeGenType'">
+        <template v-if="column.dataIndex === 'bizType'">
+          <div class="type-stack">
+            <a-tag :color="bizTypeColorMap[getBizTypeValue(record)] || 'blue'">
+              {{ bizTypeLabelMap[getBizTypeValue(record)] || '代码生成' }}
+            </a-tag>
+            <span class="type-hint">{{ getBizTypeHint(record) }}</span>
+          </div>
+        </template>
+        <template v-else-if="column.dataIndex === 'codeGenType'">
           <a-tag :color="codeGenTypeColorMap[record.codeGenType] || 'default'">
-            {{ codeGenTypeLabelMap[record.codeGenType] || record.codeGenType }}
+            {{ getCodeGenTypeLabel(record) }}
           </a-tag>
         </template>
-        <template v-if="column.dataIndex === 'docContent'">
+        <template v-else-if="column.dataIndex === 'docContent'">
           <span class="text-muted">{{ (record.docContent || '').length }} 字符</span>
         </template>
-        <template v-if="column.dataIndex === 'isEnabled'">
+        <template v-else-if="column.dataIndex === 'isEnabled'">
           <a-tag :color="record.isEnabled === 1 ? 'green' : 'red'">
             {{ record.isEnabled === 1 ? '启用' : '禁用' }}
           </a-tag>
         </template>
-        <template v-if="column.dataIndex === 'action'">
+        <template v-else-if="column.dataIndex === 'action'">
           <a-space>
             <a @click="showEditModal(record)">编辑信息</a>
             <a @click="openEditor(record)">编辑内容</a>
@@ -187,6 +204,16 @@
         <a-form-item label="文档标题" required>
           <a-input v-model:value="metaForm.docTitle" placeholder="请输入文档标题" />
         </a-form-item>
+        <a-form-item label="业务类型" required>
+          <a-select v-model:value="metaForm.bizType" placeholder="请选择文档业务类型"
+                    style="width: 220px">
+            <a-select-option v-for="item in bizTypeOptions" :key="item.value"
+                             :value="item.value">
+              {{ item.label }}
+            </a-select-option>
+          </a-select>
+          <div class="form-hint">AI 客服知识库只会被首页客服助手检索</div>
+        </a-form-item>
         <a-form-item label="适用类型" required>
           <a-select v-model:value="metaForm.codeGenType" placeholder="请选择适用的代码生成类型"
                     style="width: 280px">
@@ -225,10 +252,12 @@
       <div class="editor-wrapper">
         <div class="editor-toolbar">
           <div class="editor-info">
+            <a-tag :color="bizTypeColorMap[getBizTypeValue(currentEditDoc || {})] || 'blue'" size="small">
+              {{ bizTypeLabelMap[getBizTypeValue(currentEditDoc || {})] || '代码生成' }}
+            </a-tag>
             <a-tag :color="codeGenTypeColorMap[currentEditDoc?.codeGenType || ''] || 'default'"
                    size="small">
-              {{ codeGenTypeLabelMap[currentEditDoc?.codeGenType || ''] || currentEditDoc?.codeGenType
-              }}
+              {{ getCodeGenTypeLabel(currentEditDoc || {}) }}
             </a-tag>
             <span class="editor-char-count">{{ editorContent.length }} 字符</span>
           </div>
@@ -350,6 +379,21 @@ const loading = ref(false)
 const dataList = ref<API.RagDocumentVO[]>([])
 const isEdit = ref(false)
 
+const bizTypeOptions = [
+  { value: 'CODE_GEN', label: '代码生成' },
+  { value: 'CUSTOMER_SERVICE', label: 'AI 客服' }
+]
+
+const bizTypeLabelMap: Record<string, string> = {
+  CODE_GEN: '代码生成',
+  CUSTOMER_SERVICE: 'AI 客服'
+}
+
+const bizTypeColorMap: Record<string, string> = {
+  CODE_GEN: 'blue',
+  CUSTOMER_SERVICE: 'geekblue'
+}
+
 const codeGenTypeOptions = [
   { value: 'HTML', label: 'HTML — 单文件模式' },
   { value: 'MULTI_FILE', label: 'MULTI_FILE — 多文件模式' },
@@ -374,10 +418,36 @@ const codeGenTypeColorMap: Record<string, string> = {
   GENERAL: 'orange'
 }
 
+const getBizTypeValue = (record: Partial<API.RagDocumentVO>) => record.bizType || 'CODE_GEN'
+
+const getBizTypeHint = (record: Partial<API.RagDocumentVO>) => {
+  return getBizTypeValue(record) === 'CUSTOMER_SERVICE' ? '首页客服专用' : '代码生成链路'
+}
+
+const getCodeGenTypeLabel = (record: Partial<API.RagDocumentVO>) => {
+  if (getBizTypeValue(record) === 'CUSTOMER_SERVICE') {
+    if (!record.codeGenType || record.codeGenType === 'GENERAL') {
+      return '客服通用'
+    }
+  }
+  if (!record.codeGenType) {
+    return '通用'
+  }
+  return codeGenTypeLabelMap[record.codeGenType] || record.codeGenType
+}
+
+const getErrorMessage = (error: unknown, fallback = '请重试') => {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+  return fallback
+}
+
 // ── 搜索 & 分页 ───────────────────────────────────────────
 const searchParams = reactive<API.RagDocumentQueryRequest>({
   pageNum: 1,
   pageSize: 10,
+  bizType: undefined,
   docTitle: '',
   codeGenType: undefined,
   isEnabled: undefined
@@ -395,6 +465,7 @@ const pagination = reactive({
 const columns = [
   { title: 'ID', dataIndex: 'id', width: 80, ellipsis: true },
   { title: '文档标题', dataIndex: 'docTitle', width: 200, ellipsis: true },
+  { title: '业务类型', dataIndex: 'bizType', width: 110 },
   { title: '适用类型', dataIndex: 'codeGenType', width: 120 },
   { title: '内容长度', dataIndex: 'docContent', width: 100 },
   { title: '描述', dataIndex: 'description', width: 180, ellipsis: true },
@@ -409,6 +480,7 @@ const metaModalVisible = ref(false)
 const metaForm = reactive({
   id: undefined as number | undefined,
   docTitle: '',
+  bizType: 'CODE_GEN' as string,
   codeGenType: 'GENERAL' as string,
   description: '',
   sortOrder: 0,
@@ -425,6 +497,7 @@ const metaFormEnabled = computed({
 const resetMetaForm = () => {
   metaForm.id = undefined
   metaForm.docTitle = ''
+  metaForm.bizType = 'CODE_GEN'
   metaForm.codeGenType = 'GENERAL'
   metaForm.description = ''
   metaForm.sortOrder = 0
@@ -441,6 +514,7 @@ const showEditModal = (record: API.RagDocumentVO) => {
   isEdit.value = true
   metaForm.id = record.id
   metaForm.docTitle = record.docTitle || ''
+  metaForm.bizType = record.bizType || 'CODE_GEN'
   metaForm.codeGenType = record.codeGenType || 'GENERAL'
   metaForm.description = record.description || ''
   metaForm.sortOrder = record.sortOrder ?? 0
@@ -453,6 +527,10 @@ const handleMetaSubmit = async () => {
     message.warning('文档标题不能为空')
     return
   }
+  if (!metaForm.bizType) {
+    message.warning('请选择业务类型')
+    return
+  }
   if (!metaForm.codeGenType) {
     message.warning('请选择适用类型')
     return
@@ -463,6 +541,7 @@ const handleMetaSubmit = async () => {
       const res = await updateRagDocument({
         id: metaForm.id,
         docTitle: metaForm.docTitle,
+        bizType: metaForm.bizType,
         codeGenType: metaForm.codeGenType,
         description: metaForm.description,
         sortOrder: metaForm.sortOrder,
@@ -479,6 +558,7 @@ const handleMetaSubmit = async () => {
       const res = await addRagDocument({
         docTitle: metaForm.docTitle,
         docContent: '',
+        bizType: metaForm.bizType,
         codeGenType: metaForm.codeGenType,
         description: metaForm.description,
         sortOrder: metaForm.sortOrder,
@@ -492,8 +572,8 @@ const handleMetaSubmit = async () => {
         message.error('新增失败：' + res.data.message)
       }
     }
-  } catch (e: any) {
-    message.error('操作失败：' + (e.message || '请重试'))
+  } catch (e: unknown) {
+    message.error('操作失败：' + getErrorMessage(e))
   }
 }
 
@@ -524,8 +604,8 @@ const handleSaveContent = async () => {
     } else {
       message.error('保存失败：' + res.data.message)
     }
-  } catch (e: any) {
-    message.error('保存失败：' + (e.message || '请重试'))
+  } catch (e: unknown) {
+    message.error('保存失败：' + getErrorMessage(e))
   } finally {
     saving.value = false
   }
@@ -600,9 +680,9 @@ const startReindex = async () => {
       reindexErrorMsg.value = '索引失败：' + (res.data.message || '未知错误')
       reindexState.value = 'error'
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     setStep(steps.length - 1, 'error')
-    reindexErrorMsg.value = '索引失败：' + (e.message || '请重试')
+    reindexErrorMsg.value = '索引失败：' + getErrorMessage(e)
     reindexState.value = 'error'
   }
 }
@@ -617,7 +697,10 @@ const fetchData = async () => {
       pageSize: pagination.pageSize
     })
     if (res.data.code === 0 && res.data.data) {
-      dataList.value = res.data.data.records || []
+      dataList.value = (res.data.data.records || []).map((item) => ({
+        ...item,
+        bizType: item.bizType || 'CODE_GEN'
+      }))
       pagination.total = res.data.data.totalRow || 0
     }
   } catch (e) {
@@ -634,14 +717,15 @@ const doSearch = () => {
 
 const resetSearch = () => {
   searchParams.docTitle = ''
+  searchParams.bizType = undefined
   searchParams.codeGenType = undefined
   searchParams.isEnabled = undefined
   doSearch()
 }
 
-const handleTableChange = (pag: any) => {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
+const handleTableChange = (pag: { current?: number; pageSize?: number }) => {
+  pagination.current = pag.current || 1
+  pagination.pageSize = pag.pageSize || 10
   fetchData()
 }
 
@@ -654,8 +738,8 @@ const handleDelete = async (id: number) => {
     } else {
       message.error('删除失败：' + res.data.message)
     }
-  } catch (e: any) {
-    message.error('删除失败：' + (e.message || '请重试'))
+  } catch (e: unknown) {
+    message.error('删除失败：' + getErrorMessage(e))
   }
 }
 
@@ -667,7 +751,7 @@ onMounted(() => {
 // ── RAG 参数配置 ──────────────────────────────────────────
 const paramsLoading = ref(false)
 const rawParams = ref<API.RagParamVO[]>([])
-const paramDrafts = reactive<Record<string, any>>({})
+const paramDrafts = reactive<Record<string, string | number | undefined>>({})
 const paramSaving = reactive<Record<string, boolean>>({})
 
 const groupMeta: Record<string, { label: string; color: string; desc: string }> = {
@@ -743,8 +827,8 @@ const handleSaveParam = async (param: API.RagParamVO) => {
     } else {
       message.error('保存失败：' + res.data.message)
     }
-  } catch (e: any) {
-    message.error('保存失败：' + (e.message || '请重试'))
+  } catch (e: unknown) {
+    message.error('保存失败：' + getErrorMessage(e))
   } finally {
     paramSaving[key] = false
   }
@@ -849,6 +933,18 @@ const handleSaveParam = async (param: API.RagParamVO) => {
 .text-muted {
   color: #bbb;
   font-size: 13px;
+}
+
+.type-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.type-hint {
+  font-size: 12px;
+  color: #999;
+  line-height: 1;
 }
 
 .danger-link {

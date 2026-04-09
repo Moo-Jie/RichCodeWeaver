@@ -38,6 +38,13 @@ public class RagDocument implements Serializable {
     private Long id;
 
     /**
+     * 文档业务类型
+     * CODE_GEN / CUSTOMER_SERVICE
+     */
+    @Column("bizType")
+    private String bizType;
+
+    /**
      * 文档标题
      */
     @Column("docTitle")

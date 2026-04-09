@@ -20,6 +20,11 @@ public class RagDocumentVO implements Serializable {
 
     private Long id;
 
+    /**
+     * 文档业务类型：CODE_GEN / CUSTOMER_SERVICE
+     */
+    private String bizType;
+
     private String docTitle;
 
     private String docContent;

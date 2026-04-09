@@ -18,6 +18,11 @@ public class RagDocumentAddRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
+     * 文档业务类型：CODE_GEN / CUSTOMER_SERVICE
+     */
+    private String bizType;
+
+    /**
      * 文档标题
      */
     private String docTitle;
