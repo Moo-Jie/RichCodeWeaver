@@ -319,9 +319,17 @@ async function handleSend(e?: KeyboardEvent) {
   const content = inputMessage.value.trim()
   if (!content || !activeChatUser.value?.targetUserId) return
 
+  // 乐观插入：立即显示发出的消息
+  chatStore.currentMessages.push({
+    senderId: currentUserId.value,
+    content,
+    messageType: 'text',
+    createTime: new Date().toISOString()
+  } as API.ChatMessageVO)
+  inputMessage.value = ''
+
   try {
     await chatStore.sendWsMessage(activeChatUser.value.targetUserId, content)
-    inputMessage.value = ''
   } catch (error) {
     message.error('消息发送失败，请稍后重试')
   }
@@ -431,7 +439,7 @@ async function handlePendingSend(e?: KeyboardEvent) {
   const pollForConversation = async (attempts: number) => {
     if (attempts <= 0) return
     await chatStore.fetchConversations()
-    const conv = chatStore.conversations.find((c) => c.targetUserId === friendId)
+    const conv = chatStore.conversations.find((c) => String(c.targetUserId) === String(friendId))
     if (conv) {
       chatStore.pendingChatFriendId = null
       openChat(conv)
@@ -508,7 +516,7 @@ watch(
     if (friendId && visible) {
       await chatStore.fetchConversations()
       const existing = chatStore.conversations.find(
-        (c) => c.targetUserId === friendId
+        (c) => String(c.targetUserId) === String(friendId)
       )
       if (existing) {
         // 找到已有会话，直接打开并加载消息

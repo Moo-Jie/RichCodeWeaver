@@ -8,6 +8,12 @@ import {
 } from '@/api/chatController'
 import { listFriends, listPendingRequests } from '@/api/friendController'
 
+/** 宽松ID比较，将两侧转为字符串后对比，解决string/number类型不一致问题 */
+function sameId(a: unknown, b: unknown): boolean {
+  if (a == null || b == null) return false
+  return String(a) === String(b)
+}
+
 /**
  * 聊天与好友状态管理
  * 管理WebSocket连接、会话列表、好友列表、未读消息数等状态
@@ -171,8 +177,11 @@ export const useChatStore = defineStore('chat', () => {
    */
   function onNewMessage(messageVO: API.ChatMessageVO) {
     // 如果消息属于当前打开的会话，追加到消息列表
-    if (messageVO.conversationId === activeConversationId.value) {
-      currentMessages.value.push(messageVO)
+    if (sameId(messageVO.conversationId, activeConversationId.value)) {
+      const exists = currentMessages.value.some((m) => sameId(m.id, messageVO.id))
+      if (!exists) {
+        currentMessages.value.push(messageVO)
+      }
     }
     // 更新未读数
     totalUnreadCount.value++
@@ -193,11 +202,18 @@ export const useChatStore = defineStore('chat', () => {
       if (optimistic.length > 0) {
         currentMessages.value = [messageVO]
       }
-    } else if (messageVO.conversationId === activeConversationId.value) {
-      // 已有会话：避免重复添加
-      const exists = currentMessages.value.some((m) => m.id === messageVO.id)
-      if (!exists) {
-        currentMessages.value.push(messageVO)
+    } else if (sameId(messageVO.conversationId, activeConversationId.value)) {
+      // 已有会话：用真实消息替换乐观消息（按内容匹配），或去重添加
+      const optimisticIdx = currentMessages.value.findIndex(
+        (m) => !m.id && m.content === messageVO.content
+      )
+      if (optimisticIdx >= 0) {
+        currentMessages.value.splice(optimisticIdx, 1, messageVO)
+      } else {
+        const exists = currentMessages.value.some((m) => sameId(m.id, messageVO.id))
+        if (!exists) {
+          currentMessages.value.push(messageVO)
+        }
       }
     }
     // 刷新会话列表
