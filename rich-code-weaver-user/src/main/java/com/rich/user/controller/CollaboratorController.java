@@ -1,5 +1,8 @@
 package com.rich.user.controller;
 
+import com.rich.common.constant.ChatConstant;
+import com.rich.common.constant.CollaboratorConstant;
+import com.rich.common.constant.UserConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
@@ -68,7 +71,7 @@ public class CollaboratorController {
         User loginUser = userService.getLoginUser(request);
 
         // 校验身份：个人用户不能邀请协作者
-        if ("individual".equals(loginUser.getUserIdentity())) {
+        if (UserConstant.USER_IDENTITY_INDIVIDUAL.equals(loginUser.getUserIdentity())) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "个人用户无法邀请协作者，请先升级身份");
         }
 
@@ -82,7 +85,7 @@ public class CollaboratorController {
         // 查询产物名称用于聊天消息展示
         String appName = getAppName(inviteRequest.getAppId());
         String appCover = getAppCover(inviteRequest.getAppId());
-        String role = inviteRequest.getRole() != null ? inviteRequest.getRole() : "editor";
+        String role = inviteRequest.getRole() != null ? inviteRequest.getRole() : CollaboratorConstant.ROLE_EDITOR;
 
         // 将协作邀请作为聊天消息落库（messageType = collab_invite）
         cn.hutool.json.JSONObject contentJson = new cn.hutool.json.JSONObject();
@@ -93,7 +96,7 @@ public class CollaboratorController {
         contentJson.set("role", role);
         ChatMessageVO messageVO = chatMessageService.sendMessage(
                 loginUser.getId(), inviteRequest.getUserId(),
-                contentJson.toString(), "collab_invite");
+                contentJson.toString(), ChatConstant.MESSAGE_TYPE_COLLAB_INVITE);
 
         // 通过 WebSocket 实时推送聊天消息
         chatWebSocketHandler.pushChatMessage(
@@ -116,7 +119,8 @@ public class CollaboratorController {
         ThrowUtils.throwIf(handleRequest.getId() == null || handleRequest.getId() <= 0,
                 ErrorCode.PARAMS_ERROR, "协作关系id无效");
         ThrowUtils.throwIf(handleRequest.getAction() == null ||
-                        (handleRequest.getAction() != 1 && handleRequest.getAction() != 2),
+                        (handleRequest.getAction() != CollaboratorConstant.HANDLE_ACTION_ACCEPT
+                                && handleRequest.getAction() != CollaboratorConstant.HANDLE_ACTION_REJECT),
                 ErrorCode.PARAMS_ERROR, "无效的处理动作");
 
         User loginUser = userService.getLoginUser(request);
@@ -128,11 +132,11 @@ public class CollaboratorController {
             var collab = appCollaboratorService.getById(handleRequest.getId());
             if (collab != null) {
                 String appName = getAppName(collab.getAppId());
-                String resultText = handleRequest.getAction() == 1
+                String resultText = handleRequest.getAction() == CollaboratorConstant.HANDLE_ACTION_ACCEPT
                         ? loginUser.getUserName() + " 已接受「" + appName + "」的协作邀请"
                         : loginUser.getUserName() + " 已拒绝「" + appName + "」的协作邀请";
                 ChatMessageVO msgVO = chatMessageService.sendMessage(
-                        loginUser.getId(), collab.getInviterId(), resultText, "text");
+                        loginUser.getId(), collab.getInviterId(), resultText, ChatConstant.MESSAGE_TYPE_TEXT);
                 chatWebSocketHandler.pushChatMessage(
                         loginUser.getId(), collab.getInviterId(), msgVO);
             }

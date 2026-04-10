@@ -1,5 +1,6 @@
 package com.rich.user.websocket;
 
+import com.rich.common.constant.ChatConstant;
 import com.rich.model.entity.User;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.server.ServerHttpRequest;
@@ -25,11 +26,6 @@ import static com.rich.common.constant.UserConstant.USER_LOGIN_STATE;
 public class ChatWebSocketInterceptor implements HandshakeInterceptor {
 
     /**
-     * WebSocket会话属性中存储用户id的key
-     */
-    public static final String WS_USER_ID = "wsUserId";
-
-    /**
      * 握手前拦截：从HTTP Session中获取登录用户id
      * 未登录用户将被拒绝连接
      *
@@ -47,7 +43,7 @@ public class ChatWebSocketInterceptor implements HandshakeInterceptor {
             if (session != null) {
                 Object userObj = session.getAttribute(USER_LOGIN_STATE);
                 if (userObj instanceof User user && user.getId() != null) {
-                    attributes.put(WS_USER_ID, user.getId());
+                    attributes.put(ChatConstant.WS_SESSION_USER_ID, user.getId());
                     return true;
                 }
             }

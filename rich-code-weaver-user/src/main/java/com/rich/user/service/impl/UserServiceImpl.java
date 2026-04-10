@@ -38,9 +38,6 @@ import static com.rich.common.constant.UserConstant.*;
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
-    // 加密盐值
-    private static final String PASSWORD_SALT = "rich";
-
     /**
      * 用户注册
      *

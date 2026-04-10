@@ -2,6 +2,7 @@ package com.rich.user.websocket;
 
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.rich.common.constant.ChatConstant;
 import com.rich.model.vo.ChatMessageVO;
 import com.rich.user.service.ChatMessageService;
 import com.rich.user.service.UserFriendshipService;
@@ -127,7 +128,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private void handleChatMessage(Long senderId, JSONObject payload) {
         Long receiverId = payload.getLong("receiverId");
         String content = payload.getStr("content");
-        String messageType = payload.getStr("messageType", "text");
+        String messageType = payload.getStr("messageType", ChatConstant.MESSAGE_TYPE_TEXT);
 
         // 校验好友关系
         if (!userFriendshipService.isFriend(senderId, receiverId)) {
@@ -284,7 +285,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
      * @return 用户id，未找到返回null
      */
     private Long getUserId(WebSocketSession session) {
-        Object userId = session.getAttributes().get(ChatWebSocketInterceptor.WS_USER_ID);
+        Object userId = session.getAttributes().get(ChatConstant.WS_SESSION_USER_ID);
         return userId instanceof Long ? (Long) userId : null;
     }
 }

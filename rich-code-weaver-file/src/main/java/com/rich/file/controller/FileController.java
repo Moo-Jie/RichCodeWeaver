@@ -5,12 +5,22 @@ import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
 import com.rich.common.utils.ResultUtils;
 import com.rich.file.service.FileService;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 
 /**
  * 文件控制器
@@ -43,5 +53,31 @@ public class FileController {
             String imgFileStr = fileService.upload(file);
             return ResultUtils.success(imgFileStr);
         }
+    }
+
+    @GetMapping("/proxy/image")
+    public ResponseEntity<ByteArrayResource> proxyImage(@RequestParam("url") String url) throws Exception {
+        ThrowUtils.throwIf(url == null || url.trim().isEmpty(), ErrorCode.PARAMS_ERROR, "图片地址不能为空");
+
+        URL imageUrl = new URL(url);
+        URLConnection connection = imageUrl.openConnection();
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(15000);
+        String contentType = connection.getContentType();
+        byte[] bytes;
+        try (InputStream inputStream = connection.getInputStream()) {
+            bytes = inputStream.readAllBytes();
+        }
+
+        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+        if (contentType != null && !contentType.trim().isEmpty()) {
+            mediaType = MediaType.parseMediaType(contentType);
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=600")
+                .contentType(mediaType)
+                .contentLength(bytes.length)
+                .body(new ByteArrayResource(bytes));
     }
 }

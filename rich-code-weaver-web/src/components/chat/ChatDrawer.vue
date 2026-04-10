@@ -29,7 +29,7 @@
                 <span class="conv-time">{{ formatTime(conv.lastMessageTime) }}</span>
               </div>
               <div class="conv-preview">
-                <span class="conv-message">{{ conv.lastMessageContent || '暂无消息' }}</span>
+                <span class="conv-message">{{ getConversationPreview(conv) }}</span>
                 <a-badge
                   v-if="conv.unreadCount && conv.unreadCount > 0"
                   :count="conv.unreadCount"
@@ -139,6 +139,27 @@
                   </a-button>
                 </div>
               </div>
+              <div v-else-if="msg.messageType === 'app_forward'" class="forward-message-card">
+                <div class="forward-message-title">
+                  {{ msg.senderId === currentUserId ? '你转发了一个产物' : `${msg.senderName || '对方'} 向你转发了一个产物` }}
+                </div>
+                <div class="forward-message-app">
+                  <img v-if="getForwardAppCover(msg)" :src="getForwardAppCover(msg)" alt="" class="forward-app-cover" />
+                  <div class="forward-message-app-info">
+                    <div class="forward-message-app-name">{{ getForwardAppName(msg) }}</div>
+                    <div class="forward-message-app-meta">
+                      <FileOutlined class="invite-app-icon" />
+                      <span>{{ getForwardTypeLabel(msg) }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="forward-actions">
+                  <a-button type="primary" size="small" @click="openForwardApp(msg)">
+                    <ExportOutlined />
+                    查看产物
+                  </a-button>
+                </div>
+              </div>
               <div v-else class="message-content">{{ msg.content }}</div>
               <div class="message-time">{{ formatTime(msg.createTime) }}</div>
             </div>
@@ -172,6 +193,7 @@
 <script lang="ts" setup>
 import { computed, nextTick, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
+import { useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/chatStore'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { listMessages, markAsRead } from '@/api/chatController'
@@ -180,6 +202,7 @@ import {
   ArrowLeftOutlined,
   CheckOutlined,
   CloseOutlined,
+  ExportOutlined,
   FileOutlined,
   MessageOutlined,
   SendOutlined
@@ -187,6 +210,7 @@ import {
 
 const chatStore = useChatStore()
 const loginUserStore = useLoginUserStore()
+const router = useRouter()
 
 /** 当前登录用户id */
 const currentUserId = computed(() => loginUserStore.loginUser?.id)
@@ -324,6 +348,47 @@ function formatTime(timeStr?: string): string {
     return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
   }
   return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
+}
+
+function getConversationPreview(conv: API.ChatConversationVO) {
+  if (conv.lastMessageType === 'collab_invite') return '[协作邀请]'
+  if (conv.lastMessageType === 'app_forward') return '[产物转发]'
+  return conv.lastMessageContent || '暂无消息'
+}
+
+function getForwardPayload(msg: API.ChatMessageVO) {
+  if (!msg.content) return null
+  try {
+    return JSON.parse(msg.content)
+  } catch (error) {
+    return null
+  }
+}
+
+function getForwardAppName(msg: API.ChatMessageVO) {
+  return msg.appName || getForwardPayload(msg)?.appName || '未命名数字产物'
+}
+
+function getForwardAppCover(msg: API.ChatMessageVO) {
+  return msg.appCover || getForwardPayload(msg)?.appCover || ''
+}
+
+function getForwardTypeLabel(msg: API.ChatMessageVO) {
+  const codeGenType = getForwardPayload(msg)?.codeGenType
+  if (codeGenType === 'single_html') return '单文件结构'
+  if (codeGenType === 'multi_file') return '多文件结构'
+  if (codeGenType === 'vue_project') return 'VUE 项目工程'
+  return '数字产物'
+}
+
+function openForwardApp(msg: API.ChatMessageVO) {
+  const appId = msg.appId || getForwardPayload(msg)?.appId
+  if (!appId) {
+    message.warning('该转发消息缺少产物信息')
+    return
+  }
+  chatStore.chatDrawerVisible = false
+  router.push(`/app/chat/${appId}`)
 }
 
 // 监听新消息自动滚动
@@ -750,6 +815,66 @@ watch(
 
 .invite-actions-message {
   margin-top: 12px;
+}
+
+.forward-message-card {
+  padding: 16px;
+  border-radius: 18px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.message-self .forward-message-card {
+  background: rgba(22, 119, 255, 0.08);
+  border-color: rgba(22, 119, 255, 0.18);
+}
+
+.forward-message-title {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+}
+
+.forward-message-app {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.forward-app-cover {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.forward-message-app-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.forward-message-app-name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.forward-message-app-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #666;
+}
+
+.forward-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* Input Area */

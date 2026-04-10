@@ -2,6 +2,7 @@ package com.rich.user.service.impl;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.rich.common.constant.ChatConstant;
 import com.rich.model.entity.ChatConversation;
 import com.rich.model.entity.ChatMessage;
 import com.rich.model.entity.User;
@@ -131,8 +132,10 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
                 if (lastMsg != null) {
                     vo.setLastMessageType(lastMsg.getMessageType());
                     // 特殊消息类型使用友好的预览文本
-                    if ("collab_invite".equals(lastMsg.getMessageType())) {
-                        vo.setLastMessageContent("[协作邀请]");
+                    if (ChatConstant.MESSAGE_TYPE_COLLAB_INVITE.equals(lastMsg.getMessageType())) {
+                        vo.setLastMessageContent(ChatConstant.CONVERSATION_PREVIEW_COLLAB_INVITE);
+                    } else if (ChatConstant.MESSAGE_TYPE_APP_FORWARD.equals(lastMsg.getMessageType())) {
+                        vo.setLastMessageContent(ChatConstant.CONVERSATION_PREVIEW_APP_FORWARD);
                     } else {
                         String content = lastMsg.getContent();
                         vo.setLastMessageContent(content != null && content.length() > 50

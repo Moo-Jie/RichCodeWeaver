@@ -251,6 +251,15 @@
       v-model:open="inviteCollabOpen"
       :app-id="appStore.selectedApp?.id ?? null"
     />
+    <ForwardAppModal
+      v-model:open="forwardAppOpen"
+      :app="appStore.selectedApp"
+      :copy-loading="forwardCopying"
+      :share-link="forwardShareLink"
+      :submitting="forwardSubmitting"
+      @copy-share="handleCopyShare"
+      @confirm="handleForwardConfirm"
+    />
   </div>
 </template>
 
@@ -260,6 +269,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { EditOutlined, RightOutlined } from '@ant-design/icons-vue'
 import { useAppStore } from '@/stores/appStore'
+import { useChatStore } from '@/stores/chatStore'
 import { useLoginUserStore } from '@/stores/loginUser'
 import {
   addApp,
@@ -299,11 +309,13 @@ import CommentDialog from '@/components/CommentDialog.vue'
 import TaskPlanPanel from '@/components/workspace/TaskPlanPanel.vue'
 import MaterialSelector from '@/components/workspace/MaterialSelector.vue'
 import InviteCollabModal from '@/components/workspace/InviteCollabModal.vue'
+import ForwardAppModal from '@/components/workspace/ForwardAppModal.vue'
 import { doAppShare, getAppHotStat, toggleAppFavorite, toggleAppLike } from '@/api/socialController'
 
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const chatStore = useChatStore()
 const loginUserStore = useLoginUserStore()
 
 // === Create Mode State ===
@@ -316,6 +328,9 @@ const optimizing = ref(false)
 const materialSelectorOpen = ref(false)
 /** 协作邀请弹窗可见状态 */
 const inviteCollabOpen = ref(false)
+const forwardAppOpen = ref(false)
+const forwardCopying = ref(false)
+const forwardSubmitting = ref(false)
 const selectedMaterials = ref<API.MaterialVO[]>([])
 
 const openMaterialSelector = () => {
@@ -519,6 +534,25 @@ const appDetailVisible = ref(false)
 const hotStat = ref<API.AppHotStatVO | null>(null)
 const commentDialogOpen = ref(false)
 const collaborators = ref<API.AppCollaboratorVO[]>([])
+
+const getForwardTypeLabel = (codeGenType?: string) => {
+  if (codeGenType === 'single_html') return '单文件结构'
+  if (codeGenType === 'multi_file') return '多文件结构'
+  if (codeGenType === 'vue_project') return 'Vue 项目工程'
+  return '数字产物'
+}
+
+const forwardShareLink = computed(() => {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+  const currentApp = appStore.selectedApp
+  if (!currentApp?.id) {
+    return window.location.href
+  }
+  const resolved = router.resolve(`/app/chat/${currentApp.id}`)
+  return new URL(resolved.href, window.location.origin).toString()
+})
 
 // === Task Plan State ===
 const taskPlanData = ref<TaskPlanData | null>(null)
@@ -1363,19 +1397,151 @@ const handleShare = async () => {
     message.warning('请先登录')
     return
   }
+
+  if (!appStore.selectedApp?.id) {
+    message.warning('当前产物不存在')
+    return
+  }
+
+  forwardAppOpen.value = true
+}
+
+const bumpLocalShareCount = () => {
+  if (!hotStat.value) {
+    return
+  }
+  hotStat.value = {
+    ...hotStat.value,
+    shareCount: (hotStat.value.shareCount || 0) + 1
+  }
+}
+
+const copyTextToClipboard = async (text: string) => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    return
+  }
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', 'true')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+  const copied = document.execCommand('copy')
+  document.body.removeChild(textarea)
+  if (!copied) {
+    throw new Error('copy failed')
+  }
+}
+
+const handleForwardConfirm = async (friendIds: number[]) => {
+  const currentApp = appStore.selectedApp
+  if (!currentApp?.id) {
+    message.warning('当前产物不存在')
+    return
+  }
+  if (!loginUserStore.loginUser.id) {
+    message.warning('请先登录')
+    return
+  }
+
+  forwardSubmitting.value = true
   try {
-    const res = await doAppShare({ appId: appId.value as unknown as number })
-    if (res.data.code === 0) {
-      message.success('转发成功')
-      await fetchHotStat()
+    const content = JSON.stringify({
+      appId: currentApp.id,
+      appName: currentApp.appName,
+      appCover: currentApp.cover,
+      codeGenType: currentApp.codeGenType
+    })
+
+    let successCount = 0
+    for (const friendId of friendIds) {
+      try {
+        await chatStore.sendWsMessage(friendId, content, 'app_forward')
+        successCount++
+      } catch (error) {
+        console.error('转发给好友失败', friendId, error)
+      }
     }
-  } catch (e) {
-    message.error('转发失败')
+
+    if (successCount <= 0) {
+      message.error('转发失败')
+      return
+    }
+
+    try {
+      const res = await doAppShare({ appId: currentApp.id })
+      if (res.data.code === 0) {
+        await fetchHotStat()
+      }
+    } catch (error) {
+      console.error('更新转发统计失败', error)
+    }
+
+    forwardAppOpen.value = false
+    if (successCount === friendIds.length) {
+      message.success(`已转发给 ${successCount} 位好友`)
+    } else {
+      message.warning(`已转发给 ${successCount} 位好友，部分好友发送失败`)
+    }
+  } finally {
+    forwardSubmitting.value = false
   }
 }
 
 const onCommentCountChange = (_delta: number) => {
   fetchHotStat()
+}
+
+const handleCopyShare = async () => {
+  const currentApp = appStore.selectedApp
+  if (!currentApp?.id) {
+    message.warning('当前产物不存在')
+    return
+  }
+  forwardCopying.value = true
+  try {
+    const shareLink = forwardShareLink.value
+    if (!shareLink) {
+      message.warning('当前分享连接暂不可用')
+      return
+    }
+    const typeLabel = getForwardTypeLabel(currentApp.codeGenType)
+    const authorName = currentApp.user?.userName || '平台创作者'
+    const deployKey = currentApp.deployKey
+    const deployLink = deployKey ? `${DEPLOY_DOMAIN}/${deployKey}` : ''
+    const lines = [
+      `【${currentApp.appName || '未命名数字产物'}】`,
+      `产物类型：${typeLabel}`,
+      `创作者：${authorName}`,
+      '',
+      `在线查看：${shareLink}`,
+      ...(deployLink ? [`部署地址：${deployLink}`] : []),
+      '',
+      '—— 来自 RichCodeWeaver · 织码睿奇',
+      'AI 驱动的数字产物生成平台，工作大幅提效，成果触手可及',
+      `平台首页：${window.location.origin}`
+    ]
+    const shareContent = lines.join('\n')
+    await copyTextToClipboard(shareContent)
+    bumpLocalShareCount()
+    try {
+      const res = await doAppShare({ appId: currentApp.id })
+      if (res.data.code === 0) {
+        await fetchHotStat()
+      }
+    } catch (error) {
+      console.error('更新转发统计失败', error)
+    }
+    forwardAppOpen.value = false
+    message.success('分享连接已复制，可直接发送到微信等聊天工具')
+  } catch (error) {
+    console.error('复制分享文案失败', error)
+    message.error('复制失败，请稍后重试')
+  } finally {
+    forwardCopying.value = false
+  }
 }
 
 // === Route Watcher ===
@@ -1387,8 +1553,11 @@ watch(() => route.params.id, (newId) => {
     appId.value = newId as string // Re-set after reset clears it
     fetchAppInfo()
   } else {
-    appStore.clearSelectedApp()
-    resetChatState()
+    appId.value = ''
+    messages.value = []
+    previewUrl.value = ''
+    previewReady.value = false
+    appStore.selectedApp = null
   }
 }, { immediate: false })
 

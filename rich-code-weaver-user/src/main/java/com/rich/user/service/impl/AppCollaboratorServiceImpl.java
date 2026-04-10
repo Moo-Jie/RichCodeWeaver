@@ -2,6 +2,7 @@ package com.rich.user.service.impl;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.rich.common.constant.CollaboratorConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.model.entity.AppCollaborator;
@@ -43,15 +44,6 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
     @Resource
     private UserFriendshipService userFriendshipService;
 
-    /** 协作状态常量 */
-    private static final int STATUS_PENDING = 0;
-    private static final int STATUS_ACCEPTED = 1;
-    private static final int STATUS_REJECTED = 2;
-    private static final int STATUS_REMOVED = 3;
-
-    /** 单个产物最大协作者数量 */
-    private static final int MAX_COLLABORATORS = 20;
-
     /**
      * 邀请好友成为产物协作者
      * 校验：不能邀请自己、好友关系、重复邀请、协作者数量上限
@@ -88,13 +80,14 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
         // 检查是否已有协作记录（含待确认、已接受状态）
         QueryWrapper existQuery = QueryWrapper.create()
                 .from(AppCollaborator.class)
-                .where("appId = ? AND userId = ? AND status IN (0, 1)", appId, userId);
+                .where("appId = ? AND userId = ? AND status IN (?, ?)", appId, userId,
+                        CollaboratorConstant.STATUS_PENDING, CollaboratorConstant.STATUS_ACCEPTED);
         AppCollaborator existing = getOne(existQuery);
         if (existing != null) {
-            if (existing.getStatus() == STATUS_ACCEPTED) {
+            if (existing.getStatus() == CollaboratorConstant.STATUS_ACCEPTED) {
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "该用户已是协作者");
             }
-            if (existing.getStatus() == STATUS_PENDING) {
+            if (existing.getStatus() == CollaboratorConstant.STATUS_PENDING) {
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "已向该用户发送过邀请，请等待确认");
             }
         }
@@ -102,20 +95,22 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
         // 检查协作者数量上限
         long count = count(QueryWrapper.create()
                 .from(AppCollaborator.class)
-                .where("appId = ? AND status = ?", appId, STATUS_ACCEPTED));
-        if (count >= MAX_COLLABORATORS) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "协作者数量已达上限（" + MAX_COLLABORATORS + "人）");
+                .where("appId = ? AND status = ?", appId, CollaboratorConstant.STATUS_ACCEPTED));
+        if (count >= CollaboratorConstant.MAX_COLLABORATORS) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                    "协作者数量已达上限（" + CollaboratorConstant.MAX_COLLABORATORS + "人）");
         }
 
         // 如果存在已拒绝/已移除的旧记录，更新为待确认
         QueryWrapper oldQuery = QueryWrapper.create()
                 .from(AppCollaborator.class)
-                .where("appId = ? AND userId = ? AND status IN (2, 3)", appId, userId);
+                .where("appId = ? AND userId = ? AND status IN (?, ?)", appId, userId,
+                        CollaboratorConstant.STATUS_REJECTED, CollaboratorConstant.STATUS_REMOVED);
         AppCollaborator oldRecord = getOne(oldQuery);
         if (oldRecord != null) {
-            oldRecord.setStatus(STATUS_PENDING);
+            oldRecord.setStatus(CollaboratorConstant.STATUS_PENDING);
             oldRecord.setInviterId(inviterId);
-            oldRecord.setRole(role != null ? role : "editor");
+            oldRecord.setRole(role != null ? role : CollaboratorConstant.ROLE_EDITOR);
             updateById(oldRecord);
             log.info("重新邀请协作者: appId={}, userId={}, inviterId={}", appId, userId, inviterId);
             return oldRecord.getId();
@@ -126,8 +121,8 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
                 .appId(appId)
                 .userId(userId)
                 .inviterId(inviterId)
-                .status(STATUS_PENDING)
-                .role(role != null ? role : "editor")
+                .status(CollaboratorConstant.STATUS_PENDING)
+                .role(role != null ? role : CollaboratorConstant.ROLE_EDITOR)
                 .build();
         save(collaborator);
         log.info("邀请协作者: appId={}, userId={}, inviterId={}, id={}", appId, userId, inviterId, collaborator.getId());
@@ -150,20 +145,21 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权处理该邀请");
         }
         // 必须是待确认状态
-        if (collaborator.getStatus() != STATUS_PENDING) {
+        if (collaborator.getStatus() != CollaboratorConstant.STATUS_PENDING) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "该邀请已被处理");
         }
 
-        if (action == 1) {
+        if (action == CollaboratorConstant.HANDLE_ACTION_ACCEPT) {
             long count = count(QueryWrapper.create()
                     .from(AppCollaborator.class)
-                    .where("appId = ? AND status = ?", collaborator.getAppId(), STATUS_ACCEPTED));
-            if (count >= MAX_COLLABORATORS) {
-                throw new BusinessException(ErrorCode.OPERATION_ERROR, "协作者数量已达上限（" + MAX_COLLABORATORS + "人）");
+                    .where("appId = ? AND status = ?", collaborator.getAppId(), CollaboratorConstant.STATUS_ACCEPTED));
+            if (count >= CollaboratorConstant.MAX_COLLABORATORS) {
+                throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                        "协作者数量已达上限（" + CollaboratorConstant.MAX_COLLABORATORS + "人）");
             }
-            collaborator.setStatus(STATUS_ACCEPTED);
-        } else if (action == 2) {
-            collaborator.setStatus(STATUS_REJECTED);
+            collaborator.setStatus(CollaboratorConstant.STATUS_ACCEPTED);
+        } else if (action == CollaboratorConstant.HANDLE_ACTION_REJECT) {
+            collaborator.setStatus(CollaboratorConstant.STATUS_REJECTED);
         } else {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "无效的处理动作");
         }
@@ -181,7 +177,7 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
     public boolean removeCollaborator(Long appId, Long userId, Long operatorId) {
         QueryWrapper query = QueryWrapper.create()
                 .from(AppCollaborator.class)
-                .where("appId = ? AND userId = ? AND status = ?", appId, userId, STATUS_ACCEPTED);
+                .where("appId = ? AND userId = ? AND status = ?", appId, userId, CollaboratorConstant.STATUS_ACCEPTED);
         AppCollaborator collaborator = getOne(query);
         if (collaborator == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "协作关系不存在");
@@ -190,7 +186,7 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
         if (!collaborator.getInviterId().equals(operatorId)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "仅产物所有者可移除协作者");
         }
-        collaborator.setStatus(STATUS_REMOVED);
+        collaborator.setStatus(CollaboratorConstant.STATUS_REMOVED);
         boolean result = updateById(collaborator);
         log.info("移除协作者: appId={}, userId={}, operatorId={}", appId, userId, operatorId);
         return result;
@@ -203,7 +199,7 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
     public List<AppCollaboratorVO> listCollaborators(Long appId) {
         QueryWrapper query = QueryWrapper.create()
                 .from(AppCollaborator.class)
-                .where("appId = ? AND status = ?", appId, STATUS_ACCEPTED)
+                .where("appId = ? AND status = ?", appId, CollaboratorConstant.STATUS_ACCEPTED)
                 .orderBy("createTime", true);
         List<AppCollaborator> records = list(query);
         return enrichCollaboratorVOs(records);
@@ -216,7 +212,7 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
     public List<AppCollaboratorVO> listPendingInvitations(Long userId) {
         QueryWrapper query = QueryWrapper.create()
                 .from(AppCollaborator.class)
-                .where("userId = ? AND status = ?", userId, STATUS_PENDING)
+                .where("userId = ? AND status = ?", userId, CollaboratorConstant.STATUS_PENDING)
                 .orderBy("createTime", false);
         List<AppCollaborator> records = list(query);
         return enrichCollaboratorVOs(records);
@@ -232,7 +228,7 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
         }
         QueryWrapper query = QueryWrapper.create()
                 .from(AppCollaborator.class)
-                .where("appId = ? AND userId = ? AND status = ?", appId, userId, STATUS_ACCEPTED);
+                .where("appId = ? AND userId = ? AND status = ?", appId, userId, CollaboratorConstant.STATUS_ACCEPTED);
         return count(query) > 0;
     }
 
@@ -243,7 +239,7 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
     public List<Long> listCollaboratorUserIds(Long appId) {
         QueryWrapper query = QueryWrapper.create()
                 .from(AppCollaborator.class)
-                .where("appId = ? AND status = ?", appId, STATUS_ACCEPTED);
+                .where("appId = ? AND status = ?", appId, CollaboratorConstant.STATUS_ACCEPTED);
         List<AppCollaborator> records = list(query);
         return records.stream().map(AppCollaborator::getUserId).collect(Collectors.toList());
     }
@@ -255,7 +251,7 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
     public List<Long> listCollaboratedAppIds(Long userId) {
         QueryWrapper query = QueryWrapper.create()
                 .from(AppCollaborator.class)
-                .where("userId = ? AND status = ?", userId, STATUS_ACCEPTED);
+                .where("userId = ? AND status = ?", userId, CollaboratorConstant.STATUS_ACCEPTED);
         List<AppCollaborator> records = list(query);
         return records.stream().map(AppCollaborator::getAppId).collect(Collectors.toList());
     }

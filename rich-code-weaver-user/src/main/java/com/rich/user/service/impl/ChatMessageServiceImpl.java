@@ -7,6 +7,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.update.UpdateChain;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.rich.common.constant.ChatConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.model.entity.AppCollaborator;
@@ -70,7 +71,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "消息内容不能为空");
         }
         if (messageType == null || messageType.trim().isEmpty()) {
-            messageType = "text";
+            messageType = ChatConstant.MESSAGE_TYPE_TEXT;
         }
 
         // 获取或创建会话
@@ -180,7 +181,7 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
 
     private Map<Long, AppCollaborator> loadCollaboratorMap(List<ChatMessage> messages) {
         Set<Long> collaboratorIds = messages.stream()
-                .filter(message -> "collab_invite".equals(message.getMessageType()))
+                .filter(message -> ChatConstant.MESSAGE_TYPE_COLLAB_INVITE.equals(message.getMessageType()))
                 .map(this::extractCollabId)
                 .filter(id -> id != null && id > 0)
                 .collect(Collectors.toSet());
@@ -198,7 +199,19 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
             vo.setSenderName(sender.getUserName());
             vo.setSenderAvatar(sender.getUserAvatar());
         }
-        if (!"collab_invite".equals(message.getMessageType())) {
+
+        if (ChatConstant.MESSAGE_TYPE_APP_FORWARD.equals(message.getMessageType())) {
+            JSONObject payload = parseCollabPayload(message.getContent());
+            if (payload == null) {
+                return vo;
+            }
+            vo.setAppId(payload.getLong("appId"));
+            vo.setAppName(payload.getStr("appName"));
+            vo.setAppCover(payload.getStr("appCover"));
+            return vo;
+        }
+
+        if (!ChatConstant.MESSAGE_TYPE_COLLAB_INVITE.equals(message.getMessageType())) {
             return vo;
         }
         JSONObject payload = parseCollabPayload(message.getContent());
