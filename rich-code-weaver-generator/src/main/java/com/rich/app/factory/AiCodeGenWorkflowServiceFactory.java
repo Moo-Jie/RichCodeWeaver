@@ -5,9 +5,9 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.ai.aiTools.ToolsManager;
 import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
 import com.rich.ai.service.AiCodeGeneratorService;
-import com.rich.common.constant.AiServiceConstant;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.client.innerService.InnerSystemPromptService;
+import com.rich.common.constant.AiServiceConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.utils.SpringContextUtil;
@@ -20,6 +20,7 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.tool.ToolProvider;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -104,6 +105,13 @@ public class AiCodeGenWorkflowServiceFactory {
      **/
     @Autowired
     private RagContentRetrieverAugmentorFactory ragContentRetrieverAugmentorFactory;
+
+    /**
+     * MCP 工具提供器（可选注入）
+     * 仅在启用 MCP 且成功完成配置装配时存在
+     **/
+    @Autowired(required = false)
+    private ToolProvider mcpToolProvider;
 
     /**
      * 在 Caffeine 缓存中获取或创建 AI 服务实例
@@ -274,16 +282,31 @@ public class AiCodeGenWorkflowServiceFactory {
      */
     private AiCodeGeneratorService buildReasoningWorkflowService(AiServices<AiCodeGeneratorService> aiCodeGenServices,
                                                                  MessageWindowChatMemory chatMemory) {
+        // 推理模式单独使用 reasoning-streaming-chat-model，普通流式模式不会走这里
         StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean(
                 AiServiceConstant.REASONING_STREAMING_CHAT_MODEL_BEAN, StreamingChatModel.class);
-        return aiCodeGenServices
+
+        // 推理模式支持工具调用，因此在原有本地工具之外，额外挂载 MCP ToolProvider
+        AiServices<AiCodeGeneratorService> builder = aiCodeGenServices
+                // 指定推理流式模型，保证具备更强的工具调用能力
                 .streamingChatModel(reasoningStreamingChatModel)
+                // 继续沿用当前 appId 对应的 chatMemory，保证本轮推理与历史上下文连贯
                 .chatMemoryProvider(id -> chatMemory)
+                // 本地工具依旧保留，不会因为引入 MCP 而替换掉原有工具链
                 .tools(toolsManager.getAllTools())
+                // 当模型幻觉出不存在的工具名时，返回统一错误结果，避免调用链直接中断
                 .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                         toolExecutionRequest,
-                        String.format(AiServiceConstant.HALLUCINATED_TOOL_MESSAGE_TEMPLATE, toolExecutionRequest.name())))
-                .build();
+                        String.format(AiServiceConstant.HALLUCINATED_TOOL_MESSAGE_TEMPLATE, toolExecutionRequest.name())));
+        if (mcpToolProvider != null) {
+            // 只有启用了 MCP 时才注入，未启用时保持原有行为不变
+            // 这里是“追加”一个外部工具提供器，而不是替换前面的本地工具
+            builder.toolProvider(mcpToolProvider);
+            log.info("为工作流推理服务注入 MCP 工具提供器");
+        }
+
+        // 最终构建出可直接执行推理 + 工具调用的 AI 服务实例
+        return builder.build();
     }
 
     /**

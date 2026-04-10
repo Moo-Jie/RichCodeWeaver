@@ -5,9 +5,9 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.ai.agent.AiCodeGenAgentService;
 import com.rich.ai.aiTools.ToolsManager;
 import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
-import com.rich.common.constant.AiServiceConstant;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.client.innerService.InnerSystemPromptService;
+import com.rich.common.constant.AiServiceConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.utils.SpringContextUtil;
@@ -18,6 +18,7 @@ import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.service.tool.ToolProvider;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -83,6 +84,13 @@ public class AiCodeGenAgentServiceFactory {
      */
     @Autowired(required = false)
     private RagContentRetrieverAugmentorFactory ragContentRetrieverAugmentorFactory;
+
+    /**
+     * MCP 工具提供器（可选注入）
+     * 启用 MCP 后，Agent 模式可在原有本地工具之外调用外部 MCP 工具
+     */
+    @Autowired(required = false)
+    private ToolProvider mcpToolProvider;
 
     /**
      * 从缓存中获取或创建 Agent 服务实例
@@ -180,16 +188,32 @@ public class AiCodeGenAgentServiceFactory {
     private AiServices<AiCodeGenAgentService> buildBaseAgentService(String systemPrompt,
                                                                     MessageWindowChatMemory chatMemory,
                                                                     StreamingChatModel reasoningStreamingChatModel) {
-        return AiServices.builder(AiCodeGenAgentService.class)
+        // Agent 模式本身就是推理 + 工具调用链，因此这里直接将本地工具与 MCP 工具一并挂载
+        AiServices<AiCodeGenAgentService> builder = AiServices.builder(AiCodeGenAgentService.class)
+                // Agent 全程使用推理流式模型，确保 Think -> Act -> Observe 链路稳定运行
                 .streamingChatModel(reasoningStreamingChatModel)
+                // 系统提示词仍然沿用数据库中的 Agent Prompt，不改变原有规划/执行策略
                 .systemMessageProvider(memoryId -> systemPrompt)
+                // 原有本地工具全部保留，例如 taskPlan / think / 文件工具 等
                 .tools(toolsManager.getAllTools())
+                // 限制连续工具调用次数，避免模型异常循环调用工具
                 .maxSequentialToolsInvocations(AiServiceConstant.AGENT_MAX_TOOLS_INVOCATIONS)
+                // 直接绑定当前 appId 对应的 chatMemory，保持多轮 Agent 上下文连续
                 .chatMemory(chatMemory)
+                // 同时保留 chatMemoryProvider，兼容依赖 MemoryId 的调用方式
                 .chatMemoryProvider(id -> chatMemory)
+                // 当模型调用了不存在的工具名时，返回可读的失败信息，而不是直接抛异常中断
                 .hallucinatedToolNameStrategy(toolExecutionRequest ->
                         ToolExecutionResultMessage.from(toolExecutionRequest,
                                 String.format(AiServiceConstant.HALLUCINATED_TOOL_MESSAGE_TEMPLATE, toolExecutionRequest.name())));
+        if (mcpToolProvider != null) {
+            // 未启用 MCP 时不注入，保持原有 Agent 行为完全不变
+            // 启用后，Agent 可以在本地工具之外额外调用 MCP 暴露出来的外部工具
+            builder.toolProvider(mcpToolProvider);
+        }
+
+        // 返回 builder 继续给后面的 RAG 挂载逻辑复用，最后在 createAgentService 中统一 build
+        return builder;
     }
 
     /**

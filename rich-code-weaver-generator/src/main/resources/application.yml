@@ -56,3 +56,9 @@ management:
     health:
       # 显示详细健康信息
       show-details: always
+
+mcp:
+  enabled: false
+  config-path: classpath:mcp-servers.json
+  log-events: true
+  fail-if-one-server-fails: false
