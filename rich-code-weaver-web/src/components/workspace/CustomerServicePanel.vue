@@ -37,8 +37,8 @@
             <div class="assistant-meta">
               <div class="assistant-name">RUBY 智能助手</div>
               <div class="assistant-status">
-                <span :class="['status-dot', { 'is-streaming': streaming }]" />
-                <span>{{ streaming ? '响应生成中' : '在线' }}</span>
+                <span :class="['status-dot', { 'is-streaming': streaming, 'is-offline': !userModuleOnline && !streaming }]" />
+                <span>{{ streaming ? '响应生成中' : (userModuleOnline ? '在线' : '离线') }}</span>
               </div>
             </div>
           </div>
@@ -205,6 +205,9 @@ import {
 import { API_BASE_URL } from '@/config/env'
 import request from '@/request'
 import customerLogo from '@/assets/customerLogo.png'
+import { useRouter } from 'vue-router'
+import { useLoginUserStore } from '@/stores/loginUser'
+import { checkUserHealth } from '@/api/healthController'
 
 interface CustomerServiceMessageItem {
   id?: number
@@ -214,6 +217,9 @@ interface CustomerServiceMessageItem {
   createTime?: string
   loading?: boolean
 }
+
+const router = useRouter()
+const loginUserStore = useLoginUserStore()
 
 const PANEL_MODE_KEY = 'rcw_customer_service_panel_mode'
 const ACTIVE_CONVERSATION_KEY = 'rcw_customer_service_active_conversation'
@@ -228,6 +234,18 @@ const suggestionPrompts = [
   '推荐模板和我的身份信息有什么关系？',
   '为什么生成失败了，我应该先检查什么？'
 ]
+
+const userModuleOnline = ref(false)
+let healthCheckTimer: ReturnType<typeof setInterval> | null = null
+
+const checkRubyOnline = async () => {
+  try {
+    const res = await checkUserHealth()
+    userModuleOnline.value = res.data.code === 0 && res.data.data?.status === 'UP'
+  } catch {
+    userModuleOnline.value = false
+  }
+}
 
 const conversations = ref<API.CustomerServiceConversationVO[]>([])
 const activeConversationId = ref<number>()
@@ -656,6 +674,11 @@ const connectSse = (conversationId: number, prompt: string, isReconnect = false)
 }
 
 const sendMessage = async () => {
+  if (!loginUserStore.loginUser?.id) {
+    message.warning('请先登录后再使用AI客服')
+    await router.push('/user/login')
+    return
+  }
   const prompt = userInput.value.trim()
   if (!prompt || streaming.value) return
   expandPanel()
@@ -700,6 +723,9 @@ onMounted(async () => {
   restoreFloatingPosition()
   syncFloatingPosition()
   window.addEventListener('resize', handleWindowResize)
+  await checkRubyOnline()
+  healthCheckTimer = setInterval(checkRubyOnline, 30000)
+  if (!loginUserStore.loginUser?.id) return
   await loadConversations()
   if (!activeConversationId.value && conversations.value.length === 0) {
     await handleCreateConversation()
@@ -714,6 +740,10 @@ onUnmounted(() => {
   closeEventSource()
   removeDragListeners()
   window.removeEventListener('resize', handleWindowResize)
+  if (healthCheckTimer) {
+    clearInterval(healthCheckTimer)
+    healthCheckTimer = null
+  }
 })
 </script>
 
@@ -860,6 +890,11 @@ onUnmounted(() => {
   background: #3b82f6;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14);
   animation: statusPulse 1.4s ease-in-out infinite;
+}
+
+.status-dot.is-offline {
+  background: #d1d5db;
+  box-shadow: 0 0 0 4px rgba(209, 213, 219, 0.18);
 }
 
 .header-actions {

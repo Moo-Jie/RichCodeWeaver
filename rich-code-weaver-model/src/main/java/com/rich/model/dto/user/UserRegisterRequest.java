@@ -5,7 +5,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 用户注册响应类
+ * 用户注册请求
  *
  * @author DuRuiChi
  * @create 2025/12/5
@@ -16,9 +16,19 @@ public class UserRegisterRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 账号
+     * 邮箱
      */
-    private String userAccount;
+    private String email;
+
+    /**
+     * 用户昵称
+     */
+    private String userName;
+
+    /**
+     * 邮箱验证码
+     */
+    private String emailCode;
 
     /**
      * 密码

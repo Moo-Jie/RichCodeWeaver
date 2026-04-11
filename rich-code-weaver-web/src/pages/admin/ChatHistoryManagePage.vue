@@ -5,6 +5,8 @@
       <p>管理数字产物历史对话记录</p>
     </div>
 
+    <AdminBackToDashboardButton />
+
     <div class="main-content">
       <div class="app-section">
         <div class="section-header">
@@ -214,6 +216,7 @@ import {
   deleteById,
   listAppChatHistoryByPageAdmin as listHistoryAdmin
 } from '@/api/chatHistoryController'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import { message } from 'ant-design-vue'
 

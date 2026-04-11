@@ -1,7 +1,14 @@
 <template>
   <div class="material-manage-page">
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <h1>素材管理</h1>
+      <p>管理构建数字产物的素材</p>
+    </div>
+
+    <AdminBackToDashboardButton />
+
     <a-tabs v-model:activeKey="activeTab" class="manage-tabs">
-      <!-- ==================== 素材管理 TAB ==================== -->
       <a-tab-pane key="material" tab="素材管理">
         <div class="tab-content">
           <!-- 工具栏 -->
@@ -49,7 +56,7 @@
                 <a-select-option :value="0">私有</a-select-option>
               </a-select>
             </div>
-            <a-button type="primary" @click="showMAddModal">
+            <a-button type="primary" class="solid-btn" @click="showMAddModal">
               <template #icon><PlusOutlined /></template>
               添加素材
             </a-button>
@@ -67,12 +74,12 @@
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'materialType'">
-                <a-tag :color="typeColorMap[record.materialType] || 'default'">
+                <a-tag class="mono-tag">
                   {{ typeLabel(record.materialType) }}
                 </a-tag>
               </template>
               <template v-if="column.key === 'isPublic'">
-                <a-tag :color="record.isPublic === 1 ? 'green' : 'default'">
+                <a-tag :class="['mono-tag', record.isPublic === 1 ? 'status-tag-enabled' : 'status-tag-disabled']">
                   {{ record.isPublic === 1 ? '公开' : '私有' }}
                 </a-tag>
               </template>
@@ -109,7 +116,7 @@
         <div class="tab-content">
           <div class="toolbar">
             <div class="toolbar-left"></div>
-            <a-button type="primary" @click="showCAddModal">
+            <a-button type="primary" class="solid-btn" @click="showCAddModal">
               <template #icon><PlusOutlined /></template>
               添加分类
             </a-button>
@@ -130,7 +137,7 @@
                 <span v-else>-</span>
               </template>
               <template v-if="column.key === 'isEnabled'">
-                <a-tag :color="record.isEnabled === 1 ? 'green' : 'red'">
+                <a-tag :class="['mono-tag', record.isEnabled === 1 ? 'status-tag-enabled' : 'status-tag-disabled']">
                   {{ record.isEnabled === 1 ? '启用' : '禁用' }}
                 </a-tag>
               </template>
@@ -201,7 +208,7 @@
           />
         </a-form-item>
         <a-form-item v-if="mForm.materialType === 'text'" label="素材内容" required>
-          <a-button type="primary" @click="openTextEditor">
+          <a-button type="primary" class="solid-btn" @click="openTextEditor">
             <template #icon><EditOutlined /></template>
             打开编辑器
           </a-button>
@@ -244,7 +251,7 @@
           </div>
           <div class="toolbar-actions">
             <a-button @click="textEditorVisible = false">取消</a-button>
-            <a-button type="primary" @click="confirmTextEditor">
+            <a-button type="primary" class="solid-btn" @click="confirmTextEditor">
               <template #icon><CheckOutlined /></template>
               确认
             </a-button>
@@ -343,10 +350,11 @@ import {
   listMaterialCategoryByPage,
   updateMaterial,
   updateMaterialCategory
-} from '@/api/materialController'
-import { uploadFile } from '@/api/fileController'
+ } from '@/api/materialController'
+ import { uploadFile } from '@/api/fileController'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 
-const activeTab = ref('material')
+ const activeTab = ref('material')
 
 // ===== 分类数据（两个 tab 共用） =====
 const categories = ref<API.MaterialCategoryVO[]>([])
@@ -364,9 +372,6 @@ const iconMap: Record<string, any> = {
 const getIconComponent = (name: string) => iconMap[name] || null
 
 // ===== 类型辅助 =====
-const typeColorMap: Record<string, string> = {
-  image: 'blue', text: 'purple', video: 'orange', audio: 'green', link: 'cyan'
-}
 const typeLabel = (type?: string) => {
   const m: Record<string, string> = { image: '图片', text: '文本', video: '视频', audio: '音频', link: '链接' }
   return m[type || ''] || type
@@ -677,17 +682,39 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="less">
 .material-manage-page {
   padding: 24px;
+  min-height: 100%;
+  background: #f5f5f5;
 }
 
 .manage-tabs :deep(.ant-tabs-nav) {
-  margin-bottom: 0;
+  margin-bottom: 16px;
+}
+
+.manage-tabs :deep(.ant-tabs-tab-btn) {
+  color: #666;
+}
+
+.manage-tabs :deep(.ant-tabs-tab:hover .ant-tabs-tab-btn) {
+  color: #333;
+}
+
+.manage-tabs :deep(.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn) {
+  color: #1a1a1a;
+}
+
+.manage-tabs :deep(.ant-tabs-ink-bar) {
+  background: #333;
 }
 
 .tab-content {
-  padding: 16px 0 0;
+  padding: 20px;
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 .toolbar {
@@ -701,6 +728,23 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.page-header {
+  margin-bottom: 28px;
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 6px;
+  }
+
+  p {
+    font-size: 14px;
+    color: #999;
+    margin: 0;
+  }
 }
 
 .content-preview {
@@ -731,7 +775,7 @@ onMounted(() => {
 .text-hint {
   margin-left: 12px;
   font-size: 12px;
-  color: #52c41a;
+  color: #666;
 }
 
 /* 文本编辑器弹窗样式 */
@@ -758,7 +802,7 @@ onMounted(() => {
 
 .char-count {
   font-size: 13px;
-  color: #1677ff;
+  color: #333;
   font-weight: 500;
 }
 
@@ -775,5 +819,153 @@ onMounted(() => {
 .text-editor-body {
   flex: 1;
   overflow: hidden;
+}
+
+.mono-tag {
+  margin-inline-end: 0;
+  border-radius: 999px;
+  border: 1px solid #d9d9d9;
+  background: #fafafa;
+  color: #333;
+}
+
+.status-tag-enabled {
+  background: #f5f5f5;
+  color: #222;
+}
+
+.status-tag-disabled {
+  background: #fafafa;
+  color: #777;
+}
+
+.solid-btn {
+  border-color: #1f1f1f;
+  background: #1f1f1f;
+  box-shadow: none;
+}
+
+.solid-btn:hover,
+.solid-btn:focus {
+  border-color: #000;
+  background: #000;
+}
+
+.material-manage-page :deep(.ant-btn-primary) {
+  border-color: #1f1f1f;
+  background: #1f1f1f;
+  box-shadow: none;
+}
+
+.material-manage-page :deep(.ant-btn-primary:hover),
+.material-manage-page :deep(.ant-btn-primary:focus) {
+  border-color: #000;
+  background: #000;
+}
+
+.material-manage-page :deep(.ant-btn-default) {
+  border-color: #d9d9d9;
+  color: #333;
+  background: #fff;
+  box-shadow: none;
+}
+
+.material-manage-page :deep(.ant-btn-default:hover),
+.material-manage-page :deep(.ant-btn-default:focus) {
+  border-color: #999;
+  color: #000;
+}
+
+.material-manage-page :deep(.ant-btn-link) {
+  color: #333;
+}
+
+.material-manage-page :deep(.ant-btn-link:hover),
+.material-manage-page :deep(.ant-btn-link:focus) {
+  color: #000;
+}
+
+.material-manage-page :deep(.ant-btn-link.ant-btn-dangerous) {
+  color: #666 !important;
+}
+
+.material-manage-page :deep(.ant-btn-link.ant-btn-dangerous:hover),
+.material-manage-page :deep(.ant-btn-link.ant-btn-dangerous:focus) {
+  color: #000 !important;
+}
+
+.material-manage-page :deep(.ant-input),
+.material-manage-page :deep(.ant-input-affix-wrapper),
+.material-manage-page :deep(.ant-select-selector),
+.material-manage-page :deep(.ant-input-number),
+.material-manage-page :deep(.ant-input-number-input),
+.material-manage-page :deep(.ant-picker) {
+  border-color: #d9d9d9 !important;
+  box-shadow: none !important;
+}
+
+.material-manage-page :deep(.ant-input:hover),
+.material-manage-page :deep(.ant-input-affix-wrapper:hover),
+.material-manage-page :deep(.ant-select:hover .ant-select-selector),
+.material-manage-page :deep(.ant-input-number:hover) {
+  border-color: #999 !important;
+}
+
+.material-manage-page :deep(.ant-input:focus),
+.material-manage-page :deep(.ant-input-affix-wrapper-focused),
+.material-manage-page :deep(.ant-select-focused .ant-select-selector),
+.material-manage-page :deep(.ant-input-number-focused) {
+  border-color: #999 !important;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.material-manage-page :deep(.ant-switch) {
+  background: #bfbfbf;
+}
+
+.material-manage-page :deep(.ant-switch.ant-switch-checked) {
+  background: #595959;
+}
+
+.material-manage-page :deep(.ant-table-wrapper .ant-table) {
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.material-manage-page :deep(.ant-table-thead > tr > th) {
+  background: #fafafa;
+  color: #333;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.material-manage-page :deep(.ant-table-tbody > tr > td) {
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.material-manage-page :deep(.ant-table-tbody > tr.ant-table-row:hover > td) {
+  background: #fafafa;
+}
+
+.material-manage-page :deep(.ant-pagination-item-active) {
+  border-color: #333;
+}
+
+.material-manage-page :deep(.ant-pagination-item-active a) {
+  color: #333;
+}
+
+.material-manage-page :deep(.ant-modal-content) {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.material-manage-page :deep(.ant-modal-header) {
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.material-manage-page :deep(.ant-modal-title) {
+  color: #1a1a1a;
 }
 </style>

@@ -5,6 +5,8 @@
       <p class="page-description">管理Higress AI网关配置</p>
     </div>
 
+    <AdminBackToDashboardButton class="page-back-entry" />
+
     <div class="iframe-container">
       <div v-if="loading" class="loading-overlay">
         <a-spin size="large" />
@@ -43,6 +45,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 
 const higressUrl = import.meta.env.VITE_HIGRESS_URL || 'http://localhost:8001'
 const loading = ref(true)
@@ -103,6 +106,10 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 600;
   color: #1a1a1a;
+}
+
+.page-back-entry {
+  padding: 0 24px;
 }
 
 .page-description {

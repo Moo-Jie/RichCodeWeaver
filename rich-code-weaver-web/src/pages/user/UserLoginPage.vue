@@ -1,5 +1,9 @@
 <template>
   <div id="userLoginPage">
+    <RouterLink class="home-link" to="/">
+      <HomeOutlined />
+      <span>主页</span>
+    </RouterLink>
     <div class="login-layout">
       <!-- 左侧品牌展示区域 -->
       <div class="brand-panel">
@@ -42,11 +46,11 @@
             <p class="form-desc">登录您的账号，开始创建数字产物</p>
           </div>
           <a-form :model="formState" autocomplete="off" name="basic" @finish="handleSubmit">
-            <a-form-item :rules="[{ required: true, message: '请输入账号' }]" name="userAccount">
-              <a-input v-model:value="formState.userAccount" class="input-field"
-                       placeholder="请输入账号">
+            <a-form-item :rules="[{ required: true, message: '请输入邮箱' }, { validator: validateEmailField }]" name="email">
+              <a-input v-model:value="formState.email" class="input-field"
+                       placeholder="请输入邮箱">
                 <template #prefix>
-                  <UserOutlined style="color: #bbb" />
+                  <MailOutlined style="color: #bbb" />
                 </template>
               </a-input>
             </a-form-item>
@@ -92,25 +96,39 @@
 <script lang="ts" setup>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { LockOutlined, UserOutlined } from '@ant-design/icons-vue'
-import { userLogin } from '@/api/userController.ts'
-import { useLoginUserStore } from '@/stores/loginUser.ts'
+import { HomeOutlined, LockOutlined, MailOutlined } from '@ant-design/icons-vue'
+import { userLogin } from '@/api/userController'
+import { useLoginUserStore } from '@/stores/loginUser'
 import { message } from 'ant-design-vue'
+import { validateEmail } from '@/utils/emailUtil'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const submitting = ref(false)
 
 const formState = reactive({
-  userAccount: router.currentRoute.value.query.username || '',
+  email: (router.currentRoute.value.query.email as string) || '',
   userPassword: ''
 })
 
+const validateEmailField = async (_rule: unknown, value: string) => {
+  const result = validateEmail(value)
+  if (!result.valid) {
+    throw new Error(result.message || '邮箱格式不正确')
+  }
+}
+
 const handleSubmit = async () => {
+  const emailResult = validateEmail(formState.email)
+  if (!emailResult.valid) {
+    message.warning(emailResult.message || '邮箱格式不正确')
+    return
+  }
+  formState.email = emailResult.normalizedEmail
   submitting.value = true
   try {
     const res = await userLogin({
-      userAccount: formState.userAccount,
+      email: emailResult.normalizedEmail,
       userPassword: formState.userPassword
     })
 
@@ -121,7 +139,7 @@ const handleSubmit = async () => {
     } else {
       message.error('登录失败：' + res.data.message)
     }
-  } catch (error) {
+  } catch {
     message.error('登录过程中发生错误')
   } finally {
     submitting.value = false
@@ -137,6 +155,7 @@ const handleSubmit = async () => {
   align-items: center;
   background: #fafafa;
   padding: 20px;
+  position: relative;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -365,5 +384,30 @@ const handleSubmit = async () => {
   .form-card {
     padding: 32px 24px;
   }
+}
+
+.home-link {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.home-link:hover {
+  background: #fafafa;
+  border-color: #d0d0d0;
+  color: #1a1a1a;
 }
 </style>

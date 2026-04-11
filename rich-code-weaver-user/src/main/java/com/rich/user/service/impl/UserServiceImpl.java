@@ -8,6 +8,7 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
+import com.rich.common.utils.EmailUtils;
 import com.rich.model.dto.user.UserQueryRequest;
 import com.rich.model.dto.user.UserUpdatePasswordRequest;
 import com.rich.model.entity.User;
@@ -39,31 +40,31 @@ import static com.rich.common.constant.UserConstant.*;
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
     /**
-     * 用户注册
+     * 用户注册（邮箱方式）
      *
-     * @param userAccount   用户账号
+     * @param email         邮箱
+     * @param userName      用户昵称
      * @param userPassword  用户密码
      * @param checkPassword 确认密码
      * @return 新注册用户的ID
      * @throws BusinessException 参数错误或业务异常
      **/
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword) {
-        // 1. 参数基础校验
-        validateAccount(userAccount);
+    public long userRegister(String email, String userName, String userPassword, String checkPassword) {
+        validateEmail(email);
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
+        validateUserName(userName);
         validatePassword(userPassword, checkPassword);
 
-        // 2. 检查账号唯一性
-        checkAccountUnique(userAccount);
+        checkEmailUnique(normalizedEmail);
 
-        // 3. 密码加密存储
         String encryptPassword = encryptPassword(userPassword);
 
-        // 4. 构建用户对象并存储
         User user = new User();
-        user.setUserAccount(userAccount);
+        user.setEmail(normalizedEmail);
+        user.setUserAccount(normalizedEmail);
         user.setUserPassword(encryptPassword);
-        user.setUserName(DEFAULT_USER_NAME);
+        user.setUserName(userName);
         user.setUserRole(UserRoleEnum.USER.getValue());
         user.setUserAvatar(DEFAULT_USER_PICTURE);
         user.setUserProfile(DEFAULT_PROFILE);
@@ -93,9 +94,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     /**
-     * 用户登录
+     * 用户登录（邮箱方式）
      *
-     * @param userAccount  用户账号
+     * @param email        邮箱
      * @param userPassword 用户密码
      * @param request      HTTP请求对象
      * @return 脱敏后的登录用户信息
@@ -104,18 +105,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @create 2025/12/7
      **/
     @Override
-    public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
-        // 1. 参数基础校验
-        validateAccount(userAccount);
+    public LoginUserVO userLogin(String email, String userPassword, HttpServletRequest request) {
+        validateEmail(email);
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
         if (StrUtil.isBlank(userPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码不能为空");
         }
 
-        // 2. 密码加密并验证
         String encryptPassword = encryptPassword(userPassword);
-        User user = validateUserCredentials(userAccount, encryptPassword);
+        User user = validateUserCredentials(normalizedEmail, encryptPassword);
 
-        // 3. 存储登录状态并返回脱敏信息
         request.getSession().setAttribute(USER_LOGIN_STATE, user);
         return getLoginUserVO(user);
     }
@@ -217,7 +216,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
         // 查询条件
         Long id = userQueryRequest.getId();
-        String userAccount = StrUtil.trimToNull(userQueryRequest.getUserAccount());
+        String email = StrUtil.trimToNull(userQueryRequest.getEmail());
         String userName = StrUtil.trimToNull(userQueryRequest.getUserName());
         String userProfile = StrUtil.trimToNull(userQueryRequest.getUserProfile());
         String userRole = StrUtil.trimToNull(userQueryRequest.getUserRole());
@@ -233,8 +232,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             queryWrapper.eq("userRole", userRole);
         }
         // 模糊查询
-        if (userAccount != null) {
-            queryWrapper.like("userAccount", userAccount);
+        if (email != null) {
+            queryWrapper.like("email", email);
         }
         if (userName != null) {
             queryWrapper.like("userName", userName);
@@ -311,27 +310,40 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 获取用户信息
         User user = this.getById(userId);
         ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
-        // 重置密码
-        String resetPassword = getEncryptPassword("zmrq@" + user.getUserAccount());
+        // 重置密码（使用邮箱作为标识）
+        String emailOrAccount = StrUtil.isNotBlank(user.getEmail()) ? user.getEmail() : user.getUserAccount();
+        String resetPassword = getEncryptPassword("zmrq@" + emailOrAccount);
         user.setUserPassword(resetPassword);
         return this.updateById(user);
     }
 
     /**
-     * 验证用户账号合规性
+     * 验证邮箱格式
      *
-     * @param account
-     * @return void
-     * @author DuRuiChi
-     * @create 2025/12/7
+     * @param email 邮箱地址
      **/
-    private void validateAccount(String account) {
-        if (StrUtil.isBlank(account)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号不能为空");
+    private void validateEmail(String email) {
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
+        if (StrUtil.isBlank(normalizedEmail)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱不能为空");
         }
-        if (account.length() < MIN_ACCOUNT_LENGTH) {
+        if (!EmailUtils.isValidEmail(normalizedEmail)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱格式不正确");
+        }
+    }
+
+    /**
+     * 验证用户昵称
+     *
+     * @param userName 用户昵称
+     **/
+    private void validateUserName(String userName) {
+        if (StrUtil.isBlank(userName)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户昵称不能为空");
+        }
+        if (userName.length() < MIN_USERNAME_LENGTH || userName.length() > MAX_USERNAME_LENGTH) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR,
-                    String.format("账号长度至少为%d位", MIN_ACCOUNT_LENGTH));
+                    String.format("用户昵称长度需要在%d-%d位之间", MIN_USERNAME_LENGTH, MAX_USERNAME_LENGTH));
         }
     }
 
@@ -358,37 +370,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     /**
-     * 检查账号唯一性
+     * 检查邮箱唯一性
      *
-     * @param account
-     * @return void
-     * @author DuRuiChi
-     * @create 2025/12/7
+     * @param email 邮箱
      **/
-    private void checkAccountUnique(String account) {
+    private void checkEmailUnique(String email) {
         QueryWrapper queryWrapper = QueryWrapper.create()
-                .eq("userAccount", account)
+                .eq("email", email)
                 .select("id");
         if (mapper.selectCountByQuery(queryWrapper) > 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号已被注册");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该邮箱已被注册");
         }
     }
 
     /**
-     * 验证用户凭证
+     * 验证用户凭证（通过邮箱）
      *
-     * @param account
-     * @param encryptedPassword
-     * @return com.rich.richcodeweaver.model.entity.User
-     * @author DuRuiChi
-     * @create 2025/12/7
+     * @param email             邮箱
+     * @param encryptedPassword 加密后的密码
+     * @return 用户实体
      **/
-    private User validateUserCredentials(String account, String encryptedPassword) {
+    private User validateUserCredentials(String email, String encryptedPassword) {
         QueryWrapper queryWrapper = QueryWrapper.create()
-                .eq("userAccount", account)
+                .eq("email", email)
                 .eq("userPassword", encryptedPassword);
         return this.getOneOpt(queryWrapper)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PARAMS_ERROR, "账号或密码错误"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱或密码错误"));
     }
 
     /**

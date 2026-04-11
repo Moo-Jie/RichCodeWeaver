@@ -6,6 +6,8 @@
       <p>管理数字产物作品</p>
     </div>
 
+    <AdminBackToDashboardButton />
+
     <!-- 搜索面板 -->
     <a-card class="search-panel">
       <h2>筛选数字产物</h2>
@@ -254,14 +256,15 @@ import {
   EyeOutlined,
   InfoCircleOutlined,
   UserOutlined
-} from '@ant-design/icons-vue'
-import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
-import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
-import { formatTime } from '@/utils/timeUtil.ts'
-import UserInfo from '@/components/UserInfo.vue'
-import AppInfo from '@/components/AppInfo.vue'
+ } from '@ant-design/icons-vue'
+ import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
+ import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
+ import { formatTime } from '@/utils/timeUtil.ts'
+ import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
+ import UserInfo from '@/components/UserInfo.vue'
+ import AppInfo from '@/components/AppInfo.vue'
 
-const router = useRouter()
+ const router = useRouter()
 // 查看产物详情
 const appDetailVisible = ref(false)
 const currentApp = ref<API.AppVO | null>(null)

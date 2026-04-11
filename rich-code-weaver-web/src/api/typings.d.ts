@@ -269,7 +269,7 @@ declare namespace API {
   }
 
   type UserLoginRequest = {
-    userAccount?: string
+    email?: string
     userPassword?: string
   }
 
@@ -286,9 +286,28 @@ declare namespace API {
   }
 
   type UserRegisterRequest = {
-    userAccount?: string
+    email?: string
+    userName?: string
+    emailCode?: string
     userPassword?: string
     checkPassword?: string
+  }
+
+  type SendEmailCodeRequest = {
+    email?: string
+    captchaId?: string
+    captchaAnswer?: string
+  }
+
+  type CaptchaResponse = {
+    captchaId?: string
+    captchaImage?: string
+  }
+
+  type BaseResponseCaptcha = {
+    code?: number
+    data?: CaptchaResponse
+    message?: string
   }
 
   type UserUpdatePasswordRequest = {
@@ -315,6 +334,7 @@ declare namespace API {
 
   type UserBindEmailRequest = {
     email?: string
+    emailCode?: string
   }
 
   type UserVO = {

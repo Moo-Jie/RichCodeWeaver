@@ -102,18 +102,6 @@
 
           <div class="setting-item">
             <div>
-              <h3>手机绑定</h3>
-              <p>{{
-                  userInfo.phone ? `已绑定手机: ${maskPhone(userInfo.phone)}` : '未绑定手机号'
-                }}</p>
-            </div>
-            <a-button class="gradient-button" type="primary" @click="handleMobile">
-              {{ userInfo.phone ? '更换手机' : '绑定手机' }}
-            </a-button>
-          </div>
-
-          <div class="setting-item">
-            <div>
               <h3>邮箱验证</h3>
               <p>{{
                   userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
@@ -200,30 +188,6 @@
       </a-form>
     </a-modal>
 
-    <!-- 绑定手机号模态框 -->
-    <a-modal
-      v-model:visible="phoneVisible"
-      class="custom-modal"
-      title="绑定手机号"
-      @ok="handlePhoneSubmit"
-    >
-      <br>
-      <a-form :label-col="{ span: 6 }" :model="phoneForm" :wrapper-col="{ span: 18 }">
-        <a-form-item label="手机号">
-          <a-input
-            v-model:value="phoneForm.phone"
-            placeholder="请输入11位手机号"
-            maxlength="11"
-          />
-        </a-form-item>
-        <a-form-item>
-          <div style="color: #999; font-size: 12px;">
-            请输入正确的11位手机号码，格式：1开头的11位数字
-          </div>
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
     <!-- 绑定邮箱模态框 -->
     <a-modal
       v-model:visible="emailVisible"
@@ -237,12 +201,31 @@
           <a-input
             v-model:value="emailForm.email"
             placeholder="请输入邮箱地址"
-            type="email"
           />
         </a-form-item>
-        <a-form-item>
-          <div style="color: #999; font-size: 12px;">
-            请输入正确的邮箱地址，如：example@domain.com
+        <a-form-item label="图形验证码">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <a-input v-model:value="emailForm.captchaAnswer" placeholder="请输入计算结果" style="flex: 1;" />
+            <img
+              v-if="emailCaptchaImage"
+              :src="emailCaptchaImage"
+              alt="验证码"
+              style="height: 40px; cursor: pointer; border-radius: 4px; border: 1px solid #f0f0f0;"
+              @click="refreshEmailCaptcha"
+            />
+            <a-button v-else size="small" @click="refreshEmailCaptcha">获取验证码</a-button>
+          </div>
+        </a-form-item>
+        <a-form-item label="邮箱验证码">
+          <div style="display: flex; gap: 8px;">
+            <a-input v-model:value="emailForm.emailCode" placeholder="请输入邮箱验证码" style="flex: 1;" />
+            <a-button
+              :disabled="emailCountdown > 0 || emailSendingCode"
+              :loading="emailSendingCode"
+              @click="handleSendEmailCode"
+            >
+              {{ emailCountdown > 0 ? `${emailCountdown}s` : '发送验证码' }}
+            </a-button>
           </div>
         </a-form-item>
       </a-form>
@@ -266,14 +249,15 @@ import {
 } from '@ant-design/icons-vue'
 import {
   bindEmail,
-  bindPhone,
   getLoginUser,
   updateUser,
   updateUserAvatar,
   updateUserPassword,
   userLogout
 } from '@/api/userController'
+import { getMathCaptcha, sendEmailCode } from '@/api/userController'
 import { identityLabelMap, identityOptions, industryOptions } from '@/constants/identityOptions'
+import { validateEmail } from '@/utils/emailUtil'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -295,8 +279,12 @@ const userInfo = reactive({
 // 模态框状态
 const editVisible = ref(false)
 const passwordVisible = ref(false)
-const phoneVisible = ref(false)
 const emailVisible = ref(false)
+const emailCaptchaId = ref('')
+const emailCaptchaImage = ref('')
+const emailCountdown = ref(0)
+const emailSendingCode = ref(false)
+let emailCountdownTimer: ReturnType<typeof setInterval> | null = null
 
 // 编辑表单
 const editForm = reactive({
@@ -326,14 +314,11 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
-// 手机绑定表单
-const phoneForm = reactive({
-  phone: ''
-})
-
 // 邮箱绑定表单
 const emailForm = reactive({
-  email: ''
+  email: '',
+  captchaAnswer: '',
+  emailCode: ''
 })
 
 // 获取用户信息
@@ -424,61 +409,94 @@ const handlePasswordSubmit = async () => {
   }
 }
 
-// 处理手机操作
-const handleMobile = () => {
-  phoneForm.phone = userInfo.phone || ''
-  phoneVisible.value = true
-}
-
 // 处理邮箱操作
-const handleEmail = () => {
+const handleEmail = async () => {
   emailForm.email = userInfo.email || ''
+  emailForm.captchaAnswer = ''
+  emailForm.emailCode = ''
   emailVisible.value = true
+  await refreshEmailCaptcha()
 }
 
-// 提交手机绑定
-const handlePhoneSubmit = async () => {
-  const phone = phoneForm.phone.trim()
+// 刷新邮箱绑定的图形验证码
+const refreshEmailCaptcha = async () => {
+  try {
+    const res = await getMathCaptcha()
+    if (res.data.code === 0 && res.data.data) {
+      emailCaptchaId.value = res.data.data.captchaId || ''
+      emailCaptchaImage.value = res.data.data.captchaImage || ''
+    }
+  } catch {
+    message.error('获取验证码失败')
+  }
+}
 
-  // 验证手机号格式
-  if (!isValidPhone(phone)) {
-    message.error('请输入正确的手机号格式')
+// 发送邮箱验证码
+const handleSendEmailCode = async () => {
+  const emailResult = validateEmail(emailForm.email)
+  if (!emailResult.valid) {
+    message.warning(emailResult.message || '邮箱格式不正确')
     return
   }
-
+  if (!emailForm.captchaAnswer) {
+    message.warning('请先输入计算结果')
+    return
+  }
+  if (!emailCaptchaId.value) {
+    message.warning('请先获取图形验证码')
+    return
+  }
+  emailSendingCode.value = true
   try {
-    const res = await bindPhone({ phone })
+    const res = await sendEmailCode({
+      email: emailResult.normalizedEmail,
+      captchaId: emailCaptchaId.value,
+      captchaAnswer: emailForm.captchaAnswer
+    })
     if (res.data.code === 0) {
-      message.success('手机号绑定成功')
-      userInfo.phone = phone
-      phoneVisible.value = false
-      phoneForm.phone = ''
+      message.success('验证码已发送，请查看邮箱')
+      emailCountdown.value = 60
+      emailCountdownTimer = setInterval(() => {
+        emailCountdown.value--
+        if (emailCountdown.value <= 0) {
+          clearInterval(emailCountdownTimer!)
+          emailCountdownTimer = null
+        }
+      }, 1000)
     } else {
-      message.error('绑定失败：' + res.data.message)
+      message.error(res.data.message || '发送失败')
+      await refreshEmailCaptcha()
     }
-  } catch (error) {
-    console.error('绑定手机号失败：', error)
-    message.error('绑定失败，请稍后重试')
+  } catch {
+    message.error('发送验证码失败')
+    await refreshEmailCaptcha()
+  } finally {
+    emailSendingCode.value = false
   }
 }
 
 // 提交邮箱绑定
 const handleEmailSubmit = async () => {
-  const email = emailForm.email.trim()
-
-  // 验证邮箱格式
-  if (!isValidEmail(email)) {
-    message.error('请输入正确的邮箱格式')
+  const emailResult = validateEmail(emailForm.email)
+  if (!emailResult.valid) {
+    message.error(emailResult.message || '请输入正确的邮箱格式')
     return
   }
+  if (!emailForm.emailCode) {
+    message.error('请输入邮箱验证码')
+    return
+  }
+  const email = emailResult.normalizedEmail
 
   try {
-    const res = await bindEmail({ email })
+    const res = await bindEmail({ email, emailCode: emailForm.emailCode })
     if (res.data.code === 0) {
       message.success('邮箱绑定成功')
       userInfo.email = email
       emailVisible.value = false
       emailForm.email = ''
+      emailForm.captchaAnswer = ''
+      emailForm.emailCode = ''
     } else {
       message.error('绑定失败：' + res.data.message)
     }
@@ -530,38 +548,12 @@ const handleLogout = async () => {
   }
 }
 
-// 手机号脱敏处理
-const maskPhone = (phone: string) => {
-  if (!phone || phone.length < 11) return phone
-  return phone.substring(0, 3) + '****' + phone.substring(7)
-}
-
 // 邮箱脱敏处理
 const maskEmail = (email: string) => {
   if (!email) return email
   const [username, domain] = email.split('@')
   if (!username || !domain) return email
   return `${username.substring(0, 2)}***@${domain}`
-}
-
-// 验证手机号格式
-const isValidPhone = (phone: string) => {
-  if (!phone || phone.trim().length === 0) {
-    return false
-  }
-  // 中国大陆手机号正则：1开头，第二位为3-9，总共11位数字
-  const phoneRegex = /^1[3-9]\d{9}$/
-  return phoneRegex.test(phone.trim())
-}
-
-// 验证邮箱格式
-const isValidEmail = (email: string) => {
-  if (!email || email.trim().length === 0) {
-    return false
-  }
-  // 邮箱正则
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-  return emailRegex.test(email.trim())
 }
 
 onMounted(() => {

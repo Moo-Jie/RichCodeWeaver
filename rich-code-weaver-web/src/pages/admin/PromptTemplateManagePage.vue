@@ -5,6 +5,8 @@
       <p>管理系统提示词模板，支持增删改查</p>
     </div>
 
+    <AdminBackToDashboardButton />
+
     <!-- 搜索面板 -->
     <a-card class="search-panel">
       <h2>筛选模板</h2>
@@ -175,6 +177,7 @@ import {
   listPromptTemplateByPage,
   updatePromptTemplate
 } from '@/api/promptTemplateController'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import { identityLabelMap, identityOptions, industryOptions } from '@/constants/identityOptions'
 import PromptContentEditor from '@/components/admin/PromptContentEditor.vue'
 import FieldDefinitionEditor from '@/components/admin/FieldDefinitionEditor.vue'

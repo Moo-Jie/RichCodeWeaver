@@ -47,4 +47,19 @@ public interface UserConstant {
     String ADMIN_ROLE = "admin";
     String PASSWORD_SALT = "rich";
     String USER_IDENTITY_INDIVIDUAL = "individual";
+
+    /**
+     * 邮箱正则
+     */
+    String EMAIL_REGEX = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+
+    /**
+     * 最小用户昵称长度
+     */
+    int MIN_USERNAME_LENGTH = 1;
+
+    /**
+     * 最大用户昵称长度
+     */
+    int MAX_USERNAME_LENGTH = 20;
 }

@@ -30,6 +30,10 @@ public final class UserQueryRequest extends PageRequest implements Serializable 
      */
     private String userAccount;
     /**
+     * 邮箱
+     */
+    private String email;
+    /**
      * 简介
      */
     private String userProfile;

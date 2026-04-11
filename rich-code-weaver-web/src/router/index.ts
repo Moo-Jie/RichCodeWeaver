@@ -5,6 +5,7 @@ import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
 import AppManagePage from '@/pages/admin/AppManagePage.vue'
+import SystemManageDashboard from '@/pages/admin/SystemManageDashboard.vue'
 import AppEditPage from '@/pages/app/AppEditPage.vue'
 import MyAppsPage from '@/pages/app/MyAppsPage.vue'
 import AllAppsPage from '@/pages/app/AllAppsPage.vue'
@@ -73,6 +74,11 @@ const router = createRouter({
           path: 'user/userCenter',
           name: '个人中心',
           component: UserCenterPage
+        },
+        {
+          path: 'admin',
+          name: '系统管理',
+          component: SystemManageDashboard
         },
         {
           path: 'admin/userManage',

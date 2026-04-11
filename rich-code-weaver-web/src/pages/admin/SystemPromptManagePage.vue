@@ -5,6 +5,8 @@
       <p>管理 AI 系统提示词，支持 Markdown 格式编辑与实时预览</p>
     </div>
 
+    <AdminBackToDashboardButton />
+
     <!-- 搜索面板 -->
     <a-card class="search-panel">
       <h2>筛选提示词</h2>
@@ -157,6 +159,7 @@ import {
   listSystemPromptByPage,
   updateSystemPrompt
 } from '@/api/systemPromptController'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 
 const loading = ref(false)
 const saving = ref(false)

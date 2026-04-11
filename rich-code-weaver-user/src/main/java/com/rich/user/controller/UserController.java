@@ -7,6 +7,7 @@ import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
+import com.rich.common.utils.EmailUtils;
 import com.rich.common.model.DeleteRequest;
 import com.rich.common.utils.ResultUtils;
 import com.rich.file.service.FileService;
@@ -15,6 +16,7 @@ import com.rich.model.dto.user.*;
 import com.rich.model.entity.User;
 import com.rich.model.vo.LoginUserVO;
 import com.rich.model.vo.UserVO;
+import com.rich.user.service.EmailService;
 import com.rich.user.service.UserService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,11 +41,14 @@ public class UserController {
     @Resource
     private UserService userService;
 
+    @Resource
+    private EmailService emailService;
+
     @Autowired(required = false)
     private FileService fileService;
 
     /**
-     * 用户注册
+     * 用户注册（邮箱方式）
      *
      * @param userRegisterRequest 用户注册请求
      * @return 注册结果
@@ -52,15 +57,21 @@ public class UserController {
 //    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         ThrowUtils.throwIf(userRegisterRequest == null, ErrorCode.PARAMS_ERROR);
-        String userAccount = userRegisterRequest.getUserAccount();
+        String email = userRegisterRequest.getEmail();
+        String userName = userRegisterRequest.getUserName();
+        String emailCode = userRegisterRequest.getEmailCode();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
-        long result = userService.userRegister(userAccount, userPassword, checkPassword);
+
+        // 校验邮箱验证码
+        emailService.verifyCode(email, emailCode);
+
+        long result = userService.userRegister(email, userName, userPassword, checkPassword);
         return ResultUtils.success(result);
     }
 
     /**
-     * 用户登录
+     * 用户登录（邮箱方式）
      *
      * @param userLoginRequest 用户登录请求
      * @param request          请求对象
@@ -70,9 +81,9 @@ public class UserController {
 //    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
-        String userAccount = userLoginRequest.getUserAccount();
+        String email = userLoginRequest.getEmail();
         String userPassword = userLoginRequest.getUserPassword();
-        LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
+        LoginUserVO loginUserVO = userService.userLogin(email, userPassword, request);
         return ResultUtils.success(loginUserVO);
     }
 
@@ -296,12 +307,15 @@ public class UserController {
     @PostMapping("/bind/email")
     public BaseResponse<Boolean> bindEmail(@RequestBody UserBindEmailRequest userBindEmailRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(userBindEmailRequest == null, ErrorCode.PARAMS_ERROR);
-        String email = userBindEmailRequest.getEmail();
+        String email = EmailUtils.normalizeEmail(userBindEmailRequest.getEmail());
+        String emailCode = userBindEmailRequest.getEmailCode();
         
-        // 验证邮箱格式
         if (!isValidEmail(email)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱格式不正确");
         }
+        
+        // 校验邮箱验证码
+        emailService.verifyCode(email, emailCode);
         
         User loginUser = userService.getLoginUser(request);
         loginUser.setEmail(email);
@@ -332,11 +346,6 @@ public class UserController {
      * @return 是否有效
      */
     private boolean isValidEmail(String email) {
-        if (email == null || email.trim().isEmpty()) {
-            return false;
-        }
-        // 邮箱正则
-        String emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
-        return Pattern.matches(emailRegex, email.trim());
+        return EmailUtils.isValidEmail(email);
     }
 }

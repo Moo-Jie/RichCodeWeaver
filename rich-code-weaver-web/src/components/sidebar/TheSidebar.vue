@@ -35,31 +35,14 @@
       <!-- Admin Menu -->
       <template v-if="isAdmin">
         <div
-          :class="['nav-item', 'nav-item-expandable', { active: route.path.startsWith('/admin') }]"
-          @click="toggleAdminMenu"
+          :class="['nav-item', { active: route.path.startsWith('/admin') }]"
+          @click="navigateTo(SYSTEM_MANAGE_PATH)"
         >
           <SettingOutlined class="nav-icon" />
           <transition name="fade-text">
             <span v-show="!appStore.sidebarCollapsed" class="nav-label">系统管理</span>
           </transition>
-          <transition name="fade-text">
-            <DownOutlined v-show="!appStore.sidebarCollapsed"
-                          :class="['nav-arrow', { expanded: adminMenuExpanded }]" />
-          </transition>
         </div>
-        <transition name="submenu-slide">
-          <div v-show="adminMenuExpanded && !appStore.sidebarCollapsed" class="nav-submenu">
-            <div
-              v-for="subItem in adminNavItems"
-              :key="subItem.path || subItem.url"
-              :class="['nav-subitem', { active: subItem.path && isActive(subItem.path) }]"
-              @click.stop="handleAdminNavClick(subItem)"
-            >
-              <component :is="subItem.icon" class="nav-icon" />
-              <span class="nav-label">{{ subItem.label }}</span>
-            </div>
-          </div>
-        </transition>
       </template>
     </nav>
 
@@ -184,15 +167,11 @@ import { useAppStore } from '@/stores/appStore'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { useChatStore } from '@/stores/chatStore'
 import { userLogout } from '@/api/userController'
+import { SYSTEM_MANAGE_PATH } from '@/constants/adminNavItems'
 import SidebarAppList from './SidebarAppList.vue'
 import {
-  AlignLeftOutlined,
-  ApiOutlined,
   AppstoreOutlined,
   AuditOutlined,
-  CloudServerOutlined,
-  CommentOutlined,
-  CopyOutlined,
   DownOutlined,
   FileTextOutlined,
   GlobalOutlined,
@@ -204,7 +183,6 @@ import {
   MessageOutlined,
   PaperClipOutlined,
   PlusOutlined,
-  ReadOutlined,
   SafetyOutlined,
   SecurityScanOutlined,
   SettingOutlined,
@@ -218,16 +196,15 @@ const loginUserStore = useLoginUserStore()
 const chatStore = useChatStore()
 const router = useRouter()
 const route = useRoute()
-const adminMenuExpanded = ref(false)
 const aboutMenuExpanded = ref(false)
 const appsSectionExpanded = ref(true)
 
 const baseNavItems = [
   { path: '/', label: '主页', icon: HomeOutlined },
-  { path: '/my/apps', label: '我的产物', icon: AppstoreOutlined },
-  { path: '/my/materials', label: '我的素材', icon: PaperClipOutlined },
+  { path: '/all/apps', label: '热门产物', icon: GlobalOutlined },
   { path: '/my/favorites', label: '我的收藏', icon: StarOutlined },
-  { path: '/all/apps', label: '热门产物', icon: GlobalOutlined }
+  { path: '/my/apps', label: '我的产物', icon: AppstoreOutlined },
+  { path: '/my/materials', label: '我的素材', icon: PaperClipOutlined }
 ]
 
 const aboutNavItems = [
@@ -236,23 +213,10 @@ const aboutNavItems = [
   { path: '/other/terms', label: '用户协议', icon: SafetyOutlined }
 ]
 
-const adminNavItems = [
-  { path: '/admin/userManage', label: '用户管理', icon: UserOutlined },
-  { path: '/admin/appManage', label: '产物管理', icon: AppstoreOutlined },
-  { path: '/admin/chatHistory', label: '会话管理', icon: CommentOutlined },
-  { path: '/admin/promptTemplate', label: '模板管理', icon: CopyOutlined },
-  { path: '/admin/systemPrompt', label: '提示词管理', icon: AlignLeftOutlined },
-  { path: '/admin/ragManage', label: '知识库管理', icon: ReadOutlined },
-  { path: '/admin/materialManage', label: '素材管理', icon: PaperClipOutlined },
-  { path: '/admin/higressManage', label: '网关管理', icon: ApiOutlined },
-  { url: import.meta.env.VITE_NACOS_URL || 'http://192.168.43.4:8848/nacos/index.html', label: 'Nacos配置', icon: CloudServerOutlined }
-]
-
 const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')
 
-const collapseAllSections = (except?: 'apps' | 'admin' | 'about') => {
+const collapseAllSections = (except?: 'apps' | 'about') => {
   appsSectionExpanded.value = except === 'apps'
-  adminMenuExpanded.value = except === 'admin'
   aboutMenuExpanded.value = except === 'about'
 }
 
@@ -262,10 +226,6 @@ const isAppsGroupRoute = (path: string) => {
 
 const syncExpandedSectionWithRoute = () => {
   if (appStore.sidebarCollapsed) return
-  if (route.path.startsWith('/admin')) {
-    collapseAllSections('admin')
-    return
-  }
   if (route.path.startsWith('/other')) {
     collapseAllSections('about')
     return
@@ -273,19 +233,6 @@ const syncExpandedSectionWithRoute = () => {
   if (isAppsGroupRoute(route.path)) {
     collapseAllSections('apps')
   }
-}
-
-const toggleAdminMenu = () => {
-  if (appStore.sidebarCollapsed) {
-    appStore.toggleSidebar()
-    collapseAllSections('admin')
-    return
-  }
-  if (adminMenuExpanded.value) {
-    collapseAllSections()
-    return
-  }
-  collapseAllSections('admin')
 }
 
 const toggleAboutMenu = () => {
@@ -319,16 +266,6 @@ const navigateTo = (path: string) => {
     appStore.clearSelectedApp()
   }
   router.push(path)
-}
-
-const handleAdminNavClick = (item: any) => {
-  if (item.url) {
-    // External URL - open in new tab
-    window.open(item.url, '_blank')
-  } else if (item.path) {
-    // Internal route - navigate normally
-    navigateTo(item.path)
-  }
 }
 
 const handleLogoClick = () => {
@@ -399,7 +336,7 @@ const doLogout = async () => {
     } else {
       message.error('退出登录失败，' + res.data.message)
     }
-  } catch (e) {
+  } catch {
     message.error('退出登录失败')
   }
 }

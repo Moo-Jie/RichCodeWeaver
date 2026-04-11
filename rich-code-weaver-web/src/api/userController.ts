@@ -212,3 +212,26 @@ export async function bindEmail(
     ...(options || {})
   })
 }
+
+/** 获取数学计算验证码 GET /user/captcha/math */
+export async function getMathCaptcha(options?: { [key: string]: any }) {
+  return request<API.BaseResponseCaptcha>('/user/captcha/math', {
+    method: 'GET',
+    ...(options || {})
+  })
+}
+
+/** 发送邮箱验证码 POST /user/captcha/email/code */
+export async function sendEmailCode(
+  body: API.SendEmailCodeRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseBoolean>('/user/captcha/email/code', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    data: body,
+    ...(options || {})
+  })
+}

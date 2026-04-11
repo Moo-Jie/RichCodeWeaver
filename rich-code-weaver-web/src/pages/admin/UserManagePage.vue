@@ -6,6 +6,8 @@
       <p>管理系统用户账户</p>
     </div>
 
+    <AdminBackToDashboardButton />
+
     <!-- 搜索面板 -->
     <a-card class="search-panel">
       <h2>筛选用户</h2>
@@ -220,7 +222,6 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
   CalendarOutlined,
@@ -233,9 +234,8 @@ import {
   UserOutlined
 } from '@ant-design/icons-vue'
 import { deleteUser, listUserVoByPage, resetUserPassword, updateUser } from '@/api/userController'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import dayjs from 'dayjs'
-
-const router = useRouter()
 
 // 表格列定义
 const columns = [

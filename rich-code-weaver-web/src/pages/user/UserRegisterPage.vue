@@ -1,5 +1,9 @@
 <template>
   <div id="userRegisterPage">
+    <RouterLink class="home-link" to="/">
+      <HomeOutlined />
+      <span>主页</span>
+    </RouterLink>
     <div class="register-layout">
       <!-- 左侧品牌展示区域 -->
       <div class="brand-panel">
@@ -42,15 +46,52 @@
             <p class="form-desc">创建账号，开启您的数字产物之旅</p>
           </div>
           <a-form :model="formState" autocomplete="off" name="basic" @finish="handleSubmit">
-            <a-form-item :rules="[{ required: true, message: '请输入账号' }]" name="userAccount">
-              <a-input v-model:value="formState.userAccount" class="input-field"
-                       placeholder="请输入账号">
+            <!-- 邮箱 -->
+            <a-form-item :rules="[{ required: true, message: '请输入邮箱' }, { validator: validateEmailField }]" name="email">
+              <a-input v-model:value="formState.email" class="input-field" placeholder="请输入邮箱">
+                <template #prefix>
+                  <MailOutlined style="color: #bbb" />
+                </template>
+              </a-input>
+            </a-form-item>
+
+            <!-- 用户昵称 -->
+            <a-form-item :rules="[{ required: true, message: '请输入昵称' }, { min: 1, max: 20, message: '昵称长度1-20位' }]" name="userName">
+              <a-input v-model:value="formState.userName" class="input-field" placeholder="请输入昵称">
                 <template #prefix>
                   <UserOutlined style="color: #bbb" />
                 </template>
               </a-input>
             </a-form-item>
 
+            <!-- 计算验证码 -->
+            <a-form-item :rules="[{ required: true, message: '请输入计算结果' }]" name="captchaAnswer">
+              <div class="captcha-row">
+                <a-input v-model:value="formState.captchaAnswer" class="input-field captcha-input" placeholder="计算结果">
+                  <template #prefix>
+                    <SafetyOutlined style="color: #bbb" />
+                  </template>
+                </a-input>
+                <img v-if="captchaImage" :src="captchaImage" alt="验证码" class="captcha-img" @click="refreshCaptcha" />
+                <div v-else class="captcha-placeholder" @click="refreshCaptcha">点击获取</div>
+              </div>
+            </a-form-item>
+
+            <!-- 邮箱验证码 -->
+            <a-form-item :rules="[{ required: true, message: '请输入验证码' }, { len: 6, message: '验证码为6位' }]" name="emailCode">
+              <div class="captcha-row">
+                <a-input v-model:value="formState.emailCode" :maxlength="6" class="input-field captcha-input" placeholder="邮箱验证码">
+                  <template #prefix>
+                    <MailOutlined style="color: #bbb" />
+                  </template>
+                </a-input>
+                <a-button :disabled="sendingCode || countdown > 0" :loading="sendingCode" class="send-code-btn" @click="handleSendCode">
+                  {{ countdown > 0 ? countdown + 's' : '发送验证码' }}
+                </a-button>
+              </div>
+            </a-form-item>
+
+            <!-- 密码 -->
             <a-form-item
               :rules="[
                 { required: true, message: '请输入密码' },
@@ -58,14 +99,14 @@
               ]"
               name="userPassword"
             >
-              <a-input-password v-model:value="formState.userPassword" class="input-field"
-                                placeholder="请输入密码">
+              <a-input-password v-model:value="formState.userPassword" class="input-field" placeholder="请输入密码">
                 <template #prefix>
                   <LockOutlined style="color: #bbb" />
                 </template>
               </a-input-password>
             </a-form-item>
 
+            <!-- 确认密码 -->
             <a-form-item
               :rules="[
                 { required: true, message: '请确认密码' },
@@ -74,10 +115,9 @@
               ]"
               name="checkPassword"
             >
-              <a-input-password v-model:value="formState.checkPassword" class="input-field"
-                                placeholder="请确认密码">
+              <a-input-password v-model:value="formState.checkPassword" class="input-field" placeholder="请确认密码">
                 <template #prefix>
-                  <SafetyOutlined style="color: #bbb" />
+                  <LockOutlined style="color: #bbb" />
                 </template>
               </a-input-password>
             </a-form-item>
@@ -106,17 +146,26 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { LockOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons-vue'
-import { userRegister } from '@/api/userController.ts'
+import { HomeOutlined, LockOutlined, MailOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons-vue'
+import { getMathCaptcha, sendEmailCode, userRegister } from '@/api/userController'
 import { message } from 'ant-design-vue'
+import { validateEmail } from '@/utils/emailUtil'
 
 const router = useRouter()
 const submitting = ref(false)
+const sendingCode = ref(false)
+const countdown = ref(0)
+const captchaId = ref('')
+const captchaImage = ref('')
+let countdownTimer: ReturnType<typeof setInterval> | null = null
 
 const formState = reactive({
-  userAccount: '',
+  email: '',
+  userName: '',
+  captchaAnswer: '',
+  emailCode: '',
   userPassword: '',
   checkPassword: ''
 })
@@ -129,11 +178,88 @@ const validateCheckPassword = (rule: unknown, value: string, callback: (error?: 
   }
 }
 
+const validateEmailField = async (_rule: unknown, value: string) => {
+  const result = validateEmail(value)
+  if (!result.valid) {
+    throw new Error(result.message || '邮箱格式不正确')
+  }
+}
+
+const refreshCaptcha = async () => {
+  try {
+    const res = await getMathCaptcha()
+    if (res.data.code === 0 && res.data.data) {
+      captchaId.value = res.data.data.captchaId || ''
+      captchaImage.value = res.data.data.captchaImage || ''
+    }
+  } catch {
+    message.error('获取验证码失败')
+  }
+}
+
+const handleSendCode = async () => {
+  const emailResult = validateEmail(formState.email)
+  if (!emailResult.valid) {
+    message.warning(emailResult.message || '邮箱格式不正确')
+    return
+  }
+  formState.email = emailResult.normalizedEmail
+  if (!formState.captchaAnswer) {
+    message.warning('请先输入计算结果')
+    return
+  }
+  if (!captchaId.value) {
+    message.warning('请先获取图形验证码')
+    return
+  }
+
+  sendingCode.value = true
+  try {
+    const res = await sendEmailCode({
+      email: emailResult.normalizedEmail,
+      captchaId: captchaId.value,
+      captchaAnswer: formState.captchaAnswer
+    })
+    if (res.data.code === 0) {
+      message.success('验证码已发送，请查看邮箱')
+      startCountdown()
+    } else {
+      message.error(res.data.message || '发送失败')
+      await refreshCaptcha()
+    }
+  } catch {
+    message.error('发送验证码失败')
+    await refreshCaptcha()
+  } finally {
+    sendingCode.value = false
+  }
+}
+
+const startCountdown = () => {
+  countdown.value = 60
+  if (countdownTimer) clearInterval(countdownTimer)
+  countdownTimer = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(countdownTimer!)
+      countdownTimer = null
+    }
+  }, 1000)
+}
+
 const handleSubmit = async () => {
+  const emailResult = validateEmail(formState.email)
+  if (!emailResult.valid) {
+    message.warning(emailResult.message || '邮箱格式不正确')
+    return
+  }
+  formState.email = emailResult.normalizedEmail
   submitting.value = true
   try {
     const res = await userRegister({
-      userAccount: formState.userAccount,
+      email: emailResult.normalizedEmail,
+      userName: formState.userName,
+      emailCode: formState.emailCode,
       userPassword: formState.userPassword,
       checkPassword: formState.checkPassword
     })
@@ -142,17 +268,21 @@ const handleSubmit = async () => {
       message.success('注册成功')
       router.replace({
         path: '/user/login',
-        query: { username: formState.userAccount }
+        query: { email: emailResult.normalizedEmail }
       })
     } else {
       message.error('注册失败：' + res.data.message)
     }
-  } catch (error) {
+  } catch {
     message.error('注册过程中发生错误')
   } finally {
     submitting.value = false
   }
 }
+
+onMounted(() => {
+  refreshCaptcha()
+})
 </script>
 
 <style scoped>
@@ -163,6 +293,7 @@ const handleSubmit = async () => {
   align-items: center;
   background: #fafafa;
   padding: 20px;
+  position: relative;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -313,6 +444,59 @@ const handleSubmit = async () => {
   background: #fff;
 }
 
+.captcha-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.captcha-input {
+  flex: 1;
+}
+
+.captcha-img {
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.captcha-img:hover {
+  opacity: 0.8;
+}
+
+.captcha-placeholder {
+  width: 120px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #f0f0f0;
+  background: #fafafa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #999;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.captcha-placeholder:hover {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+}
+
+.send-code-btn {
+  height: 40px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 110px;
+}
+
 .submit-btn {
   width: 100%;
   height: 44px;
@@ -391,5 +575,30 @@ const handleSubmit = async () => {
   .form-card {
     padding: 32px 24px;
   }
+}
+
+.home-link {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+  background: #fff;
+  color: #333;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.home-link:hover {
+  background: #fafafa;
+  border-color: #d0d0d0;
+  color: #1a1a1a;
 }
 </style>
