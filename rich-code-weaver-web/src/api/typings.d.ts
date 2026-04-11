@@ -511,6 +511,96 @@ declare namespace API {
 
   // ===== Social Module Types =====
 
+  type CommunityReplyVO = {
+    id?: number | string
+    postId?: number | string
+    userId?: number | string
+    content?: string
+    likeCount?: number
+    createTime?: string
+    user?: UserVO
+    hasLiked?: boolean
+  }
+
+  type CommunityPostVO = {
+    id?: number | string
+    title?: string
+    content?: string
+    category?: string
+    userId?: number | string
+    viewCount?: number
+    likeCount?: number
+    replyCount?: number
+    isTop?: number
+    createTime?: string
+    updateTime?: string
+    user?: UserVO
+    hasLiked?: boolean
+    latestReplies?: CommunityReplyVO[]
+  }
+
+  type CommunityPostAddRequest = {
+    title?: string
+    content?: string
+    category?: string
+  }
+
+  type CommunityReplyAddRequest = {
+    postId?: number | string
+    content?: string
+  }
+
+  type CommunityPostQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    category?: string
+    searchText?: string
+  }
+
+  type CommunityReplyQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    postId?: number | string
+  }
+
+  type PageCommunityPostVO = {
+    records?: CommunityPostVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type PageCommunityReplyVO = {
+    records?: CommunityReplyVO[]
+    pageNumber?: number
+    pageSize?: number
+    totalPage?: number
+    totalRow?: number
+  }
+
+  type BaseResponseCommunityPostVO = {
+    code?: number
+    data?: CommunityPostVO
+    message?: string
+  }
+
+  type BaseResponsePageCommunityPostVO = {
+    code?: number
+    data?: PageCommunityPostVO
+    message?: string
+  }
+
+  type BaseResponsePageCommunityReplyVO = {
+    code?: number
+    data?: PageCommunityReplyVO
+    message?: string
+  }
+
   type AppHotStatVO = {
     appId?: number
     likeCount?: number
@@ -874,6 +964,8 @@ declare namespace API {
   type MaterialQueryRequest = {
     pageNum?: number
     pageSize?: number
+    sortField?: string
+    sortOrder?: string
     id?: number
     materialName?: string
     categoryId?: number

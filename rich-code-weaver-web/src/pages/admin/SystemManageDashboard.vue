@@ -6,20 +6,11 @@
         <p>统一查看核心业务运行概况，并快速进入各管理模块。</p>
       </div>
 
-      <div class="stats-grid">
-        <div
-          v-for="item in topStats"
-          :key="item.key"
-          class="stat-card"
-        >
-          <div class="stat-card-top">
-            <div class="stat-label">{{ item.label }}</div>
-            <div class="stat-chip">{{ item.tag }}</div>
-          </div>
-          <div class="stat-value">{{ formatNumber(item.value) }}</div>
-          <div v-if="item.meta" class="stat-meta">{{ item.meta }}</div>
-        </div>
-      </div>
+      <MicroserviceHealthPanel
+        class="top-health-panel"
+        title="微服务模块状态监测"
+        :show-refresh="true"
+      />
 
       <div class="section-block">
         <div class="section-header">
@@ -254,6 +245,7 @@ import { listRagDocumentByPage } from '@/api/ragDocumentController'
 import { listSystemPromptByPage } from '@/api/systemPromptController'
 import { listUserVoByPage } from '@/api/userController'
 import { adminNavItems } from '@/constants/adminNavItems'
+import MicroserviceHealthPanel from '@/components/admin/MicroserviceHealthPanel.vue'
 
 const router = useRouter()
 const refreshing = ref(false)
@@ -329,14 +321,6 @@ type CompositionItem = {
   share: number
 }
 
-type TopStatItem = {
-  key: string
-  label: string
-  value: number
-  tag: string
-  meta?: string
-}
-
 type DetailRowItem = {
   key: string
   label: string
@@ -392,7 +376,6 @@ const isWithinDays = (value?: string, days = 7) => {
   return Date.now() - timestamp <= days * 24 * 60 * 60 * 1000
 }
 
-const normalUserTotal = computed(() => metrics.userTotal - metrics.adminUserTotal)
 const appPerCreator = computed(() => (metrics.appCreatorTotal ? metrics.appTotal / metrics.appCreatorTotal : 0))
 const appAveragePromptLength = computed(() => {
   const promptLengths = appRecords.value
@@ -412,33 +395,6 @@ const appAverageRating = computed(() => {
   }
   return ratings.reduce((sum, value) => sum + value, 0) / ratings.length
 })
-
-const topStats = computed<TopStatItem[]>(() => [
-  {
-    key: 'appTotal',
-    label: '产物总量',
-    value: metrics.appTotal,
-    tag: '规模'
-  },
-  {
-    key: 'appDeployed',
-    label: '已部署产物',
-    value: metrics.appDeployed,
-    tag: '交付'
-  },
-  {
-    key: 'appFeatured',
-    label: '星选产物',
-    value: metrics.appFeatured,
-    tag: '评分'
-  },
-  {
-    key: 'appCreated7d',
-    label: '近 7 日新增',
-    value: metrics.appCreated7d,
-    tag: '活跃'
-  }
-])
 
 const detailRows = computed<DetailRowItem[]>(() => [
   {
@@ -621,9 +577,6 @@ const governanceIndicators = computed(() => {
   const updated7dRate = metrics.appTotal
     ? (metrics.appUpdated7d / metrics.appTotal) * 100
     : 0
-  const creatorCoverageRate = metrics.userTotal
-    ? (metrics.appCreatorTotal / metrics.userTotal) * 100
-    : 0
 
   return [
     {
@@ -675,83 +628,6 @@ const governanceIndicators = computed(() => {
       description: `${formatNumber(metrics.appUpdated7d)} / ${formatNumber(metrics.appTotal)} 个产物近 7 日发生更新`
     }
   ]
-})
-
-const distributionRows = computed(() => {
-  const total = detailRows.value.reduce((sum, item) => sum + item.value, 0)
-  return [...detailRows.value]
-    .map((item) => ({
-      ...item,
-      share: calculateShare(item.value, total)
-    }))
-    .sort((a, b) => b.value - a.value)
-})
-
-const radarPalette = ['#5b8ff9', '#7b8cff', '#5ad8a6', '#5d7092', '#f6bd16']
-const radarCenter = 110
-const radarRadius = 74
-const radarLevels = [0.25, 0.5, 0.75, 1]
-
-const radarChartItems = computed(() => {
-  const items = [
-    { key: 'user', label: '用户', value: metrics.userTotal, color: radarPalette[0] },
-    { key: 'app', label: '产物', value: metrics.appTotal, color: radarPalette[1] },
-    { key: 'chat', label: '会话', value: metrics.chatHistoryTotal, color: radarPalette[2] },
-    { key: 'knowledge', label: '知识', value: totalKnowledgeAssets.value, color: radarPalette[3] },
-    { key: 'material', label: '素材', value: metrics.materialTotal + metrics.categoryTotal, color: radarPalette[4] }
-  ]
-  const max = Math.max(...items.map((item) => item.value), 1)
-  return items.map((item) => ({
-    ...item,
-    ratio: item.value / max
-  }))
-})
-
-const polarToPoint = (ratio: number, index: number, total: number) => {
-  const angle = -Math.PI / 2 + (index * Math.PI * 2) / total
-  const radius = radarRadius * ratio
-  return {
-    x: radarCenter + Math.cos(angle) * radius,
-    y: radarCenter + Math.sin(angle) * radius
-  }
-}
-
-const buildRadarPolygon = (ratios: number[]) => {
-  return ratios
-    .map((ratio, index) => {
-      const point = polarToPoint(ratio, index, ratios.length)
-      return `${point.x},${point.y}`
-    })
-    .join(' ')
-}
-
-const radarGridPolygons = computed(() => {
-  return radarLevels.map((level) => buildRadarPolygon(new Array(radarChartItems.value.length).fill(level)))
-})
-
-const radarPolygonPoints = computed(() => {
-  return buildRadarPolygon(radarChartItems.value.map((item) => item.ratio))
-})
-
-const radarAxisLines = computed(() => {
-  return radarChartItems.value.map((item, index) => ({
-    ...item,
-    ...polarToPoint(1, index, radarChartItems.value.length)
-  }))
-})
-
-const radarValuePoints = computed(() => {
-  return radarChartItems.value.map((item, index) => ({
-    ...item,
-    ...polarToPoint(item.ratio, index, radarChartItems.value.length)
-  }))
-})
-
-const radarLabelPositions = computed(() => {
-  return radarChartItems.value.map((item, index) => ({
-    ...polarToPoint(1.18, index, radarChartItems.value.length),
-    label: item.label
-  }))
 })
 
 const assignMetric = (key: keyof typeof metrics, value?: number) => {
@@ -987,71 +863,8 @@ onMounted(() => {
   }
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+.top-health-panel {
   margin-bottom: 24px;
-}
-
-.stat-card {
-  position: relative;
-  padding: 18px 20px;
-  border: 1px solid #e8e8e8;
-  border-radius: 18px;
-  background: #fff;
-  transition: all 0.2s ease;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: linear-gradient(90deg, #333 0%, #999 100%);
-  }
-
-  &:hover {
-    border-color: #ccc;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-  }
-}
-
-.stat-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: #888;
-}
-
-.stat-chip {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #f0f0f0;
-  color: #555;
-  font-size: 12px;
-}
-
-.stat-value {
-  font-size: 28px;
-  line-height: 1.1;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 6px;
-}
-
-.stat-meta {
-  font-size: 12px;
-  color: #888;
-  margin-top: 2px;
 }
 
 .section-block {
@@ -1225,10 +1038,6 @@ onMounted(() => {
   grid-column: span 2;
 }
 
-.analytics-span-3 {
-  grid-column: span 3;
-}
-
 .analytics-card {
   border-radius: 20px;
   border: 1px solid #e8e8e8;
@@ -1397,8 +1206,7 @@ onMounted(() => {
   gap: 12px;
 }
 
-.legend-item,
-.radar-legend-item {
+.legend-item {
   display: grid;
   grid-template-columns: 12px minmax(0, 1fr) auto;
   align-items: center;
@@ -1427,8 +1235,7 @@ onMounted(() => {
   }
 }
 
-.legend-item strong,
-.radar-legend-item strong {
+.legend-item strong {
   font-size: 13px;
   color: #222;
 }
@@ -1446,60 +1253,6 @@ onMounted(() => {
   font-size: 12px;
   color: #888;
   line-height: 1.6;
-}
-
-.radar-panel {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  padding: 18px 20px 22px;
-}
-
-.radar-chart {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-}
-
-.radar-svg {
-  width: 100%;
-  max-width: 240px;
-  height: auto;
-}
-
-.radar-grid {
-  fill: rgba(91, 143, 249, 0.03);
-  stroke: #dbe6fb;
-  stroke-width: 1;
-}
-
-.radar-axis {
-  stroke: #e3ebfb;
-  stroke-width: 1;
-}
-
-.radar-value-polygon {
-  fill: rgba(91, 143, 249, 0.16);
-  stroke: #5b8ff9;
-  stroke-width: 2;
-}
-
-.radar-value-dot {
-  stroke: #ffffff;
-  stroke-width: 2;
-}
-
-.radar-label {
-  fill: #888;
-  font-size: 11px;
-  text-anchor: middle;
-}
-
-.radar-legend {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
 }
 
 .matrix-grid {
@@ -1536,20 +1289,12 @@ onMounted(() => {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .analytics-span-3 {
-    grid-column: span 2;
-  }
-
   .matrix-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 1200px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .module-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1558,8 +1303,7 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .analytics-span-2,
-  .analytics-span-3 {
+  .analytics-span-2 {
     grid-column: span 1;
   }
 
@@ -1580,7 +1324,6 @@ onMounted(() => {
     align-items: stretch;
   }
 
-  .stats-grid,
   .module-grid {
     grid-template-columns: 1fr;
   }
@@ -1608,8 +1351,7 @@ onMounted(() => {
   .bar-chart-list,
   .indicator-list,
   .matrix-grid,
-  .donut-panel,
-  .radar-panel {
+  .donut-panel {
     padding: 16px;
   }
 }

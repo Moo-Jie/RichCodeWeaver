@@ -61,7 +61,7 @@
         @click="switchTab('public')"
       >
         <GlobalOutlined class="tab-icon" />
-        <span>公共素材</span>
+        <span>素材广场</span>
       </div>
     </div>
 
@@ -94,14 +94,14 @@
         </div>
       </div>
 
-      <!-- 公共素材 -->
+      <!-- 素材广场 -->
       <div v-show="activeTab === 'public'" class="material-list-area">
         <div v-if="publicLoading && publicMaterials.length === 0" class="loading-state">
           <a-spin size="large" />
           <span>加载中...</span>
         </div>
         <a-empty v-else-if="!publicLoading && publicMaterials.length === 0"
-                 description="暂无公共素材" class="empty-state">
+                 description="暂无素材广场" class="empty-state">
           <template #image><GlobalOutlined class="empty-icon" /></template>
         </a-empty>
         <div v-else class="material-grid">
@@ -269,6 +269,7 @@ const TYPE_LABEL: Record<string, string> = {
           h('div', { class: 'item-meta' }, [
             h('span', { class: 'item-category' }, item.categoryName || ''),
             h('div', { class: 'meta-right' }, [
+              h('span', { class: 'item-use-count' }, `选择${item.useCount || 0}次`),
               // 显示字符数（仅文本类型）
               item.materialType === 'text' && item.content
                 ? h('span', { class: 'char-count' }, `${item.content.length}字`)
@@ -347,7 +348,7 @@ const personalPage = ref(1)
 const personalTotal = ref(0)
 const personalHasMore = computed(() => personalMaterials.value.length < personalTotal.value)
 
-// ── 公共素材 ──
+// ── 素材广场 ──
 const publicMaterials = ref<API.MaterialVO[]>([])
 const publicLoading = ref(false)
 const publicPage = ref(1)
@@ -392,6 +393,8 @@ const loadPersonal = async (reset = false) => {
     const res = await listMyMaterialByPage({
       pageNum: personalPage.value,
       pageSize: 20,
+      sortField: 'useCount',
+      sortOrder: 'descend',
       searchText: searchText.value || undefined,
       categoryId: filterCategoryId.value,
       materialType: filterType.value
@@ -413,6 +416,8 @@ const loadPublic = async (reset = false) => {
     const res = await listPublicMaterialByPage({
       pageNum: publicPage.value,
       pageSize: 20,
+      sortField: 'useCount',
+      sortOrder: 'descend',
       searchText: searchText.value || undefined,
       categoryId: filterCategoryId.value,
       materialType: filterType.value
@@ -420,13 +425,13 @@ const loadPublic = async (reset = false) => {
     if (res.data.code === 0) {
       const d = res.data.data
       const myId = loginUserStore.loginUser?.id
-      // 公约：个人素材优先——公共素材列表中排除自己的素材
+      // 公约：个人素材优先——素材广场列表中排除自己的素材
       const records = (d?.records || []).filter((m: API.MaterialVO) => m.userId !== myId)
       if (reset) publicMaterials.value = records
       else publicMaterials.value.push(...records)
       publicTotal.value = d?.totalRow || 0
     }
-  } catch (e) { message.error('加载公共素材失败') }
+  } catch (e) { message.error('加载素材广场失败') }
   finally { publicLoading.value = false }
 }
 
@@ -896,6 +901,16 @@ watch(() => props.open, (val) => {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+}
+
+:deep(.item-use-count) {
+  font-size: 10px;
+  color: #666;
+  background: #f5f5f5;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 500;
 }
 
 :deep(.char-count) {

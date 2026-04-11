@@ -66,26 +66,6 @@
               </div>
             </div>
           </div>
-
-          <div class="section quick-send-section">
-            <div class="section-header">
-              <span class="section-title">快捷发送</span>
-              <span class="section-tag">静态推荐</span>
-            </div>
-            <div class="quick-send-grid">
-              <button
-                v-for="item in quickSendPrompts"
-                :key="item.title"
-                class="quick-send-card"
-                @click="handleQuickSend(item.prompt)"
-              >
-                <span class="quick-send-kicker">一键发起</span>
-                <span class="quick-send-title">{{ item.title }}</span>
-                <span class="quick-send-desc">{{ item.description }}</span>
-                <span class="quick-send-action">立即发送</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         <!-- Chat Input at bottom -->

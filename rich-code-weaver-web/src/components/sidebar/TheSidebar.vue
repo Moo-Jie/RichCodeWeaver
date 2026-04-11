@@ -172,6 +172,7 @@ import SidebarAppList from './SidebarAppList.vue'
 import {
   AppstoreOutlined,
   AuditOutlined,
+  CommentOutlined,
   DownOutlined,
   FileTextOutlined,
   GlobalOutlined,
@@ -204,7 +205,8 @@ const baseNavItems = [
   { path: '/all/apps', label: '热门产物', icon: GlobalOutlined },
   { path: '/my/favorites', label: '我的收藏', icon: StarOutlined },
   { path: '/my/apps', label: '我的产物', icon: AppstoreOutlined },
-  { path: '/my/materials', label: '我的素材', icon: PaperClipOutlined }
+  { path: '/my/materials', label: '我的素材', icon: PaperClipOutlined },
+  { path: '/community', label: '交流社区', icon: CommentOutlined }
 ]
 
 const aboutNavItems = [

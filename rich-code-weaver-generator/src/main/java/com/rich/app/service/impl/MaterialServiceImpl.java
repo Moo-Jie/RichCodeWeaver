@@ -59,6 +59,8 @@ public class MaterialServiceImpl extends ServiceImpl<MaterialMapper, Material>
         Integer isPublic = queryRequest.getIsPublic();
         Long userId = queryRequest.getUserId();
         String searchText = queryRequest.getSearchText();
+        String sortField = queryRequest.getSortField();
+        String sortOrder = queryRequest.getSortOrder();
 
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("id", id, id != null)
@@ -77,8 +79,12 @@ public class MaterialServiceImpl extends ServiceImpl<MaterialMapper, Material>
                     .or((Consumer<QueryWrapper>) inner -> inner.like("tags", searchText)));
         }
 
-        // 默认按创建时间倒序
-        queryWrapper.orderBy("createTime", false);
+        if (StrUtil.isNotBlank(sortField)) {
+            boolean isAsc = "ascend".equalsIgnoreCase(sortOrder) || "asc".equalsIgnoreCase(sortOrder);
+            queryWrapper.orderBy(sortField, isAsc);
+        } else {
+            queryWrapper.orderBy("createTime", false);
+        }
 
         return queryWrapper;
     }

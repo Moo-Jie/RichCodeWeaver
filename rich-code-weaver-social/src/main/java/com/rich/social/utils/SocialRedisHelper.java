@@ -49,6 +49,30 @@ public class SocialRedisHelper {
     }
 
     /**
+     * 生成社区帖子点赞操作锁key
+     * 格式: social:lock:communityPostLike:{postId}:{userId}
+     *
+     * @param postId  帖子id
+     * @param userId  用户id
+     * @return 锁key
+     */
+    public static String communityPostLikeLockKey(Long postId, Long userId) {
+        return "social:lock:communityPostLike:" + postId + ":" + userId;
+    }
+
+    /**
+     * 生成社区回复点赞操作锁key
+     * 格式: social:lock:communityReplyLike:{replyId}:{userId}
+     *
+     * @param replyId 回复id
+     * @param userId  用户id
+     * @return 锁key
+     */
+    public static String communityReplyLikeLockKey(Long replyId, Long userId) {
+        return "social:lock:communityReplyLike:" + replyId + ":" + userId;
+    }
+
+    /**
      * 生成评论点赞操作锁key
      * 格式: social:lock:commentLike:{commentId}:{userId}
      *

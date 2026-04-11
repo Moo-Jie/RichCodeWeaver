@@ -18,6 +18,8 @@ import RagManagePage from '@/pages/admin/RagManagePage.vue'
 import MaterialManagePage from '@/pages/admin/MaterialManagePage.vue'
 import HigressManagePage from '@/pages/admin/HigressManagePage.vue'
 import MyMaterialPage from '@/pages/material/MyMaterialPage.vue'
+import CommunityListPage from '@/pages/community/CommunityListPage.vue'
+import CommunityDetailPage from '@/pages/community/CommunityDetailPage.vue'
 import DocsPage from '@/pages/other/DocsPage.vue'
 import AboutPage from '@/pages/other/AboutPage.vue'
 import PrivacyPage from '@/pages/other/PrivacyPage.vue'
@@ -69,6 +71,16 @@ const router = createRouter({
           path: 'my/materials',
           name: '我的素材',
           component: MyMaterialPage
+        },
+        {
+          path: 'community',
+          name: '交流社区',
+          component: CommunityListPage
+        },
+        {
+          path: 'community/post/:id',
+          name: '社区帖子详情',
+          component: CommunityDetailPage
         },
         {
           path: 'user/userCenter',

@@ -88,71 +88,10 @@
         </div>
       </section>
 
-      <section class="section">
-        <h2 class="section-title">微服务模块</h2>
-        <div class="modules-grid">
-          <div class="module-card">
-            <div class="module-header">
-              <span class="module-name">用户模块</span>
-              <span
-                :class="['module-status', moduleHealth.user ? 'status-running' : 'status-stopped']">
-                {{ moduleHealth.user ? '运行中' : '未运行' }}
-              </span>
-            </div>
-            <p class="module-desc">用户管理、认证授权、Session管理</p>
-          </div>
-          <div class="module-card">
-            <div class="module-header">
-              <span class="module-name">产物生成模块</span>
-              <span
-                :class="['module-status', moduleHealth.generator ? 'status-running' : 'status-stopped']">
-                {{ moduleHealth.generator ? '运行中' : '未运行' }}
-              </span>
-            </div>
-            <p class="module-desc">AI代码生成核心引擎、工作流编排</p>
-          </div>
-          <div class="module-card">
-            <div class="module-header">
-              <span class="module-name">AI模块</span>
-              <span
-                :class="['module-status', moduleHealth.ai ? 'status-running' : 'status-stopped']">
-                {{ moduleHealth.ai ? '运行中' : '未运行' }}
-              </span>
-            </div>
-            <p class="module-desc">AI服务封装、多模型支持、对话管理</p>
-          </div>
-          <div class="module-card">
-            <div class="module-header">
-              <span class="module-name">文件模块</span>
-              <span
-                :class="['module-status', moduleHealth.file ? 'status-running' : 'status-stopped']">
-                {{ moduleHealth.file ? '运行中' : '未运行' }}
-              </span>
-            </div>
-            <p class="module-desc">文件上传、存储管理、访问控制</p>
-          </div>
-          <div class="module-card">
-            <div class="module-header">
-              <span class="module-name">提示词模板模块</span>
-              <span
-                :class="['module-status', moduleHealth.prompt ? 'status-running' : 'status-stopped']">
-                {{ moduleHealth.prompt ? '运行中' : '未运行' }}
-              </span>
-            </div>
-            <p class="module-desc">模板管理、智能匹配、动态渲染</p>
-          </div>
-          <div class="module-card">
-            <div class="module-header">
-              <span class="module-name">社交模块</span>
-              <span
-                :class="['module-status', moduleHealth.social ? 'status-running' : 'status-stopped']">
-                {{ moduleHealth.social ? '运行中' : '未运行' }}
-              </span>
-            </div>
-            <p class="module-desc">点赞、收藏、评论、分享、热门排行</p>
-          </div>
-        </div>
-      </section>
+      <MicroserviceHealthPanel
+        title="微服务模块"
+        description="实时检测平台核心微服务在线情况，帮助你快速了解当前系统运行状态。"
+      />
 
       <section class="section">
         <h2 class="section-title">开源信息</h2>
@@ -205,30 +144,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive } from 'vue'
-import { checkAllModulesHealth } from '@/api/healthController'
-
-const moduleHealth = reactive({
-  user: false,
-  generator: false,
-  ai: false,
-  file: false,
-  prompt: false,
-  social: false
-})
-
-const loadModuleHealth = async () => {
-  try {
-    const healthStatus = await checkAllModulesHealth()
-    Object.assign(moduleHealth, healthStatus)
-  } catch (error) {
-    console.error('Failed to load module health status:', error)
-  }
-}
-
-onMounted(() => {
-  loadModuleHealth()
-})
+import MicroserviceHealthPanel from '@/components/admin/MicroserviceHealthPanel.vue'
 </script>
 
 <style scoped>
@@ -369,65 +285,6 @@ onMounted(() => {
   color: #1a1a1a;
 }
 
-.modules-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-}
-
-.module-card {
-  background: #fafafa;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.2s ease;
-}
-
-.module-card:hover {
-  border-color: #e5e5e5;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.module-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.module-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.module-status {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.status-running {
-  color: #52c41a;
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
-}
-
-.status-stopped {
-  color: #ff4d4f;
-  background: #fff1f0;
-  border: 1px solid #ffccc7;
-}
-
-.module-desc {
-  font-size: 13px;
-  color: #999;
-  line-height: 1.5;
-  margin: 0;
-}
-
 .opensource-info {
   display: flex;
   flex-direction: column;
@@ -533,10 +390,6 @@ onMounted(() => {
   }
 
   .features-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .modules-grid {
     grid-template-columns: 1fr;
   }
 
