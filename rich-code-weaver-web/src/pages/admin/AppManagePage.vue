@@ -2,19 +2,22 @@
   <div id="appManagePage">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h1>应用管理中心</h1>
-      <p>管理应用作品</p>
+      <h1>产物管理中心</h1>
+      <p>管理数字产物作品</p>
     </div>
+
+    <AdminBackToDashboardButton />
 
     <!-- 搜索面板 -->
     <a-card class="search-panel">
-      <h2>筛选应用</h2>
+      <h2>筛选数字产物</h2>
       <a-form :model="searchParams" layout="inline" @finish="doSearch">
-        <a-form-item class="search-item" label="应用名称">
+        <a-form-item class="search-item" label="数字产物名称">
           <a-input
             v-model:value="searchParams.appName"
             allow-clear
-            placeholder="输入应用名称关键词"
+            aria-label="搜索数字产物名称"
+            placeholder="输入数字产物名称关键词"
             suffix-icon="search"
           />
         </a-form-item>
@@ -23,6 +26,7 @@
           <a-input
             v-model:value="searchParams.initPrompt"
             allow-clear
+            aria-label="搜索提示关键词"
             placeholder="输入提示关键词"
             suffix-icon="search"
           />
@@ -32,6 +36,7 @@
           <a-input
             v-model:value="searchParams.userId"
             allow-clear
+            aria-label="搜索创建者用户ID"
             placeholder="输入用户ID"
             suffix-icon="user"
           />
@@ -40,6 +45,7 @@
         <a-form-item class="search-item" label="生成类型">
           <a-select
             v-model:value="searchParams.codeGenType"
+            aria-label="选择生成类型"
             placeholder="全部生成类型"
             style="width: 180px"
           >
@@ -58,26 +64,27 @@
           <a-input
             v-model:value="searchParams.initPrompt"
             allow-clear
+            aria-label="搜索部署密钥"
             placeholder="输入部署密钥"
             suffix-icon="deployKey"
           />
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button html-type="submit">搜索</a-button>
+          <a-button aria-label="搜索数字产物" html-type="submit">搜索</a-button>
           &nbsp;
-          <a-button @click="resetSearch">重置</a-button>
+          <a-button aria-label="重置搜索条件" @click="resetSearch">重置</a-button>
         </a-form-item>
       </a-form>
     </a-card>
 
-    <!-- 应用列表表格 -->
+    <!-- 数字产物列表表格 -->
     <a-card class="app-table">
       <div class="table-header">
-        <h2>应用列表</h2>
+        <h2>数字产物列表</h2>
         <span class="table-tips">
-          共 {{ pagination.total }} 个应用 |
-          <a-tag class="featured-tag" color="gold">金色星标为星选应用</a-tag>
+          共 {{ pagination.total }} 个数字产物 |
+          <a-tag class="featured-tag" color="gold">金色星标为星选数字产物</a-tag>
         </span>
       </div>
 
@@ -116,13 +123,22 @@
 
           <template v-else-if="column.dataIndex === 'codeGenType'">
             <a-tag :color="getTypeColor(record.codeGenType)">
-              {{ record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : record.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(record.codeGenType)
+              {{
+                record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : record.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(record.codeGenType)
               }}
             </a-tag>
           </template>
 
           <template v-else-if="column.dataIndex === 'deployKey'">
-            <div class="deploy-key-cell" @click="toggleDeployKey(record.id)">
+            <div
+              :aria-label="`${showDeployKey[record.id] ? '隐藏' : '显示'}部署密钥`"
+              class="deploy-key-cell"
+              role="button"
+              tabindex="0"
+              @click="toggleDeployKey(record.id)"
+              @keydown.enter="toggleDeployKey(record.id)"
+              @keydown.space.prevent="toggleDeployKey(record.id)"
+            >
               <span v-if="showDeployKey[record.id]">{{ record.deployKey }}</span>
               <span v-else>*******</span>
               <component
@@ -134,11 +150,15 @@
           </template>
 
           <template v-else-if="column.dataIndex === 'priority'">
-            <a-tag v-if="record.priority === 99" color="gold">
-              <star-filled />
-              星选应用
-            </a-tag>
-            <span v-else>普通应用</span>
+            <div class="rate-cell">
+              <a-rate
+                :count="5"
+                :value="priorityToRate(record.priority)"
+                allow-half
+                @change="handleRateChange(record, $event)"
+              />
+              <span v-if="record.priority >= 99" class="star-label">★ 星选</span>
+            </div>
           </template>
 
           <template v-else-if="column.dataIndex === 'deployedTime'">
@@ -168,8 +188,9 @@
 
           <template v-else-if="column.key === 'action'">
             <a-space class="action-buttons">
-              <!-- 进入应用按钮 -->
+              <!-- 进入数字产物按钮 -->
               <a-button
+                :aria-label="`进入数字产物 ${record.appName}`"
                 size="small"
                 type="default"
                 @click="enterApp(record)"
@@ -180,6 +201,7 @@
                 进入
               </a-button>
               <a-button
+                :aria-label="`编辑数字产物 ${record.appName}`"
                 size="small"
                 type="default"
                 @click="editApp(record)"
@@ -188,6 +210,7 @@
               </a-button>
               <!-- 信息卡片按钮 -->
               <a-button
+                :aria-label="`查看数字产物 ${record.appName} 详情`"
                 size="small"
                 type="default"
                 @click="showAppDetail(record)"
@@ -198,27 +221,12 @@
                 详情
               </a-button>
 
-              <a-button
-                :class="{ 'featured-btn': record.priority === 99 }"
-                size="small"
-                type="default"
-                @click="toggleFeatured(record)"
-              >
-                <template v-if="record.priority === 99">
-                  <star-filled />
-                  取消星选
-                </template>
-                <template v-else>
-                  <star-outlined />
-                  设为星选
-                </template>
-              </a-button>
-
               <a-popconfirm
-                title="确定要删除这个应用吗？此操作不可恢复"
+                title="确定要删除这个数字产物吗？此操作不可恢复"
                 @confirm="doDeleteApp(record.id)"
               >
-                <a-button danger size="small">删除</a-button>
+                <a-button :aria-label="`删除数字产物 ${record.appName}`" danger size="small">删除
+                </a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -226,7 +234,7 @@
       </a-table>
     </a-card>
 
-    <!-- 应用详情弹窗 -->
+    <!-- 产物详情弹窗 -->
     <AppInfo
       v-model:open="appDetailVisible"
       :app="currentApp"
@@ -236,9 +244,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {message} from 'ant-design-vue'
 import {
   ArrowRightOutlined,
   CalendarOutlined,
@@ -247,19 +255,17 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
   InfoCircleOutlined,
-  PictureOutlined,
-  StarFilled,
-  StarOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
-import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
-import { formatTime } from '@/utils/timeUtil.ts'
+import {deleteApp, listAppVoByPageByAdmin, updateAppByAdmin} from '@/api/appController'
+import {CODE_GEN_TYPE_OPTIONS, formatCodeGenType} from '@/enums/codeGenTypes.ts'
+import {formatTime} from '@/utils/timeUtil.ts'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import UserInfo from '@/components/UserInfo.vue'
 import AppInfo from '@/components/AppInfo.vue'
 
 const router = useRouter()
-// 查看应用详情
+// 查看产物详情
 const appDetailVisible = ref(false)
 const currentApp = ref<API.AppVO | null>(null)
 
@@ -268,7 +274,7 @@ const showAppDetail = (app: API.AppVO) => {
   appDetailVisible.value = true
 }
 
-// 进入应用
+// 进入数字产物
 const enterApp = (app: API.AppVO) => {
   if (app.id) {
     router.push(`/app/chat/${app.id}`)
@@ -285,7 +291,7 @@ const columns = [
     sorter: true
   },
   {
-    title: '应用名称',
+    title: '数字产物名称',
     dataIndex: 'appName',
     width: 150,
     ellipsis: true
@@ -307,9 +313,9 @@ const columns = [
     width: 120
   },
   {
-    title: '推送等级',
+    title: '产物评分',
     dataIndex: 'priority',
-    width: 100
+    width: 200
   },
   {
     title: '部署密钥',
@@ -340,7 +346,7 @@ const columns = [
   }
 ]
 
-// 应用数据
+// 数字产物数据
 const data = ref<API.AppVO[]>([])
 const total = ref(0)
 
@@ -426,18 +432,51 @@ const doTableChange = (page: { current: number; pageSize: number }) => {
   fetchData()
 }
 
-// 搜索应用
+// 搜索数字产物
 const doSearch = () => {
   searchParams.pageNum = 1
   fetchData()
 }
 
-// 编辑应用
+// 编辑数字产物
 const editApp = (app: API.AppVO) => {
   router.push(`/app/edit/${app.id}`)
 }
 
-// 切换星选状态
+// priority ↔ Rate 互转（0 stars = 0, 1-4 stars = 1-4, 5 stars = 99 featured）
+const priorityToRate = (p?: number): number => {
+  if (!p || p === 0) return 0
+  if (p >= 99) return 5
+  return Math.min(p, 4)
+}
+
+const rateToPriority = (r: number): number => {
+  if (r <= 0) return 0
+  if (r >= 5) return 99
+  return r
+}
+
+// 产物评分变更（Rate 组件）
+const handleRateChange = async (app: API.AppVO, rateVal: number) => {
+  if (!app.id) return
+  const newPriority = rateToPriority(rateVal)
+  try {
+    const res = await updateAppByAdmin({
+      id: app.id,
+      priority: newPriority
+    })
+    if (res.data.code === 0) {
+      app.priority = newPriority
+      message.success(rateVal >= 5 ? `「${app.appName}」已设为星选 (5星)` : `产物评分已更新为 ${rateVal} 星`)
+    } else {
+      message.error('更新失败：' + res.data.message)
+    }
+  } catch {
+    message.error('更新失败，请重试')
+  }
+}
+
+// 切换星选状态（保留兼容）
 const toggleFeatured = async (app: API.AppVO) => {
   if (!app.id) return
 
@@ -450,7 +489,7 @@ const toggleFeatured = async (app: API.AppVO) => {
     })
 
     if (res.data.code === 0) {
-      message.success(newPriority === 99 ? '已设为星选应用' : '已取消星选')
+      message.success(newPriority === 99 ? '已设为星选数字产物' : '已取消星选')
       fetchData()
     } else {
       message.error('操作失败：' + res.data.message)
@@ -461,7 +500,7 @@ const toggleFeatured = async (app: API.AppVO) => {
   }
 }
 
-// 删除应用
+// 删除数字产物
 const doDeleteApp = async (id: number | undefined) => {
   if (!id) return
 
@@ -482,169 +521,126 @@ const doDeleteApp = async (id: number | undefined) => {
 
 <style lang="less" scoped>
 #appManagePage {
-  padding: 24px;
-  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
-  min-height: calc(100vh - 48px);
-  position: relative;
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #333333;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><rect x="40" y="10" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="10" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="70" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="40" y="70" width="20" height="20" fill="%23666" rx="4" ry="4"/></svg>');
-    background-size: 200px;
-    pointer-events: none;
-    z-index: 0;
-  }
+  padding: 32px;
+  width: 100%;
 }
 
 .page-header {
-  text-align: center;
-  margin-bottom: 30px;
-  padding: 10px 0;
+  margin-bottom: 28px;
 
   h1 {
-    font-family: 'Comic Neue', cursive;
-    font-size: 2.8rem;
+    font-size: 22px;
     font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 8px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    color: #1a1a1a;
+    margin: 0 0 6px;
   }
 
   p {
-    font-size: 1.2rem;
-    color: #7f8c8d;
-    font-weight: 400;
-    font-family: 'Comic Neue', cursive;
-    max-width: 600px;
-    margin: 0 auto;
+    font-size: 14px;
+    color: #999;
+    margin: 0;
   }
 }
 
 .search-panel, .app-table {
   background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
+  border-radius: 14px;
+  border: 1px solid #f0f0f0;
+  margin-bottom: 20px;
   overflow: hidden;
-  position: relative;
-  z-index: 1;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-    transform: translateY(-3px);
+    border-color: #e5e5e5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 
   h2 {
-    font-size: 1.4rem;
-    color: #2c3e50;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f0f0f0;
-    font-family: 'Comic Neue', cursive;
+    font-size: 16px;
+    color: #1a1a1a;
+    margin-bottom: 16px;
     font-weight: 600;
   }
 }
 
 
 .search-panel {
-  padding: 25px;
+  padding: 20px;
 
   .ant-form {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 12px;
   }
 
   .search-item {
     flex: 1;
-    min-width: 280px;
+    min-width: 200px;
     margin-bottom: 0;
   }
 
   .search-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-self: flex-end;
-    padding-left: 10px;
 
     .ant-btn {
-      height: 40px;
-      padding: 0 18px;
-      border-radius: 12px;
-      font-family: 'Nunito', sans-serif;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      border: none;
+      height: 36px;
+      padding: 0 16px;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      border: 1px solid #e5e5e5;
 
       &:first-child {
-        background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
-        color: #2c3e50;
+        background: #1a1a1a;
+        color: #fff;
+        border-color: #1a1a1a;
 
         &:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 16px rgba(168, 230, 207, 0.4);
+          background: #333;
         }
       }
 
       &:last-child {
-        background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
-        color: white;
+        background: #fff;
+        color: #666;
 
         &:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
+          background: #fafafa;
+          border-color: #d0d0d0;
         }
       }
     }
   }
 }
 
-
 .app-table {
-  padding: 25px;
+  padding: 20px;
 
   .table-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 
     h2 {
       margin: 0;
-      padding-bottom: 0;
-      border: none;
     }
 
     .table-tips {
-      color: #7a787c;
-      font-size: 0.95rem;
+      color: #999;
+      font-size: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
-
-      .featured-tag {
-        margin-left: 5px;
-        font-weight: 500;
-      }
     }
   }
 
   .app-cover {
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
   }
 
   .no-cover {
@@ -653,15 +649,14 @@ const doDeleteApp = async (id: number | undefined) => {
     justify-content: center;
     width: 80px;
     height: 60px;
-    background: #f9f9f9;
-    border: 1px dashed #ddd;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
     border-radius: 8px;
-    color: #999;
-    font-size: 0.9rem;
-    padding: 5px;
+    color: #bbb;
+    font-size: 12px;
 
     span {
-      margin-left: 5px;
+      margin-left: 4px;
     }
   }
 
@@ -669,21 +664,16 @@ const doDeleteApp = async (id: number | undefined) => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: 5px 0;
-    display: flex;
-    align-items: center;
-
-    .anticon {
-      margin-right: 6px;
-      color: #999;
-    }
+    font-size: 14px;
+    color: #666;
   }
 
   .time-cell, .user-cell {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.92rem;
+    font-size: 14px;
+    color: #666;
   }
 
   .text-gray {
@@ -699,15 +689,17 @@ const doDeleteApp = async (id: number | undefined) => {
     gap: 8px;
 
     .ant-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      font-size: 0.9rem;
+      font-size: 13px;
       padding: 4px 12px;
-      border-radius: 6px;
-      height: 32px;
-      width: 90px;
+      border-radius: 8px;
+      height: 30px;
+      border: 1px solid #e5e5e5;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: #d0d0d0;
+        background: #fafafa;
+      }
     }
   }
 
@@ -726,26 +718,24 @@ const doDeleteApp = async (id: number | undefined) => {
 :deep(.ant-table-thead > tr > th) {
   background: #fafafa;
   font-weight: 600;
-  color: #2c3e50;
-  font-family: 'Comic Neue', cursive;
+  color: #1a1a1a;
+  font-size: 14px;
 }
 
 :deep(.ant-table-tbody > tr > td) {
   vertical-align: middle;
-  transition: background 0.3s;
+  font-size: 14px;
+  color: #666;
 }
 
 :deep(.ant-table-row:hover td) {
-  background: rgba(168, 230, 207, 0.1) !important;
+  background: #fafafa !important;
 }
 
 :deep(.ant-pagination) {
   display: flex;
   justify-content: center;
-  margin-top: 25px;
-  padding: 10px 0;
-  background: #f8f9fa;
-  border-radius: 12px;
+  margin-top: 20px;
 }
 
 
@@ -773,9 +763,142 @@ const doDeleteApp = async (id: number | undefined) => {
   }
 }
 
+/* Keyboard navigation focus indicators */
+:deep(.ant-input:focus),
+:deep(.ant-input-focused),
+:deep(.ant-select-focused .ant-select-selector),
+:deep(.ant-input-search:focus-within) {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+  border-color: #4096ff;
+}
+
+:deep(.ant-btn:focus-visible) {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+}
+
+:deep(.ant-table-row:focus-within) {
+  outline: 2px solid #4096ff;
+  outline-offset: -2px;
+}
+
+:deep(.ant-pagination-item:focus-visible),
+:deep(.ant-pagination-prev:focus-visible),
+:deep(.ant-pagination-next:focus-visible) {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+}
+
+.action-buttons {
+  .ant-btn:focus-visible {
+    outline: 3px solid #4096ff;
+    outline-offset: 2px;
+  }
+}
+
 .deploy-key-cell {
   cursor: pointer;
   display: flex;
   align-items: center;
+
+  &:focus-visible {
+    outline: 3px solid #4096ff;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.rate-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rate-cell :deep(.ant-rate) {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.rate-cell :deep(.ant-rate-star) {
+  margin-inline-end: 4px;
+}
+
+.star-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #d48806;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  #appManagePage {
+    padding: 16px;
+  }
+
+  .page-header {
+    h1 {
+      font-size: 2rem;
+    }
+
+    p {
+      font-size: 1rem;
+    }
+  }
+
+  .search-panel, .app-table {
+    padding: 18px;
+    margin-bottom: 20px;
+
+    h2 {
+      font-size: 1.2rem;
+    }
+  }
+
+  .app-table {
+    .table-header {
+      flex-direction: column;
+      align-items: flex-start !important;
+      gap: 10px;
+
+      .table-tips {
+        font-size: 0.85rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+      }
+    }
+
+    .action-buttons {
+      flex-wrap: wrap;
+      gap: 6px;
+
+      .ant-btn {
+        font-size: 0.85rem;
+        padding: 3px 10px;
+        height: 28px;
+        width: auto;
+        min-width: 70px;
+      }
+    }
+  }
+
+  :deep(.ant-table) {
+    font-size: 0.9rem;
+  }
+
+  :deep(.ant-table-thead > tr > th) {
+    font-size: 0.9rem;
+    padding: 10px 8px;
+  }
+
+  :deep(.ant-table-tbody > tr > td) {
+    font-size: 0.85rem;
+    padding: 10px 8px;
+  }
 }
 </style>

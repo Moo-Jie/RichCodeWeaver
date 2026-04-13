@@ -1,13 +1,15 @@
 spring:
   application:
-    name: RichCodeWeaver-backend
+    name: rich-code-weaver
   # session 配置
   session:
-    store-type: redis
     # session 30 天过期
     timeout: 2592000
   profiles:
-    active: prod
+    active: local
+  #    active: prod
+  main:
+    allow-bean-definition-overriding: true
 
 server:
   port: 8101
@@ -17,19 +19,6 @@ server:
     session:
       cookie:
         max-age: 2592000
-
-# springdoc-openapi
-springdoc:
-  group-configs:
-    - group: 'default'
-      paths-to-match: '/**'
-      packages-to-scan: com.rich.richcodeweaver.controller
-
-# knife4j
-knife4j:
-  enable: true
-  setting:
-    language: zh_cn
 
 # redisson 配置
 redisson:
@@ -41,12 +30,33 @@ redisson:
   retryAttempts: 3
   retryInterval: 1500
 
-# spring-actuator 对外开放系统运行时的监控信息
+# springdoc-openapi
+springdoc:
+  group-configs:
+    - group: 'default'
+      #      paths-to-match: '/**'
+      packages-to-scan: com.rich.codeweaver.controller
+      
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+# actuator 端点配置
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        # 暴露所有端点（包括 prometheus）
+        include: '*'
   endpoint:
     health:
+      # 显示详细健康信息
       show-details: always
+
+mcp:
+  enabled: false
+  config-path: classpath:mcp-servers.json
+  log-events: true
+  fail-if-one-server-fails: false

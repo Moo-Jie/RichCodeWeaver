@@ -1,31 +1,36 @@
 <template>
-  <a-layout class="basic-layout">
-    <GlobalHeader />
-    <a-layout-content class="main-content">
+  <div class="main-layout">
+    <TheSidebar />
+    <div class="main-area">
       <router-view />
-    </a-layout-content>
-    <GlobalFooter />
-  </a-layout>
+    </div>
+    <!-- 好友抽屉 -->
+    <FriendDrawer />
+    <!-- 聊天抽屉 -->
+    <ChatDrawer />
+  </div>
 </template>
 
 <script lang="ts" setup>
-import GlobalHeader from '@/components/GlobalHeader.vue'
-import GlobalFooter from '@/components/GlobalFooter.vue'
+import TheSidebar from '@/components/sidebar/TheSidebar.vue'
+import FriendDrawer from '@/components/chat/FriendDrawer.vue'
+import ChatDrawer from '@/components/chat/ChatDrawer.vue'
 </script>
 
 <style scoped>
-.basic-layout {
-  background: transparent;
-  min-height: 100vh;
+.main-layout {
   display: flex;
-  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: #fff;
 }
 
-.main-content {
+.main-area {
   flex: 1;
-  width: 100%;
-  padding: 0;
-  margin: 0;
+  display: flex;
+  flex-direction: column;
   overflow: auto;
+  min-width: 0;
 }
 </style>

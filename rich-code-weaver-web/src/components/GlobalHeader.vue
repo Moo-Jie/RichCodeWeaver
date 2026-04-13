@@ -72,6 +72,7 @@ import { type MenuProps, message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser.ts'
 import { userLogout } from '@/api/userController.ts'
 import {
+  AlignLeftOutlined,
   AuditOutlined,
   BorderlessTableOutlined,
   HomeOutlined,
@@ -121,12 +122,12 @@ const originItems = [
       {
         key: '/admin/appManage',
         icon: () => h(BorderlessTableOutlined),
-        label: '应用管理',
-        title: '应用管理'
+        label: '产物管理',
+        title: '产物管理'
       },
       {
         key: '/admin/chatHistory',
-        icon: () => h(BorderlessTableOutlined),
+        icon: () => h(AlignLeftOutlined),
         label: '对话历史管理',
         title: '对话历史管理'
       }

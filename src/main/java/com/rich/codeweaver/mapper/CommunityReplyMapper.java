@@ -1,0 +1,10 @@
+package com.rich.codeweaver.mapper;
+
+import com.mybatisflex.core.BaseMapper;
+import com.rich.codeweaver.model.entity.CommunityReply;
+
+/**
+ * 社区回复数据访问层。
+ */
+public interface CommunityReplyMapper extends BaseMapper<CommunityReply> {
+}

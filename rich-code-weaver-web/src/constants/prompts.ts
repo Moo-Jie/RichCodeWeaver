@@ -5,7 +5,7 @@ import {
   ExperimentOutlined,
   HomeOutlined,
   MedicineBoxOutlined,
-  PictureOutlined,
+  PaperClipOutlined,
   ReadOutlined,
   RocketOutlined,
   SecurityScanOutlined,
@@ -21,7 +21,7 @@ export const promptOptions = ref([
     value: '设计一个极简风格艺术日历页面，展示月份和日期网格，支持节日高亮显示，包含月份切换功能和优雅的动画过渡效果。',
     label: '艺术日历',
     desc: '节日展示页面',
-    icon: PictureOutlined,
+    icon: PaperClipOutlined,
     color: '#ff9f7f'
   },
   {
@@ -32,7 +32,7 @@ export const promptOptions = ref([
     color: '#7eb8ff'
   },
   {
-    value: '制作前端知识学习单页应用，采用卡片式布局展示HTML、CSS、JavaScript的示例和说明，包含代码高亮和实时预览功能。',
+    value: '制作前端知识学习单页数字产物，采用卡片式布局展示HTML、CSS、JavaScript的示例和说明，包含代码高亮和实时预览功能。',
     label: '前端语言知识',
     desc: '前端学习资料',
     icon: EnvironmentOutlined,
@@ -67,7 +67,7 @@ export const promptOptions = ref([
     color: '#6cd9e6'
   },
   {
-    value: '创建航天知识展示单页应用，采用深空背景和星空特效，包含航天器3D卡片介绍和太空知识科普，支持滚动视差效果。',
+    value: '创建航天知识展示单页数字产物，采用深空背景和星空特效，包含航天器3D卡片介绍和太空知识科普，支持滚动视差效果。',
     label: '航天科普平台',
     desc: '航天知识展示',
     icon: RocketOutlined,

@@ -63,6 +63,15 @@
               </a-tag>
             </div>
             <div class="detail-row">
+              <label>用户身份</label>
+              <span>{{ identityLabelMap[userInfo.userIdentity] || userInfo.userIdentity || '未设置'
+                }}</span>
+            </div>
+            <div class="detail-row">
+              <label>行业领域</label>
+              <span>{{ userInfo.userIndustry || '未设置' }}</span>
+            </div>
+            <div class="detail-row">
               <label>注册时间</label>
               <span>
                 <CalendarOutlined />
@@ -93,19 +102,9 @@
 
           <div class="setting-item">
             <div>
-              <h3>手机绑定</h3>
-              <p>{{ userInfo.phone ? `已绑定手机: ${maskPhone(userInfo.phone)}` : '未绑定手机号'
-                }}</p>
-            </div>
-            <a-button class="gradient-button" type="primary" @click="handleMobile">
-              {{ userInfo.phone ? '更换手机' : '绑定手机' }}
-            </a-button>
-          </div>
-
-          <div class="setting-item">
-            <div>
               <h3>邮箱验证</h3>
-              <p>{{ userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
+              <p>{{
+                  userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
                 }}</p>
             </div>
             <a-button class="gradient-button" type="primary" @click="handleEmail">
@@ -149,6 +148,21 @@
             placeholder="介绍一下你自己..."
           />
         </a-form-item>
+        <a-form-item label="用户身份">
+          <a-select
+            v-model:value="editForm.userIdentity"
+            :options="identitySelectOptions"
+            placeholder="请选择您的身份"
+          />
+        </a-form-item>
+        <a-form-item label="行业领域">
+          <a-auto-complete
+            v-model:value="editForm.userIndustry"
+            :filter-option="filterIndustry"
+            :options="industryAutoOptions"
+            placeholder="请选择或输入您的行业领域"
+          />
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -173,14 +187,57 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 绑定邮箱模态框 -->
+    <a-modal
+      v-model:visible="emailVisible"
+      class="custom-modal"
+      title="绑定邮箱"
+      @ok="handleEmailSubmit"
+    >
+      <br>
+      <a-form :label-col="{ span: 6 }" :model="emailForm" :wrapper-col="{ span: 18 }">
+        <a-form-item label="邮箱地址">
+          <a-input
+            v-model:value="emailForm.email"
+            placeholder="请输入邮箱地址"
+          />
+        </a-form-item>
+        <a-form-item label="图形验证码">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <a-input v-model:value="emailForm.captchaAnswer" placeholder="请输入计算结果" style="flex: 1;" />
+            <img
+              v-if="emailCaptchaImage"
+              :src="emailCaptchaImage"
+              alt="验证码"
+              style="height: 40px; cursor: pointer; border-radius: 4px; border: 1px solid #f0f0f0;"
+              @click="refreshEmailCaptcha"
+            />
+            <a-button v-else size="small" @click="refreshEmailCaptcha">获取验证码</a-button>
+          </div>
+        </a-form-item>
+        <a-form-item label="邮箱验证码">
+          <div style="display: flex; gap: 8px;">
+            <a-input v-model:value="emailForm.emailCode" placeholder="请输入邮箱验证码" style="flex: 1;" />
+            <a-button
+              :disabled="emailCountdown > 0 || emailSendingCode"
+              :loading="emailSendingCode"
+              @click="handleSendEmailCode"
+            >
+              {{ emailCountdown > 0 ? `${emailCountdown}s` : '发送验证码' }}
+            </a-button>
+          </div>
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useLoginUserStore } from '@/stores/loginUser'
-import { message } from 'ant-design-vue'
+import {onMounted, reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {useLoginUserStore} from '@/stores/loginUser'
+import {message} from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
   CalendarOutlined,
@@ -191,12 +248,17 @@ import {
   UserOutlined
 } from '@ant-design/icons-vue'
 import {
+  bindEmail,
   getLoginUser,
+  getMathCaptcha,
+  sendEmailCode,
   updateUser,
   updateUserAvatar,
   updateUserPassword,
   userLogout
 } from '@/api/userController'
+import {identityLabelMap, identityOptions, industryOptions} from '@/constants/identityOptions'
+import {validateEmail} from '@/utils/emailUtil'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
@@ -208,6 +270,8 @@ const userInfo = reactive({
   userRole: 'user',
   userAvatar: '',
   userProfile: '',
+  userIdentity: '',
+  userIndustry: '',
   email: '',
   phone: '',
   createTime: new Date().toISOString()
@@ -216,18 +280,46 @@ const userInfo = reactive({
 // 模态框状态
 const editVisible = ref(false)
 const passwordVisible = ref(false)
+const emailVisible = ref(false)
+const emailCaptchaId = ref('')
+const emailCaptchaImage = ref('')
+const emailCountdown = ref(0)
+const emailSendingCode = ref(false)
+let emailCountdownTimer: ReturnType<typeof setInterval> | null = null
 
 // 编辑表单
 const editForm = reactive({
   userName: '',
-  userProfile: ''
+  userProfile: '',
+  userIdentity: '',
+  userIndustry: ''
 })
+
+const identitySelectOptions = identityOptions.map(item => ({
+  value: item.value,
+  label: item.label
+}))
+
+const industryAutoOptions = industryOptions.map(item => ({
+  value: item
+}))
+
+const filterIndustry = (input: string, option: { value: string }) => {
+  return option.value.toLowerCase().includes(input.toLowerCase())
+}
 
 // 密码表单
 const passwordForm = reactive({
   oldPassword: '',
   newPassword: '',
   confirmPassword: ''
+})
+
+// 邮箱绑定表单
+const emailForm = reactive({
+  email: '',
+  captchaAnswer: '',
+  emailCode: ''
 })
 
 // 获取用户信息
@@ -238,7 +330,9 @@ const fetchUserInfo = async () => {
       Object.assign(userInfo, res.data.data)
       Object.assign(editForm, {
         userName: res.data.data.userName,
-        userProfile: res.data.data.userProfile
+        userProfile: res.data.data.userProfile,
+        userIdentity: res.data.data.userIdentity || '',
+        userIndustry: res.data.data.userIndustry || ''
       })
     } else {
       message.error('获取用户信息失败:' + res.data.message)
@@ -265,12 +359,14 @@ const handleEditSubmit = async () => {
       message.success('用户信息更新成功')
       Object.assign(userInfo, editForm)
       editVisible.value = false
+      // 刷新全局登录用户缓存，确保身份等变更立即生效
+      await loginUserStore.fetchLoginUser()
     } else {
       message.error('更新失败：' + res.data.message)
     }
   } catch (error) {
     console.error('更新用户信息失败：', error)
-    message.error('更新失败:' + res.data.message)
+    message.error('更新失败，请稍后重试')
   }
 }
 
@@ -310,18 +406,105 @@ const handlePasswordSubmit = async () => {
     }
   } catch (error) {
     console.error('修改密码失败：', error)
-    message.error('修改失败:' + res.data.message)
+    message.error('修改失败，请稍后重试')
   }
 }
 
-// TODO 处理手机操作
-const handleMobile = () => {
-  message.info('手机绑定功能即将上线')
+// 处理邮箱操作
+const handleEmail = async () => {
+  emailForm.email = userInfo.email || ''
+  emailForm.captchaAnswer = ''
+  emailForm.emailCode = ''
+  emailVisible.value = true
+  await refreshEmailCaptcha()
 }
 
-// TODO 处理邮箱操作
-const handleEmail = () => {
-  message.info('邮箱绑定功能即将上线')
+// 刷新邮箱绑定的图形验证码
+const refreshEmailCaptcha = async () => {
+  try {
+    const res = await getMathCaptcha()
+    if (res.data.code === 0 && res.data.data) {
+      emailCaptchaId.value = res.data.data.captchaId || ''
+      emailCaptchaImage.value = res.data.data.captchaImage || ''
+    }
+  } catch {
+    message.error('获取验证码失败')
+  }
+}
+
+// 发送邮箱验证码
+const handleSendEmailCode = async () => {
+  const emailResult = validateEmail(emailForm.email)
+  if (!emailResult.valid) {
+    message.warning(emailResult.message || '邮箱格式不正确')
+    return
+  }
+  if (!emailForm.captchaAnswer) {
+    message.warning('请先输入计算结果')
+    return
+  }
+  if (!emailCaptchaId.value) {
+    message.warning('请先获取图形验证码')
+    return
+  }
+  emailSendingCode.value = true
+  try {
+    const res = await sendEmailCode({
+      email: emailResult.normalizedEmail,
+      captchaId: emailCaptchaId.value,
+      captchaAnswer: emailForm.captchaAnswer
+    })
+    if (res.data.code === 0) {
+      message.success('验证码已发送，请查看邮箱')
+      emailCountdown.value = 60
+      emailCountdownTimer = setInterval(() => {
+        emailCountdown.value--
+        if (emailCountdown.value <= 0) {
+          clearInterval(emailCountdownTimer!)
+          emailCountdownTimer = null
+        }
+      }, 1000)
+    } else {
+      message.error(res.data.message || '发送失败')
+      await refreshEmailCaptcha()
+    }
+  } catch {
+    message.error('发送验证码失败')
+    await refreshEmailCaptcha()
+  } finally {
+    emailSendingCode.value = false
+  }
+}
+
+// 提交邮箱绑定
+const handleEmailSubmit = async () => {
+  const emailResult = validateEmail(emailForm.email)
+  if (!emailResult.valid) {
+    message.error(emailResult.message || '请输入正确的邮箱格式')
+    return
+  }
+  if (!emailForm.emailCode) {
+    message.error('请输入邮箱验证码')
+    return
+  }
+  const email = emailResult.normalizedEmail
+
+  try {
+    const res = await bindEmail({ email, emailCode: emailForm.emailCode })
+    if (res.data.code === 0) {
+      message.success('邮箱绑定成功')
+      userInfo.email = email
+      emailVisible.value = false
+      emailForm.email = ''
+      emailForm.captchaAnswer = ''
+      emailForm.emailCode = ''
+    } else {
+      message.error('绑定失败：' + res.data.message)
+    }
+  } catch (error) {
+    console.error('绑定邮箱失败：', error)
+    message.error('绑定失败，请稍后重试')
+  }
 }
 
 // 处理头像上传
@@ -347,7 +530,7 @@ const handleAvatarUpload = async (file: File) => {
     }
   } catch (error) {
     console.error('头像上传失败：', error)
-    message.error('头像上传失败:' + res.data.message)
+    message.error('头像上传失败，请稍后重试')
   }
   return false // 阻止默认上传行为
 }
@@ -366,12 +549,6 @@ const handleLogout = async () => {
   }
 }
 
-// 手机号脱敏处理
-const maskPhone = (phone: string) => {
-  if (!phone || phone.length < 11) return phone
-  return phone.substring(0, 3) + '****' + phone.substring(7)
-}
-
 // 邮箱脱敏处理
 const maskEmail = (email: string) => {
   if (!email) return email
@@ -387,58 +564,31 @@ onMounted(() => {
 
 <style lang="less" scoped>
 #userCenterPage {
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  padding: 24px;
-  min-height: calc(100vh - 48px);
-  position: relative;
-  overflow: hidden;
-  color: #333333;
-}
-
-/* 美团风格背景 */
-#userCenterPage::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
+  padding: 32px;
   width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .page-header {
-  text-align: center;
-  margin-bottom: 30px;
-  padding: 10px 0;
-  position: relative;
-  z-index: 2;
+  margin-bottom: 28px;
 
   h1 {
-    font-family: 'Comic Neue', cursive;
-    font-size: 2.8rem;
+    font-size: 22px;
     font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 12px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    color: #1a1a1a;
+    margin: 0 0 6px;
   }
 
   p {
-    font-size: 1.3rem;
-    color: #7f8c8d;
-    max-width: 600px;
-    margin: 0 auto;
-    font-family: 'Comic Neue', cursive;
+    font-size: 14px;
+    color: #999;
+    margin: 0;
   }
 }
 
 .content-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 25px;
-  position: relative;
-  z-index: 2;
+  gap: 20px;
 
   @media (max-width: 992px) {
     grid-template-columns: 1fr;
@@ -446,37 +596,36 @@ onMounted(() => {
 }
 
 .info-card, .security-card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border: none;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-    transform: translateY(-3px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   }
 
   h2 {
-    font-family: 'Comic Neue', cursive;
-    font-size: 1.6rem;
-    color: #2c3e50;
-    margin-bottom: 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 16px;
     padding-bottom: 12px;
-    border-bottom: 2px solid #f0f0f0;
+    border-bottom: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 
     .anticon {
-      color: #1890ff;
+      color: #666;
+      font-size: 16px;
     }
   }
 }
 
 .info-card {
-  padding: 25px;
+  padding: 20px 24px;
 
   .card-header {
     display: flex;
@@ -509,23 +658,31 @@ onMounted(() => {
     gap: 15px;
 
     .user-avatar {
-      border: 4px solid #e6f7ff;
-      background: #f9f9f9;
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      border: 2px solid #f0f0f0;
+      background: #fafafa;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 
       .ant-avatar-icon {
-        color: #1890ff;
+        color: #999;
       }
     }
 
     .upload-btn {
-      border-radius: 12px;
-      font-size: 0.9rem;
-      padding: 0 15px;
+      border-radius: 8px;
+      font-size: 14px;
+      padding: 0 16px;
       height: 36px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      background: #1a1a1a;
+      border-color: #1a1a1a;
+      color: #fff;
+
+      &:hover {
+        background: #333;
+        border-color: #333;
+      }
     }
   }
 
@@ -543,21 +700,21 @@ onMounted(() => {
 
       label {
         width: 100px;
-        color: #7f8c8d;
-        font-weight: 600;
+        color: #999;
+        font-weight: 500;
         text-align: right;
         padding-right: 15px;
-        font-family: 'Nunito', sans-serif;
+        font-size: 13px;
       }
 
       span {
         flex: 1;
-        color: #2c3e50;
-        font-family: 'Nunito', sans-serif;
+        color: #1a1a1a;
+        font-size: 14px;
 
         .anticon {
-          margin-right: 8px;
-          color: #1890ff;
+          margin-right: 6px;
+          color: #666;
         }
       }
     }
@@ -565,7 +722,7 @@ onMounted(() => {
 }
 
 .security-card {
-  padding: 25px;
+  padding: 20px 24px;
 
   .security-settings {
     margin-bottom: 30px;
@@ -583,22 +740,30 @@ onMounted(() => {
 
       h3 {
         margin: 0;
-        font-size: 1.1rem;
-        color: #2c3e50;
+        font-size: 15px;
+        color: #1a1a1a;
         font-weight: 600;
-        font-family: 'Nunito', sans-serif;
       }
 
       p {
-        margin: 6px 0 0;
-        font-size: 0.95rem;
-        color: #7f8c8d;
-        font-family: 'Nunito', sans-serif;
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: #999;
       }
 
       button {
-        min-width: 120px;
-        border-radius: 12px;
+        min-width: 100px;
+        border-radius: 8px;
+        height: 36px;
+        font-size: 14px;
+        background: #1a1a1a;
+        border-color: #1a1a1a;
+        color: #fff;
+
+        &:hover {
+          background: #333;
+          border-color: #333;
+        }
       }
     }
   }
@@ -611,94 +776,96 @@ onMounted(() => {
 
     .logout-button {
       width: 50%;
-      border-radius: 12px;
-      height: 42px;
+      border-radius: 8px;
+      height: 36px;
       font-weight: 500;
-      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
 
       .anticon {
-        margin-right: 8px;
+        margin-right: 6px;
       }
     }
   }
 }
 
 .gradient-button {
-  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+  background: #1a1a1a;
   border: none;
-  color: white;
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  color: #fff;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
+    background: #333;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   }
 }
 
 // 模态框样式优化
 :deep(.custom-modal) {
   .ant-modal {
-    border-radius: 20px;
+    border-radius: 12px;
     overflow: hidden;
   }
 
   .ant-modal-content {
-    background: #ffffff;
-    border-radius: 20px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
   }
 
   .ant-modal-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e6f7ff 100%);
+    background: #fff;
     border-bottom: 1px solid #f0f0f0;
-    padding: 22px 24px;
-    border-radius: 20px 20px 0 0;
+    padding: 16px 24px;
+    border-radius: 12px 12px 0 0;
 
     .ant-modal-title {
-      color: #2c3e50;
-      font-size: 1.4rem;
+      color: #1a1a1a;
+      font-size: 16px;
       font-weight: 600;
-      text-align: center;
-      font-family: 'Comic Neue', cursive;
     }
   }
 
   .ant-modal-body {
-    padding: 28px 24px;
+    padding: 20px 24px;
   }
 
   .ant-modal-footer {
     border-top: 1px solid #f0f0f0;
-    padding: 18px 24px;
+    padding: 16px 24px;
     text-align: center;
 
     .ant-btn {
-      border-radius: 12px;
-      padding: 0 22px;
-      height: 38px;
+      border-radius: 8px;
+      padding: 0 20px;
+      height: 36px;
       font-weight: 500;
+      font-size: 14px;
       transition: all 0.2s ease;
-      font-family: 'Nunito', sans-serif;
 
       &.ant-btn-default {
-        border-color: #d9d9d9;
-        color: #2c3e50;
+        border-color: #e5e5e5;
+        color: #666;
 
         &:hover {
-          border-color: #00c4ff;
-          color: #00c4ff;
+          border-color: #d0d0d0;
+          background: #fafafa;
+          color: #333;
         }
       }
 
       &.ant-btn-primary {
-        background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
+        background: #1a1a1a;
         border: none;
-        color: white;
+        color: #fff;
 
         &:hover {
+          background: #333;
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(116, 235, 213, 0.3);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
       }
     }
@@ -706,32 +873,32 @@ onMounted(() => {
 
   .ant-form {
     .ant-form-item {
-      margin-bottom: 22px;
+      margin-bottom: 16px;
 
       .ant-form-item-label {
         label {
-          color: #2c3e50;
-          font-weight: 600;
-          font-size: 0.95rem;
-          font-family: 'Nunito', sans-serif;
+          color: #1a1a1a;
+          font-weight: 500;
+          font-size: 14px;
         }
       }
 
       .ant-input, .ant-input-textarea {
-        border-radius: 12px;
-        border: 1px solid #d9d9d9;
-        padding: 10px 14px;
-        font-size: 0.95rem;
+        border-radius: 8px;
+        border: 1px solid #f0f0f0;
+        background: #fafafa;
+        padding: 8px 12px;
+        font-size: 14px;
         transition: all 0.2s ease;
-        font-family: 'Nunito', sans-serif;
 
         &:focus {
-          border-color: #00c4ff;
-          box-shadow: 0 0 0 2px rgba(116, 235, 213, 0.2);
+          border-color: #1a1a1a;
+          background: #fff;
+          box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
         }
 
         &::placeholder {
-          color: #a8a8a8;
+          color: #bbb;
         }
       }
 
@@ -745,18 +912,22 @@ onMounted(() => {
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  #userCenterPage {
+    padding: 16px;
+  }
+
   .page-header {
     h1 {
-      font-size: 2.2rem;
+      font-size: 20px;
     }
 
     p {
-      font-size: 1.1rem;
+      font-size: 13px;
     }
   }
 
   .info-card, .security-card {
-    padding: 20px;
+    padding: 16px;
   }
 
   .security-card .logout-section .logout-button {

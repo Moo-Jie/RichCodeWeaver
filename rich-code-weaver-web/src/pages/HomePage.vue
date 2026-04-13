@@ -12,8 +12,6 @@ import {
   AppstoreOutlined,
   CheckCircleFilled,
   CodeOutlined,
-  FileOutlined,
-  FolderOutlined,
   PlayCircleOutlined,
   QuestionCircleOutlined,
   RobotOutlined,
@@ -30,25 +28,25 @@ const tourCurrent = ref(0)
 const tourSteps = ref<TourProps['steps']>([
   {
     title: '创意输入',
-    description: '在这里输入您的应用创意描述，系统会根据描述生成完整应用',
+    description: '在这里输入您的数字产物创意描述，系统会根据描述生成完整数字产物',
     target: () => document.querySelector('.prompt-input') as HTMLElement,
     placement: 'bottom'
   },
   {
     title: '热门提示词',
-    description: '点击这里可以选择热门应用的提示词模板，快速开始创作',
+    description: '点击这里可以选择热门数字产物的提示词模板，快速开始创作',
     target: () => document.querySelector('.rich-select-button') as HTMLElement,
     placement: 'bottom'
   },
   {
     title: '创建作品',
-    description: '输入创意后点击这里创建您的应用作品',
+    description: '输入创意后点击这里创建您的数字产物作品',
     target: () => document.querySelector('.create-button') as HTMLElement,
     placement: 'bottom'
   },
   {
     title: '我的创作空间',
-    description: '这里展示您已创建的所有应用作品，可以随时查看和编辑',
+    description: '这里展示您已创建的所有数字产物作品，可以随时查看和编辑',
     target: () => document.querySelector('.my-workspace') as HTMLElement,
     placement: 'top'
   }
@@ -80,39 +78,35 @@ const handlePromptSelect = (value: string) => {
 const userPrompt = ref('')
 const creating = ref(false)
 
-// 生成器类型
+// 生成器类型（固定为 AI 自主规划模式）
 const generatorType = ref<API.AppAddRequest['generatorType']>('AI_STRATEGY')
-const generatorOptions = ref([
-  { label: 'AI 自主规划模式', value: 'AI_STRATEGY' },
-  { label: '工程项目模式', value: 'VUE_PROJECT' },
-  { label: '多文件模式', value: 'MULTI_FILE' },
-  { label: '单文件模式', value: 'HTML' }
-])
 
-// Agent模式选择
+// 模式选择
 const useAgentMode = ref(true)
 const agentModeOptions = ref([
   {
-    label: 'Agent 智能模式',
+    label: '系统分步执行模式',
     value: true,
-    desc: '基于一套工作流的 Agent 模式会让 AI 有更强的分析和决策能，构建出的应用更加完善、稳定'
+    desc: '基于一套工作流的系统分步执行模式会让 AI 有更强的分析和决策能力，构建出的数字产物更加完善、稳定'
   },
   {
-    label: '快速生成模式',
+    label: 'Agent智能生成模式',
     value: false,
-    desc: '基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善'
+    desc: '基于训练后的 AI 模型直接构建数字产物，速度更快但可能不够完善'
   }
 ])
 
-// 我的应用数据
+// 我的产物数据
 const myApps = ref<API.AppVO[]>([])
 const myAppsPage = reactive({
   current: 1,
   pageSize: 6,
   total: 0
 })
+const loadingMyApps = ref(false)
+const myAppsError = ref<string | null>(null)
 
-// 星选应用数据
+// 星选数字产物数据
 const featuredApps = ref<API.AppVO[]>([])
 const featuredAppsPage = reactive({
   current: 1,
@@ -125,10 +119,10 @@ const setPrompt = (prompt: string) => {
   userPrompt.value = prompt
 }
 
-// 创建应用
+// 创建数字产物
 const createApp = async () => {
   if (!userPrompt.value.trim()) {
-    message.warning('请输入应用描述')
+    message.warning('请输入数字产物描述')
     return
   }
 
@@ -146,7 +140,7 @@ const createApp = async () => {
     })
 
     if (res.data.code === 0 && res.data.data) {
-      message.success('应用创建成功')
+      message.success('数字产物创建成功')
       // 跳转到对话页面，确保ID是字符串类型
       const appId = String(res.data.data)
       // 传递Agent模式参数
@@ -158,18 +152,21 @@ const createApp = async () => {
       message.error('创建失败：' + res.data.message)
     }
   } catch (error) {
-    console.error('创建应用失败：', error)
+    console.error('创建数字产物失败：', error)
     message.error('创建失败，请重试:' + res.data.message)
   } finally {
     creating.value = false
   }
 }
 
-// 加载我的应用
+// 加载我的产物
 const loadMyApps = async () => {
   if (!loginUserStore.loginUser.id) {
     return
   }
+
+  loadingMyApps.value = true
+  myAppsError.value = null
 
   try {
     const res = await listMyAppVoByPage({
@@ -182,13 +179,18 @@ const loadMyApps = async () => {
     if (res.data.code === 0 && res.data.data) {
       myApps.value = res.data.data.records || []
       myAppsPage.total = res.data.data.totalRow || 0
+    } else {
+      myAppsError.value = res.data.message || '加载失败'
     }
   } catch (error) {
-    console.error('加载我的应用失败：', error)
+    console.error('加载我的产物失败：', error)
+    myAppsError.value = '网络连接失败，请检查您的网络设置'
+  } finally {
+    loadingMyApps.value = false
   }
 }
 
-// 加载星选应用
+// 加载星选数字产物
 const loadFeaturedApps = async () => {
   try {
     const res = await listStarAppVoByPage({
@@ -203,7 +205,7 @@ const loadFeaturedApps = async () => {
       featuredAppsPage.total = res.data.data.totalRow || 0
     }
   } catch (error) {
-    console.error('加载星选应用失败：', error)
+    console.error('加载星选数字产物失败：', error)
   }
 }
 
@@ -212,6 +214,16 @@ const viewChat = (appId: string | number | undefined) => {
   if (appId) {
     router.push(`/app/chat/${appId}?view=1`)
   }
+}
+
+// 判断数字产物是否已生成完毕（有对话记录或已部署）
+const isAppGenerated = (app: API.AppVO) => {
+  // 如果已部署，说明肯定生成完毕
+  if (app.deployKey) return true
+  // 如果有部署时间，说明生成完毕
+  if (app.deployedTime) return true
+  // 可以添加其他判断条件，比如检查是否有对话历史等
+  return false
 }
 
 // 查看作品
@@ -224,8 +236,13 @@ const viewWork = (app: API.AppVO) => {
 
 // 页面加载时获取数据
 onMounted(() => {
-  loadMyApps()
+  // Load featured apps (existing)
   loadFeaturedApps()
+
+  // Load my apps if user is authenticated (NEW)
+  if (loginUserStore.loginUser.id) {
+    loadMyApps()
+  }
 })
 </script>
 
@@ -235,7 +252,7 @@ onMounted(() => {
       <!-- 网站标题和描述 -->
       <div class="hero-section">
         <h1 class="hero-title">RichCodeWeaver - 织码睿奇</h1>
-        <p class="hero-description">< 只需一句话，让创意触手可及 ></p>
+        <p class="hero-description">< 工作大幅提效，成果触手可及 ></p>
       </div>
 
       <!-- 用户提示词输入框 -->
@@ -298,12 +315,12 @@ onMounted(() => {
         <!-- 热门提示词滑动模块 -->
         <div v-if="showPromptDropdown" class="prompt-slider-container">
           <div class="prompt-slider-header">
-            <h3 class="slider-title">🔥 热门提示词</h3>
+            <h3 class="slider-title">热门提示词</h3>
             <a-button
-              type="text"
-              size="small"
-              @click="showPromptDropdown = false"
               class="close-button"
+              size="small"
+              type="text"
+              @click="showPromptDropdown = false"
             >
               ✕
             </a-button>
@@ -315,7 +332,7 @@ onMounted(() => {
               class="prompt-card"
               @click="handlePromptSelect(option.value)"
             >
-              <div class="prompt-card-icon" :style="{backgroundColor: option.color}">
+              <div :style="{backgroundColor: option.color}" class="prompt-card-icon">
                 <component :is="option.icon" />
               </div>
               <div class="prompt-card-content">
@@ -326,59 +343,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- 代码生成模式选择器  -->
-        <div class="generator-selector">
-          <div class="selector-title">
-            <span class="title-icon">⚙️</span>
-            <span>选择应用架构</span>
-            <a-tooltip placement="top">
-              <template #title>
-                <div style="max-width: 300px">
-                  选择代码生成模式，不同模式适合不同的应用场景，生成速度、部署成本也不同。
-                </div>
-              </template>
-              <question-circle-outlined class="help-icon" />
-            </a-tooltip>
-          </div>
-
-          <div class="mode-cards">
-            <div
-              v-for="option in generatorOptions"
-              :key="option.value"
-              :class="{ active: generatorType === option.value }"
-              class="mode-card"
-              @click="generatorType = option.value"
-            >
-              <div class="card-icon">
-                <robot-outlined v-if="option.value === 'AI_STRATEGY'" />
-                <code-outlined v-else-if="option.value === 'VUE_PROJECT'" />
-                <folder-outlined v-else-if="option.value === 'MULTI_FILE'" />
-                <file-outlined v-else />
-              </div>
-              <div class="card-content">
-                <div class="card-title">{{ option.label }}</div>
-                <div class="card-desc">
-                  <span
-                    v-if="option.value === 'AI_STRATEGY'">AI 智能分析您的需求并生成完整应用
-                  </span>
-                  <span
-                    v-else-if="option.value === 'VUE_PROJECT'">生成完整的 VUE 工程项目，适合复杂的应用，但生成时间更长
-                  </span>
-                  <span
-                    v-else-if="option.value === 'MULTI_FILE'">多文件模式会生成多个文件的应用结构
-                  </span>
-                  <span v-else>单文件模式会生成单个 HTML 文件，适合简单应用，极速生成
-                  </span>
-                </div>
-              </div>
-              <div class="card-check">
-                <check-circle-filled v-if="generatorType === option.value" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Agent模式选择器 -->
+        <!-- 生成模式选择器 -->
         <div class="generator-selector agent-selector">
           <div class="selector-title">
             <span class="title-icon">🔄</span>
@@ -386,8 +351,8 @@ onMounted(() => {
             <a-tooltip placement="top">
               <template #title>
                 <div style="max-width: 300px">
-                  基于一套工作流的 Agent 模式会让 AI 有更强的分析和决策能，构建出的应用更加完善、稳定；
-                  基于训练后的 AI 模型直接构建应用，速度更快但可能不够完善。
+                  系统分步执行模式会让 AI 有更强的分析和决策能力，构建出的数字产物更加完善、稳定；
+                  Agent智能生成模式基于训练后的 AI 模型直接构建数字产物，速度更快但可能不够完善。
                 </div>
               </template>
               <question-circle-outlined class="help-icon" />
@@ -474,13 +439,24 @@ onMounted(() => {
           <div v-show="activeTab === 'my'" class="workspace-section my-workspace">
             <div class="app-grid-wrapper">
               <transition-group appear name="fade">
-                <AppCard
+                <div
                   v-for="app in myApps"
                   :key="app.id"
-                  :app="app"
-                  @view-chat="viewChat"
-                  @view-work="viewWork"
-                />
+                  :class="{ 'app-disabled': !isAppGenerated(app) }"
+                  class="app-wrapper"
+                >
+                  <AppCard
+                    :app="app"
+                    @view-chat="viewChat"
+                    @view-work="viewWork"
+                  />
+                  <div v-if="!isAppGenerated(app)" class="app-overlay-disabled">
+                    <div class="overlay-content">
+                      <a-spin size="small" />
+                      <span>生成中...</span>
+                    </div>
+                  </div>
+                </div>
               </transition-group>
             </div>
             <div class="pagination-wrapper">
@@ -716,6 +692,18 @@ onMounted(() => {
   border-color: #1890ff;
   background: linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%);
   box-shadow: 0 8px 24px rgba(24, 144, 255, 0.2);
+}
+
+.mode-card.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f5f5f5;
+}
+
+.mode-card.disabled:hover {
+  border-color: #f0f0f0;
+  box-shadow: none;
+  transform: none;
 }
 
 .card-icon {

@@ -1,0 +1,17 @@
+2026-04-09T08:13:45.906+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] com.rich.admin.AdminApplication          : Starting AdminApplication using Java 21.0.7 with PID 17620 (E:\AAA_idea_java\RichCodeWeaver\rich-code-weaver-server-admin\target\classes started by duruichi in E:\AAA_idea_java\RichCodeWeaver)
+2026-04-09T08:13:45.908+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] com.rich.admin.AdminApplication          : The following 1 profile is active: "local"
+2026-04-09T08:13:46.865+08:00 ERROR 17620 --- [rich-code-weaver-server-admin] [main] o.a.catalina.core.AprLifecycleListener   : An incompatible version [1.2.17] of the Apache Tomcat Native library is installed, while Tomcat requires version [1.2.34]
+2026-04-09T08:13:47.003+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 9001 (http)
+2026-04-09T08:13:47.018+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-09T08:13:47.018+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.49]
+2026-04-09T08:13:47.068+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-04-09T08:13:47.070+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1117 ms
+2026-04-09T08:13:47.538+08:00  WARN 17620 --- [rich-code-weaver-server-admin] [main] ion$DefaultTemplateResolverConfiguration : Cannot find template location: classpath:/templates/ (please add some templates, check your Thymeleaf configuration, or set spring.thymeleaf.check-template-location=false)
+2026-04-09T08:13:47.881+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 15 endpoints beneath base path '/actuator'
+2026-04-09T08:13:48.129+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 9001 (http) with context path '/'
+2026-04-09T08:13:48.139+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [main] com.rich.admin.AdminApplication          : Started AdminApplication in 2.761 seconds (process running for 3.36)
+2026-04-09T08:13:48.284+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [RMI TCP Connection(3)-10.24.116.244] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-09T08:13:48.284+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [RMI TCP Connection(3)-10.24.116.244] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-09T08:13:48.285+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [RMI TCP Connection(3)-10.24.116.244] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
+2026-04-09T08:16:05.578+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [SpringApplicationShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-04-09T08:16:05.586+08:00  INFO 17620 --- [rich-code-weaver-server-admin] [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete

@@ -2,15 +2,20 @@
   <div id="appEditPage">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h1>应用编辑中心</h1>
-      <p>管理应用的详细信息与配置</p>
+      <h1>数字产物编辑中心</h1>
+      <p>管理数字产物的详细信息与配置</p>
     </div>
 
     <!-- 编辑面板 -->
     <div class="edit-panel">
       <a-card :loading="loading" class="info-card">
         <div class="card-header">
-          <h2>应用信息</h2>
+          <div class="card-title">
+            <h2>数字产物信息</h2>
+            <span v-if="ownershipLabel" :class="['ownership-pill', `ownership-pill--${appInfo?.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`]">
+              {{ ownershipLabel }}
+            </span>
+          </div>
           <a-button class="view-chat" type="link" @click="goToChat">
             <MessageOutlined />
             <span>进入对话</span>
@@ -24,12 +29,12 @@
           layout="vertical"
           @finish="handleSubmit"
         >
-          <a-form-item class="form-item" label="应用名称" name="appName">
+          <a-form-item class="form-item" label="数字产物名称" name="appName">
             <a-input
               v-model:value="formData.appName"
               :maxlength="50"
               allow-clear
-              placeholder="为您的应用输入一个有意义的名称"
+              placeholder="为您的数字产物输入一个有意义的名称"
             >
               <template #prefix>
                 <TagOutlined />
@@ -39,7 +44,7 @@
               </template>
             </a-input>
             <div class="form-tip">
-              好的应用名称应该简洁明确，能准确反映应用的核心功能
+              好的数字产物名称应该简洁明确，能准确反映数字产物的核心功能
             </div>
           </a-form-item>
 
@@ -48,7 +53,7 @@
             <a-form-item
               class="form-item"
               extra="支持外部图片链接或上传本地图片，建议尺寸：400x300"
-              label="应用封面"
+              label="数字产物封面"
               name="cover"
             >
               <div class="cover-input-group">
@@ -59,12 +64,12 @@
                   placeholder="输入封面图片URL链接"
                 >
                   <template #prefix>
-                    <PictureOutlined />
+                    <PaperClipOutlined />
                   </template>
                 </a-input>
                 <a-upload
                   :before-upload="beforeUpload"
-                  :custom-request="({ file }) => handleCoverUpload(file as File)"
+                  :custom-request="handleCustomUpload"
                   :show-upload-list="false"
                   accept="image/jpeg,image/png"
                 >
@@ -92,38 +97,6 @@
                 </a-button>
               </div>
             </a-form-item>
-            <template v-if="isAdmin">
-              <a-form-item
-                class="form-item"
-                extra="设置为99可标记为星选应用"
-                label="应用优先级"
-                name="priority"
-              >
-                <a-tooltip
-                  placement="right"
-                  title="星选应用会展示在首页供所有用户查看"
-                >
-                  <a-input-number
-                    v-model:value="formData.priority"
-                    :max="99"
-                    :min="0"
-                    style="width: 100%"
-                  >
-                    <template #prefix>
-                      <StarOutlined />
-                    </template>
-                    <template #addonBefore>
-                      <span style="color: #2c3e50">星选等级：</span>
-                    </template>
-                    <template #addonAfter>
-                    <span v-if="formData.priority === 99" style="color: #d48806">
-                      (星选应用)
-                    </span>
-                    </template>
-                  </a-input-number>
-                </a-tooltip>
-              </a-form-item>
-            </template>
           </template>
 
           <!-- 不可编辑字段 -->
@@ -133,15 +106,15 @@
               :maxlength="1000"
               :rows="5"
               disabled
-              placeholder="应用的初始生成提示词"
+              placeholder="数字产物的初始生成提示词"
             />
             <div class="form-tip">
-              此字段为应用的初始生成指令，创建后不可修改
+              此字段为数字产物的初始生成指令，创建后不可修改
             </div>
           </a-form-item>
 
           <a-form-item class="form-item" label="生成类型" name="codeGenType">
-            <a-tag :color="getTypeColor(appInfo?.codeGenType)">
+            <a-tag :color="getTypeColor(appInfo?.codeGenType || '')">
               {{
                 appInfo?.codeGenType === 'single_html' ? '单文件结构' :
                   appInfo?.codeGenType === 'multi_file' ? '多文件结构' :
@@ -150,7 +123,7 @@
               }}
             </a-tag>
             <div class="form-tip">
-              生成类型决定了应用的框架和技术栈，创建后不可变更
+              生成类型决定了数字产物的框架和技术栈，创建后不可变更
             </div>
           </a-form-item>
 
@@ -162,7 +135,7 @@
           >
             <a-input v-model:value="formData.deployKey" disabled />
             <div class="form-tip">
-              此密钥用于应用部署，请勿随意分享给他人
+              此密钥用于数字产物部署，请勿随意分享给他人
             </div>
           </a-form-item>
 
@@ -201,14 +174,31 @@
       <!-- 元信息卡片 -->
       <a-card class="meta-card">
         <div class="card-header">
-          <h2>元信息</h2>
+          <div class="card-title card-title--stack">
+            <h2>元信息</h2>
+            <span class="card-subtitle">查看归属、创建者与部署状态</span>
+          </div>
+          <span class="meta-id-pill">ID {{ appInfo?.id || '--' }}</span>
         </div>
-        <div class="card-header">
-        <span class="app-id">
-            应用ID：<a-tag color="blue">{{ appInfo?.id || '--' }}</a-tag>
+        <div class="meta-summary">
+          <span v-if="ownershipLabel" :class="['ownership-pill', `ownership-pill--${appInfo?.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`]">
+            {{ ownershipLabel }}
           </span>
+          <span :class="['ownership-pill', appInfo?.deployKey ? 'ownership-pill--success' : 'ownership-pill--muted']">
+            {{ appInfo?.deployKey ? '已部署' : '未部署' }}
+          </span>
+          <span class="meta-summary-text">{{ collaborators.length }} 位协作者</span>
         </div>
         <a-descriptions :column="1" class="meta-grid">
+          <a-descriptions-item label="归属类型">
+            <div class="meta-item">
+              <span v-if="ownershipLabel" :class="['ownership-pill', `ownership-pill--${appInfo?.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`]">
+                {{ ownershipLabel }}
+              </span>
+              <span v-else>--</span>
+            </div>
+          </a-descriptions-item>
+
           <a-descriptions-item label="创建者">
             <div class="meta-item">
               <UserOutlined />
@@ -233,10 +223,9 @@
           <a-descriptions-item label="部署状态">
             <div class="meta-item">
               <CloudServerOutlined />
-              <template v-if="appInfo?.deployKey">
-                <a-tag color="green">已部署</a-tag>
-              </template>
-              <a-tag v-else color="red">未部署</a-tag>
+              <span :class="['ownership-pill', appInfo?.deployKey ? 'ownership-pill--success' : 'ownership-pill--muted']">
+                {{ appInfo?.deployKey ? '已部署' : '未部署' }}
+              </span>
             </div>
           </a-descriptions-item>
 
@@ -246,48 +235,51 @@
               <template v-if="appInfo?.deployKey">
                 <span class="time">{{ formatTime(appInfo.deployedTime) }}</span>
               </template>
-              <a-tag v-else color="red"> ——</a-tag>
+              <span v-else>--</span>
             </div>
           </a-descriptions-item>
         </a-descriptions>
+        <AppTeamCard :app="appInfo" :collaborators="collaborators" class="edit-team-card" />
       </a-card>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import type { FormInstance } from 'ant-design-vue'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import type {FormInstance} from 'ant-design-vue'
+import {message} from 'ant-design-vue'
 import {
   CalendarOutlined,
   CloudServerOutlined,
   ExportOutlined,
   MessageOutlined,
-  PictureOutlined,
+  PaperClipOutlined,
   SaveOutlined,
-  StarOutlined,
   SyncOutlined,
   TagOutlined,
   UndoOutlined,
   UploadOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import { useLoginUserStore } from '@/stores/loginUser'
-import { DEPLOY_DOMAIN } from '@/config/env'
-import { getAppVoById, updateApp, updateAppByAdmin } from '@/api/appController'
-import { formatCodeGenType } from '@/enums/codeGenTypes.ts'
-import { formatTime } from '@/utils/timeUtil.ts'
+import {useLoginUserStore} from '@/stores/loginUser'
+import {DEPLOY_DOMAIN} from '@/config/env'
+import {getAppVoById, updateApp, updateAppByAdmin} from '@/api/appController'
+import {listCollaborators} from '@/api/collaboratorController'
+import {formatCodeGenType} from '@/enums/codeGenTypes'
+import {formatTime} from '@/utils/timeUtil'
 import UserInfo from '@/components/UserInfo.vue'
+import AppTeamCard from '@/components/AppTeamCard.vue'
 
 const route = useRoute()
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 const formRef = ref<FormInstance>()
 
-// 应用信息
+// 数字产物信息
 const appInfo = ref<API.AppVO>()
+const collaborators = ref<API.AppCollaboratorVO[]>([])
 const loading = ref(false)
 const submitting = ref(false)
 
@@ -309,9 +301,15 @@ const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
 })
 
-// 判断应用是否已部署
+// 判断数字产物是否已部署
 const isDeployed = computed(() => {
   return !!appInfo.value?.deployKey
+})
+
+const ownershipLabel = computed(() => {
+  if (appInfo.value?.ownershipType === 'mine') return '我的'
+  if (appInfo.value?.ownershipType === 'collaborator') return '协作'
+  return ''
 })
 
 // 获取部署后的访问URL
@@ -325,7 +323,7 @@ const deployedSiteUrl = computed(() => {
 // 表单验证规则
 const rules = {
   appName: [
-    { required: true, message: '请填写应用名称', trigger: 'blur' },
+    { required: true, message: '请填写数字产物名称', trigger: 'blur' },
     { min: 1, max: 50, message: '名称长度应为1-50个字符', trigger: 'blur' }
   ],
   cover: [{ type: 'url', message: '请提供有效的图片URL', trigger: 'blur' }],
@@ -333,7 +331,7 @@ const rules = {
 }
 
 // 根据生成类型获取标签颜色
-const getTypeColor = (type: string) => {
+const getTypeColor = (type?: string) => {
   const colors: Record<string, string> = {
     'react': '#61dafb',
     'vue': '#42b883',
@@ -343,14 +341,14 @@ const getTypeColor = (type: string) => {
     'flutter': '#04599C',
     'swift': '#ff2d55'
   }
-  return colors[type] || 'blue'
+  return type ? (colors[type] || 'blue') : 'blue'
 }
 
-// 获取应用信息
+// 获取数字产物信息
 const fetchAppInfo = async () => {
   const id = route.params.id as string
   if (!id) {
-    message.error('应用ID无效:' + res.data.message)
+    message.error('数字产物ID无效')
     await router.push('/')
     return
   }
@@ -360,10 +358,11 @@ const fetchAppInfo = async () => {
     const res = await getAppVoById({ id: id as unknown as number })
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
+      await fetchCollaborators(res.data.data.id)
 
       // 检查权限
       if (!isAdmin.value && appInfo.value.userId !== loginUserStore.loginUser.id) {
-        message.error('您没有权限编辑此应用:' + res.data.message)
+        message.error('您没有权限编辑此数字产物:' + res.data.message)
         router.push('/')
         return
       }
@@ -376,15 +375,30 @@ const fetchAppInfo = async () => {
       formData.codeGenType = appInfo.value.codeGenType || ''
       formData.deployKey = appInfo.value.deployKey || ''
     } else {
-      message.error('获取应用信息失败: ' + res.data.message)
+      message.error('获取数字产物信息失败: ' + res.data.message)
       router.push('/')
     }
   } catch (error) {
-    console.error('获取应用信息失败:', error)
-    message.error('获取应用信息失败:' + res.data.message)
+    console.error('获取数字产物信息失败:', error)
+    message.error('获取数字产物信息失败')
+    collaborators.value = []
     router.push('/')
   } finally {
     loading.value = false
+  }
+}
+
+const fetchCollaborators = async (targetAppId?: number) => {
+  if (!targetAppId) {
+    collaborators.value = []
+    return
+  }
+  try {
+    const res = await listCollaborators({ appId: targetAppId })
+    collaborators.value = res.data.code === 0 ? (res.data.data || []) : []
+  } catch (error) {
+    console.error('获取协作者列表失败:', error)
+    collaborators.value = []
   }
 }
 
@@ -415,19 +429,23 @@ const handleCoverUpload = async (file: File) => {
     }
   } catch (error) {
     console.error('上传失败:', error)
-    message.error('上传过程中出现错误:' + res.data.message)
+    message.error('上传过程中出现错误')
   }
+}
+
+const handleCustomUpload = ({ file }: { file: File }) => {
+  return handleCoverUpload(file)
 }
 
 // 图片上传前检查
 const beforeUpload = (file: File) => {
   const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
   if (!isJpgOrPng) {
-    message.error('只能上传 JPG/PNG 格式的图片!:' + res.data.message)
+    message.error('只能上传 JPG/PNG 格式的图片!')
   }
   const isLt2M = file.size / 1024 / 1024 < 2
   if (!isLt2M) {
-    message.error('图片大小不能超过 2MB!:' + res.data.message)
+    message.error('图片大小不能超过 2MB!')
   }
   return isJpgOrPng && isLt2M
 }
@@ -461,7 +479,7 @@ const handleSubmit = async () => {
     }
   } catch (error) {
     console.error('修改失败:', error)
-    message.error('提交过程中出现错误:' + res.data.message)
+    message.error('提交过程中出现错误')
     console.error('Error details:', error)
   } finally {
     submitting.value = false
@@ -485,7 +503,7 @@ const goToChat = () => {
   }
 }
 
-// 页面加载时获取应用信息
+// 页面加载时获取数字产物信息
 onMounted(() => {
   fetchAppInfo()
 })
@@ -494,24 +512,9 @@ onMounted(() => {
 <style lang="less" scoped>
 #appEditPage {
   padding: 24px;
-  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
+  background: #fff;
   min-height: calc(100vh - 48px);
   position: relative;
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><path fill="none" stroke="rgba(180,200,220,0.05)" stroke-width="1" d="M0,400 Q200,300 400,400 M0,0 Q200,100 400,0"/></svg>');
-    background-size: 400px;
-    opacity: 0.3;
-    pointer-events: none;
-    z-index: 0;
-  }
 }
 
 .page-header {
@@ -519,18 +522,15 @@ onMounted(() => {
   margin-bottom: 40px;
 
   h1 {
-    font-family: 'Comic Neue', cursive;
-    font-size: 2.6rem;
-    font-weight: 700;
-    color: #2c3e50;
+    font-size: 28px;
+    font-weight: 600;
+    color: #1a1a1a;
     margin-bottom: 8px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
   }
 
   p {
-    font-family: 'Nunito', sans-serif;
-    font-size: 1.1rem;
-    color: #7f8c8d;
+    font-size: 14px;
+    color: #999;
     max-width: 600px;
     margin: 0 auto;
   }
@@ -548,17 +548,19 @@ onMounted(() => {
 }
 
 .info-card, .meta-card {
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 16px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-  border: 1px solid rgba(204, 230, 255, 0.2);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
+  border: 1px solid #e8edf2;
   overflow: hidden;
   position: relative;
   z-index: 1;
-  transition: all 0.3s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 
   &:hover {
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    border-color: #dbe3ea;
+    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.08);
   }
 }
 
@@ -570,21 +572,26 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #eef2f5;
     margin-bottom: 25px;
 
     h2 {
-      font-family: 'Comic Neue', cursive;
-      font-size: 1.3rem;
-      color: #2c3e50;
+      font-size: 18px;
+      color: #1a1a1a;
       margin: 0;
-      font-weight: 700;
+      font-weight: 600;
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .app-id {
-      color: #7f8c8d;
-      font-size: 0.95rem;
+      color: #999;
+      font-size: 14px;
 
       .ant-tag {
         margin-left: 8px;
@@ -595,12 +602,15 @@ onMounted(() => {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 0.95rem;
-      color: #2c3e50;
+      font-size: 14px;
+      color: #374151;
       transition: all 0.2s ease;
+      border-radius: 10px;
+      padding: 0 8px;
 
       &:hover {
-        color: #00c4ff;
+        color: #111827;
+        background: #f6f8fa;
       }
     }
   }
@@ -610,17 +620,17 @@ onMounted(() => {
 
     :deep(.ant-form-item-label) {
       font-weight: 600;
-      color: #2c3e50;
+      color: #24292f;
       padding-bottom: 5px;
     }
 
     .ant-input-prefix, .ant-input-suffix {
-      color: #00c4ff;
+      color: #8c959f;
     }
 
     .max-length {
-      font-size: 0.85rem;
-      color: #7f8c8d;
+      font-size: 12px;
+      color: #8c959f;
       padding-right: 8px;
     }
 
@@ -631,9 +641,8 @@ onMounted(() => {
   }
 
   .form-tip {
-    font-family: 'Nunito', sans-serif;
-    font-size: 0.85rem;
-    color: #7f8c8d;
+    font-size: 12px;
+    color: #8c959f;
     margin-top: 8px;
     padding: 0 3px;
   }
@@ -641,7 +650,7 @@ onMounted(() => {
   .form-actions {
     margin-top: 15px;
     padding-top: 20px;
-    border-top: 1px solid #f0f0f0;
+    border-top: 1px solid #eef2f5;
 
     .ant-btn {
       display: flex;
@@ -671,13 +680,14 @@ onMounted(() => {
     gap: 6px;
     height: 32px;
     padding: 0 12px;
-    background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
-    border: none;
+    background: #1f2328;
+    border: 1px solid #1f2328;
     color: white;
 
     &:hover {
-      background: linear-gradient(135deg, #5adbc8 0%, #8b9de6 100%);
+      background: #2f363d;
       transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
     }
   }
 }
@@ -685,13 +695,13 @@ onMounted(() => {
 .cover-preview {
   margin-top: 15px;
   padding: 15px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 1px dashed #e6e1da;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px dashed #d9e0e8;
 
   .preview-title {
-    font-size: 0.95rem;
-    color: #7f8c8d;
+    font-size: 14px;
+    color: #8c959f;
     margin-bottom: 10px;
   }
 
@@ -705,12 +715,12 @@ onMounted(() => {
     display: block;
     margin-top: 10px;
     text-align: center;
-    color: #00c4ff;
-    font-size: 0.95rem;
+    color: #374151;
+    font-size: 14px;
     transition: all 0.2s ease;
 
     &:hover {
-      color: #5adbc8;
+      color: #111827;
     }
   }
 }
@@ -727,35 +737,66 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #f0f0f0;
-    margin-bottom: 25px;
+    gap: 12px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #eef2f5;
+    margin-bottom: 16px;
 
     h2 {
-      font-family: 'Comic Neue', cursive;
-      font-size: 1.3rem;
-      color: #2c3e50;
+      font-size: 18px;
+      color: #1a1a1a;
       margin: 0;
-      font-weight: 700;
+      font-weight: 600;
     }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title--stack {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .card-subtitle {
+      font-size: 12px;
+      color: #8c959f;
+      line-height: 1.5;
+    }
+  }
+
+  .meta-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .meta-summary-text {
+    font-size: 12px;
+    color: #8c959f;
   }
 
   .meta-grid {
     :deep(.ant-descriptions-item) {
       padding-bottom: 18px;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid #eef2f5;
     }
 
     :deep(.ant-descriptions-item-label) {
       font-weight: 600;
-      color: #7f8c8d;
+      color: #8c959f;
       width: 100px;
       padding-right: 20px;
     }
 
     :deep(.ant-descriptions-item-content) {
-      font-weight: 500;
-      color: #2c3e50;
+      font-weight: 400;
+      color: #1a1a1a;
     }
   }
 
@@ -766,56 +807,98 @@ onMounted(() => {
     padding: 5px 0;
 
     .anticon {
-      font-size: 1.1rem;
-      color: #00c4ff;
+      font-size: 16px;
+      color: #6b7280;
     }
 
     .time {
       margin-left: 10px;
-      font-size: 0.95rem;
-      color: #7f8c8d;
+      font-size: 14px;
+      color: #8c959f;
     }
   }
 }
 
+.edit-team-card {
+  margin-top: 24px;
+}
+
+.ownership-pill,
+.meta-id-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid #d0d7de;
+  background: #f6f8fa;
+  color: #57606a;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ownership-pill--mine {
+  background: #eef6ff;
+  border-color: #c6ddff;
+  color: #245ea6;
+}
+
+.ownership-pill--collaborator {
+  background: #f6f8fa;
+  border-color: #d0d7de;
+  color: #57606a;
+}
+
+.ownership-pill--success {
+  background: #ecfdf3;
+  border-color: #b7ebc6;
+  color: #137333;
+}
+
+.ownership-pill--muted {
+  background: #f6f8fa;
+  border-color: #d0d7de;
+  color: #57606a;
+}
+
 /* 按钮样式 */
 .submit-btn {
-  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
-  border: none;
+  background: #1f2328;
+  border: 1px solid #1f2328;
   color: white;
-  box-shadow: 0 8px 16px rgba(116, 235, 213, 0.25);
 
   &:hover {
-    background: linear-gradient(135deg, #5adbc8 0%, #8b9de6 100%);
-    transform: translateY(-3px);
-    box-shadow: 0 12px 20px rgba(116, 235, 213, 0.35);
+    background: #2f363d;
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
   }
 
   &:active {
     transform: translateY(0);
-    box-shadow: 0 4px 8px rgba(116, 235, 213, 0.3);
   }
 }
 
 .reset-btn {
-  background: #f0f2f5;
-  border-color: #d9d9d9;
+  background: #fff;
+  border-color: #d8dee4;
+  color: #57606a;
 
   &:hover {
-    background: #e6f7ff;
-    border-color: #00c4ff;
-    color: #00c4ff;
+    background: #f6f8fa;
+    border-color: #d0d7de;
+    color: #24292f;
   }
 }
 
 .detail-btn {
-  background: #f0f2f5;
-  border-color: #d9d9d9;
+  background: #fff;
+  border-color: #d8dee4;
+  color: #57606a;
 
   &:hover {
-    background: #e6f7ff;
-    border-color: #00c4ff;
-    color: #00c4ff;
+    background: #f6f8fa;
+    border-color: #d0d7de;
+    color: #24292f;
   }
 }
 </style>

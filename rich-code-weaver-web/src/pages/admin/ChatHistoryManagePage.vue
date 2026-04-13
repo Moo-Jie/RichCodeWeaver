@@ -2,14 +2,16 @@
   <div id="appHistoryPage" class="history-management">
     <div class="page-header">
       <h1>对话历史管理</h1>
-      <p>管理应用历史对话记录</p>
+      <p>管理数字产物历史对话记录</p>
     </div>
+
+    <AdminBackToDashboardButton />
 
     <div class="main-content">
       <div class="app-section">
         <div class="section-header">
           <div class="decorative-line"></div>
-          <h2 class="section-title">应用列表</h2>
+          <h2 class="section-title">数字产物列表</h2>
           <div class="decorative-line"></div>
         </div>
 
@@ -17,20 +19,21 @@
           <a-input-search
             v-model:value="appSearch"
             allow-clear
+            aria-label="搜索数字产物"
             class="search-input"
-            placeholder="搜索应用..."
+            placeholder="搜索数字产物..."
             @search="handleSearch"
           />
         </a-card>
 
         <div v-if="loadingApps" class="loading-container">
-          <a-spin size="large" tip="加载应用列表中..." />
+          <a-spin size="large" tip="加载数字产物列表中..." />
         </div>
 
         <a-empty
           v-else-if="!appList.length"
           class="empty-container"
-          description="暂无应用数据"
+          description="暂无数字产物数据"
         >
           <template #image>
             <div class="magic-pattern">
@@ -46,9 +49,14 @@
           <div
             v-for="app in filteredAppList"
             :key="app.id"
+            :aria-label="`选择数字产物 ${app.appName}`"
             :class="{ active: selectedApp?.id === app.id }"
             class="app-item"
+            role="button"
+            tabindex="0"
             @click="selectApp(app)"
+            @keydown.enter="selectApp(app)"
+            @keydown.space.prevent="selectApp(app)"
           >
             <div class="app-info">
               <a-avatar :src="app.cover" size="medium" />
@@ -65,7 +73,7 @@
         <div v-if="selectedApp" class="detail-content">
           <div class="section-header">
             <div class="decorative-line"></div>
-            <h2 class="section-title">应用 &lt;{{ selectedApp.appName }}&gt; 的对话记录</h2>
+            <h2 class="section-title">数字产物 &lt;{{ selectedApp.appName }}&gt; 的对话记录</h2>
             <div class="decorative-line"></div>
           </div>
 
@@ -82,6 +90,7 @@
               </div>
               <div class="app-actions">
                 <a-button
+                  aria-label="查看产物详情"
                   type="default"
                   @click="navigateToApp(selectedApp.id)"
                 >
@@ -125,6 +134,7 @@
                     </div>
                     <a-button
                       v-if="history.message && history.message.length > 300"
+                      :aria-label="history.collapsed ? '展开完整AI消息内容' : '收起AI消息内容'"
                       class="toggle-content-btn"
                       type="link"
                       @click="toggleContent(history)"
@@ -132,13 +142,15 @@
                       {{ history.collapsed ? '展开全部' : '收起' }}
                     </a-button>
                   </div>
-                  <a-button class="delete-icon" @click="deleteMessage(history.id)">
+                  <a-button :aria-label="`删除AI消息 ${history.id}`" class="delete-icon"
+                            @click="deleteMessage(history.id)">
                     <DeleteOutlined />
                   </a-button>
                 </div>
 
                 <div v-if="history.messageType === 'user'" class="user-message">
-                  <a-button class="delete-icon" @click="deleteMessage(history.id)">
+                  <a-button :aria-label="`删除用户消息 ${history.id}`" class="delete-icon"
+                            @click="deleteMessage(history.id)">
                     <DeleteOutlined />
                   </a-button>
                   <div class="message-content">
@@ -149,6 +161,7 @@
                     </div>
                     <a-button
                       v-if="history.message && history.message.length > 300"
+                      :aria-label="history.collapsed ? '展开完整消息内容' : '收起消息内容'"
                       class="toggle-content-btn"
                       type="link"
                       @click="toggleContent(history)"
@@ -177,7 +190,7 @@
         </div>
 
         <div v-else class="detail-empty">
-          <a-empty class="empty-container" description="请从左侧选择一个应用">
+          <a-empty class="empty-container" description="请从左侧选择一个数字产物">
             <template #image>
               <div class="magic-pattern">
                 <div class="pattern-element pattern-1"></div>
@@ -203,6 +216,7 @@ import {
   deleteById,
   listAppChatHistoryByPageAdmin as listHistoryAdmin
 } from '@/api/chatHistoryController'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import { message } from 'ant-design-vue'
 
@@ -233,7 +247,7 @@ const deleteMessage = async (messageId: number) => {
   }
 }
 
-// 应用列表相关状态
+// 数字产物列表相关状态
 const appList = ref<any[]>([])
 const appSearch = ref('')
 const selectedApp = ref<any>(null)
@@ -245,7 +259,7 @@ const loadingHistory = ref(true)
 const currentPage = ref(1)
 const contentLengthLimit = ref(5000) // 每页内容长度限制（字符数）
 
-// 获取应用列表
+// 获取数字产物列表
 const loadApps = async () => {
   try {
     loadingApps.value = true
@@ -261,14 +275,14 @@ const loadApps = async () => {
       appList.value = res.data.data.records || []
     }
   } catch (error) {
-    console.error('加载应用列表失败:', error)
-    message.error('加载应用列表失败:' + res.data.message)
+    console.error('加载数字产物列表失败:', error)
+    message.error('加载数字产物列表失败:' + res.data.message)
   } finally {
     loadingApps.value = false
   }
 }
 
-// 选择应用
+// 选择数字产物
 const selectApp = async (app: any) => {
   selectedApp.value = app
   currentPage.value = 1 // 重置到第一页
@@ -394,14 +408,14 @@ const handleSearch = (value: string) => {
   appSearch.value = value
 }
 
-// 导航到应用详情
+// 导航到产物详情
 const navigateToApp = (appId: string) => {
   if (appId) {
     router.push(`/app/chat/${appId}`)
   }
 }
 
-// 应用列表过滤
+// 数字产物列表过滤
 const filteredAppList = computed(() => {
   if (!appSearch.value) return appList.value
   const searchLower = appSearch.value.toLowerCase()
@@ -421,93 +435,53 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="less" scoped>
 .history-management {
-  padding: 24px;
-  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
-  min-height: calc(100vh - 48px);
-  position: relative;
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #333333;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><rect x="40" y="10" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="10" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="70" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="40" y="70" width="20" height="20" fill="%23666" rx="4" ry="4"/></svg>');
-    background-size: 200px;
-    pointer-events: none;
-    z-index: 0;
-  }
-}
-
-.history-management::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
+  padding: 32px;
   width: 100%;
-  height: 100%;
-  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><rect x="40" y="10" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="10" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="70" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="40" y="70" width="20" height="20" fill="%23666" rx="4" ry="4"/></svg>');
-  background-size: 200px;
-  pointer-events: none;
-  z-index: 0;
 }
 
 .page-header {
-  text-align: center;
-  margin-bottom: 30px;
-  padding: 10px 0;
+  margin-bottom: 28px;
 
   h1 {
-    font-family: 'Comic Neue', cursive;
-    font-size: 2.8rem;
+    font-size: 22px;
     font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 8px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    color: #1a1a1a;
+    margin: 0 0 6px;
   }
 
   p {
-    font-size: 1.2rem;
-    color: #7f8c8d;
-    font-weight: 400;
-    font-family: 'Comic Neue', cursive;
-    max-width: 600px;
-    margin: 0 auto;
+    font-size: 14px;
+    color: #999;
+    margin: 0;
   }
 }
 
 .search-panel {
   background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  margin-bottom: 25px;
-  padding: 20px;
-  transition: all 0.3s ease;
+  border-radius: 14px;
+  border: 1px solid #f0f0f0;
+  margin-bottom: 20px;
+  padding: 16px;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-    transform: translateY(-3px);
+    border-color: #e5e5e5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 }
 
 .app-section, .conversation-section {
   background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(198, 180, 165, 0.15);
+  border-radius: 14px;
+  border: 1px solid #f0f0f0;
   overflow: hidden;
-  position: relative;
-  z-index: 1;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-    transform: translateY(-3px);
+    border-color: #e5e5e5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 }
 
@@ -534,24 +508,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 20px 0;
-  gap: 15px;
+  margin: 16px 0;
+  gap: 12px;
 }
 
 .decorative-line {
   flex: 1;
-  height: 2px;
-  background: linear-gradient(to right, transparent, rgba(198, 160, 138, 0.4), transparent);
+  height: 1px;
+  background: #f0f0f0;
 }
 
 .section-title {
-  font-family: 'Comic Neue', cursive;
-  font-size: 22px;
-  font-weight: 700;
-  color: #2c3e50;
-  text-align: center;
-  padding: 0 20px;
-  letter-spacing: -0.5px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  padding: 0 16px;
 }
 
 .loading-container,
@@ -570,58 +541,35 @@ onMounted(() => {
 }
 
 .app-item {
-  padding: 15px;
-  margin: 0 0 15px;
+  padding: 12px;
+  margin: 0 0 12px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s;
+  border-radius: 10px;
+  border: 1px solid #f0f0f0;
+  transition: all 0.2s;
   cursor: pointer;
-  border: 1px solid rgba(220, 220, 220, 0.3);
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-    border-color: rgba(114, 46, 209, 0.2);
+    border-color: #e5e5e5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 
   &.active {
-    border-color: #722ed1;
-    background-color: rgba(114, 46, 209, 0.05);
+    border-color: #1a1a1a;
+    background-color: #fafafa;
   }
 }
 
-.app-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-  border-color: rgba(114, 46, 209, 0.2);
-}
-
-.app-item.active {
-  border-color: #722ed1;
-  background-color: rgba(114, 46, 209, 0.05);
-}
-
-.app-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.app-meta {
-  flex: 1;
-}
-
 .app-name {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 5px;
+  color: #1a1a1a;
+  margin-bottom: 4px;
 }
 
 .app-date {
-  font-size: 13px;
-  color: #8c8c8c;
+  font-size: 12px;
+  color: #999;
 }
 
 .detail-content {
@@ -663,8 +611,33 @@ onMounted(() => {
 
 .app-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-self: flex-start;
+
+  .ant-btn {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border: 1px solid #e5e5e5;
+    background: #1a1a1a;
+    color: #fff;
+
+    &:hover {
+      background: #333;
+    }
+  }
+}
+
+:deep(.ant-btn) {
+  border-radius: 10px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: none;
+  }
 }
 
 .dialog-area {
@@ -680,63 +653,86 @@ onMounted(() => {
 }
 
 .conversation-item {
-  margin-bottom: 25px;
+  margin-bottom: 30px;
   position: relative;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .ai-message {
   display: flex;
   align-items: flex-start;
-  margin-right: 40px;
+  margin-right: 50px;
+  gap: 10px;
 }
 
 .user-message {
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
-  margin-left: 40px;
+  margin-left: 50px;
+  gap: 10px;
 }
 
 .message-avatar {
-  margin: 0 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 5px;
 }
 
 .message-content {
   max-width: 70%;
-  padding: 15px;
+  padding: 14px;
   border-radius: 12px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
-  position: relative;
+  border: 1px solid #f0f0f0;
+  background: #fafafa;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #e5e5e5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
 }
 
 .ai-message .message-content {
-  background: #f5f7fe;
-  border-top-left-radius: 0;
+  background: #fafafa;
+  border-top-left-radius: 4px;
 }
 
 .user-message .message-content {
-  background: #e9f5ff;
-  border-top-right-radius: 0;
+  background: #f0f0f0;
+  border-top-right-radius: 4px;
 }
 
 .user-bubble {
-  background: #e9f5ff;
-  border-radius: 12px;
-  padding: 12px 16px;
+  background: transparent;
+  border-radius: 8px;
+  padding: 0;
   line-height: 1.6;
+  font-family: 'Nunito', sans-serif;
+  color: #1a1a1a;
+  font-size: 14px;
 }
 
 .ai-avatar {
-  background-color: #f0f5ff;
+  background-color: #fafafa;
 }
 
 .ai-label, .user-label {
   font-size: 12px;
-  color: #666;
-  margin-top: 5px;
+  color: #999;
+  margin-top: 4px;
   font-weight: 500;
 }
 
@@ -750,30 +746,64 @@ onMounted(() => {
 }
 
 .delete-icon {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   padding: 0;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.8);
-  border: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  margin: 0 10px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  margin: 0 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
+  color: #ff6b6b;
+  transition: all 0.2s ease;
 
-.delete-icon:hover {
-  transform: scale(1.1);
-  background-color: #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  &:hover {
+    border-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.1);
+  }
 }
 
 .pagination-container {
-  padding: 15px;
-  border-top: 1px solid rgba(235, 235, 235, 0.8);
+  padding: 16px;
+  border-top: 1px solid #f0f0f0;
   display: flex;
   justify-content: center;
+  background: #fafafa;
+  border-radius: 0 0 14px 14px;
+  margin-top: 12px;
+}
+
+:deep(.ant-pagination) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .ant-pagination-item {
+    border-radius: 8px;
+    border: 1px solid #e5e5e5;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #1a1a1a;
+    }
+
+    &.ant-pagination-item-active {
+      background: #1a1a1a;
+      border-color: #1a1a1a;
+
+      a {
+        color: #fff;
+      }
+    }
+  }
+
+  .ant-pagination-prev,
+  .ant-pagination-next {
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
 }
 
 .detail-empty {
@@ -842,15 +872,16 @@ onMounted(() => {
   }
 }
 
-/* 新增样式 */
 .pagination-info {
   text-align: center;
-  margin-bottom: 15px;
-  padding: 8px;
-  background-color: #f0f5ff;
-  border-radius: 8px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: #fafafa;
+  border-radius: 10px;
   font-size: 14px;
   color: #666;
+  font-weight: 500;
+  border: 1px solid #f0f0f0;
 }
 
 .content-length-info {
@@ -872,8 +903,17 @@ onMounted(() => {
 .toggle-content-btn {
   margin-top: 8px;
   font-size: 12px;
-  padding: 0;
+  padding: 4px 12px;
   height: auto;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: white;
+  border: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #333;
+  }
 }
 
 @media (max-width: 1200px) {
@@ -884,13 +924,64 @@ onMounted(() => {
   .app-section,
   .conversation-section {
     width: 100%;
-    height: 50%;
+    height: auto;
+    min-height: 400px;
   }
+
+  .app-section {
+    max-height: 500px;
+  }
+}
+
+/* Keyboard navigation focus indicators */
+:deep(.ant-input-search:focus-within),
+:deep(.ant-input:focus),
+:deep(.ant-input-focused) {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+  border-color: #4096ff;
+}
+
+:deep(.ant-btn:focus-visible) {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+}
+
+.app-item {
+  &:focus-visible {
+    outline: 3px solid #4096ff;
+    outline-offset: 2px;
+  }
+}
+
+:deep(.ant-pagination-item:focus-visible),
+:deep(.ant-pagination-prev:focus-visible),
+:deep(.ant-pagination-next:focus-visible) {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+}
+
+.delete-icon:focus-visible {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+}
+
+.toggle-content-btn:focus-visible {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
 }
 
 @media (max-width: 768px) {
   .history-management {
     padding: 15px;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .page-header p {
+    font-size: 1rem;
   }
 
   .search-panel {
@@ -910,10 +1001,30 @@ onMounted(() => {
     align-items: flex-start;
   }
 
+  .app-info h3 {
+    font-size: 1.1rem;
+  }
+
+  .app-desc {
+    font-size: 0.9rem;
+  }
+
+  .app-meta {
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+  }
+
   .app-actions {
     width: 100%;
     margin-top: 15px;
     justify-content: space-between;
+
+    .ant-btn {
+      font-size: 0.9rem;
+      padding: 0 14px;
+      height: 36px;
+    }
   }
 
   .ai-message, .user-message {
@@ -922,6 +1033,25 @@ onMounted(() => {
 
   .message-content {
     max-width: 85%;
+    padding: 14px;
+    font-size: 0.9rem;
+  }
+
+  .app-name {
+    font-size: 14px;
+  }
+
+  .app-date {
+    font-size: 12px;
+  }
+
+  .pagination-info {
+    font-size: 12px;
+    padding: 10px 15px;
+  }
+
+  .ai-label, .user-label {
+    font-size: 11px;
   }
 }
 </style>

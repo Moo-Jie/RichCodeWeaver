@@ -25,7 +25,7 @@
             名称：
             <a-tag :color="getTypeColor(appInfo?.codeGenType)">
               {{
-                appInfo?.appName?.substring(0, 10) + '...' || '待命名应用'
+                appInfo?.appName?.substring(0, 10) + '...' || '待命名数字产物'
               }}
             </a-tag>
           </div>
@@ -42,25 +42,25 @@
           </div>
         </template>
         &nbsp;
-        <!-- 星选应用  -->
+        <!-- 星选数字产物  -->
         <template v-if="appInfo">
           推广级别：
           <a-tag v-if="appInfo.priority === 99" class="app-tag2" color="gold">
             <star-filled />
-            星选应用
+            星选数字产物
           </a-tag>
-          <span v-else class="app-tag">普通应用</span>
+          <span v-else class="app-tag">普通数字产物</span>
         </template>
       </div>
       &nbsp;&nbsp;
       <!-- 功能按钮  -->
       <div class="header-right">
-        <!-- 查看/编辑 应用信息  -->
+        <!-- 查看/编辑 数字产物信息  -->
         <a-button class="detail-btn" type="primary" @click="showAppDetail">
           <template #icon>
             <InfoCircleOutlined />
           </template>
-          查看/编辑 应用信息
+          查看/编辑 数字产物信息
         </a-button>
         <!-- 全屏查看预览  -->
         <a-button v-if="previewUrl" :disabled="isGenerating" :loading="deploying" class="detail-btn"
@@ -161,7 +161,7 @@
         <div class="input-container">
           <a-alert
             v-if="selectedElement"
-            :message="`已选择“${selectedElement.tagName}”标签元素`"
+            :message="`已选中：${getElementTypeLabel(selectedElement.tagName)}`"
             class="selected-element-alert"
             closable
             show-icon
@@ -171,12 +171,13 @@
           >
             <template #description>
               <div class="element-details">
-                <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
-                  <strong>选择器类型:</strong> {{ selectedElement.className || '无' }}
+                <p v-if="selectedElement.textContent"
+                   style="margin: 4px 0; font-size: 13px; color: #389e0d; font-style: italic;">
+                  "{{ selectedElement.textContent.length > 60 ? selectedElement.textContent.substring(0, 60) + '...' : selectedElement.textContent
+                  }}"
                 </p>
-                <p style="margin: 4px 0; font-size: 13px; color: #389e0d;">
-                  <strong>代码块:</strong> {{ selectedElement.selector.substring(0, 100) }}
-                </p>
+                <p style="margin: 4px 0; font-size: 12px; color: #999;">
+                  请在下方输入框描述您想要的修改</p>
               </div>
             </template>
           </a-alert>
@@ -192,7 +193,7 @@
               :maxlength="1000"
               :rows="4"
               class="creative-textarea"
-              placeholder="✨ 描述越详尽，创作越符合您的预期 ✨"
+              placeholder="✨  描述越详尽，创作越符合您的预期"
               @keydown.enter.prevent="sendMessage"
             />
             <br>
@@ -294,7 +295,7 @@
             <a-spin :tip="generatingTip" size="large" />
             <!-- 已用时间显示 -->
             <div class="generating-time">
-              <p class="wait-tip">请勿刷新或退出本页面，否则将断开链接。</p>
+              <p class="wait-tip">支持断线重连，刷新页面后可继续接收生成内容。</p>
               <p class="wait-tip2">已思考时间: {{ generatingTime }}秒</p>
               <p class="wait-tip2">为了生成美观完善的页面，请耐心等待...</p>
             </div>
@@ -326,7 +327,7 @@
               <template #description>
                 <div>
                   <p>1.预览为静态页面效果，部署后可体验完整功能;</p>
-                  <p>2.应用封面将在部署后自动生成（本应用首页），请在部署后静待 1-5s 即可;</p>
+                  <p>2.数字产物封面将在部署后自动生成（本数字产物首页），请在部署后静待 1-5s 即可;</p>
                   <p>3.若未生成预览页面请刷新页面;</p>
                   <p>4.请勿频繁部署，若违反则系统自动封号处理。</p>
                 </div>
@@ -338,7 +339,7 @@
     </div>
   </div>
 
-  <!-- 应用详情弹窗 -->
+  <!-- 产物详情弹窗 -->
   <AppInfo
     v-model:open="appDetailVisible"
     :app="appInfo"
@@ -364,19 +365,19 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import type { TourProps } from 'ant-design-vue'
-import { message, Modal, Tour } from 'ant-design-vue'
-import { useLoginUserStore } from '@/stores/loginUser'
+import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import type {TourProps} from 'ant-design-vue'
+import {message, Modal, Tour} from 'ant-design-vue'
+import {useLoginUserStore} from '@/stores/loginUser'
 import {
   deleteApp as deleteAppApi,
   deployApp as deployAppApi,
   getAppVoById
 } from '@/api/appController'
-import { CodeGenTypeEnum, formatCodeGenType } from '@/enums/codeGenTypes.ts'
+import {CodeGenTypeEnum, formatCodeGenType} from '@/enums/codeGenTypes.ts'
 import request from '@/request'
-import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
+import {listAppChatHistoryByPage} from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
@@ -387,7 +388,6 @@ import {
   getStaticPreviewUrl,
   getWebProjectStaticPreviewUrl
 } from '@/config/env'
-import { CodeGenWsClient, type CodeGenWsServerMessage } from '@/utils/codeGenWs'
 
 import {
   CloudUploadOutlined,
@@ -399,7 +399,8 @@ import {
   SendOutlined,
   StarFilled
 } from '@ant-design/icons-vue'
-import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
+import {type ElementInfo, visualEditorUtil} from '@/utils/visualEditorUtil'
+import {parseBatchContent, StreamChunkParserContext} from '@/utils/streamChunkParser'
 
 const route = useRoute()
 const router = useRouter()
@@ -437,8 +438,8 @@ const tourSteps = ref<TourProps['steps']>([
     placement: 'top'
   },
   {
-    title: '部署应用',
-    description: '生成完成后点击这里将应用部署到线上，获得可访问的网址',
+    title: '部署数字产物',
+    description: '生成完成后点击这里将数字产物部署到线上，获得可访问的网址',
     target: () => document.querySelector('.detail-btn') as HTMLElement,
     placement: 'top'
   }
@@ -459,17 +460,43 @@ const handleTourClose = () => {
 const generatingTime = ref(0)
 const timer = ref(null)
 
+// SSE 重连相关
+const lastEventId = ref<string | null>(null)
+const reconnectAttempts = ref(0)
+const maxReconnectAttempts = 5
 
-// 应用信息
+// 使用 localStorage 跟踪正在进行的生成任务（跨页面刷新持久化）
+const getGeneratingKey = () => `rcw_generating_${appId.value}`
+const markGeneratingStart = (userMessage: string) => {
+  localStorage.setItem(getGeneratingKey(), JSON.stringify({
+    message: userMessage,
+    timestamp: Date.now()
+  }))
+}
+const markGeneratingEnd = () => {
+  localStorage.removeItem(getGeneratingKey())
+}
+const getGeneratingInfo = (): { message: string; timestamp: number } | null => {
+  const raw = localStorage.getItem(getGeneratingKey())
+  if (!raw) return null
+  try {
+    const info = JSON.parse(raw)
+    // 超过30分钟的认为已过期
+    if (Date.now() - info.timestamp > 30 * 60 * 1000) {
+      localStorage.removeItem(getGeneratingKey())
+      return null
+    }
+    return info
+  } catch {
+    localStorage.removeItem(getGeneratingKey())
+    return null
+  }
+}
+
+
+// 数字产物信息
 const appInfo = ref<API.AppVO>()
 const appId = ref<string>()
-
-// WebSocket：代码生成（替代 SSE，支持断线重连/刷新续传）
-const codeGenWs = new CodeGenWsClient(API_BASE_URL)
-const LOCAL_TASK_KEY_PREFIX = 'rcw_codegen_active_'
-let currentTaskId: string | null = null
-let lastSeq = 0
-let cachedContent = ''
 
 // 部署按钮点击处理
 const handleDeployClick = () => {
@@ -538,7 +565,7 @@ const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
 })
 
-// 应用详情相关
+// 产物详情相关
 const appDetailVisible = ref(false)
 
 // 可视化编辑相关
@@ -546,13 +573,22 @@ const visualEditor = ref<visualEditorUtil | null>(null)
 const isEditMode = ref(false)
 const selectedElement = ref<ElementInfo | null>(null)
 
+const ELEMENT_TYPE_MAP: Record<string, string> = {
+  H1: '大标题', H2: '二级标题', H3: '三级标题', H4: '四级标题', H5: '五级标题', H6: '六级标题',
+  P: '段落文本', A: '链接', BUTTON: '按钮', IMG: '图片', VIDEO: '视频', AUDIO: '音频',
+  NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
+  SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
+  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框'
+}
+const getElementTypeLabel = (tagName: string): string => ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
 
-// 显示应用详情
+
+// 显示产物详情
 const showAppDetail = () => {
   appDetailVisible.value = true
 }
 
-// 判断应用是否已部署
+// 判断数字产物是否已部署
 const isDeployed = computed(() => {
   return !!appInfo.value?.deployKey
 })
@@ -565,11 +601,11 @@ const deployedSiteUrl = computed(() => {
   return ''
 })
 
-// 获取应用信息
+// 获取数字产物信息
 const fetchAppInfo = async () => {
   const id = route.params.id as string
   if (!id) {
-    message.error('应用ID不存在:' + res.data.message)
+    message.error('数字产物ID不存在:' + res.data.message)
     await router.push('/')
     return
   }
@@ -595,10 +631,10 @@ const fetchAppInfo = async () => {
         updatePreview()
       }
     } else {
-      message.error('获取应用信息失败：' + (res.data.message || '请稍后重试'))
+      message.error('获取数字产物信息失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (error) {
-    console.error('获取应用信息失败：', error)
+    console.error('获取数字产物信息失败：', error)
   }
 }
 
@@ -626,7 +662,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('message', handleIframeMessage)
   visualEditor.value?.disableEditMode()
-  codeGenWs.close()
 })
 
 // 处理来自 iframe 的消息
@@ -655,12 +690,12 @@ const clearSelection = () => {
 // 下载代码
 const downloadCode = async () => {
   if (!appId.value) {
-    message.error('应用ID不存在:' + res.data.message)
+    message.error('数字产物ID不存在:' + res.data.message)
     return
   }
   downloading.value = true
   try {
-    const res = await request.get(`/download/code/zip/${appId.value}`, {
+    const res = await request.get(`/generator/download/code/zip/${appId.value}`, {
       responseType: 'blob'
     })
 
@@ -698,6 +733,11 @@ const downloadCode = async () => {
 const fetchChatHistory = async (loadMore = false) => {
   if (!appId.value || loadingHistory.value) return
 
+  // Reset cursor for fresh load to avoid stale pagination
+  if (!loadMore) {
+    lastCreateTime.value = null
+  }
+
   loadingHistory.value = true
   try {
     const params = {
@@ -711,7 +751,7 @@ const fetchChatHistory = async (loadMore = false) => {
       const historyData = res.data.data.records.slice().reverse() || []
       const newMessages = historyData.map(item => ({
         type: item.messageType === 'user' ? 'user' : 'ai',
-        content: item.message,
+        content: item.messageType === 'user' ? item.message : parseBatchContent(item.message),
         createTime: item.createTime
       }))
 
@@ -736,10 +776,64 @@ const fetchChatHistory = async (loadMore = false) => {
       scrollToBottom()
       // 加载历史消息后更新预览
       updatePreview()
+
+      // 检测是否有未完成的生成任务（基于 localStorage 标记）
+      if (!loadMore) {
+        checkAndResumeGeneration()
+      }
     }
   } finally {
     loadingHistory.value = false
   }
+}
+
+// 检测并恢复未完成的生成任务（基于 localStorage 标记，而非内容猜测）
+const checkAndResumeGeneration = () => {
+  if (!isOwner.value) return
+
+  const generatingInfo = getGeneratingInfo()
+  if (!generatingInfo) return // localStorage 中没有正在进行的任务
+
+  const lastMessage = messages.value[messages.value.length - 1]
+
+  // 检查是否已部署（deployKey 存在说明生成肯定已完成）
+  if (appInfo.value?.deployKey) {
+    console.log('检测到已部署数字产物，清除过期标记')
+    markGeneratingEnd()
+    return
+  }
+
+  // 检查最后一条 AI 消息是否包含工作流完成/错误标记（系统分步执行模式的可靠完成判断）
+  if (lastMessage?.type === 'ai' && lastMessage.content && !lastMessage.loading) {
+    const content = lastMessage.content
+    if (content.includes('WORKFLOW_COMPLETE') || content.includes('WORKFLOW_ERROR') || content.includes('代码生成任务完成')) {
+      console.log('检测到已完成的生成任务（含完成标记），清除过期标记')
+      markGeneratingEnd()
+      return
+    }
+  }
+
+  console.log('检测到未完成的生成任务（来自 localStorage），准备恢复...', generatingInfo.message.substring(0, 50))
+  message.info('检测到未完成的任务，正在恢复生成...')
+
+  let aiMessageIndex: number
+
+  if (lastMessage?.type === 'ai') {
+    // 已有 AI 消息（可能是半截的），复用它
+    aiMessageIndex = messages.value.length - 1
+    messages.value[aiMessageIndex].loading = true
+  } else {
+    // 没有 AI 消息，添加占位符
+    aiMessageIndex = messages.value.length
+    messages.value.push({
+      type: 'ai',
+      content: '',
+      loading: true
+    })
+  }
+
+  isGenerating.value = true
+  generateCode(generatingInfo.message, aiMessageIndex, true)
 }
 
 // 加载更多历史消息
@@ -783,16 +877,20 @@ const sendMessage = async () => {
   userInput.value = ''
 
   // 构建带上下文的提示
+  let displayMsg = message
   let prompt = message
   if (selectedElement.value?.selector) {
-    prompt = `我选中了页面元素\n（selector: \`${selectedElement.value.selector}\`）\n 请帮我修改选中模块。\n我的具体需求是：${message}`
+    const el = selectedElement.value
+    const typeLabel = getElementTypeLabel(el.tagName)
+    const textPreview = el.textContent ? el.textContent.substring(0, 40) : ''
+    displayMsg = `修改选中的「${typeLabel}」${textPreview ? `（${textPreview}...）` : ''}：${message}`
+    prompt = `[可视化编辑] 我在页面中选中了一个「${typeLabel}」元素${textPreview ? `，内容为“${textPreview}”` : ''}。\n元素定位选择器: \`${el.selector}\`\n我的修改需求：${message}`
   }
-
 
   // 添加用户消息
   messages.value.push({
     type: 'user',
-    content: prompt
+    content: displayMsg
   })
 
   // 添加AI消息占位符
@@ -820,86 +918,155 @@ const sendMessage = async () => {
   await generateCode(prompt, aiMessageIndex)
 }
 
-// 生成代码 - 使用 WebSocket 处理流式响应（支持断线重连/刷新续传）
-const generateCode = async (userMessage: string, aiMessageIndex: number) => {
+// 生成代码 - 使用 EventSource 处理流式响应（支持断线重连）
+const generateCode = async (userMessage: string, aiMessageIndex: number, isReconnect: boolean = false) => {
   // 启动计时器
   generatingTime.value = 0
   timer.value = setInterval(() => {
     generatingTime.value++
   }, 1000)
 
-  try {
-    const appIdStr = appId.value || ''
-    const localKey = `${LOCAL_TASK_KEY_PREFIX}${appIdStr}`
+  // 重置重连计数
+  reconnectAttempts.value = 0
+  lastEventId.value = null
 
-    // 初始化本次缓存
-    currentTaskId = null
-    lastSeq = 0
-    cachedContent = ''
+  let eventSource: EventSource | null = null
+  let streamCompleted = false
+  // 重连时从头重建内容（后端会重放所有缓存事件），新建时从空开始
+  let fullContent = ''
+  // 保存已有内容长度，用于重连时避免 UI 闪烁
+  const existingContentLength = isReconnect ? (messages.value[aiMessageIndex]?.content?.length || 0) : 0
+  // 创建流式 JSON 消息块解析上下文，用于解析 VUE_PROJECT 模式下的 ai_response / tool_request / tool_executed 类型
+  const chunkParser = new StreamChunkParserContext()
 
-    // 绑定 WS 消息处理（与当前 aiMessageIndex 绑定）
-    codeGenWs.onMessage = async (msg: CodeGenWsServerMessage) => {
-      if (msg.type === 'started') {
-        currentTaskId = msg.taskId
-        localStorage.setItem(localKey, JSON.stringify({ taskId: currentTaskId, lastSeq, content: cachedContent }))
-        return
-      }
-      if (msg.type === 'chunk') {
-        if (currentTaskId && msg.taskId !== currentTaskId) return
-        if (typeof msg.seq === 'number') lastSeq = msg.seq
-        const data = msg.data ?? ''
-        cachedContent += data
-        messages.value[aiMessageIndex].content = cachedContent
-        messages.value[aiMessageIndex].loading = false
-        scrollToBottom()
-        localStorage.setItem(
-          localKey,
-          JSON.stringify({ taskId: currentTaskId ?? msg.taskId, lastSeq, content: cachedContent })
-        )
-        return
-      }
-      if (msg.type === 'end') {
-        if (currentTaskId && msg.taskId !== currentTaskId) return
-        if (timer.value) {
-          clearInterval(timer.value)
-          timer.value = null
-        }
-        isGenerating.value = false
-        localStorage.removeItem(localKey)
-
-        setTimeout(async () => {
-          await fetchAppInfo()
-          updatePreview()
-          if (previewIframe.value) {
-            previewIframe.value.src = previewIframe.value.src
-          }
-        }, 5000)
-        return
-      }
-      if (msg.type === 'error') {
-        if (timer.value) {
-          clearInterval(timer.value)
-          timer.value = null
-        }
-        isGenerating.value = false
-        messages.value[aiMessageIndex].content = msg.message || '抱歉，生成过程中出现了错误，请重试。'
-        messages.value[aiMessageIndex].loading = false
-        localStorage.removeItem(localKey)
-        message.error('生成失败：' + (msg.message || '未知错误'))
-      }
-    }
-
-    await codeGenWs.ensureConnected()
-    codeGenWs.send({
-      type: 'start',
-      appId: appIdStr,
-      message: userMessage,
-      isAgent: !!useAgentMode.value
-    })
-  } catch (error) {
-    console.error('创建 WebSocket 失败：', error)
-    handleError(error, aiMessageIndex)
+  // 仅新建生成时标记 localStorage（重连时已有标记）
+  if (!isReconnect) {
+    markGeneratingStart(userMessage)
   }
+
+  // 生成结束的统一清理函数
+  const onStreamEnd = () => {
+    if (streamCompleted) return
+    streamCompleted = true
+    eventSource?.close()
+    markGeneratingEnd()
+    if (timer.value) {
+      clearInterval(timer.value)
+      timer.value = null
+    }
+    isGenerating.value = false
+    // 确保最终内容已更新
+    if (fullContent) {
+      messages.value[aiMessageIndex].content = fullContent
+    }
+    messages.value[aiMessageIndex].loading = false
+    // 延迟后刷新数字产物信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
+    setTimeout(async () => {
+      await refreshAppInfoOnly()
+      if (previewIframe.value) {
+        previewIframe.value.src = previewIframe.value.src
+      }
+      // 重新加载对话历史，用 DB 持久化数据替换内存中的流式数据，保证数据一致性
+      await fetchChatHistory()
+    }, 3000)
+  }
+
+  let reconnectMode = isReconnect
+
+  const connectSSE = () => {
+    try {
+      const baseURL = request.defaults.baseURL || API_BASE_URL
+
+      // 构建URL参数（reconnect 和 lastEventId 作为查询参数）
+      const params = new URLSearchParams({
+        appId: appId.value || '',
+        message: userMessage,
+        isWorkflow: String(useAgentMode.value),
+        reconnect: String(reconnectMode)
+      })
+      // 如果有 lastEventId，传递给后端
+      if (lastEventId.value) {
+        params.set('lastEventId', lastEventId.value)
+      }
+
+      const url = `${baseURL}/generator/app/gen/code/stream?${params}`
+
+      // 创建 EventSource 连接
+      eventSource = new EventSource(url, {
+        withCredentials: true
+      })
+
+      // 处理接收到的消息
+      eventSource.onmessage = function(event) {
+        if (streamCompleted) return
+
+        // 保存最后的事件ID
+        if (event.lastEventId) {
+          lastEventId.value = event.lastEventId
+        }
+
+        try {
+          const parsed = JSON.parse(event.data)
+          const rawContent = parsed.b
+
+          if (rawContent !== undefined && rawContent !== null) {
+            // 解析 JSON 消息块（ai_response / tool_request / tool_executed），提取有效展示内容
+            const content = chunkParser.parseChunk(rawContent)
+            if (content) {
+              fullContent += content
+              // 重连时：只有当重建内容追上已有内容时才更新 UI（避免闪烁）
+              if (fullContent.length >= existingContentLength) {
+                messages.value[aiMessageIndex].content = fullContent
+                messages.value[aiMessageIndex].loading = false
+              }
+              scrollToBottom()
+            }
+          }
+        } catch (error) {
+          console.error('解析消息失败:', error)
+        }
+      }
+
+      // 处理 end 事件
+      eventSource.addEventListener('end', function() {
+        onStreamEnd()
+      })
+
+      // 处理错误事件
+      eventSource.addEventListener('error', function() {
+        if (streamCompleted || !isGenerating.value) return
+
+        console.log('SSE 连接错误，readyState:', eventSource?.readyState)
+        eventSource?.close()
+
+        // 尝试重连（切换为重连模式）
+        if (reconnectAttempts.value < maxReconnectAttempts) {
+          reconnectAttempts.value++
+          reconnectMode = true // 后续重试都用重连模式
+          console.log(`尝试重连 (${reconnectAttempts.value}/${maxReconnectAttempts})...`)
+          message.info(`连接中断，正在重连... (${reconnectAttempts.value}/${maxReconnectAttempts})`)
+          setTimeout(connectSSE, 1000 * reconnectAttempts.value)
+        } else {
+          // 达到最大重连次数
+          markGeneratingEnd()
+          streamCompleted = true
+          isGenerating.value = false
+          if (timer.value) {
+            clearInterval(timer.value)
+            timer.value = null
+          }
+          message.error('连接失败次数过多，请刷新页面重试')
+          handleError(new Error('连接失败次数过多'), aiMessageIndex)
+        }
+      })
+    } catch (error) {
+      console.error('创建 EventSource 失败：', error)
+      handleError(error, aiMessageIndex)
+    }
+  }
+
+  // 开始连接
+  connectSSE()
 }
 
 // 错误处理函数
@@ -912,8 +1079,22 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   console.error('生成代码失败：', error)
   messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
   messages.value[aiMessageIndex].loading = false
-  message.error('生成失败，请重试')
+  message.error('生成失败，请重试:' + res.data.message)
   isGenerating.value = false
+}
+
+// 仅刷新数字产物信息（不重载对话历史、不自动发送消息）
+const refreshAppInfoOnly = async () => {
+  if (!appId.value) return
+  try {
+    const res = await getAppVoById({ id: appId.value as unknown as number })
+    if (res.data.code === 0 && res.data.data) {
+      appInfo.value = res.data.data
+      updatePreview()
+    }
+  } catch (error) {
+    console.error('刷新数字产物信息失败：', error)
+  }
 }
 
 // 更新预览
@@ -948,10 +1129,10 @@ const scrollToBottom = () => {
   }
 }
 
-// 部署应用
+// 部署数字产物
 const deployApp = async () => {
   if (!appId.value) {
-    message.error('应用ID不存在:' + res.data.message)
+    message.error('数字产物ID不存在:' + res.data.message)
     return
   }
 
@@ -971,8 +1152,8 @@ const deployApp = async () => {
       deployUrl.value = res.data.data
       deployModalVisible.value = true
       message.success('部署成功')
-      // 刷新应用信息以获取最新的部署状态
-      await fetchAppInfo()
+      // 仅刷新数字产物信息（不重载对话历史）
+      await refreshAppInfoOnly()
     } else {
       message.error('部署失败：' + res.data.message)
     }
@@ -1002,8 +1183,8 @@ const confirmReDeploy = async () => {
           deployUrl.value = res.data.data
           deployModalVisible.value = true
           message.success('重新部署成功')
-          // 刷新应用信息以获取最新的部署状态
-          await fetchAppInfo()
+          // 仅刷新数字产物信息（不重载对话历史）
+          await refreshAppInfoOnly()
         } else {
           message.error('重新部署失败：' + res.data.message)
         }
@@ -1046,14 +1227,14 @@ const onIframeLoad = () => {
   }
 }
 
-// 编辑应用
+// 编辑数字产物
 const editApp = () => {
   if (appInfo.value?.id) {
     router.push(`/app/edit/${appInfo.value.id}`)
   }
 }
 
-// 删除应用
+// 删除数字产物
 const deleteApp = async () => {
   if (!appInfo.value?.id) return
 
@@ -1072,84 +1253,16 @@ const deleteApp = async () => {
   }
 }
 
-// 页面加载时获取应用信息 + 初始化 WebSocket，并在刷新后自动续传
-onMounted(async () => {
-  await fetchAppInfo()
-
-  // 刷新/崩溃恢复：如果 localStorage 有进行中的 task，则自动 resume
-  const appIdStr = appId.value || ''
-  if (appIdStr) {
-    const localKey = `${LOCAL_TASK_KEY_PREFIX}${appIdStr}`
-    const raw = localStorage.getItem(localKey)
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as { taskId: string; lastSeq: number; content: string }
-        if (parsed?.taskId) {
-          currentTaskId = parsed.taskId
-          lastSeq = parsed.lastSeq || 0
-          cachedContent = parsed.content || ''
-
-          // 补一个 AI 消息占位，用于续传追加
-          const aiMessageIndex = messages.value.length
-          messages.value.push({
-            type: 'ai',
-            content: cachedContent,
-            loading: true
-          })
-          isGenerating.value = true
-
-          // 绑定 WS 消息处理（resume 时也必须绑定，否则后端推了 chunk 前端也不会更新）
-          codeGenWs.onMessage = async (msg: CodeGenWsServerMessage) => {
-            if (msg.type === 'chunk') {
-              if (currentTaskId && msg.taskId !== currentTaskId) return
-              if (typeof msg.seq === 'number') lastSeq = msg.seq
-              const data = msg.data ?? ''
-              cachedContent += data
-              messages.value[aiMessageIndex].content = cachedContent
-              messages.value[aiMessageIndex].loading = false
-              scrollToBottom()
-              localStorage.setItem(
-                localKey,
-                JSON.stringify({ taskId: currentTaskId ?? msg.taskId, lastSeq, content: cachedContent })
-              )
-              return
-            }
-            if (msg.type === 'end') {
-              if (currentTaskId && msg.taskId !== currentTaskId) return
-              isGenerating.value = false
-              localStorage.removeItem(localKey)
-              return
-            }
-            if (msg.type === 'error') {
-              isGenerating.value = false
-              messages.value[aiMessageIndex].content = msg.message || '抱歉，生成过程中出现了错误，请重试。'
-              messages.value[aiMessageIndex].loading = false
-              localStorage.removeItem(localKey)
-              message.error('生成失败：' + (msg.message || '未知错误'))
-            }
-          }
-
-          await codeGenWs.ensureConnected()
-          codeGenWs.send({
-            type: 'resume',
-            appId: appIdStr,
-            taskId: currentTaskId,
-            fromSeq: (lastSeq || 0) + 1
-          })
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-  }
+// 页面加载时获取数字产物信息
+onMounted(() => {
+  fetchAppInfo()
 })
 
-// 清理资源
+// 清理资源,EventSource 会在组件卸载时自动清理
 onUnmounted(() => {
   if (timer.value) {
     clearInterval(timer.value)
   }
-  codeGenWs.close()
 })
 </script>
 

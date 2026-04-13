@@ -1,0 +1,455 @@
+package com.rich.codeweaver.service.impl.user;
+
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
+import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.rich.codeweaver.common.exception.BusinessException;
+import com.rich.codeweaver.common.exception.ErrorCode;
+import com.rich.codeweaver.common.exception.ThrowUtils;
+import com.rich.codeweaver.common.utils.SessionUserUtils;
+import com.rich.codeweaver.model.dto.user.UserQueryRequest;
+import com.rich.codeweaver.model.dto.user.UserUpdatePasswordRequest;
+import com.rich.codeweaver.model.entity.User;
+import com.rich.codeweaver.model.enums.UserRoleEnum;
+import com.rich.codeweaver.model.vo.LoginUserVO;
+import com.rich.codeweaver.model.vo.UserVO;
+import com.rich.codeweaver.common.utils.EmailUtils;
+import com.rich.codeweaver.mapper.UserMapper;
+import com.rich.codeweaver.service.user.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
+
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static com.rich.codeweaver.common.constant.UserConstant.*;
+
+/**
+ * 用户服务层实现
+ * 实现用户注册、登录、信息管理等核心业务逻辑
+ *
+ * @author DuRuiChi
+ * @since 2026-03-08
+ */
+@Service
+public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+    /**
+     * 用户注册（邮箱方式）
+     *
+     * @param email         邮箱
+     * @param userName      用户昵称
+     * @param userPassword  用户密码
+     * @param checkPassword 确认密码
+     * @return 新注册用户的ID
+     * @throws BusinessException 参数错误或业务异常
+     **/
+    @Override
+    public long userRegister(String email, String userName, String userPassword, String checkPassword) {
+        validateEmail(email);
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
+        validateUserName(userName);
+        validatePassword(userPassword, checkPassword);
+
+        checkEmailUnique(normalizedEmail);
+
+        String encryptPassword = encryptPassword(userPassword);
+
+        User user = new User();
+        user.setEmail(normalizedEmail);
+        user.setUserAccount(normalizedEmail);
+        user.setUserPassword(encryptPassword);
+        user.setUserName(userName);
+        user.setUserRole(UserRoleEnum.USER.getValue());
+        user.setUserAvatar(DEFAULT_USER_PICTURE);
+        user.setUserProfile(DEFAULT_PROFILE);
+
+        if (!this.save(user)) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户注册失败");
+        }
+        return user.getId();
+    }
+
+    /**
+     * 构造登录用户视图对象
+     *
+     * @param user 用户实体对象
+     * @return 登录用户VO对象，输入为空时返回null
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    @Override
+    public LoginUserVO getLoginUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        LoginUserVO loginUserVO = new LoginUserVO();
+        BeanUtil.copyProperties(user, loginUserVO);
+        return loginUserVO;
+    }
+
+    /**
+     * 用户登录（邮箱方式）
+     *
+     * @param email        邮箱
+     * @param userPassword 用户密码
+     * @param request      HTTP请求对象
+     * @return 脱敏后的登录用户信息
+     * @throws BusinessException 参数错误或认证失败
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    @Override
+    public LoginUserVO userLogin(String email, String userPassword, HttpServletRequest request) {
+        validateEmail(email);
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
+        if (StrUtil.isBlank(userPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码不能为空");
+        }
+
+        String encryptPassword = encryptPassword(userPassword);
+        User user = validateUserCredentials(normalizedEmail, encryptPassword);
+
+        request.getSession().setAttribute(USER_LOGIN_STATE, user.getId());
+        return getLoginUserVO(user);
+    }
+
+    /**
+     * 获取当前登录用户
+     *
+     * @param request HTTP请求对象
+     * @return 当前登录用户实体
+     * @throws BusinessException 未登录或登录态无效
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        // 从 session 获取登录态
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        Long userId = SessionUserUtils.resolveUserId(userObj);
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        if (!(userObj instanceof Long)) {
+            request.getSession().setAttribute(USER_LOGIN_STATE, userId);
+        }
+
+        // 查询最新用户信息
+        return this.getByIdOptional(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "用户不存在"));
+    }
+
+    /**
+     * 获取用户视图对象
+     *
+     * @param user 用户实体
+     * @return 脱敏后的用户VO，输入为空时返回null
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    @Override
+    public UserVO getUserVO(User user) {
+        if (user == null) {
+            return null;
+        }
+        UserVO userVO = new UserVO();
+        BeanUtil.copyProperties(user, userVO);
+        return userVO;
+    }
+
+    /**
+     * 用户列表转换为视图对象列表
+     *
+     * @param userList 用户实体列表
+     * @return 脱敏后的用户VO列表（永远非null）
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    @Override
+    public List<UserVO> getUserVOList(List<User> userList) {
+        if (CollUtil.isEmpty(userList)) {
+            return new ArrayList<>();
+        }
+        return userList.stream()
+                .map(this::getUserVO)
+                .filter(vo -> vo != null) // 过滤掉转换失败的空对象
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 用户退出登录
+     *
+     * @param request HTTP请求对象
+     * @return 总是返回true
+     * @throws BusinessException 用户未登录
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    @Override
+    public boolean userLogout(HttpServletRequest request) {
+        // 检查登录状态
+        if (request.getSession().getAttribute(USER_LOGIN_STATE) == null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户未登录");
+        }
+        // 清除登录态
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        return true;
+    }
+
+    /**
+     * 构建查询条件包装器
+     *
+     * @param userQueryRequest 查询参数对象
+     * @return 查询条件包装器
+     * @throws BusinessException 参数为空
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    @Override
+    public QueryWrapper getQueryWrapper(UserQueryRequest userQueryRequest) {
+        if (userQueryRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "查询参数不能为空");
+        }
+
+        // 查询条件
+        Long id = userQueryRequest.getId();
+        String email = StrUtil.trimToNull(userQueryRequest.getEmail());
+        String userName = StrUtil.trimToNull(userQueryRequest.getUserName());
+        String userProfile = StrUtil.trimToNull(userQueryRequest.getUserProfile());
+        String userRole = StrUtil.trimToNull(userQueryRequest.getUserRole());
+        String sortField = StrUtil.trimToNull(userQueryRequest.getSortField());
+        String sortOrder = StrUtil.trimToNull(userQueryRequest.getSortOrder());
+
+        QueryWrapper queryWrapper = QueryWrapper.create();
+        // 精确匹配
+        if (id != null) {
+            queryWrapper.eq("id", id);
+        }
+        if (userRole != null) {
+            queryWrapper.eq("userRole", userRole);
+        }
+        // 模糊查询
+        if (email != null) {
+            queryWrapper.like("email", email);
+        }
+        if (userName != null) {
+            queryWrapper.like("userName", userName);
+        }
+        if (userProfile != null) {
+            queryWrapper.like("userProfile", userProfile);
+        }
+        // 排序条件
+        if (sortField != null && sortOrder != null) {
+            boolean isAsc = "ascend".equalsIgnoreCase(sortOrder);
+            queryWrapper.orderBy(sortField, isAsc);
+        }
+        return queryWrapper;
+    }
+
+    /**
+     * 密码加密
+     *
+     * @param userPassword 明文密码
+     * @return MD5加密后的密码
+     * @throws BusinessException 密码为空
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    @Override
+    public String getEncryptPassword(String userPassword) {
+        if (StrUtil.isBlank(userPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码不能为空");
+        }
+        String input = userPassword + PASSWORD_SALT;
+        return DigestUtils.md5DigestAsHex(input.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * 更新密码
+     *
+     * @param userUpdatePasswordRequest 用户更新密码请求对象
+     * @return 是否更新成功
+     */
+    @Override
+    public Boolean updatePassword(UserUpdatePasswordRequest userUpdatePasswordRequest) {
+        long userId = userUpdatePasswordRequest.getUserId();
+        String oldPassword = userUpdatePasswordRequest.getOldPassword();
+        String newPassword = userUpdatePasswordRequest.getNewPassword();
+
+        // 校验参数
+        ThrowUtils.throwIf(userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(oldPassword), ErrorCode.PARAMS_ERROR, "旧密码不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(newPassword), ErrorCode.PARAMS_ERROR, "新密码不能为空");
+        // 校验旧密码
+        User user = this.getById(userId);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        String encryptedOldPassword = encryptPassword(oldPassword);
+        ThrowUtils.throwIf(!encryptedOldPassword.equals(user.getUserPassword()), ErrorCode.PARAMS_ERROR, "旧密码错误");
+        // 校验新密码
+        ThrowUtils.throwIf(newPassword.equals(oldPassword), ErrorCode.PARAMS_ERROR, "新密码不能与旧密码相同");
+        ThrowUtils.throwIf(newPassword.length() < MIN_PASSWORD_LENGTH, ErrorCode.PARAMS_ERROR, "新密码长度不能小于6位");
+        ThrowUtils.throwIf(newPassword.length() > MAX_PASSWORD_LENGTH, ErrorCode.PARAMS_ERROR, "新密码长度不能大于20位");
+        // 加密新密码
+        String encryptedNewPassword = encryptPassword(newPassword);
+        // 更新密码
+        user.setUserPassword(encryptedNewPassword);
+        return this.updateById(user);
+    }
+
+    /**
+     * 重置密码
+     *
+     * @param userId 用户 ID
+     * @return 重置密码是否成功
+     */
+    @Override
+    public Boolean resetPassword(long userId) {
+        // 获取用户信息
+        User user = this.getById(userId);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        // 重置密码（使用邮箱作为标识）
+        String emailOrAccount = StrUtil.isNotBlank(user.getEmail()) ? user.getEmail() : user.getUserAccount();
+        String resetPassword = getEncryptPassword("zmrq@" + emailOrAccount);
+        user.setUserPassword(resetPassword);
+        return this.updateById(user);
+    }
+
+    /**
+     * 验证邮箱格式
+     *
+     * @param email 邮箱地址
+     **/
+    private void validateEmail(String email) {
+        String normalizedEmail = EmailUtils.normalizeEmail(email);
+        if (StrUtil.isBlank(normalizedEmail)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱不能为空");
+        }
+        if (!EmailUtils.isValidEmail(normalizedEmail)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱格式不正确");
+        }
+    }
+
+    /**
+     * 验证用户昵称
+     *
+     * @param userName 用户昵称
+     **/
+    private void validateUserName(String userName) {
+        if (StrUtil.isBlank(userName)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户昵称不能为空");
+        }
+        if (userName.length() < MIN_USERNAME_LENGTH || userName.length() > MAX_USERNAME_LENGTH) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,
+                    String.format("用户昵称长度需要在%d-%d位之间", MIN_USERNAME_LENGTH, MAX_USERNAME_LENGTH));
+        }
+    }
+
+    /**
+     * 验证密码合规性
+     *
+     * @param password
+     * @param checkPassword
+     * @return void
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    private void validatePassword(String password, String checkPassword) {
+        if (StrUtil.hasBlank(password, checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码不能为空");
+        }
+        if (password.length() < MIN_PASSWORD_LENGTH || checkPassword.length() < MIN_PASSWORD_LENGTH) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,
+                    String.format("密码长度至少为%d位", MIN_PASSWORD_LENGTH));
+        }
+        if (!password.equals(checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的密码不一致");
+        }
+    }
+
+    /**
+     * 检查邮箱唯一性
+     *
+     * @param email 邮箱
+     **/
+    private void checkEmailUnique(String email) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("email", email)
+                .select("id");
+        if (mapper.selectCountByQuery(queryWrapper) > 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "该邮箱已被注册");
+        }
+    }
+
+    /**
+     * 验证用户凭证（通过邮箱）
+     *
+     * @param email             邮箱
+     * @param encryptedPassword 加密后的密码
+     * @return 用户实体
+     **/
+    private User validateUserCredentials(String email, String encryptedPassword) {
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq("email", email)
+                .eq("userPassword", encryptedPassword);
+        return this.getOneOpt(queryWrapper)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱或密码错误"));
+    }
+
+    /**
+     * 安全获取用户信息（Optional包装）
+     *
+     * @param id
+     * @return java.util.Optional<com.rich.codeweaver.model.entity.User>
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    private Optional<User> getByIdOptional(Long id) {
+        return Optional.ofNullable(id)
+                .map(this::getById);
+    }
+
+    /**
+     * 根据用户名模糊搜索用户（排除指定用户）
+     * 最多返回20条结果，用于好友搜索场景
+     *
+     * @param keyword       搜索关键词
+     * @param excludeUserId 需要排除的用户id
+     * @return 匹配的用户VO列表
+     */
+    @Override
+    public List<UserVO> searchUsersByName(String keyword, Long excludeUserId) {
+        QueryWrapper query = QueryWrapper.create()
+                .from(User.class)
+                .where("userName LIKE CONCAT('%', ?, '%') AND id != ?", keyword, excludeUserId)
+                .limit(20);
+        List<User> users = list(query);
+        return getUserVOList(users);
+    }
+
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && ADMIN_ROLE.equals(user.getUserRole());
+    }
+
+    /**
+     * 密码加密方法
+     *
+     * @param password
+     * @return java.lang.String
+     * @author DuRuiChi
+     * @create 2025/12/7
+     **/
+    private String encryptPassword(String password) {
+        if (StrUtil.isBlank(password)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码不能为空");
+        }
+        return getEncryptPassword(password);
+    }
+}

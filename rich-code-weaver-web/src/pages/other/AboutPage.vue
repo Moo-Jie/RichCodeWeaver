@@ -1,537 +1,405 @@
 <template>
   <div class="about-page">
-    <!-- 公司介绍部分 -->
-    <section class="intro-section">
-      <h1 class="hero-title">关于 RichCodeWeaver</h1>
-      <p class="hero-subtitle">将创意灵感转化为数字现实的创新平台</p>
+    <div class="page-header">
+      <h1 class="page-title">关于 RichCodeWeaver</h1>
+      <p class="page-desc">AI驱动的智能代码生成平台 · 将创意灵感转化为数字现实</p>
+    </div>
 
-      <div v-intersect class="mission-card fade-in-up">
-        <div class="mission-content">
-          <h2>我的愿想</h2>
-          <p>通过AI技术降低软件开发门槛，让每个人都能轻松将创意转化为功能完备的数字产品，赋能开发者、设计师和创业者实现自己的
-            IDEA。</p>
-        </div>
-      </div>
-    </section>
+    <div class="content-wrap">
+      <section class="section">
+        <h2 class="section-title">项目简介</h2>
+        <p class="section-text">
+          RichCodeWeaver（织码睿奇）是一个基于AI技术的智能代码生成平台，旨在通过自然语言理解和大语言模型技术，帮助用户快速将创意想法转化为可运行的数字产物。
+          平台采用微服务架构，支持多种AI模型集成，提供从需求描述到代码生成、可视化编辑、部署分享的全流程解决方案。
+        </p>
+      </section>
 
-    <!-- 核心价值部分 -->
-    <section class="values-section">
-      <div v-intersect class="section-header fade-in-up">
-        <h2>一些特点</h2>
-        <p>基于 AI，提供智能应用生成服务</p>
-      </div>
-
-      <div class="values-grid">
-        <div v-intersect class="value-card fade-in-up">
-          <div class="value-icon">🚀</div>
-          <h3>创意加速</h3>
-          <p>将创意实现时间从数周缩短到几分钟，让灵感不再等待</p>
-        </div>
-
-        <div v-intersect class="value-card fade-in-up">
-          <div class="value-icon">💬</div>
-          <h3>智能生成</h3>
-          <p>基于最先进的AI模型，理解自然语言需求生成高质量代码</p>
-        </div>
-
-        <div v-intersect class="value-card fade-in-up">
-          <div class="value-icon">🔄</div>
-          <h3>无缝迭代</h3>
-          <p>支持实时编辑和持续优化，让创作过程流畅自然</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 架构设计部分 -->
-    <section class="tech-section">
-      <div v-intersect class="section-header fade-in-up">
-        <h2>架构设计</h2>
-        <p>融合前沿AI技术与工程实践，打造强大创作引擎</p>
-      </div>
-
-      <div v-intersect class="tech-diagram fade-in-up">
-        <div class="tech-layer">
-          <div class="layer-icon">🧠</div>
-          <h3>自然语言理解</h3>
-          <p>深度解析用户需求，提取关键创作要素</p>
-        </div>
-
-        <div class="tech-arrow">↓</div>
-
-        <div class="tech-layer">
-          <div class="layer-icon">🧩</div>
-          <h3>组件化设计</h3>
-          <p>智能匹配最佳UI组件与交互模式</p>
-        </div>
-
-        <div class="tech-arrow">↓</div>
-
-        <div class="tech-layer">
-          <div class="layer-icon">⚙️</div>
-          <h3>代码生成引擎</h3>
-          <p>生成高质量、可维护的项目工程化代码</p>
-        </div>
-
-        <div class="tech-arrow">↓</div>
-
-        <div class="tech-layer">
-          <div class="layer-icon">🚀</div>
-          <h3>一键部署</h3>
-          <p>自动化测试与云端部署流程</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- 团队介绍部分 -->
-    <section class="team-section">
-      <div v-intersect class="section-header fade-in-up">
-        <h2>关于作者</h2>
-      </div>
-
-      <div class="team-grid">
-        <div v-intersect class="team-card fade-in-up">
-          <div class="avatar"
-               style="background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);">Z
+      <section class="section">
+        <h2 class="section-title">核心特性</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-number">01</div>
+            <h3 class="feature-title">智能代码生成</h3>
+            <p class="feature-desc">
+              基于LangChain4j和LangGraph4j的AI工作流，支持多轮对话式代码生成，提供高质量的代码输出</p>
           </div>
-          <h3>MO-JIE</h3>
-          <p>Java 后端开发</p>
-          <p class="bio">
-            <a href="https://github.com/Moo-Jie" target="_blank">GitHub :
-              https://github.com/Moo-Jie</a>
-          </p>
+          <div class="feature-card">
+            <div class="feature-number">02</div>
+            <h3 class="feature-title">可视化编辑</h3>
+            <p class="feature-desc">实时预览和可视化编辑功能，所见即所得的创作体验，提升开发效率</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-number">03</div>
+            <h3 class="feature-title">智能提示模板</h3>
+            <p class="feature-desc">
+              根据用户身份和行业智能匹配提示词模板，快速开始创作，降低使用门槛</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-number">04</div>
+            <h3 class="feature-title">Agent模式</h3>
+            <p class="feature-desc">
+              支持传统生成和Agent智能生成两种模式，满足不同场景需求，灵活应对复杂任务</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-number">05</div>
+            <h3 class="feature-title">社交互动</h3>
+            <p class="feature-desc">点赞、收藏、评论、分享等社交功能，构建创作者社区，促进知识共享</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-number">06</div>
+            <h3 class="feature-title">云端部署</h3>
+            <p class="feature-desc">生成的数字产物支持一键部署和分享，快速上线，缩短产品交付周期</p>
+          </div>
         </div>
+      </section>
 
-        <!--        <div class="team-card fade-in-up" v-intersect>-->
-        <!--          <div class="avatar" style="background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);">L</div>-->
-        <!--          <h3>李四</h3>-->
-        <!--          <p class="role">产品设计总监</p>-->
-        <!--          <p class="bio">前腾讯高级产品设计师，用户体验专家</p>-->
-        <!--        </div>-->
+      <section class="section">
+        <h2 class="section-title">技术架构</h2>
+        <div class="tech-stack">
+          <div class="tech-category">
+            <h3 class="tech-category-title">后端技术栈</h3>
+            <div class="tech-tags">
+              <span class="tech-tag">Java 21</span>
+              <span class="tech-tag">Spring Boot 3.5.3</span>
+              <span class="tech-tag">Spring Cloud 2023.0.1</span>
+              <span class="tech-tag">Dubbo 3.3.0</span>
+              <span class="tech-tag">Nacos</span>
+              <span class="tech-tag">Sentinel</span>
+              <span class="tech-tag">MyBatis Flex</span>
+              <span class="tech-tag">MySQL 8.0</span>
+              <span class="tech-tag">Redis</span>
+              <span class="tech-tag">LangChain4j</span>
+              <span class="tech-tag">LangGraph4j</span>
+            </div>
+          </div>
+          <div class="tech-category">
+            <h3 class="tech-category-title">前端技术栈</h3>
+            <div class="tech-tags">
+              <span class="tech-tag">Vue 3.5.17</span>
+              <span class="tech-tag">TypeScript 5.8</span>
+              <span class="tech-tag">Vite 7.0</span>
+              <span class="tech-tag">Pinia</span>
+              <span class="tech-tag">Vue Router</span>
+              <span class="tech-tag">Ant Design Vue</span>
+              <span class="tech-tag">Vant</span>
+              <span class="tech-tag">Axios</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        <!--        <div class="team-card fade-in-up" v-intersect>-->
-        <!--          <div class="avatar" style="background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);">W</div>-->
-        <!--          <h3>王五</h3>-->
-        <!--          <p class="role">工程负责人</p>-->
-        <!--          <p class="bio">前阿里云高级工程师，全栈开发专家</p>-->
-        <!--        </div>-->
-      </div>
-    </section>
+      <MicroserviceHealthPanel
+        title="微服务模块"
+        description="实时检测平台核心微服务在线情况，帮助你快速了解当前系统运行状态。"
+      />
+
+      <section class="section">
+        <h2 class="section-title">开源信息</h2>
+        <div class="opensource-info">
+          <div class="info-item">
+            <span class="info-label">项目地址</span>
+            <a class="info-link" href="https://github.com/Moo-Jie/RichCodeWeaver" target="_blank">
+              https://github.com/Moo-Jie/RichCodeWeaver
+            </a>
+          </div>
+          <div class="info-item">
+            <span class="info-label">开源协议</span>
+            <span class="info-value">MIT License</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">当前版本</span>
+            <span class="info-value">V1.0.0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">关于作者</h2>
+        <div class="author-card">
+          <div class="author-avatar">M</div>
+          <div class="author-info">
+            <h3 class="author-name">MO-JIE-RUBY TEAM</h3>
+            <div class="author-links">
+              <a class="author-link" href="https://github.com/Moo-Jie" target="_blank">
+                GitHub: @Moo-Jie
+              </a>
+              <a class="author-link" href="mailto:NotProvidedTemporarily@xxx.com">
+                Email: NotProvidedTemporarily@xxx.com
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">致谢</h2>
+        <p class="section-text">
+          感谢以下开源项目为本项目提供的支持：Spring Boot、Vue.js、LangChain4j、LangGraph4j、MyBatis
+          Flex、Ant Design Vue 等。
+          特别感谢所有为开源社区做出贡献的开发者们。
+        </p>
+      </section>
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-
-// 苹果风格的交互动效指令
-const vIntersect = {
-  mounted(el: HTMLElement) {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.classList.add('is-visible')
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.15 }
-    )
-    observer.observe(el)
-  }
-}
+import MicroserviceHealthPanel from '@/components/admin/MicroserviceHealthPanel.vue'
 </script>
 
 <style scoped>
-/* 基础样式 */
 .about-page {
-  max-width: 1200px;
+  padding: 32px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 40px 20px;
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  min-height: 100vh;
-  position: relative;
-  z-index: 2;
-}
-
-/* 背景效果 */
-.about-page::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
   width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
-  z-index: -1;
-  pointer-events: none;
 }
 
-/* 公司介绍部分 */
-.intro-section {
+.page-header {
   text-align: center;
-  margin-bottom: 60px;
-  padding-top: 40px;
+  margin-bottom: 40px;
 }
 
-.hero-title {
-  font-family: 'Comic Neue', cursive;
-  font-size: 3.5rem;
-  color: #2c3e50;
-  margin-bottom: 20px;
+.page-title {
+  font-size: 24px;
   font-weight: 700;
-  letter-spacing: -1px;
+  color: #1a1a1a;
+  margin: 0 0 8px;
 }
 
-.hero-subtitle {
-  font-size: 1.5rem;
-  color: #7f8c8d;
-  margin-bottom: 60px;
-  font-weight: 400;
-  font-family: 'Comic Neue', cursive;
+.page-desc {
+  font-size: 14px;
+  color: #999;
+  margin: 0;
 }
 
-.mission-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  border-radius: 32px;
-  padding: 50px;
-  box-shadow: 0 12px 48px 0 rgba(0, 113, 227, 0.10);
-  max-width: 800px;
-  margin: 0 auto;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.mission-card:hover {
-  box-shadow: 0 24px 56px 0 rgba(0, 113, 227, 0.18);
-  transform: translateY(-5px);
-}
-
-.mission-content {
-  text-align: center;
-}
-
-.mission-content h2 {
-  font-size: 2.2rem;
-  margin-bottom: 25px;
-  font-family: 'Comic Neue', cursive;
-  color: #2c3e50;
-}
-
-.mission-content p {
-  font-size: 1.2rem;
-  line-height: 1.8;
-  color: #5c4a48;
-  max-width: 700px;
-}
-
-/* 通用部分标题 */
-.section-header {
-  text-align: center;
-  margin-bottom: 60px;
-}
-
-.section-header h2 {
-  font-size: 2.5rem;
-  color: #2c3e50;
-  margin-bottom: 15px;
-  font-family: 'Comic Neue', cursive;
-}
-
-.section-header p {
-  font-size: 1.2rem;
-  color: #7f8c8d;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-/* 核心价值部分 */
-.values-section {
-  margin-bottom: 80px;
-}
-
-.values-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 30px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.value-card {
-  background: #ffffff;
-  border-radius: 24px;
-  padding: 35px 30px;
-  text-align: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.value-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
-}
-
-.value-icon {
-  font-size: 3.5rem;
-  margin-bottom: 20px;
-}
-
-.value-card h3 {
-  font-size: 1.6rem;
-  margin-bottom: 15px;
-  color: #2c3e50;
-  font-family: 'Comic Neue', cursive;
-}
-
-.value-card p {
-  font-size: 1.1rem;
-  color: #5c4a48;
-  line-height: 1.6;
-}
-
-/* 技术架构部分 */
-.tech-section {
-  margin-bottom: 80px;
-}
-
-.tech-diagram {
+.content-wrap {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  max-width: 800px;
-  margin: 0 auto;
+  gap: 24px;
 }
 
-.tech-layer {
-  background: #ffffff;
-  border-radius: 24px;
-  padding: 30px;
-  text-align: center;
-  width: 100%;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  margin-bottom: 20px;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+.section {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 14px;
+  padding: 24px;
 }
 
-.tech-layer:hover {
-  transform: scale(1.03);
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 16px;
 }
 
-.layer-icon {
-  font-size: 3rem;
-  margin-bottom: 15px;
+.section-text {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.7;
+  margin: 0;
 }
 
-.tech-layer h3 {
-  font-size: 1.6rem;
-  margin-bottom: 10px;
-  color: #2c3e50;
-  font-family: 'Comic Neue', cursive;
-}
-
-.tech-layer p {
-  font-size: 1.1rem;
-  color: #5c4a48;
-}
-
-.tech-arrow {
-  font-size: 2.5rem;
-  margin: 10px 0;
-  color: #5c4a48;
-  opacity: 0.7;
-}
-
-/* 团队介绍部分 */
-.team-section {
-  margin-bottom: 80px;
-}
-
-.team-grid {
+.features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
-  max-width: 1000px;
-  margin: 0 auto;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
 }
 
-.team-card {
-  background: #ffffff;
-  border-radius: 24px;
-  padding: 35px 30px;
+.feature-card {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 20px;
   text-align: center;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
 }
 
-.team-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+.feature-card:hover {
+  border-color: #e5e5e5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.avatar {
-  width: 120px;
-  height: 120px;
+.feature-number {
+  font-size: 14px;
+  font-weight: 700;
+  color: #999;
+  margin-bottom: 12px;
+  font-family: 'Courier New', monospace;
+}
+
+.feature-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 8px;
+}
+
+.feature-desc {
+  font-size: 13px;
+  color: #999;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tech-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tech-category {
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.tech-category-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 12px;
+}
+
+.tech-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tech-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #666;
+  transition: all 0.2s ease;
+}
+
+.tech-tag:hover {
+  border-color: #1a1a1a;
+  color: #1a1a1a;
+}
+
+.opensource-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+}
+
+.info-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  min-width: 80px;
+}
+
+.info-link {
+  font-size: 13px;
+  color: #666;
+  text-decoration: none;
+  word-break: break-all;
+  transition: color 0.15s;
+}
+
+.info-link:hover {
+  color: #1a1a1a;
+}
+
+.info-value {
+  font-size: 13px;
+  color: #666;
+}
+
+.author-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.author-avatar {
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  margin: 0 auto 25px;
+  background: #1a1a1a;
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3.5rem;
-  font-weight: bold;
-  color: white;
+  font-size: 24px;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
-.team-card h3 {
-  font-size: 1.8rem;
-  margin-bottom: 10px;
-  color: #2c3e50;
-  font-family: 'Comic Neue', cursive;
+.author-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.role {
-  font-size: 1.2rem;
-  color: #1890ff;
-  margin-bottom: 15px;
+.author-name {
+  font-size: 16px;
   font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 4px;
 }
 
-.bio {
-  font-size: 1.1rem;
-  color: #5c4a48;
-  line-height: 1.6;
+.author-role {
+  font-size: 13px;
+  color: #999;
+  margin: 0 0 8px;
 }
 
-/* 联系部分 */
-.contact-section {
-  margin-bottom: 60px;
-}
-
-.contact-card {
-  background: #ffffff;
-  border-radius: 32px;
-  padding: 60px 40px;
-  text-align: center;
-  box-shadow: 0 12px 48px rgba(0, 113, 227, 0.15);
-  max-width: 800px;
-  margin: 0 auto;
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.contact-card:hover {
-  box-shadow: 0 24px 56px rgba(0, 113, 227, 0.2);
-  transform: translateY(-5px);
-}
-
-.contact-card h2 {
-  font-size: 2.5rem;
-  margin-bottom: 20px;
-  color: #2c3e50;
-  font-family: 'Comic Neue', cursive;
-}
-
-.contact-card p {
-  font-size: 1.2rem;
-  color: #5c4a48;
-  margin-bottom: 40px;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.contact-actions {
+.author-links {
   display: flex;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.contact-button {
-  background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
-  border: none;
-  border-radius: 16px;
-  padding: 15px 30px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 6px 16px rgba(116, 235, 213, 0.3);
+.author-link {
+  font-size: 13px;
+  color: #666;
+  text-decoration: none;
+  transition: color 0.15s;
 }
 
-.contact-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(116, 235, 213, 0.4);
+.author-link:hover {
+  color: #1a1a1a;
 }
 
-/* 动画效果 */
-.fade-in-up {
-  opacity: 0;
-  transform: translateY(40px) scale(0.98);
-  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1),
-  transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.fade-in-up.is-visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-
-/* 响应式设计 */
 @media (max-width: 768px) {
-  .hero-title {
-    font-size: 2.5rem;
+  .about-page {
+    padding: 20px;
   }
 
-  .hero-subtitle {
-    font-size: 1.2rem;
-  }
-
-  .mission-card {
-    padding: 30px 20px;
-  }
-
-  .mission-content h2 {
-    font-size: 1.8rem;
-  }
-
-  .mission-content p {
-    font-size: 1rem;
-  }
-
-  .section-header h2 {
-    font-size: 2rem;
-  }
-
-  .section-header p {
-    font-size: 1rem;
-  }
-
-  .value-card, .tech-layer, .team-card {
-    padding: 25px 20px;
-  }
-
-  .contact-card {
-    padding: 40px 20px;
-  }
-
-  .contact-button {
-    width: 100%;
-    max-width: 280px;
-  }
-}
-
-@media (max-width: 480px) {
-  .values-grid, .team-grid {
+  .features-grid {
     grid-template-columns: 1fr;
   }
 
-  .tech-arrow {
-    transform: rotate(90deg);
-    margin: 15px 0;
+  .author-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .author-links {
+    align-items: center;
   }
 }
 </style>

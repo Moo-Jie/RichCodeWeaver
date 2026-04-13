@@ -37,3 +37,6 @@ build/
 .vscode/
 /src/main/resources/application-prod.yml
 /appCode/
+/src/main/resources/prometheus.yml
+/src/main/resources/mcp-servers.json
+/.kiro/

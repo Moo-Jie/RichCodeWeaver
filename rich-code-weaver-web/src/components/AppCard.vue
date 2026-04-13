@@ -3,7 +3,7 @@
     <div class="app-preview">
       <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
       <div v-else class="app-placeholder">
-        <img alt="应用封面"
+        <img alt="数字产物封面"
              src="@/assets/logo.png"
              style="width: 100%; opacity: 0.8; margin: 0 auto; display: block;" />
       </div>
@@ -23,7 +23,7 @@
         </a-avatar>
       </div>
       <div class="app-info-right">
-        <h3 class="app-title">{{ app.appName?.substring(0, 10) + '...' || '未命名应用' }}</h3>
+        <h3 class="app-title">{{ app.appName?.substring(0, 10) + '...' || '未命名数字产物' }}</h3>
         <p class="app-author">
           {{ app.user?.userName || (featured ? '官方' : '未知用户') }}
         </p>

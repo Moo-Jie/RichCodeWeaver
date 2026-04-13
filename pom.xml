@@ -39,16 +39,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
-        <!-- WebSocket（替代 SSE，用于流式生成的断线重连/断点续传） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-websocket</artifactId>
-        </dependency>
-        <!-- Spring Session & Redis 集成配置，含 spring-data-redis 依赖-->
-        <dependency>
-            <groupId>org.springframework.session</groupId>
-            <artifactId>spring-session-data-redis</artifactId>
-        </dependency>
         <!-- LangChain4j 框架 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -89,7 +79,6 @@
             <artifactId>redisson</artifactId>
             <version>3.50.0</version>
         </dependency>
-
         <!-- jsoup 实现网页抓取解析  -->
         <dependency>
             <groupId>org.jsoup</groupId>
@@ -128,7 +117,6 @@
             <artifactId>dashscope-sdk-java</artifactId>
             <version>2.21.1</version>
         </dependency>
-
         <!-- LangGraph4j -->
         <dependency>
             <groupId>org.bsc.langgraph4j</groupId>
@@ -156,6 +144,74 @@
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
             <version>4.4.0</version>
         </dependency>
+        <!-- LangChain4j PGVector 向量数据库集成（RAG 知识库向量存储） -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-pgvector</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
+        <!-- Apache Commons IO 库 -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+        <!-- Spring Session Redis 集成配置,使用 redis 来存储 session 从而使服务间共享 session -->
+        <dependency>
+            <groupId>org.springframework.session</groupId>
+            <artifactId>spring-session-data-redis</artifactId>
+        </dependency>
+        <!-- 排除 lettuce-core 依赖，使用 jedis 客户端 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>lettuce-core</artifactId>
+                    <groupId>io.lettuce</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- jedis 客户端 -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+        </dependency>
+        <!-- WebSocket 支持，用于用户实时聊天通信 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+        <!-- 邮件发送支持，用于注册邮箱验证码 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <!-- MySQL 连接驱动 -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.0.33</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-mcp</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
+        <!-- Playwright 网页截图 - 相比 Selenium 性能更好、跨平台能力更强 -->
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>1.48.0</version>
+        </dependency>
+        <!-- 测试依赖 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>5.3.10</version>
+            <scope>compile</scope>
+        </dependency>
         <!-- Selenium 网页截图 -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
@@ -169,7 +225,6 @@
             <artifactId>httpmime</artifactId>
             <version>4.5.8</version>
         </dependency>
-
         <dependency>
             <groupId>io.github.bonigarcia</groupId>
             <artifactId>webdrivermanager</artifactId>

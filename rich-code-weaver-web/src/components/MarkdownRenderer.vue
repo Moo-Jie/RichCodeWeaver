@@ -1,5 +1,5 @@
 <template>
-  <div class="markdown-content" v-html="renderedMarkdown"></div>
+  <div class="markdown-content" @click="handleToolCardClick" v-html="renderedMarkdown"></div>
 </template>
 
 <script lang="ts" setup>
@@ -7,6 +7,8 @@ import { computed, nextTick, onMounted, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
+import { processToolCallMarkers } from '@/utils/toolCallParser'
+import { fixCodeBlockFormat, processWorkflowMarkers } from '@/utils/workflowMarkerParser'
 
 interface Props {
   content: string
@@ -35,36 +37,18 @@ const md: MarkdownIt = new MarkdownIt({
   }
 })
 
-// 预处理Markdown内容，识别并包裹工具调用信息
+// 预处理Markdown内容，识别并包裹工具调用信息和工作流标记
 const preprocessMarkdown = (content: string): string => {
   if (!content) return ''
 
-  // 识别并包裹工具调用开始标记
-  content = content.replace(
-    /\[开始调用系统工具\]/g,
-    '<div class="tool-call-start">[开始调用系统工具]</div>'
-  )
+  // 1. 处理工作流标记（工作流模式）
+  content = processWorkflowMarkers(content)
 
-  // 识别并包裹工具调用结束标记
-  content = content.replace(
-    /\[工具调用结束\]/g,
-    '<div class="tool-call-end">[工具调用结束]</div>'
-  )
+  // 2. 处理工具调用标记（Agent 模式）
+  content = processToolCallMarkers(content)
 
-  // 包裹工具调用之间的内容
-  content = content.replace(
-    /<div class="tool-call-start">[^<]*<\/div>([\s\S]*?)<div class="tool-call-end">[^<]*<\/div>/g,
-    (_, toolContent) =>
-      `<div class="tool-call">${toolContent}</div>`
-  )
-
-  // 修复代码块格式
-  content = content.replace(/( {4}```[\s\S]*? {4}```)/g, (match) => {
-    return match.replace(/^ {4}/gm, '')
-  })
-
-  // 确保代码块有正确的换行
-  content = content.replace(/```(\w+)\s*\n([\s\S]*?)```/g, '```$1\n$2```')
+  // 3. 修复代码块格式
+  content = fixCodeBlockFormat(content)
 
   return content
 }
@@ -83,6 +67,12 @@ watch(() => props.content, () => {
     highlightCode()
   })
 })
+
+// 处理工具卡片点击事件（用于展开/折叠）
+const handleToolCardClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement
+  // 事件委托已通过 onclick 处理，这里保留以防需要额外逻辑
+}
 
 const highlightCode = () => {
   requestAnimationFrame(() => {
@@ -272,57 +262,631 @@ const highlightCode = () => {
   font-weight: 600;
 }
 
-/* 工具调用样式 */
-.markdown-content :deep(.tool-call-start) {
-  display: inline-block;
-  background-color: #e6f7ff;
-  color: #1890ff;
-  padding: 0.2em 0.5em;
-  border-radius: 4px;
-  margin: 0.5em 0;
-  font-weight: bold;
-  font-family: monospace;
+/* ====== 工具调用项 - 扁平化独立行样式 ====== */
+.markdown-content :deep(.tool-call-item) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  border-radius: 6px;
+  background: #f5f5f5;
+  font-size: 13px;
+  transition: all 0.2s;
 }
 
-.markdown-content :deep(.tool-call-end) {
-  display: inline-block;
-  background-color: #f6ffed;
-  color: #52c41a;
-  padding: 0.2em 0.5em;
-  border-radius: 4px;
-  margin: 0.5em 0;
-  font-weight: bold;
-  font-family: monospace;
+.markdown-content :deep(.tool-call-item .tci-icon) {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
 }
 
-.markdown-content :deep(.tool-call) {
-  background-color: #f0f7ff;
-  border-left: 4px solid #1890ff;
-  padding: 0.8em 1.2em;
-  margin: 1.2em 0;
-  border-radius: 0 6px 6px 0;
-  font-family: monospace;
+.markdown-content :deep(.tool-call-item .tci-icon svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.markdown-content :deep(.tool-call-item .tci-label) {
+  background: #f0f0f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  color: #666;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.markdown-content :deep(.tool-call-item .tci-text) {
+  color: #1a1a1a;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  word-break: break-all;
+}
+
+/* 已配对的调用项（灰色调表示已完成调用阶段） */
+.markdown-content :deep(.tool-call-paired) {
+  background: #fafafa;
+  opacity: 0.7;
+}
+
+.markdown-content :deep(.tool-call-paired .tci-label) {
+  background: #e8e8e8;
+  color: #999;
+}
+
+/* 完成项 */
+.markdown-content :deep(.tool-call-done) {
+  background: #f6ffed;
+}
+
+.markdown-content :deep(.tool-call-done .tci-label) {
+  background: #d9f7be;
+  color: #389e0d;
+}
+
+.markdown-content :deep(.tool-call-done .tci-text) {
+  color: #1a1a1a;
+}
+
+/* 详情项（如搜索关键词） */
+.markdown-content :deep(.tool-call-detail) {
+  background: #fafafa;
+  padding-left: 44px;
+}
+
+.markdown-content :deep(.tool-call-detail .tci-text) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12.5px;
+  color: #555;
+}
+
+/* 加载中项（流式传输未完成） */
+.markdown-content :deep(.tool-call-loading) {
+  background: #f5f5f5;
   position: relative;
+  overflow: hidden;
 }
 
-.markdown-content :deep(.tool-call:before) {
-  content: "< 工具调用 >";
+.markdown-content :deep(.tool-call-loading .tci-label) {
+  background: #e0e0e0;
+  color: #888;
+}
+
+.markdown-content :deep(.tool-call-loading::after) {
+  content: '';
   position: absolute;
-  top: -0.8em;
+  bottom: 0;
   left: 0;
-  background: #1890ff;
-  color: white;
-  font-size: 0.8em;
-  padding: 0.2em 0.8em;
-  border-radius: 4px 4px 0 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #1a1a1a, transparent);
+  background-size: 200% 100%;
+  animation: toolItemProgress 1.5s ease-in-out infinite;
 }
 
-.markdown-content :deep(.tool-call pre) {
-  background-color: #e6f7ff;
-  border: 1px solid #91d5ff;
+@keyframes toolItemProgress {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
-.markdown-content :deep(.tool-call code) {
-  background-color: transparent;
+/* 工作流标记样式 */
+.markdown-content :deep(.workflow-start-marker),
+.markdown-content :deep(.workflow-execution-marker),
+.markdown-content :deep(.workflow-complete-marker),
+.markdown-content :deep(.workflow-error-marker),
+.markdown-content :deep(.node-start-marker),
+.markdown-content :deep(.node-end-marker) {
+  display: none;
+}
+
+/* 工作流元信息样式 */
+.markdown-content :deep(.workflow-meta) {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  border: 1px solid #e1e8ed;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.markdown-content :deep(.workflow-meta table) {
+  margin: 0;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.markdown-content :deep(.workflow-meta table th) {
+  background: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 10px 14px;
+}
+
+.markdown-content :deep(.workflow-meta table td) {
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+/* 工作流步骤列表样式 */
+.markdown-content :deep(.workflow-steps) {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  border-left: 4px solid #4CAF50;
+}
+
+.markdown-content :deep(.workflow-steps ul),
+.markdown-content :deep(.workflow-steps ol) {
+  margin: 8px 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.markdown-content :deep(.workflow-steps li) {
+  padding: 6px 0;
+  font-size: 14px;
+  color: #495057;
+  position: relative;
+  padding-left: 28px;
+}
+
+.markdown-content :deep(.workflow-steps li::before) {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  background: #4CAF50;
+  border-radius: 50%;
+}
+
+/* 节点结果样式 */
+.markdown-content :deep(.node-result) {
+  background: white;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 12px 0;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.markdown-content :deep(.node-result:hover) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #dee2e6;
+}
+
+.markdown-content :deep(.node-result) strong {
+  color: #212529;
+  font-weight: 600;
+}
+
+.markdown-content :deep(.node-result) ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.markdown-content :deep(.node-result) li {
+  margin: 6px 0;
+  color: #495057;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 工作流总结样式 */
+.markdown-content :deep(.workflow-summary) {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  border: 2px solid #81c784;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+}
+
+.markdown-content :deep(.workflow-summary) strong {
+  color: #2e7d32;
+  font-size: 16px;
+}
+
+.markdown-content :deep(.workflow-summary) ul {
+  margin: 12px 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.markdown-content :deep(.workflow-summary) li {
+  padding: 6px 0;
+  color: #388e3c;
+  font-size: 14px;
+  position: relative;
+  padding-left: 28px;
+}
+
+.markdown-content :deep(.workflow-summary) li::before {
+  content: '✓';
+  position: absolute;
+  left: 8px;
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+/* 工作流错误样式 */
+.markdown-content :deep(.workflow-error) {
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin: 16px 0;
+  border: 2px solid #ef5350;
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.15);
+}
+
+.markdown-content :deep(.workflow-error) strong {
+  color: #c62828;
+  font-size: 15px;
+}
+
+.markdown-content :deep(.workflow-error) pre {
+  background: #fff;
+  border: 1px solid #ef9a9a;
+  margin: 12px 0;
+}
+
+.markdown-content :deep(.workflow-error) ul,
+.markdown-content :deep(.workflow-error) ol {
+  margin: 12px 0;
+  color: #d32f2f;
+}
+
+/* 增强标题样式 - 工作流专用 */
+.markdown-content :deep(h1) {
+  color: #212529;
+  font-size: 1.6em;
+  margin-top: 1.2em;
+  margin-bottom: 0.8em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.markdown-content :deep(h2) {
+  color: #343a40;
+  font-size: 1.35em;
+  margin-top: 1.2em;
+  margin-bottom: 0.6em;
+  font-weight: 600;
+}
+
+.markdown-content :deep(h3) {
+  color: #495057;
+  font-size: 1.15em;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+/* 引用块样式增强 */
+.markdown-content :deep(blockquote) {
+  border-left: 4px solid #4CAF50;
+  background: linear-gradient(90deg, #f1f8f4 0%, #f8f9fa 100%);
+  color: #495057;
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 14px;
+}
+
+/* 分隔线样式增强 */
+.markdown-content :deep(hr) {
+  border: none;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #dee2e6 50%, transparent 100%);
+  margin: 24px 0;
+}
+
+/* 代码块样式优化 - 工作流输出 */
+.markdown-content :deep(code) {
+  background: #f1f3f5;
+  color: #495057;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 0.88em;
+  border: 1px solid #e9ecef;
+}
+
+.markdown-content :deep(pre) {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin: 12px 0;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ====== 任务列表折叠容器样式 ====== */
+.markdown-content :deep(.task-list-wrapper) {
+  margin: 4px 0 8px 44px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fafbfc;
+}
+
+.markdown-content :deep(.task-list-toggle) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e8e8e8;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.markdown-content :deep(.task-list-toggle:hover) {
+  background: #ebebeb;
+}
+
+.markdown-content :deep(.task-list-toggle .toggle-icon) {
+  font-size: 10px;
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.markdown-content :deep(.task-list-toggle .toggle-text) {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.markdown-content :deep(.task-list-content) {
+  padding: 8px 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+}
+
+/* 折叠状态 */
+.markdown-content :deep(.task-list-wrapper.collapsed .task-list-content) {
+  max-height: 0;
+  padding: 0 12px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.markdown-content :deep(.task-list-wrapper.collapsed .task-list-toggle) {
+  border-bottom: none;
+}
+
+/* ====== 任务项样式 ====== */
+.markdown-content :deep(.task-item) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin: 2px 0;
+  transition: background 0.2s;
+}
+
+.markdown-content :deep(.task-item:hover) {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.markdown-content :deep(.task-item .task-icon) {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.markdown-content :deep(.task-item .task-icon svg) {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.markdown-content :deep(.task-item .task-index) {
+  color: #999;
+  font-size: 11px;
+  min-width: 24px;
+}
+
+.markdown-content :deep(.task-item .task-step) {
+  flex: 1;
+  color: #333;
+  font-weight: 500;
+}
+
+.markdown-content :deep(.task-item .task-label) {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.markdown-content :deep(.task-item .task-notes) {
+  font-size: 11px;
+  color: #666;
+  font-style: italic;
+}
+
+/* 任务状态样式 */
+.markdown-content :deep(.task-completed) {
+  background: #f6ffed;
+}
+
+.markdown-content :deep(.task-completed .task-step) {
+  color: #389e0d;
+}
+
+.markdown-content :deep(.task-completed .task-label) {
+  background: #d9f7be;
+  color: #389e0d;
+}
+
+.markdown-content :deep(.task-in-progress) {
+  background: #e6f7ff;
+}
+
+.markdown-content :deep(.task-in-progress .task-step) {
+  color: #1890ff;
+}
+
+.markdown-content :deep(.task-in-progress .task-label) {
+  background: #bae7ff;
+  color: #1890ff;
+}
+
+.markdown-content :deep(.task-pending) {
+  background: #fff;
+}
+
+.markdown-content :deep(.task-pending .task-step) {
+  color: #666;
+}
+
+.markdown-content :deep(.task-pending .task-label) {
+  background: #f0f0f0;
+  color: #999;
+}
+
+/* ====== 思考内容折叠样式 ====== */
+.markdown-content :deep(.think-content-wrapper) {
+  margin: 4px 0 8px 44px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fefefe;
+}
+
+.markdown-content :deep(.think-content-toggle) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background: #f9f9f9;
+  border-bottom: 1px solid #e8e8e8;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.markdown-content :deep(.think-content-toggle:hover) {
+  background: #f0f0f0;
+}
+
+.markdown-content :deep(.think-content-toggle .toggle-icon) {
+  font-size: 10px;
+  color: #666;
+}
+
+.markdown-content :deep(.think-content-toggle .toggle-text) {
+  font-size: 12px;
+  color: #555;
+  font-weight: 500;
+}
+
+.markdown-content :deep(.think-content-body) {
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+}
+
+.markdown-content :deep(.think-content-wrapper.collapsed .think-content-body) {
+  max-height: 0;
+  padding: 0 12px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.markdown-content :deep(.think-content-wrapper.collapsed .think-content-toggle) {
+  border-bottom: none;
+}
+
+.markdown-content :deep(.think-conclusion) {
+  font-size: 13px;
+  color: #444;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.markdown-content :deep(.think-section-title) {
+  display: block;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0 4px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #eee;
+}
+
+.markdown-content :deep(.think-section-title:first-child) {
+  margin-top: 0;
+}
+
+/* Ant Design 图标通用样式 */
+.markdown-content :deep(.antd-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: -0.125em;
+}
+
+.markdown-content :deep(.antd-icon svg) {
+  display: block;
+}
+
+.markdown-content :deep(.tool-type-icon) {
+  margin-right: 4px;
+}
+
+.markdown-content :deep(.think-icon),
+.markdown-content :deep(.conclusion-icon) {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.markdown-content :deep(.plan-icon) {
+  margin-right: 4px;
+}
+
+/* 工具调用加载中动画 */
+.markdown-content :deep(.tool-call-loading .tci-icon svg) {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 任务列表滚动目标标记 */
+.markdown-content :deep(.task-scroll-target) {
+  scroll-margin-top: 8px;
 }
 </style>

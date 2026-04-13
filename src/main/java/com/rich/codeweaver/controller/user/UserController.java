@@ -1,0 +1,351 @@
+package com.rich.codeweaver.controller.user;
+
+import cn.hutool.core.bean.BeanUtil;
+import com.mybatisflex.core.paginate.Page;
+import com.rich.codeweaver.service.generator.FileService;
+import com.rich.codeweaver.common.constant.UserConstant;
+import com.rich.codeweaver.common.model.BaseResponse;
+import com.rich.codeweaver.common.utils.ResultUtils;
+import com.rich.codeweaver.common.exception.BusinessException;
+import com.rich.codeweaver.common.exception.ErrorCode;
+import com.rich.codeweaver.common.exception.ThrowUtils;
+import com.rich.codeweaver.common.model.DeleteRequest;
+import com.rich.codeweaver.model.annotation.AuthCheck;
+import com.rich.codeweaver.model.dto.user.*;
+import com.rich.codeweaver.model.entity.User;
+import com.rich.codeweaver.model.vo.LoginUserVO;
+import com.rich.codeweaver.model.vo.UserVO;
+import com.rich.codeweaver.common.utils.EmailUtils;
+import com.rich.codeweaver.service.user.EmailService;
+import com.rich.codeweaver.service.user.UserService;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.regex.Pattern;
+
+/**
+ * 用户控制器
+ * 提供用户注册、登录、信息管理等接口
+ *
+ * @author DuRuiChi
+ * @since 2026-03-08
+ */
+@RestController
+@RequestMapping("/user")
+public class UserController {
+
+    @Resource
+    private UserService userService;
+
+    @Resource
+    private EmailService emailService;
+
+    @Autowired(required = false)
+    private FileService fileService;
+
+    /**
+     * 用户注册（邮箱方式）
+     *
+     * @param userRegisterRequest 用户注册请求
+     * @return 注册结果
+     */
+    @PostMapping("/register")
+//    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+    public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
+        ThrowUtils.throwIf(userRegisterRequest == null, ErrorCode.PARAMS_ERROR);
+        String email = userRegisterRequest.getEmail();
+        String userName = userRegisterRequest.getUserName();
+        String emailCode = userRegisterRequest.getEmailCode();
+        String userPassword = userRegisterRequest.getUserPassword();
+        String checkPassword = userRegisterRequest.getCheckPassword();
+
+        // 校验邮箱验证码
+        emailService.verifyCode(email, emailCode);
+
+        long result = userService.userRegister(email, userName, userPassword, checkPassword);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 用户登录（邮箱方式）
+     *
+     * @param userLoginRequest 用户登录请求
+     * @param request          请求对象
+     * @return 脱敏后的用户登录信息
+     */
+    @PostMapping("/login")
+//    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+    public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(userLoginRequest == null, ErrorCode.PARAMS_ERROR);
+        String email = userLoginRequest.getEmail();
+        String userPassword = userLoginRequest.getUserPassword();
+        LoginUserVO loginUserVO = userService.userLogin(email, userPassword, request);
+        return ResultUtils.success(loginUserVO);
+    }
+
+    @GetMapping("/get/login")
+//    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+    public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(userService.getLoginUserVO(loginUser));
+    }
+
+    /**
+     * 用户注销
+     *
+     * @param request 请求对象
+     * @return
+     */
+    @PostMapping("/logout")
+//    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+    public BaseResponse<Boolean> userLogout(HttpServletRequest request) {
+        ThrowUtils.throwIf(request == null, ErrorCode.PARAMS_ERROR);
+        boolean result = userService.userLogout(request);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 创建用户
+     */
+    @PostMapping("/add")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest) {
+        ThrowUtils.throwIf(userAddRequest == null, ErrorCode.PARAMS_ERROR);
+        User user = new User();
+        BeanUtil.copyProperties(userAddRequest, user);
+        // 默认密码 12345678
+        final String DEFAULT_PASSWORD = "12345678";
+        String encryptPassword = userService.getEncryptPassword(DEFAULT_PASSWORD);
+        user.setUserPassword(encryptPassword);
+        boolean result = userService.save(user);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(user.getId());
+    }
+
+    /**
+     * 根据 id 获取用户（仅管理员）
+     */
+    @GetMapping("/get")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<User> getUserById(long id) {
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
+        User user = userService.getById(id);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
+        return ResultUtils.success(user);
+    }
+
+    /**
+     * 根据 id 获取包装类
+     */
+    @GetMapping("/get/vo")
+//    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+    public BaseResponse<UserVO> getUserVOById(long id) {
+        BaseResponse<User> response = getUserById(id);
+        User user = response.getData();
+        return ResultUtils.success(userService.getUserVO(user));
+    }
+
+    /**
+     * 删除用户
+     */
+    @PostMapping("/delete")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest) {
+        if (deleteRequest == null || deleteRequest.getId() <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        boolean b = userService.removeById(deleteRequest.getId());
+        return ResultUtils.success(b);
+    }
+
+    /**
+     * 更新用户
+     */
+    @PostMapping("/update")
+//   @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest) {
+        if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // Fetch existing user first to avoid null fields
+        User existingUser = userService.getById(userUpdateRequest.getId());
+        ThrowUtils.throwIf(existingUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+
+        // Copy only non-null properties from request
+        BeanUtil.copyProperties(userUpdateRequest, existingUser, "id");
+
+        boolean result = userService.updateById(existingUser);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 更新用户（管理员）
+     */
+    @PostMapping("/update/admin")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> updateUserAdmin(@RequestBody UserUpdateRequest userUpdateRequest) {
+        if (userUpdateRequest == null || userUpdateRequest.getId() == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // Fetch existing user first to avoid null fields
+        User existingUser = userService.getById(userUpdateRequest.getId());
+        ThrowUtils.throwIf(existingUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+
+        // Copy only non-null properties from request
+        BeanUtil.copyProperties(userUpdateRequest, existingUser, "id");
+
+        boolean result = userService.updateById(existingUser);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 更新头像
+     *
+     * @param file    头像文件
+     * @param request 请求对象
+     * @return 更新结果
+     * @author DuRuiChi
+     */
+//    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+    @PostMapping("/update/avatar")
+    public BaseResponse<Boolean> updateUserAvatar(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+        ThrowUtils.throwIf(file == null || file.isEmpty(), ErrorCode.PARAMS_ERROR);
+        // 当文件服务未启用或缺少配置时，提示并阻止调用
+        ThrowUtils.throwIf(fileService == null, ErrorCode.OPERATION_ERROR, "文件上传模块未启用或未配置");
+        String url = fileService.upload(file);
+        User loginUser = userService.getLoginUser(request);
+        loginUser.setUserAvatar(url);
+        boolean result = userService.updateById(loginUser);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "更新头像失败");
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 分页获取用户封装列表（仅管理员）
+     *
+     * @param userQueryRequest 查询请求参数
+     */
+    @PostMapping("/list/page/vo")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Page<UserVO>> listUserVOByPage(@RequestBody UserQueryRequest userQueryRequest) {
+        ThrowUtils.throwIf(userQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        long pageNum = userQueryRequest.getPageNum();
+        long pageSize = userQueryRequest.getPageSize();
+        Page<User> userPage = userService.page(Page.of(pageNum, pageSize),
+                userService.getQueryWrapper(userQueryRequest));
+        // 数据脱敏
+        Page<UserVO> userVOPage = new Page<>(pageNum, pageSize, userPage.getTotalRow());
+        List<UserVO> userVOList = userService.getUserVOList(userPage.getRecords());
+        userVOPage.setRecords(userVOList);
+        return ResultUtils.success(userVOPage);
+    }
+
+    /**
+     * 更新用户密码
+     *
+     * @param userUpdatePasswordRequest 更新密码请求参数
+     * @return 更新密码是否成功
+     */
+//    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+    @PostMapping("/update/password")
+    public BaseResponse<Boolean> updateUserPassword(@RequestBody UserUpdatePasswordRequest userUpdatePasswordRequest) {
+        ThrowUtils.throwIf(userUpdatePasswordRequest == null, ErrorCode.PARAMS_ERROR);
+        return ResultUtils.success(userService.updatePassword(userUpdatePasswordRequest));
+    }
+
+    /**
+     * 重置用户密码(管理员)
+     *
+     * @param userId 用户 ID
+     * @return 重置密码是否成功
+     */
+//    @RateLimit(type = RateLimitTypeEnum.API, rate = 30, window = 10)
+    @PostMapping("/reset/password")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> resetUserPassword(long userId) {
+        ThrowUtils.throwIf(userId <= 0, ErrorCode.PARAMS_ERROR);
+        return ResultUtils.success(userService.resetPassword(userId));
+    }
+
+    /**
+     * 绑定手机号
+     *
+     * @param userBindPhoneRequest 绑定手机号请求
+     * @param request              请求对象
+     * @return 绑定结果
+     */
+    @PostMapping("/bind/phone")
+    public BaseResponse<Boolean> bindPhone(@RequestBody UserBindPhoneRequest userBindPhoneRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(userBindPhoneRequest == null, ErrorCode.PARAMS_ERROR);
+        String phone = userBindPhoneRequest.getPhone();
+        
+        // 验证手机号格式
+        if (!isValidPhone(phone)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "手机号格式不正确");
+        }
+        
+        User loginUser = userService.getLoginUser(request);
+        loginUser.setPhone(phone);
+        boolean result = userService.updateById(loginUser);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "绑定手机号失败");
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 绑定邮箱
+     *
+     * @param userBindEmailRequest 绑定邮箱请求
+     * @param request              请求对象
+     * @return 绑定结果
+     */
+    @PostMapping("/bind/email")
+    public BaseResponse<Boolean> bindEmail(@RequestBody UserBindEmailRequest userBindEmailRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(userBindEmailRequest == null, ErrorCode.PARAMS_ERROR);
+        String email = EmailUtils.normalizeEmail(userBindEmailRequest.getEmail());
+        String emailCode = userBindEmailRequest.getEmailCode();
+        
+        if (!isValidEmail(email)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "邮箱格式不正确");
+        }
+        
+        // 校验邮箱验证码
+        emailService.verifyCode(email, emailCode);
+        
+        User loginUser = userService.getLoginUser(request);
+        loginUser.setEmail(email);
+        boolean result = userService.updateById(loginUser);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "绑定邮箱失败");
+        return ResultUtils.success(true);
+    }
+
+    /**
+     * 验证手机号格式
+     *
+     * @param phone 手机号
+     * @return 是否有效
+     */
+    private boolean isValidPhone(String phone) {
+        if (phone == null || phone.trim().isEmpty()) {
+            return false;
+        }
+        // 中国大陆手机号正则：1开头，第二位为3-9，总共11位数字
+        String phoneRegex = "^1[3-9]\\d{9}$";
+        return Pattern.matches(phoneRegex, phone.trim());
+    }
+
+    /**
+     * 验证邮箱格式
+     *
+     * @param email 邮箱
+     * @return 是否有效
+     */
+    private boolean isValidEmail(String email) {
+        return EmailUtils.isValidEmail(email);
+    }
+}

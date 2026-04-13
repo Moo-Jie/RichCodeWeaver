@@ -6,6 +6,8 @@
       <p>管理系统用户账户</p>
     </div>
 
+    <AdminBackToDashboardButton />
+
     <!-- 搜索面板 -->
     <a-card class="search-panel">
       <h2>筛选用户</h2>
@@ -14,6 +16,7 @@
           <a-input
             v-model:value="searchParams.userAccount"
             allow-clear
+            aria-label="搜索用户账号"
             placeholder="输入用户账号"
             suffix-icon="search"
           />
@@ -23,6 +26,7 @@
           <a-input
             v-model:value="searchParams.userName"
             allow-clear
+            aria-label="搜索用户名"
             placeholder="输入用户名"
             suffix-icon="user"
           />
@@ -31,6 +35,7 @@
         <a-form-item class="search-item" label="用户角色">
           <a-select
             v-model:value="searchParams.userRole"
+            aria-label="选择用户角色"
             placeholder="全部角色"
             style="width: 120px"
           >
@@ -41,14 +46,14 @@
         </a-form-item>
 
         <a-form-item class="search-actions">
-          <a-button html-type="submit" type="primary">
+          <a-button aria-label="搜索用户" html-type="submit" type="primary">
             <template #icon>
               <SearchOutlined />
             </template>
             搜索
           </a-button>
           &nbsp;
-          <a-button @click="resetSearch">
+          <a-button aria-label="重置搜索条件" @click="resetSearch">
             <template #icon>
               <ReloadOutlined />
             </template>
@@ -117,6 +122,7 @@
           <template v-else-if="column.key === 'action'">
             <a-space class="action-buttons">
               <a-button
+                :aria-label="`编辑用户 ${record.userName}`"
                 size="small"
                 type="default"
                 @click="showEditModal(record)"
@@ -128,6 +134,7 @@
               </a-button>
 
               <a-button
+                :aria-label="`重置用户 ${record.userName} 的密码`"
                 class="reset-btn"
                 size="small"
                 type="default"
@@ -143,7 +150,7 @@
                 title="确定删除此用户吗？操作不可恢复"
                 @confirm="doDelete(record.id)"
               >
-                <a-button danger size="small">
+                <a-button :aria-label="`删除用户 ${record.userName}`" danger size="small">
                   <template #icon>
                     <DeleteOutlined />
                   </template>
@@ -169,13 +176,15 @@
     >
       <a-form :label-col="{ span: 6 }" :model="editForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户账号">
-          <a-input v-model:value="editForm.userAccount" disabled />
+          <a-input v-model:value="editForm.userAccount" aria-label="用户账号（不可编辑）" disabled />
         </a-form-item>
         <a-form-item label="用户昵称">
-          <a-input v-model:value="editForm.userName" placeholder="请输入用户昵称" />
+          <a-input v-model:value="editForm.userName" aria-label="编辑用户昵称"
+                   placeholder="请输入用户昵称" />
         </a-form-item>
         <a-form-item label="用户角色">
-          <a-select v-model:value="editForm.userRole" placeholder="请选择用户角色">
+          <a-select v-model:value="editForm.userRole" aria-label="选择用户角色"
+                    placeholder="请选择用户角色">
             <a-select-option value="admin">管理员</a-select-option>
             <a-select-option value="user">普通用户</a-select-option>
           </a-select>
@@ -185,6 +194,7 @@
             v-model:value="editForm.userProfile"
             :maxlength="200"
             :rows="4"
+            aria-label="编辑用户个人简介"
             placeholder="请输入用户简介..."
           />
         </a-form-item>
@@ -211,9 +221,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {message} from 'ant-design-vue'
 import {
   CalendarOutlined,
   DeleteOutlined,
@@ -224,10 +233,9 @@ import {
   SearchOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import { deleteUser, listUserVoByPage, resetUserPassword, updateUser } from '@/api/userController'
+import {deleteUser, listUserVoByPage, resetUserPassword, updateUser} from '@/api/userController'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import dayjs from 'dayjs'
-
-const router = useRouter()
 
 // 表格列定义
 const columns = [
@@ -443,128 +451,94 @@ onMounted(() => {
 
 <style lang="less" scoped>
 #userManagePage {
-  padding: 24px;
-  background: linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
-  min-height: calc(100vh - 48px);
-  position: relative;
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: #333333;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><rect x="40" y="10" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="10" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="70" y="40" width="20" height="20" fill="%23666" rx="4" ry="4"/><rect x="40" y="70" width="20" height="20" fill="%23666" rx="4" ry="4"/></svg>');
-    background-size: 200px;
-    pointer-events: none;
-    z-index: 0;
-  }
+  padding: 32px;
+  width: 100%;
 }
 
 .page-header {
-  text-align: center;
-  margin-bottom: 30px;
-  padding: 10px 0;
+  margin-bottom: 28px;
 
   h1 {
-    font-family: 'Comic Neue', cursive;
-    font-size: 2.8rem;
+    font-size: 22px;
     font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 8px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    color: #1a1a1a;
+    margin: 0 0 6px;
   }
 
   p {
-    font-size: 1.2rem;
-    color: #7f8c8d;
-    font-weight: 400;
-    font-family: 'Comic Neue', cursive;
-    max-width: 600px;
-    margin: 0 auto;
+    font-size: 14px;
+    color: #999;
+    margin: 0;
   }
 }
 
 .search-panel, .user-table {
   background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
+  border-radius: 14px;
+  border: 1px solid #f0f0f0;
+  margin-bottom: 20px;
   overflow: hidden;
-  position: relative;
-  z-index: 1;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 
   &:hover {
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-    transform: translateY(-3px);
+    border-color: #e5e5e5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 
   h2 {
-    font-size: 1.4rem;
-    color: #2c3e50;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f0f0f0;
-    font-family: 'Comic Neue', cursive;
+    font-size: 16px;
+    color: #1a1a1a;
+    margin-bottom: 16px;
     font-weight: 600;
   }
 }
 
 .search-panel {
-  padding: 25px;
+  padding: 20px;
 
   .ant-form {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 12px;
   }
 
   .search-item {
     flex: 1;
-    min-width: 280px;
+    min-width: 200px;
     margin-bottom: 0;
   }
 
   .search-actions {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-self: flex-end;
-    padding-left: 10px;
 
     .ant-btn {
-      height: 40px;
-      padding: 0 18px;
-      border-radius: 12px;
-      font-family: 'Nunito', sans-serif;
-      font-weight: 600;
-      font-size: 1rem;
-      transition: all 0.3s ease;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      border: none;
+      height: 36px;
+      padding: 0 16px;
+      border-radius: 10px;
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      border: 1px solid #e5e5e5;
 
       &:first-child {
-        background: linear-gradient(135deg, #a8e6cf 0%, #dcedc1 100%);
-        color: #2c3e50;
+        background: #1a1a1a;
+        color: #fff;
+        border-color: #1a1a1a;
 
         &:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 16px rgba(168, 230, 207, 0.4);
+          background: #333;
         }
       }
 
       &:last-child {
-        background: linear-gradient(135deg, #00c4ff 0%, #9face6 100%);
-        color: white;
+        background: #fff;
+        color: #666;
 
         &:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 16px rgba(116, 235, 213, 0.4);
+          background: #fafafa;
+          border-color: #d0d0d0;
         }
       }
     }
@@ -573,23 +547,21 @@ onMounted(() => {
 
 
 .user-table {
-  padding: 25px;
+  padding: 20px;
 
   .table-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 
     h2 {
       margin: 0;
-      padding-bottom: 0;
-      border: none;
     }
 
     .table-tips {
-      color: #7a787c;
-      font-size: 0.95rem;
+      color: #999;
+      font-size: 14px;
       display: flex;
       align-items: center;
       gap: 8px;
@@ -599,24 +571,22 @@ onMounted(() => {
   .avatar-img {
     border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
   }
 
   .no-avatar {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 80px;
+    width: 60px;
     height: 60px;
-    background: #f9f9f9;
-    border: 1px dashed #ddd;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
     border-radius: 8px;
-    color: #999;
-    font-size: 0.9rem;
-    padding: 5px;
+    color: #bbb;
+    font-size: 12px;
 
     span {
-      margin-left: 5px;
+      margin-left: 4px;
     }
   }
 
@@ -624,21 +594,16 @@ onMounted(() => {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding: 5px 0;
-    display: flex;
-    align-items: center;
-
-    .anticon {
-      margin-right: 6px;
-      color: #999;
-    }
+    font-size: 14px;
+    color: #666;
   }
 
   .time-cell {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.92rem;
+    font-size: 14px;
+    color: #666;
   }
 
   .action-buttons {
@@ -646,23 +611,25 @@ onMounted(() => {
     gap: 8px;
 
     .ant-btn {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 0.9rem;
+      font-size: 13px;
       padding: 4px 12px;
-      border-radius: 6px;
-      height: 32px;
+      border-radius: 8px;
+      height: 30px;
+      border: 1px solid #e5e5e5;
+      transition: all 0.2s ease;
+
+      &:hover {
+        border-color: #d0d0d0;
+        background: #fafafa;
+      }
     }
 
     .reset-btn {
-      color: #fda27e;
-      border-color: #fda684;
+      color: #ff6b6b;
+      border-color: #ff6b6b;
 
       &:hover {
-        color: #ff9c6e;
-        border-color: #ff9c6e;
-        background: rgba(255, 122, 69, 0.1);
+        background: rgba(255, 107, 107, 0.1);
       }
     }
   }
@@ -671,91 +638,81 @@ onMounted(() => {
 :deep(.ant-table-thead > tr > th) {
   background: #fafafa;
   font-weight: 600;
-  color: #2c3e50;
-  font-family: 'Comic Neue', cursive;
+  color: #1a1a1a;
+  font-size: 14px;
 }
 
 :deep(.ant-table-tbody > tr > td) {
   vertical-align: middle;
-  transition: background 0.3s;
+  font-size: 14px;
+  color: #666;
 }
 
 :deep(.ant-table-row:hover td) {
-  background: rgba(168, 230, 207, 0.1) !important;
+  background: #fafafa !important;
 }
 
 :deep(.ant-pagination) {
   display: flex;
   justify-content: center;
-  margin-top: 25px;
-  padding: 10px 0;
-  background: #f8f9fa;
-  border-radius: 12px;
+  margin-top: 20px;
 }
 
 // 模态框样式
 :deep(.edit-modal), :deep(.password-modal) {
   .ant-modal {
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 15px 40px rgba(92, 74, 72, 0.2);
+    border-radius: 14px;
   }
 
   .ant-modal-content {
-    background: linear-gradient(135deg, #fffaf0 0%, #fdf6e3 100%);
-    border: 1px solid rgba(198, 180, 165, 0.4);
+    background: #fff;
+    border: 1px solid #f0f0f0;
   }
 
   .ant-modal-header {
-    background: transparent;
-    border-bottom: 1px solid #f0e6d9;
-    padding: 22px 24px;
-    border-radius: 20px 20px 0 0;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 20px;
 
     .ant-modal-title {
-      color: #5c4a48;
-      font-size: 1.4rem;
+      color: #1a1a1a;
+      font-size: 16px;
       font-weight: 600;
-      text-align: center;
     }
   }
 
   .ant-modal-body {
-    padding: 28px 24px;
+    padding: 20px;
   }
 
   .ant-modal-footer {
-    border-top: 1px solid #f0e6d9;
-    padding: 18px 24px;
-    text-align: center;
+    border-top: 1px solid #f0f0f0;
+    padding: 12px 20px;
 
     .ant-btn {
-      border-radius: 10px;
-      padding: 0 22px;
-      height: 38px;
+      border-radius: 8px;
+      padding: 0 16px;
+      height: 36px;
       font-weight: 500;
-      transition: all 0.2s ease;
+      font-size: 14px;
 
       &.ant-btn-default {
-        border-color: #d9d9d9;
-        color: #5c4a48;
+        border-color: #e5e5e5;
+        color: #666;
 
         &:hover {
-          border-color: #c6a08a;
-          color: #c6a08a;
+          background: #fafafa;
+          border-color: #d0d0d0;
         }
       }
 
       &.ant-btn-primary {
-        background: #c6a08a;
-        border-color: #c6a08a;
+        background: #1a1a1a;
+        border-color: #1a1a1a;
         color: white;
 
         &:hover {
-          background: #b8917a;
-          border-color: #b8917a;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(198, 160, 138, 0.3);
+          background: #333;
         }
       }
     }
@@ -763,36 +720,28 @@ onMounted(() => {
 
   .ant-form {
     .ant-form-item {
-      margin-bottom: 22px;
+      margin-bottom: 16px;
 
       .ant-form-item-label {
         label {
-          color: #5c4a48;
-          font-weight: 600;
-          font-size: 0.95rem;
+          color: #1a1a1a;
+          font-weight: 500;
+          font-size: 14px;
         }
       }
 
       .ant-input, .ant-input-textarea, .ant-select {
-        border-radius: 10px;
-        border: 1px solid #d9d9d9;
-        padding: 10px 14px;
-        font-size: 0.95rem;
-        transition: all 0.2s ease;
+        border-radius: 8px;
+        border: 1px solid #e5e5e5;
+        font-size: 14px;
 
         &:focus, &:focus-within {
-          border-color: #c6a08a;
-          box-shadow: 0 0 0 2px rgba(198, 160, 138, 0.2);
+          border-color: #1a1a1a;
         }
 
         &::placeholder {
-          color: #a8a8a8;
+          color: #bbb;
         }
-      }
-
-      .ant-input-textarea {
-        min-height: 100px;
-        resize: vertical;
       }
     }
   }
@@ -823,6 +772,110 @@ onMounted(() => {
 
   .action-buttons {
     flex-wrap: wrap;
+  }
+}
+
+/* Keyboard navigation focus indicators */
+:deep(.ant-input:focus),
+:deep(.ant-input-focused),
+:deep(.ant-select-focused .ant-select-selector),
+:deep(.ant-textarea:focus) {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+  border-color: #4096ff;
+}
+
+:deep(.ant-btn:focus-visible) {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+}
+
+:deep(.ant-table-row:focus-within) {
+  outline: 2px solid #4096ff;
+  outline-offset: -2px;
+}
+
+:deep(.ant-pagination-item:focus-visible),
+:deep(.ant-pagination-prev:focus-visible),
+:deep(.ant-pagination-next:focus-visible) {
+  outline: 3px solid #4096ff;
+  outline-offset: 2px;
+}
+
+.action-buttons {
+  .ant-btn:focus-visible {
+    outline: 3px solid #4096ff;
+    outline-offset: 2px;
+  }
+}
+
+@media (max-width: 768px) {
+  #userManagePage {
+    padding: 16px;
+  }
+
+  .page-header {
+    h1 {
+      font-size: 2rem;
+    }
+
+    p {
+      font-size: 1rem;
+    }
+  }
+
+  .search-panel, .user-table {
+    padding: 18px;
+    margin-bottom: 20px;
+
+    h2 {
+      font-size: 1.2rem;
+    }
+  }
+
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 10px;
+
+    h2 {
+      font-size: 1.2rem;
+    }
+
+    .table-tips {
+      font-size: 0.85rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 5px;
+    }
+  }
+
+  .action-buttons {
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .ant-btn {
+      font-size: 0.85rem;
+      padding: 4px 10px;
+      height: 30px;
+    }
+  }
+
+  .search-actions {
+    .ant-btn {
+      height: 36px;
+      padding: 0 14px;
+      font-size: 0.9rem;
+    }
+  }
+
+  :deep(.ant-table) {
+    font-size: 0.9rem;
+  }
+
+  :deep(.ant-modal) {
+    max-width: calc(100vw - 32px);
+    margin: 16px auto;
   }
 }
 </style>

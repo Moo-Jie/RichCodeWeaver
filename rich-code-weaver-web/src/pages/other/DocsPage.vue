@@ -42,12 +42,12 @@
           </a-list>
         </a-collapse-panel>
 
-        <!-- 应用优化区域 -->
+        <!-- 数字产物优化区域 -->
         <a-collapse-panel key="2" :show-arrow="false">
           <template #header>
             <div class="panel-header">
               <code-outlined class="section-icon" />
-              <span class="panel-title">应用优化</span>
+              <span class="panel-title">数字产物优化</span>
             </div>
           </template>
 
@@ -94,25 +94,25 @@
 
           <!-- 动态内容渲染 -->
           <div v-if="activeSection.id === 'getting-started'">
-            <p>1. 在首页输入应用描述，或者选择"热门提示词"。</p>
-            <p>2. 选择应用生成模式，点击"创建作品"按钮生成应用。</p>
-            <p>3. 系统自动进入应用生成页面，生成应用代码。</p>
-            <p>4. 可在应用生成页面对应用进行实时预览、AI 局部优化、AI
-              全局重构、部署上线、编辑应用信息等操作。</p>
+            <p>1. 在首页输入数字产物描述，或者选择"热门提示词"。</p>
+            <p>2. 选择数字产物生成模式，点击"创建作品"按钮生成数字产物。</p>
+            <p>3. 系统自动进入数字产物生成页面，生成数字产物代码。</p>
+            <p>4. 可在数字产物生成页面对数字产物进行实时预览、AI 局部优化、AI
+              全局重构、部署上线、编辑数字产物信息等操作。</p>
           </div>
 
           <div v-if="activeSection.id === 'prompt-guide'">
-            <p>1. 应用基础信息：应用名称、应用类型与核心功能、目标用户等。</p>
+            <p>1. 数字产物基础信息：数字产物名称、数字产物类型与核心功能、目标用户等。</p>
             <p>2. 技术栈与项目规范： 项目结构（Vue项目/ React项目/ 纯静态项目）、UI框架/组件库等。</p>
             <p>3. 详细功能需求：功能列表、交互流程、数据持久化等。</p>
             <p>4. UI/UX与布局设计：布局描述、风格描述、附加元素等。</p>
-            <p>5. 数据与API：应用需要动态数据，必须详细说明。</p>
+            <p>5. 数据与API：数字产物需要动态数据，必须详细说明。</p>
           </div>
 
           <div v-if="activeSection.id === 'deploy-app'">
-            <p>1. 登录应用平台，进入应用详情页。</p>
-            <p>2. 点击"部署为可访问网站"按钮，即可部署应用。</p>
-            <p>3. 后续点击"访问已部署网站"即可访问应用。</p>
+            <p>1. 登录数字产物平台，进入产物详情页。</p>
+            <p>2. 点击"部署为可访问网站"按钮，即可部署数字产物。</p>
+            <p>3. 后续点击"访问已部署网站"即可访问数字产物。</p>
           </div>
 
           <div v-if="activeSection.id === 'vue-optimization'">
@@ -171,7 +171,7 @@
           <div v-if="activeSection.id === 'prompt-best-practice'">
             <h3>提示词最佳实践</h3>
             <p><strong>1. 明确项目需求</strong></p>
-            <p>• 清晰描述应用的核心功能和目标用户</p>
+            <p>• 清晰描述数字产物的核心功能和目标用户</p>
             <p>• 指定技术栈偏好（Vue 3 + TypeScript + Vite）</p>
             <p>• 定义项目结构和代码规范</p>
 
@@ -218,9 +218,9 @@ const activeKeys = ref<string[]>(['1'])
 
 // 文档项数据
 const quickStartItems = reactive([
-  { id: 'getting-started', title: '创建第一个应用' },
+  { id: 'getting-started', title: '创建第一个数字产物' },
   { id: 'prompt-guide', title: '提示词编写指南' },
-  { id: 'deploy-app', title: '应用部署流程' }
+  { id: 'deploy-app', title: '数字产物部署流程' }
 ])
 
 const optimizationItems = reactive([
