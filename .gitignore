@@ -40,3 +40,4 @@ build/
 /src/main/resources/prometheus.yml
 /src/main/resources/mcp-servers.json
 /.kiro/
+/rich-code-weaver-web/dist.zip

@@ -10,6 +10,8 @@ import com.rich.codeweaver.common.exception.ErrorCode;
 import com.rich.codeweaver.common.exception.ThrowUtils;
 import com.rich.codeweaver.common.utils.SessionUserUtils;
 import com.rich.codeweaver.factory.AiCustomerServiceFactory;
+import com.rich.codeweaver.monitor.MonitorContext;
+import com.rich.codeweaver.monitor.MonitorContextHolder;
 import com.rich.codeweaver.model.dto.generator.StreamEvent;
 import com.rich.codeweaver.model.dto.generator.StreamSession;
 import com.rich.codeweaver.model.dto.customerservice.CustomerServiceChatRequest;
@@ -177,31 +179,40 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                 conversationId, aiCustomerServiceFactory.isCustomerServiceRagEnabled());
         AiCustomerService customerService = aiCustomerServiceFactory.getCustomerService(conversationId);
         StringBuilder aiResponseBuilder = new StringBuilder();
+        MonitorContext monitorContext = MonitorContext.builder()
+                .userId(String.valueOf(visitorContext.streamUserId()))
+                .appId(String.valueOf(conversationId))
+                .genMode("customer_service")
+                .build();
         Flux<String> responseFlux = convertCustomerServiceTokenStreamToFluxUtils.convertTokenStreamToFlux(
                 customerService.chatStream(userMessage, conversationId));
-        responseFlux.subscribe(chunk -> {
-                    if (StrUtil.isEmpty(chunk)) {
-                        return;
-                    }
-                    // 实时缓存 AI 输出，并把增量片段推送给前端
-                    aiResponseBuilder.append(chunk);
-                    addMessageEvent(sessionKey, chunk);
-                }, error -> {
-                    log.error("AI 客服流式响应失败，conversationId={}", conversationId, error);
-                    String errorMsg = error.getMessage() != null ? error.getMessage() : AI_RESPONSE_FAILED_MESSAGE;
-                    addServerErrorEvent(sessionKey, errorMsg);
-                    streamSessionService.markError(sessionKey, errorMsg);
-                }, () -> {
-                    String aiResponse = aiResponseBuilder.toString();
-                    if (StrUtil.isNotBlank(aiResponse)) {
-                        customerServiceMessageService.addMessage(conversationId, CustomerServiceMessageRoleEnum.AI.getValue(),
-                                aiResponse, visitorContext.userId(), visitorContext.visitorKey());
-                        customerServiceConversationService.refreshConversation(conversationId, aiResponse,
-                                LocalDateTime.now(), false);
-                    }
-                    addEndEvent(sessionKey);
-                    streamSessionService.markCompleted(sessionKey);
-                });
+        try {
+            MonitorContextHolder.setContext(monitorContext);
+            responseFlux.subscribe(chunk -> {
+                        if (StrUtil.isEmpty(chunk)) {
+                            return;
+                        }
+                        aiResponseBuilder.append(chunk);
+                        addMessageEvent(sessionKey, chunk);
+                    }, error -> {
+                        log.error("AI 客服流式响应失败，conversationId={}", conversationId, error);
+                        String errorMsg = error.getMessage() != null ? error.getMessage() : AI_RESPONSE_FAILED_MESSAGE;
+                        addServerErrorEvent(sessionKey, errorMsg);
+                        streamSessionService.markError(sessionKey, errorMsg);
+                    }, () -> {
+                        String aiResponse = aiResponseBuilder.toString();
+                        if (StrUtil.isNotBlank(aiResponse)) {
+                            customerServiceMessageService.addMessage(conversationId, CustomerServiceMessageRoleEnum.AI.getValue(),
+                                    aiResponse, visitorContext.userId(), visitorContext.visitorKey());
+                            customerServiceConversationService.refreshConversation(conversationId, aiResponse,
+                                    LocalDateTime.now(), false);
+                        }
+                        addEndEvent(sessionKey);
+                        streamSessionService.markCompleted(sessionKey);
+                    });
+        } finally {
+            MonitorContextHolder.clearContext();
+        }
     }
 
     /**

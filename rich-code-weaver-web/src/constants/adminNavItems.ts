@@ -6,6 +6,7 @@ import {
   CloudServerOutlined,
   CommentOutlined,
   CopyOutlined,
+  DashboardOutlined,
   PaperClipOutlined,
   ReadOutlined,
   UserOutlined
@@ -105,19 +106,11 @@ export const adminNavItems: AdminNavItem[] = [
     secondaryLabel: '已启用分类'
   },
   {
-    key: 'higressManage',
-    label: '网关管理',
-    description: '查看 Higress 网关入口，处理网关侧接入与巡检。',
-    actionText: '进入网关管理',
-    icon: ApiOutlined,
-    path: '/admin/higressManage'
-  },
-  {
-    key: 'nacosManage',
-    label: 'Nacos 配置',
-    description: '直达配置中心，处理环境配置与服务参数维护。',
-    actionText: '打开 Nacos',
-    icon: CloudServerOutlined,
-    url: import.meta.env.VITE_NACOS_URL || 'http://192.168.43.4:8848/nacos/index.html'
+    key: 'grafanaMonitor',
+    label: '系统监控',
+    description: '查看 AI 模型请求量、Token 消耗、响应时间与错误率等实时监控指标。',
+    actionText: '进入系统监控',
+    icon: DashboardOutlined,
+    path: '/admin/grafanaMonitor'
   }
 ]

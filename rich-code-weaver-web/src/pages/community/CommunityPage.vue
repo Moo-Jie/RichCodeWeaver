@@ -383,6 +383,14 @@ const selectedPostId = computed(() => {
   return Number.isNaN(postId) ? undefined : postId
 })
 
+const normalizePostId = (postId?: number | string) => {
+  if (postId == null || postId === '') {
+    return undefined
+  }
+  const normalized = Number(postId)
+  return Number.isNaN(normalized) ? undefined : normalized
+}
+
 const getCategoryLabel = (category?: string) => {
   return categoryOptions.find(item => item.value === category)?.label || '讨论'
 }
@@ -487,11 +495,13 @@ const fetchPosts = async (pageNum = 1) => {
   }
 }
 
-const fetchPostDetail = async (postId: number, increaseView = false) => {
-  const res = await getCommunityPostVOById({ id: postId, increaseView })
+const fetchPostDetail = async (postId: number | string, increaseView = false) => {
+  const normalizedPostId = normalizePostId(postId)
+  if (!normalizedPostId) return
+  const res = await getCommunityPostVOById({ id: normalizedPostId, increaseView })
   if (res.data.code === 0 && res.data.data) {
     selectedPost.value = res.data.data
-    const index = posts.value.findIndex(item => item.id === postId)
+    const index = posts.value.findIndex(item => item.id === normalizedPostId)
     if (index >= 0) {
       posts.value[index] = {
         ...posts.value[index],
@@ -501,11 +511,13 @@ const fetchPostDetail = async (postId: number, increaseView = false) => {
   }
 }
 
-const fetchReplies = async (postId: number) => {
+const fetchReplies = async (postId: number | string) => {
+  const normalizedPostId = normalizePostId(postId)
+  if (!normalizedPostId) return
   repliesLoading.value = true
   try {
     const res = await listCommunityReplyByPage({
-      postId,
+      postId: normalizedPostId,
       pageNum: 1,
       pageSize: 50
     })
@@ -517,17 +529,18 @@ const fetchReplies = async (postId: number) => {
   }
 }
 
-const selectPost = async (postId?: number, updateRoute = true, increaseView = true) => {
-  if (!postId) return
+const selectPost = async (postId?: number | string, updateRoute = true, increaseView = true) => {
+  const normalizedPostId = normalizePostId(postId)
+  if (!normalizedPostId) return
   if (updateRoute) {
-    if (Number(route.query.postId) !== postId) {
+    if (Number(route.query.postId) !== normalizedPostId) {
       pendingIncreaseView.value = increaseView
-      await router.replace({ query: { ...route.query, postId: String(postId) } })
+      await router.replace({ query: { ...route.query, postId: String(normalizedPostId) } })
       return
     }
   }
-  await fetchPostDetail(postId, increaseView)
-  await fetchReplies(postId)
+  await fetchPostDetail(normalizedPostId, increaseView)
+  await fetchReplies(normalizedPostId)
 }
 
 const loadMorePosts = async () => {

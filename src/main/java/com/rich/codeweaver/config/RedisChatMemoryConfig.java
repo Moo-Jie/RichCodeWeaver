@@ -1,10 +1,18 @@
 package com.rich.codeweaver.config;
 
-import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
-import lombok.Data;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static dev.langchain4j.data.message.ChatMessageDeserializer.messagesFromJson;
+import static dev.langchain4j.data.message.ChatMessageSerializer.messagesToJson;
 
 /**
  * redis 整合 Langchain4j 配置
@@ -14,38 +22,22 @@ import org.springframework.context.annotation.Configuration;
  **/
 @Configuration
 @ConfigurationProperties(prefix = "spring.data.redis")
-@Data
 public class RedisChatMemoryConfig {
 
-    /**
-     * redis 主机
-     */
-    private String host;
-
-    /**
-     * redis 账户
-     */
-    private String user;
-
-    /**
-     * redis 密码
-     */
-    private String password;
-
-    /**
-     * redis 端口
-     */
-    private int port;
-
-    /**
-     * redis 数据库
-     */
-    private int database;
+    private static final String CHAT_MEMORY_KEY_PREFIX = "langchain4j:chat_memory:";
 
     /**
      * redis 过期时间
      */
     private long ttl;
+
+    public long getTtl() {
+        return ttl;
+    }
+
+    public void setTtl(long ttl) {
+        this.ttl = ttl;
+    }
 
     /**
      * Redis整合Langchain4j配置
@@ -57,50 +49,36 @@ public class RedisChatMemoryConfig {
      * @create 2025/12/18
      **/
     @Bean
-    public RedisChatMemoryStore redisChatMemoryStore() {
-        // 构建Redis聊天记忆存储
-        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder();
+    public ChatMemoryStore redisChatMemoryStore(StringRedisTemplate stringRedisTemplate) {
+        return new ChatMemoryStore() {
+            @Override
+            public List<ChatMessage> getMessages(Object memoryId) {
+                String json = stringRedisTemplate.opsForValue().get(buildChatMemoryKey(memoryId));
+                if (json == null || json.isBlank()) {
+                    return Collections.emptyList();
+                }
+                return messagesFromJson(json);
+            }
 
-        // 设置Redis主机地址（必需参数）
-        if (host != null && !host.trim().isEmpty()) {
-            builder.host(host);
-        } else {
-            // 如果未配置主机地址，使用默认值localhost
-            builder.host("localhost");
-        }
+            @Override
+            public void updateMessages(Object memoryId, List<ChatMessage> messages) {
+                String chatMemoryKey = buildChatMemoryKey(memoryId);
+                String json = messagesToJson(messages);
+                if (ttl > 0) {
+                    stringRedisTemplate.opsForValue().set(chatMemoryKey, json, ttl, TimeUnit.SECONDS);
+                    return;
+                }
+                stringRedisTemplate.opsForValue().set(chatMemoryKey, json);
+            }
 
-        // 设置Redis端口（必需参数）
-        if (port > 0 && port <= 65535) {
-            builder.port(port);
-        } else {
-            // 如果端口无效，使用默认值6379
-            builder.port(6379);
-        }
+            @Override
+            public void deleteMessages(Object memoryId) {
+                stringRedisTemplate.delete(buildChatMemoryKey(memoryId));
+            }
+        };
+    }
 
-        // 设置Redis数据库索引（可选参数，默认为0）
-        if (database >= 0 && database <= 15) {
-//            builder.database(database);
-        }
-
-        // 设置用户名（可选参数，生产环境建议启用）
-        // 注意：当前已注释，上线时需要取消注释以启用认证
-        // if (user != null && !user.trim().isEmpty()) {
-        //     builder.user(user);
-        // }
-
-        // 设置密码（可选参数，生产环境建议启用）
-        // 注意：当前已注释，上线时需要取消注释以启用认证
-         if (password != null && !password.trim().isEmpty()) {
-             builder.password(password);
-         }
-
-        // 设置TTL（生存时间，单位：秒）
-        // TTL用于自动清理过期的对话记录，避免Redis内存占用过高
-        if (ttl > 0) {
-            builder.ttl(ttl);
-        }
-
-        // 构建并返回Redis聊天记忆存储实例
-        return builder.build();
+    private String buildChatMemoryKey(Object memoryId) {
+        return CHAT_MEMORY_KEY_PREFIX + memoryId;
     }
 }

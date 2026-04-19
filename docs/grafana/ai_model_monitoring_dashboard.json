@@ -75,9 +75,10 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(ai_model_requests_total{status=\"success\"})",
+          "expr": "sum(ai_model_requests_total{status=\"success\"}) or vector(0)",
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -137,9 +138,10 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(ai_model_tokens_total{token_type=\"total\"})",
+          "expr": "sum(ai_model_tokens_total{token_type=\"total\"}) or vector(0)",
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -207,9 +209,10 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "avg(rate(ai_model_response_duration_seconds_sum[5m])) / avg(rate(ai_model_response_duration_seconds_count[5m]))",
+          "expr": "(sum(ai_model_response_duration_seconds_sum) / clamp_min(sum(ai_model_response_duration_seconds_count), 1e-9)) or vector(0)",
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -277,9 +280,10 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(ai_model_requests_total{status=\"success\"}[5m])) / sum(rate(ai_model_requests_total{status=\"started\"}[5m])) * 100",
+          "expr": "((sum(ai_model_requests_total{status=\"success\"}) / clamp_min(sum(ai_model_requests_total{status=\"started\"}), 1e-9)) * 100) or vector(0)",
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
@@ -347,6 +351,7 @@
         "y": 4
       },
       "id": 5,
+      "timeFrom": "7d",
       "options": {
         "legend": {
           "calcs": [],
@@ -366,7 +371,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(ai_model_requests_total{status=\"success\"}[1m])) by (gen_mode)",
+          "expr": "sum(rate(ai_model_requests_total{status=\"success\"}[$__rate_interval])) by (gen_mode) or on(gen_mode) (sum(ai_model_requests_total{status=\"started\"}) by (gen_mode) * 0)",
           "legendFormat": "{{gen_mode}}",
           "range": true,
           "refId": "A"
@@ -436,6 +441,7 @@
         "y": 4
       },
       "id": 6,
+      "timeFrom": "7d",
       "options": {
         "legend": {
           "calcs": [],
@@ -455,7 +461,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "avg(rate(ai_model_response_duration_seconds_sum[5m])) by (gen_mode) / avg(rate(ai_model_response_duration_seconds_count[5m])) by (gen_mode)",
+          "expr": "(sum by (gen_mode) (ai_model_response_duration_seconds_sum) / clamp_min(sum by (gen_mode) (ai_model_response_duration_seconds_count), 1e-9)) or on(gen_mode) (sum(ai_model_response_duration_seconds_count) by (gen_mode) * 0)",
           "legendFormat": "{{gen_mode}}",
           "range": true,
           "refId": "A"
@@ -719,13 +725,14 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(ai_model_requests_total{status=\"success\"}) by (gen_mode)",
+          "expr": "sum(ai_model_requests_total{status=\"success\"}) by (gen_mode) or on(gen_mode) (sum(ai_model_requests_total{status=\"started\"}) by (gen_mode) * 0)",
+          "instant": true,
           "legendFormat": "{{gen_mode}}",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
-      "title": "工作流模式 vs Agent 模式请求量对比",
+      "title": "工作流模式 vs Agent 模式 vs Customer_Service 请求量对比",
       "type": "piechart"
     },
     {
@@ -789,6 +796,7 @@
         "y": 20
       },
       "id": 10,
+      "timeFrom": "7d",
       "options": {
         "legend": {
           "calcs": [],
@@ -808,7 +816,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(ai_model_tokens_total[5m])) by (token_type)",
+          "expr": "sum(rate(ai_model_tokens_total[$__rate_interval])) by (token_type) or on(token_type) (sum(ai_model_tokens_total) by (token_type) * 0)",
           "legendFormat": "{{token_type}}",
           "range": true,
           "refId": "A"
@@ -878,6 +886,7 @@
         "y": 28
       },
       "id": 11,
+      "timeFrom": "7d",
       "options": {
         "legend": {
           "calcs": [],
@@ -897,7 +906,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.50, rate(ai_model_response_duration_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.50, sum by (le) (ai_model_response_duration_seconds_bucket)) or vector(0)",
           "legendFormat": "P50",
           "range": true,
           "refId": "A"
@@ -908,7 +917,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.95, rate(ai_model_response_duration_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.95, sum by (le) (ai_model_response_duration_seconds_bucket)) or vector(0)",
           "hide": false,
           "legendFormat": "P95",
           "range": true,
@@ -920,7 +929,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "histogram_quantile(0.99, rate(ai_model_response_duration_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.99, sum by (le) (ai_model_response_duration_seconds_bucket)) or vector(0)",
           "hide": false,
           "legendFormat": "P99",
           "range": true,
@@ -991,6 +1000,7 @@
         "y": 36
       },
       "id": 12,
+      "timeFrom": "7d",
       "options": {
         "legend": {
           "calcs": [],
@@ -1010,7 +1020,7 @@
             "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
-          "expr": "sum(rate(ai_model_errors_total[5m])) by (gen_mode)",
+          "expr": "sum(rate(ai_model_errors_total[$__rate_interval])) by (gen_mode) or on(gen_mode) (sum(ai_model_requests_total{status=\"started\"}) by (gen_mode) * 0)",
           "legendFormat": "{{gen_mode}}",
           "range": true,
           "refId": "A"
@@ -1034,7 +1044,7 @@
         "current": {
           "selected": false,
           "text": "Prometheus",
-          "value": "df3i020ek2x34e"
+          "value": "cfj5oyy7f74zkc"
         },
         "hide": 0,
         "includeAll": false,
@@ -1056,7 +1066,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "AI 模型监控看板",
+  "title": "RichCodeWeaver",
   "uid": "ai-model-monitoring",
   "version": 0,
   "weekStart": ""

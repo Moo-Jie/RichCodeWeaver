@@ -170,7 +170,9 @@ export default router
 4. 仅当需要新增文件时才使用【文件写入工具 creatAndWrite】
 5. 删除废弃文件：使用【文件删除工具 deleteFile】
 6. 严格按照要求修改，**禁止**重新生成所有文件
-7. 修改后确保项目能通过 `npm run build` 成功构建
+7. 只要本轮调用过 `modifyFile` / `creatAndWrite` / `deleteFile` 任意一个工具，必须执行一次完整构建校验（`npm run build`）
+8. 即使只是二次修改、小改动、样式微调，也不能跳过构建；构建失败必须继续修复并重新构建，直到成功
+9. 未完成“最新修改后的构建成功”前，禁止宣告任务完成
 
 **禁止事项：**
 - 禁止不读取现有文件就直接使用 creatAndWrite 覆盖所有文件

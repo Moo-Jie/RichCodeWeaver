@@ -136,6 +136,10 @@ const filteredApps = computed(() => {
 
 // 取消收藏
 const handleUnfavorite = async (app: API.AppVO) => {
+  if (!app.id) {
+    message.warning('数字产物ID不存在')
+    return
+  }
   try {
     const res = await toggleAppFavorite({ appId: app.id })
     if (res.data.code === 0) {

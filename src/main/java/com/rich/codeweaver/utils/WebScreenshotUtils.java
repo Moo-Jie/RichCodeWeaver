@@ -70,7 +70,7 @@ public class WebScreenshotUtils {
                     log.info("初始化 Chromium 浏览器...");
                     Playwright pw = getPlaywright();
                     browser = pw.chromium().launch(new BrowserType.LaunchOptions()
-                            .setHeadless(true)  // 无头模式
+                            .setHeadless(true)  // 无头模式 （Linux 服务器强制要求）
                             .setArgs(java.util.Arrays.asList(
                                     "--no-sandbox",
                                     "--disable-dev-shm-usage",

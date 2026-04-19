@@ -12,12 +12,12 @@ import com.rich.codeweaver.service.customer.AiCustomerService;
 import com.rich.codeweaver.service.customer.CustomerServiceMessageService;
 import com.rich.codeweaver.common.utils.SpringContextUtil;
 import com.rich.codeweaver.service.prompt.SystemPromptService;
-import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,7 +50,7 @@ public class AiCustomerServiceFactory {
             .build();
 
     @Resource
-    private RedisChatMemoryStore redisChatMemoryStore;
+    private ChatMemoryStore redisChatMemoryStore;
 
     @Resource
     private CustomerServiceMessageService customerServiceMessageService;

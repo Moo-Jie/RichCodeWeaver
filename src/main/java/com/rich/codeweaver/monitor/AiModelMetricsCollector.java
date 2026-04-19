@@ -81,7 +81,7 @@ public class AiModelMetricsCollector {
             // 从缓存中获取或创建 Counter
             // computeIfAbsent 是线程安全的，多个线程同时调用时只会创建一次
             Counter counter = requestCountersCache.computeIfAbsent(cacheKey, key ->
-                    Counter.builder("ai_model_requests_total")
+                    Counter.builder("ai_model_requests")
                             .description("AI模型总请求次数")
                             .tag("user_id", userId)
                             .tag("app_id", appId)
@@ -133,7 +133,7 @@ public class AiModelMetricsCollector {
 
             // 从缓存中获取或创建 Counter
             Counter counter = errorCountersCache.computeIfAbsent(cacheKey, key ->
-                    Counter.builder("ai_model_errors_total")
+                    Counter.builder("ai_model_errors")
                             .description("AI模型错误次数")
                             .tag("user_id", userId)
                             .tag("app_id", appId)
@@ -187,7 +187,7 @@ public class AiModelMetricsCollector {
 
             // 从缓存中获取或创建 Counter
             Counter counter = tokenCountersCache.computeIfAbsent(cacheKey, key ->
-                    Counter.builder("ai_model_tokens_total")
+                    Counter.builder("ai_model_tokens")
                             .description("AI模型Token消耗总数")
                             .tag("user_id", userId)
                             .tag("app_id", appId)
@@ -245,6 +245,18 @@ public class AiModelMetricsCollector {
                             .tag("app_id", appId)
                             .tag("model_name", modelName)
                             .tag("gen_mode", genMode)
+                            .publishPercentileHistogram()
+                            .serviceLevelObjectives(
+                                    Duration.ofMillis(100),
+                                    Duration.ofMillis(300),
+                                    Duration.ofMillis(500),
+                                    Duration.ofSeconds(1),
+                                    Duration.ofSeconds(3),
+                                    Duration.ofSeconds(5),
+                                    Duration.ofSeconds(10),
+                                    Duration.ofSeconds(30),
+                                    Duration.ofSeconds(60)
+                            )
                             .register(meterRegistry)
             );
 

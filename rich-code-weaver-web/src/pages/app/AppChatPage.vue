@@ -120,9 +120,9 @@
         </div>
 
         <!-- 加载更多按钮 -->
-        <div v-if="hasMore.value || loadingHistory.value" class="load-more-container">
+        <div v-if="hasMore || loadingHistory" class="load-more-container">
           <a-button
-            v-if="hasMore.value && !loadingHistory.value"
+            v-if="hasMore && !loadingHistory"
             class="load-more-btn"
             type="text"
             @click="loadMoreHistory"
@@ -248,7 +248,6 @@
                   </template>
                 </a-button>
               </a-tooltip>
-              &nbsp;&nbsp;&nbsp;
               <a-tooltip v-else placement="top" title="开始对话">
                 <a-button
                   :loading="isGenerating"
@@ -263,6 +262,7 @@
                   </template>
                 </a-button>
               </a-tooltip>
+              &nbsp;&nbsp;&nbsp;
             </div>
           </div>
         </div>
@@ -458,7 +458,8 @@ const handleTourClose = () => {
 
 // 添加计时器相关变量
 const generatingTime = ref(0)
-const timer = ref(null)
+const timer = ref<ReturnType<typeof setInterval> | null>(null)
+const generatingTip = computed(() => 'AI 正在编织灵感...')
 
 // SSE 重连相关
 const lastEventId = ref<string | null>(null)
@@ -496,7 +497,7 @@ const getGeneratingInfo = (): { message: string; timestamp: number } | null => {
 
 // 数字产物信息
 const appInfo = ref<API.AppVO>()
-const appId = ref<string>()
+const appId = ref<number>()
 
 // 部署按钮点击处理
 const handleDeployClick = () => {
@@ -512,7 +513,7 @@ const handleDeployClick = () => {
 }
 
 // 根据生成类型获取标签颜色
-const getTypeColor = (type: string) => {
+const getTypeColor = (type?: string) => {
   const colors: Record<string, string> = {
     'react': '#61dafb',
     'vue': '#42b883',
@@ -522,7 +523,7 @@ const getTypeColor = (type: string) => {
     'flutter': '#04599C',
     'swift': '#ff2d55'
   }
-  return colors[type] || 'blue'
+  return type ? colors[type] || 'blue' : 'blue'
 }
 
 // 对话相关
@@ -539,7 +540,7 @@ const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
 // 历史消息加载相关
 const loadingHistory = ref(false)
-const lastCreateTime = ref<LocalDateTime | null>(null)
+const lastCreateTime = ref<string | null>(null)
 const hasMore = ref(true)
 // 标记是否已经进行过初始对话
 const hasInitialConversation = ref(false)
@@ -603,9 +604,9 @@ const deployedSiteUrl = computed(() => {
 
 // 获取数字产物信息
 const fetchAppInfo = async () => {
-  const id = route.params.id as string
-  if (!id) {
-    message.error('数字产物ID不存在:' + res.data.message)
+  const id = Number(route.params.id)
+  if (!id || Number.isNaN(id)) {
+    message.error('数字产物ID不存在')
     await router.push('/')
     return
   }
@@ -613,7 +614,7 @@ const fetchAppInfo = async () => {
   appId.value = id
 
   try {
-    const res = await getAppVoById({ id: id as unknown as number })
+    const res = await getAppVoById({ id })
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
 
@@ -635,6 +636,7 @@ const fetchAppInfo = async () => {
     }
   } catch (error) {
     console.error('获取数字产物信息失败：', error)
+    message.error('获取数字产物信息失败，请稍后重试')
   }
 }
 
@@ -690,7 +692,7 @@ const clearSelection = () => {
 // 下载代码
 const downloadCode = async () => {
   if (!appId.value) {
-    message.error('数字产物ID不存在:' + res.data.message)
+    message.error('数字产物ID不存在')
     return
   }
   downloading.value = true
@@ -743,15 +745,15 @@ const fetchChatHistory = async (loadMore = false) => {
     const params = {
       appId: appId.value,
       pageSize: 10,
-      lastCreateTime: lastCreateTime.value ? lastCreateTime.value.toISOString() : undefined
+      lastCreateTime: lastCreateTime.value || undefined
     }
 
     const res = await listAppChatHistoryByPage(params)
     if (res.data.code === 0 && res.data.data) {
-      const historyData = res.data.data.records.slice().reverse() || []
-      const newMessages = historyData.map(item => ({
+      const historyData = (res.data.data.records ?? []).slice().reverse()
+      const newMessages: Message[] = historyData.map(item => ({
         type: item.messageType === 'user' ? 'user' : 'ai',
-        content: item.messageType === 'user' ? item.message : parseBatchContent(item.message),
+        content: item.messageType === 'user' ? (item.message ?? '') : parseBatchContent(item.message ?? ''),
         createTime: item.createTime
       }))
 
@@ -766,7 +768,7 @@ const fetchChatHistory = async (loadMore = false) => {
 
       // 更新游标和是否有更多数据
       if (newMessages.length > 0) {
-        lastCreateTime.value = new Date(newMessages[0].createTime!).toISOString()
+        lastCreateTime.value = newMessages[0].createTime ?? null
         hasMore.value = newMessages.length === 10
       } else {
         hasMore.value = false
@@ -979,7 +981,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
 
       // 构建URL参数（reconnect 和 lastEventId 作为查询参数）
       const params = new URLSearchParams({
-        appId: appId.value || '',
+        appId: String(appId.value ?? ''),
         message: userMessage,
         isWorkflow: String(useAgentMode.value),
         reconnect: String(reconnectMode)
@@ -1079,7 +1081,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
   console.error('生成代码失败：', error)
   messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
   messages.value[aiMessageIndex].loading = false
-  message.error('生成失败，请重试:' + res.data.message)
+  message.error('生成失败，请稍后重试')
   isGenerating.value = false
 }
 
@@ -1087,7 +1089,7 @@ const handleError = (error: unknown, aiMessageIndex: number) => {
 const refreshAppInfoOnly = async () => {
   if (!appId.value) return
   try {
-    const res = await getAppVoById({ id: appId.value as unknown as number })
+    const res = await getAppVoById({ id: appId.value })
     if (res.data.code === 0 && res.data.data) {
       appInfo.value = res.data.data
       updatePreview()
@@ -1103,9 +1105,9 @@ const updatePreview = () => {
     // 默认使用 HTML 类型
     const codeGenType = appInfo.value?.codeGenType || CodeGenTypeEnum.HTML
     if (codeGenType === CodeGenTypeEnum.VUE_PROJECT) {
-      previewUrl.value = getWebProjectStaticPreviewUrl(codeGenType, appId.value)
+      previewUrl.value = getWebProjectStaticPreviewUrl(codeGenType, String(appId.value))
     } else {
-      previewUrl.value = getStaticPreviewUrl(codeGenType, appId.value)
+      previewUrl.value = getStaticPreviewUrl(codeGenType, String(appId.value))
     }
 
     previewReady.value = true
@@ -1132,7 +1134,7 @@ const scrollToBottom = () => {
 // 部署数字产物
 const deployApp = async () => {
   if (!appId.value) {
-    message.error('数字产物ID不存在:' + res.data.message)
+    message.error('数字产物ID不存在')
     return
   }
 
@@ -1145,7 +1147,7 @@ const deployApp = async () => {
   deploying.value = true
   try {
     const res = await deployAppApi({
-      appId: appId.value as unknown as number
+      appId: appId.value
     })
 
     if (res.data.code === 0 && res.data.data) {
@@ -1159,7 +1161,7 @@ const deployApp = async () => {
     }
   } catch (error) {
     console.error('部署失败：', error)
-    message.error('部署失败，请重试:' + res.data.message)
+    message.error('部署失败，请稍后重试')
   } finally {
     deploying.value = false
   }
@@ -1176,7 +1178,7 @@ const confirmReDeploy = async () => {
       deploying.value = true
       try {
         const res = await deployAppApi({
-          appId: appId.value as unknown as number
+          appId: appId.value
         })
 
         if (res.data.code === 0 && res.data.data) {
@@ -1190,7 +1192,7 @@ const confirmReDeploy = async () => {
         }
       } catch (error) {
         console.error('重新部署失败：', error)
-        message.error('重新部署失败，请重试:' + res.data.message)
+        message.error('重新部署失败，请稍后重试')
       } finally {
         deploying.value = false
         showReDeployWarning.value = false
@@ -1249,7 +1251,7 @@ const deleteApp = async () => {
     }
   } catch (error) {
     console.error('删除失败：', error)
-    message.error('删除失败:' + res.data.message)
+    message.error('删除失败，请稍后重试')
   }
 }
 

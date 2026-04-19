@@ -121,7 +121,7 @@
               </div>
 
               <!-- 对话内容区域 -->
-              <div v-for="(history, index) in pagedHistory" :key="history.id"
+              <div v-for="history in pagedHistory" :key="history.id"
                    class="conversation-item">
                 <div v-if="history.messageType === 'ai'" class="ai-message">
                   <div class="message-avatar">
@@ -226,6 +226,10 @@ import { formatTime } from '@/utils/timeUtil.ts'
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
 
+type AdminAppRecord = API.AppVO & {
+  appDescription?: string
+}
+
 // 删除单条对话历史
 const deleteMessage = async (messageId: number) => {
   if (!selectedApp.value) return
@@ -243,14 +247,14 @@ const deleteMessage = async (messageId: number) => {
     }
   } catch (error) {
     console.error('删除失败:', error)
-    message.error('删除失败，请重试:' + res.data.message)
+    message.error('删除失败，请重试')
   }
 }
 
 // 数字产物列表相关状态
-const appList = ref<any[]>([])
+const appList = ref<AdminAppRecord[]>([])
 const appSearch = ref('')
-const selectedApp = ref<any>(null)
+const selectedApp = ref<AdminAppRecord>()
 const loadingApps = ref(true)
 
 // 对话历史相关状态
@@ -276,14 +280,14 @@ const loadApps = async () => {
     }
   } catch (error) {
     console.error('加载数字产物列表失败:', error)
-    message.error('加载数字产物列表失败:' + res.data.message)
+    message.error('加载数字产物列表失败，请稍后重试')
   } finally {
     loadingApps.value = false
   }
 }
 
 // 选择数字产物
-const selectApp = async (app: any) => {
+const selectApp = async (app: AdminAppRecord) => {
   selectedApp.value = app
   currentPage.value = 1 // 重置到第一页
   await loadHistory()
@@ -314,7 +318,7 @@ const loadHistory = async () => {
     }
   } catch (error) {
     console.error('加载对话失败:', error)
-    message.error('加载对话失败:' + res.data.message)
+    message.error('加载对话失败，请稍后重试')
   } finally {
     loadingHistory.value = false
   }
@@ -409,7 +413,7 @@ const handleSearch = (value: string) => {
 }
 
 // 导航到产物详情
-const navigateToApp = (appId: string) => {
+const navigateToApp = (appId?: number) => {
   if (appId) {
     router.push(`/app/chat/${appId}`)
   }
@@ -420,7 +424,7 @@ const filteredAppList = computed(() => {
   if (!appSearch.value) return appList.value
   const searchLower = appSearch.value.toLowerCase()
   return appList.value.filter(app =>
-    app.appName.toLowerCase().includes(searchLower)
+    (app.appName ?? '').toLowerCase().includes(searchLower)
   )
 })
 

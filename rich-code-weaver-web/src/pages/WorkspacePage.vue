@@ -156,6 +156,7 @@
           :collaborators="collaborators"
           :deploying="deploying"
           :downloading="downloading"
+          :refreshing="refreshing"
           :hot-stat="hotStat"
           :is-admin="isAdmin"
           :can-edit-app="canEditApp"
@@ -173,6 +174,7 @@
           @open-comment="commentDialogOpen = true"
           @preview-fullscreen="openInNewTab"
           @re-deploy="confirmReDeploy"
+          @refresh-app="refreshArtifact"
           @show-detail="showAppDetail"
           @toggle-edit="toggleEditMode"
           @toggle-favorite="handleToggleFavorite"
@@ -255,6 +257,7 @@ import {
   addApp,
   deleteApp as deleteAppApi,
   deployApp as deployAppApi,
+  refreshApp as refreshAppApi,
   getAppVoById,
   optimizePrompt
 } from '@/api/appController'
@@ -405,6 +408,51 @@ const handleTemplateConfirm = (prompt: string) => {
   })
 }
 
+const refreshArtifact = () => {
+  if (!appId.value) return
+  if (refreshing.value) return
+
+  if (refreshDebounceTimer) {
+    clearTimeout(refreshDebounceTimer)
+  }
+
+  refreshDebounceTimer = setTimeout(() => {
+    void doRefreshArtifact()
+  }, 450)
+}
+
+const doRefreshArtifact = async () => {
+  if (!appId.value || refreshing.value) return
+
+  const now = Date.now()
+  if (now - lastRefreshTriggerAt.value < 1000) {
+    return
+  }
+  lastRefreshTriggerAt.value = now
+
+  // Auto-exit visual edit mode
+  if (isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+    clearSelection()
+  }
+
+  refreshing.value = true
+  try {
+    const res = await refreshAppApi({ appId: appId.value as unknown as number })
+    if (res.data.code === 0 && res.data.data) {
+      message.success('产物刷新成功（已重新构建）')
+      updatePreview()
+    } else {
+      message.error('产物刷新失败：' + (res.data.message || ''))
+    }
+  } catch (error) {
+    message.error('产物刷新失败，请重试')
+  } finally {
+    refreshing.value = false
+  }
+}
+
 const getColorSchemePreview = (tpl: API.PromptTemplateVO): string[] => {
   if (!tpl.templateFields) return []
   try {
@@ -488,8 +536,11 @@ const previewReady = ref(false)
 // === Deploy State ===
 const deploying = ref(false)
 const downloading = ref(false)
+const refreshing = ref(false)
 const deployModalVisible = ref(false)
 const deployUrl = ref('')
+const lastRefreshTriggerAt = ref(0)
+let refreshDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 // === Visual Editor State ===
 const visualEditor = ref<visualEditorUtil | null>(null)
@@ -1605,6 +1656,10 @@ watch(
 onUnmounted(() => {
   window.removeEventListener('message', handleIframeMessage)
   visualEditor.value?.disableEditMode()
+  if (refreshDebounceTimer) {
+    clearTimeout(refreshDebounceTimer)
+    refreshDebounceTimer = null
+  }
   if (timer.value) clearInterval(timer.value)
 })
 

@@ -153,7 +153,7 @@ const createApp = async () => {
     }
   } catch (error) {
     console.error('创建数字产物失败：', error)
-    message.error('创建失败，请重试:' + res.data.message)
+    message.error('创建失败，请稍后重试')
   } finally {
     creating.value = false
   }
@@ -234,6 +234,10 @@ const viewWork = (app: API.AppVO) => {
   }
 }
 
+const formatFeaturedAppsTotal = (total: number) => `共 ${total} 个作品`
+
+const formatMyAppsTotal = (total: number) => `共 ${total} 个项目`
+
 // 页面加载时获取数据
 onMounted(() => {
   // Load featured apps (existing)
@@ -252,7 +256,7 @@ onMounted(() => {
       <!-- 网站标题和描述 -->
       <div class="hero-section">
         <h1 class="hero-title">RichCodeWeaver - 织码睿奇</h1>
-        <p class="hero-description">< 工作大幅提效，成果触手可及 ></p>
+        <p class="hero-description">&lt; 工作大幅提效，成果触手可及 &gt;</p>
       </div>
 
       <!-- 用户提示词输入框 -->
@@ -362,7 +366,7 @@ onMounted(() => {
           <div class="mode-cards agent-mode-cards">
             <div
               v-for="option in agentModeOptions"
-              :key="option.value"
+              :key="option.label"
               :class="{ active: useAgentMode === option.value }"
               class="mode-card"
               @click="useAgentMode = option.value"
@@ -425,10 +429,10 @@ onMounted(() => {
             </div>
             <div class="pagination-wrapper">
               <a-pagination
-                v-model:current="featuredAppsPage.current"
+                :current="featuredAppsPage.current"
                 v-model:page-size="featuredAppsPage.pageSize"
                 :show-size-changer="false"
-                :show-total="(total: number) => `共 ${total} 个作品`"
+                :show-total="formatFeaturedAppsTotal"
                 :total="featuredAppsPage.total"
                 @change="loadFeaturedApps"
               />
@@ -464,7 +468,7 @@ onMounted(() => {
                 v-model:current="myAppsPage.current"
                 v-model:page-size="myAppsPage.pageSize"
                 :show-size-changer="false"
-                :show-total="(total: number) => `共 ${total} 个项目`"
+                :show-total="formatMyAppsTotal"
                 :total="myAppsPage.total"
                 @change="loadMyApps"
               />

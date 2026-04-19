@@ -110,12 +110,12 @@
             <div class="field-input-group">
               <label>选项列表</label>
               <div class="options-editor">
-                <div v-for="(option, optIndex) in field.options" :key="optIndex"
+                <div v-for="(option, optIndex) in field.options ?? []" :key="optIndex"
                      class="option-item">
                   <a-input
-                    v-model:value="field.options[optIndex]"
+                    :value="option"
                     placeholder="选项值"
-                    @change="emitChange"
+                    @update:value="updateOption(field, optIndex, $event)"
                   />
                   <a-button
                     danger
@@ -318,6 +318,14 @@ const moveField = (index: number, direction: number) => {
 const addOption = (field: any) => {
   if (!field.options) field.options = []
   field.options.push('')
+  emitChange()
+}
+
+const updateOption = (field: API.TemplateField, index: number, value: string) => {
+  if (!field.options) {
+    field.options = []
+  }
+  field.options[index] = value
   emitChange()
 }
 

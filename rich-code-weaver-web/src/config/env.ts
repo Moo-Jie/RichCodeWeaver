@@ -3,7 +3,7 @@
  */
 
 // 数字产物部署域名
-export const DEPLOY_DOMAIN = import.meta.env.VITE_DEPLOY_DOMAIN || 'http://localhost'
+export const DEPLOY_DOMAIN = 'https://rubyyan.cn/userWeb'
 
 // API 基础地址
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL

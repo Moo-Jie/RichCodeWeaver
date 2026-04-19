@@ -2,6 +2,8 @@ package com.rich.codeweaver.langGraph.node;
 
 import com.rich.codeweaver.common.constant.AppConstant;
 import com.rich.codeweaver.langGraph.state.WorkflowContext;
+import com.rich.codeweaver.monitor.MonitorContext;
+import com.rich.codeweaver.monitor.MonitorContextHolder;
 import com.rich.codeweaver.model.enums.CodeGeneratorTypeEnum;
 import com.rich.codeweaver.utils.AIGenerateCodeAndSaveToFileUtils;
 import com.rich.codeweaver.common.utils.SpringContextUtil;
@@ -74,19 +76,28 @@ public class CodeGeneratorNode {
             AIGenerateCodeAndSaveToFileUtils aIGenerateCodeAndSaveToFileUtils =
                     SpringContextUtil.getBean(AIGenerateCodeAndSaveToFileUtils.class);
 
-            // 执行 AI 代码生成逻辑，返回流式代码生成结果
-            Flux<String> codeStream = aIGenerateCodeAndSaveToFileUtils
-                    .aiGenerateAndSaveCodeStream(enhancedPrompt, generationType, appId);
+            MonitorContext monitorContext = context.toMonitorContext();
+            try {
+                if (monitorContext != null) {
+                    MonitorContextHolder.setContext(monitorContext);
+                }
 
-            // 获取注册的流式输出发射器，将代码生成流实时转发到前端
-            Consumer<String> emitter = STREAM_EMITTERS.get(appId);
-            if (emitter != null) {
-                // 工作流模式：将每个流式文本块转发到前端，实现与普通流式输出相同的实时展示效果
-                // 使用 doOnNext 在每个元素发出时执行发射器，blockLast 等待流完成（最多10分钟）
-                codeStream.doOnNext(emitter).blockLast(Duration.ofMinutes(10));
-            } else {
-                // 无发射器：静默等待流完成（非工作流模式或测试场景）
-                codeStream.blockLast(Duration.ofMinutes(10));
+                // 执行 AI 代码生成逻辑，返回流式代码生成结果
+                Flux<String> codeStream = aIGenerateCodeAndSaveToFileUtils
+                        .aiGenerateAndSaveCodeStream(enhancedPrompt, generationType, appId);
+
+                // 获取注册的流式输出发射器，将代码生成流实时转发到前端
+                Consumer<String> emitter = STREAM_EMITTERS.get(appId);
+                if (emitter != null) {
+                    // 工作流模式：将每个流式文本块转发到前端，实现与普通流式输出相同的实时展示效果
+                    // 使用 doOnNext 在每个元素发出时执行发射器，blockLast 等待流完成（最多10分钟）
+                    codeStream.doOnNext(emitter).blockLast(Duration.ofMinutes(10));
+                } else {
+                    // 无发射器：静默等待流完成（非工作流模式或测试场景）
+                    codeStream.blockLast(Duration.ofMinutes(10));
+                }
+            } finally {
+                MonitorContextHolder.clearContext();
             }
 
             // 根据代码生成类型和产物ID构建生成目录路径

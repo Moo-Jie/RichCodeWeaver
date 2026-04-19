@@ -6,8 +6,8 @@ spring:
     # session 30 天过期
     timeout: 2592000
   profiles:
-    active: local
-  #    active: prod
+#    active: local
+    active: prod
   main:
     allow-bean-definition-overriding: true
 

@@ -22,6 +22,7 @@ import org.springframework.core.io.ResourceLoader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.*;
 
 /**
@@ -38,8 +39,11 @@ import java.util.*;
 @ConditionalOnProperty(prefix = "mcp", name = "enabled", havingValue = "true")
 public class McpConfiguration {
 
+    private static final String NPM_COMMAND = "npm";
+    private static final String NPM_WINDOWS_COMMAND = "npm.cmd";
     private static final String NPX_COMMAND = "npx";
     private static final String NPX_WINDOWS_COMMAND = "npx.cmd";
+    private static final ToolProvider EMPTY_TOOL_PROVIDER = request -> null;
 
     private final McpProperties mcpProperties;
     private final ResourceLoader resourceLoader;
@@ -73,24 +77,33 @@ public class McpConfiguration {
      */
     @Bean
     public ToolProvider mcpToolProvider() {
-        // 先根据 JSON 配置构建所有 MCP Client
-        List<McpClient> mcpClients = buildMcpClients();
-        if (mcpClients.isEmpty()) {
-            // 没有可用服务端时返回空 ToolProvider
-            log.warn("MCP 已启用，但未加载到任何可用服务端配置: {}", mcpProperties.getConfigPath());
-            return request -> null;
+        try {
+            // 先根据 JSON 配置构建所有 MCP Client
+            List<McpClient> mcpClients = buildMcpClients();
+            if (mcpClients.isEmpty()) {
+                // 没有可用服务端时返回空 ToolProvider
+                log.warn("MCP 已启用，但未加载到任何可用服务端配置: {}", mcpProperties.getConfigPath());
+                return EMPTY_TOOL_PROVIDER;
+            }
+
+            // 保存到成员变量中，方便在 Spring 容器销毁时统一关闭底层 stdio 进程
+            managedClients.clear();
+            managedClients.addAll(mcpClients);
+
+            // 构建 Langchain4j 的 McpToolProvider，作为 AiServices 的构建参数注入
+            log.info("MCP 工具提供器初始化完成，serverCount={}", mcpClients.size());
+            return McpToolProvider.builder()
+                    .mcpClients(mcpClients)
+                    .failIfOneServerFails(mcpProperties.isFailIfOneServerFails())
+                    .build();
+        } catch (Exception e) {
+            if (mcpProperties.isFailIfOneServerFails()) {
+                throw e;
+            }
+            managedClients.clear();
+            log.error("MCP 工具提供器初始化失败，已降级为禁用 MCP 工具，应用将继续启动", e);
+            return EMPTY_TOOL_PROVIDER;
         }
-
-        // 保存到成员变量中，方便在 Spring 容器销毁时统一关闭底层 stdio 进程
-        managedClients.clear();
-        managedClients.addAll(mcpClients);
-
-        // 构建 Langchain4j 的 McpToolProvider，作为 AiServices 的构建参数注入
-        log.info("MCP 工具提供器初始化完成，serverCount={}", mcpClients.size());
-        return McpToolProvider.builder()
-                .mcpClients(mcpClients)
-                .failIfOneServerFails(mcpProperties.isFailIfOneServerFails())
-                .build();
     }
 
     /**
@@ -122,10 +135,10 @@ public class McpConfiguration {
      * @return MCP Client 列表
      */
     private List<McpClient> buildMcpClients() {
-        // 1. 读取并加载 mcp.config.json 配置文件
-        McpServersFileConfig fileConfig = loadFileConfig();
+        // 1. 优先读取 application.yml / application-prod.yml 中的 mcp.servers 配置，未配置时再回退 JSON
+        Map<String, McpServerConfig> serverConfigs = loadServerConfigs();
         // 判空：配置文件不存在 / 没有配置任何 MCP 服务，直接返回空列表
-        if (fileConfig == null || fileConfig.getMcpServers() == null || fileConfig.getMcpServers().isEmpty()) {
+        if (serverConfigs == null || serverConfigs.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -133,7 +146,7 @@ public class McpConfiguration {
         List<McpClient> clients = new ArrayList<>();
 
         // 3. 遍历配置文件中 所有的 MCP 服务
-        for (Map.Entry<String, McpServerConfig> entry : fileConfig.getMcpServers().entrySet()) {
+        for (Map.Entry<String, McpServerConfig> entry : serverConfigs.entrySet()) {
             // 服务唯一标识（比如：baidu-map）
             String serverKey = entry.getKey();
             // 服务配置（command/args/env）
@@ -145,30 +158,72 @@ public class McpConfiguration {
                 continue;
             }
 
-            // 构建传输层（启动子进程）
-            // StdioMcpTransport：通过 标准输入输出 与本地 MCP 子进程通信
-            McpTransport transport = new StdioMcpTransport.Builder()
-                    // 拼接启动命令（如 npx -y @baidumap/mcp-server-baidu-map）
-                    .command(buildCommand(serverConfig))
-                    // 注入环境变量（如 BAIDU_MAP_API_KEY: xxx）
-                    .environment(resolveEnvironment(serverConfig.getEnv()))
-                    // 是否打印通信日志（排查问题用）
-                    .logEvents(mcpProperties.isLogEvents())
-                    .build();
+            try {
+                List<String> resolvedCommand = buildCommand(serverConfig);
+                Map<String, String> resolvedEnvironment = resolveEnvironment(serverConfig.getEnv());
+                // 构建传输层（启动子进程）
+                // StdioMcpTransport：通过 标准输入输出 与本地 MCP 子进程通信
+                McpTransport transport = new StdioMcpTransport.Builder()
+                        // 拼接启动命令（如 npx -y @baidumap/mcp-server-baidu-map）
+                        .command(resolvedCommand)
+                        // 注入环境变量（如 BAIDU_MAP_API_KEY: xxx）
+                        .environment(resolvedEnvironment)
+                        // 是否打印通信日志（排查问题用）
+                        .logEvents(mcpProperties.isLogEvents())
+                        .build();
 
-            // 构建 MCP 客户端
-            McpClient client = new DefaultMcpClient.Builder()
-                    .key(serverKey)    // 绑定唯一标识（baidu-map）
-                    .transport(transport) // 绑定子进程通信通道
-                    .build();
+                // 构建 MCP 客户端
+                McpClient client = new DefaultMcpClient.Builder()
+                        .key(serverKey)    // 绑定唯一标识（baidu-map）
+                        .transport(transport) // 绑定子进程通信通道
+                        .initializationTimeout(Duration.ofMillis(mcpProperties.getInitializationTimeoutMillis()))
+                        .build();
 
-            // 5. 把创建好的客户端加入列表
-            clients.add(client);
-            log.info("已加载 MCP 服务端配置，serverKey={}", serverKey);
+                // 5. 把创建好的客户端加入列表
+                clients.add(client);
+                log.info("已加载 MCP 服务端配置，serverKey={}, command={}", serverKey, String.join(" ", resolvedCommand));
+            } catch (Exception e) {
+                if (mcpProperties.isFailIfOneServerFails()) {
+                    throw new IllegalStateException("初始化 MCP 服务端失败，serverKey=" + serverKey, e);
+                }
+                log.error("MCP 服务端初始化失败，已跳过，serverKey={}, command={}",
+                        serverKey, String.join(" ", buildCommand(serverConfig)), e);
+            }
         }
 
         // 6. 返回所有 MCP 客户端，供 AI 调用
         return clients;
+    }
+
+    /**
+     * 加载 MCP 服务端配置
+     * 优先读取 Spring 配置中的 mcp.servers，未配置时再读取 JSON 文件
+     *
+     * @return MCP 服务端配置映射
+     */
+    private Map<String, McpServerConfig> loadServerConfigs() {
+        if (mcpProperties.getServers() != null && !mcpProperties.getServers().isEmpty()) {
+            Map<String, McpServerConfig> serverConfigs = new LinkedHashMap<>();
+            mcpProperties.getServers().forEach((serverKey, properties) -> {
+                if (properties == null) {
+                    return;
+                }
+                McpServerConfig serverConfig = new McpServerConfig();
+                serverConfig.setCommand(properties.getCommand());
+                serverConfig.setArgs(properties.getArgs());
+                serverConfig.setEnv(properties.getEnv());
+                serverConfigs.put(serverKey, serverConfig);
+            });
+            log.info("MCP 服务端配置来源: Spring 配置，serverCount={}", serverConfigs.size());
+            return serverConfigs;
+        }
+
+        McpServersFileConfig fileConfig = loadFileConfig();
+        if (fileConfig == null || fileConfig.getMcpServers() == null || fileConfig.getMcpServers().isEmpty()) {
+            return Collections.emptyMap();
+        }
+        log.info("MCP 服务端配置来源: {}，serverCount={}", mcpProperties.getConfigPath(), fileConfig.getMcpServers().size());
+        return fileConfig.getMcpServers();
     }
 
     /**
@@ -221,14 +276,14 @@ public class McpConfiguration {
      * @return 解析占位符后的环境变量
      */
     private Map<String, String> resolveEnvironment(Map<String, String> sourceEnv) {
+        // 先继承当前 Java 进程环境变量，避免 stdio 子进程丢失 PATH / HOME / npm 配置
+        // 生产环境经常通过 systemd / supervisor 启动，环境变量与手工登录 shell 不一致，这里尽量保持一致性
+        Map<String, String> resolvedEnv = new LinkedHashMap<>(System.getenv());
         if (sourceEnv == null || sourceEnv.isEmpty()) {
-            // 没有配置环境变量时返回空 Map，避免传 null 给 Builder
-            return Collections.emptyMap();
+            return resolvedEnv;
         }
 
-        // 使用 LinkedHashMap 保持配置文件中的顺序，便于调试查看
-        Map<String, String> resolvedEnv = new LinkedHashMap<>();
-        // 逐个解析占位符，例如 ${baidu.map.api-key}
+        // 再用配置文件中的 env 做覆盖，允许按服务端定制特殊变量
         sourceEnv.forEach((key, value) -> resolvedEnv.put(key, resolvePlaceholders(value)));
         return resolvedEnv;
     }
@@ -243,6 +298,9 @@ public class McpConfiguration {
     private String resolveCommand(String command) {
         // 先解析命令中的占位符，保证支持配置化命令路径
         String resolvedCommand = resolvePlaceholders(command);
+        if (isWindows() && NPM_COMMAND.equalsIgnoreCase(resolvedCommand)) {
+            return NPM_WINDOWS_COMMAND;
+        }
         if (isWindows() && NPX_COMMAND.equalsIgnoreCase(resolvedCommand)) {
             // Windows 下 npx 实际需要通过 npx.cmd 启动，否则子进程可能无法正常拉起
             return NPX_WINDOWS_COMMAND;

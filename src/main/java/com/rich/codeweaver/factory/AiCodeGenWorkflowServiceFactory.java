@@ -13,7 +13,6 @@ import com.rich.codeweaver.service.generator.AiCodeGeneratorService;
 import com.rich.codeweaver.service.generator.ChatHistoryService;
 import com.rich.codeweaver.common.utils.SpringContextUtil;
 import com.rich.codeweaver.service.prompt.SystemPromptService;
-import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
@@ -21,6 +20,7 @@ import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import dev.langchain4j.service.tool.ToolProvider;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -85,7 +85,7 @@ public class AiCodeGenWorkflowServiceFactory {
      * Redis 类型的 ChatMemory 存储，用于存储对话历史
      **/
     @Resource
-    private RedisChatMemoryStore redisChatMemoryStore;
+    private ChatMemoryStore redisChatMemoryStore;
 
     /**
      * 对话历史服务，用于从数据库加载和保存对话历史

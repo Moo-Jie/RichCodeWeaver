@@ -17,6 +17,7 @@ import SystemPromptManagePage from '@/pages/admin/SystemPromptManagePage.vue'
 import RagManagePage from '@/pages/admin/RagManagePage.vue'
 import MaterialManagePage from '@/pages/admin/MaterialManagePage.vue'
 import HigressManagePage from '@/pages/admin/HigressManagePage.vue'
+import GrafanaMonitorPage from '@/pages/admin/GrafanaMonitorPage.vue'
 import MyMaterialPage from '@/pages/material/MyMaterialPage.vue'
 import CommunityListPage from '@/pages/community/CommunityListPage.vue'
 import CommunityDetailPage from '@/pages/community/CommunityDetailPage.vue'
@@ -131,6 +132,11 @@ const router = createRouter({
           path: 'admin/higressManage',
           name: '网关管理',
           component: HigressManagePage
+        },
+        {
+          path: 'admin/grafanaMonitor',
+          name: '系统监控',
+          component: GrafanaMonitorPage
         },
         {
           path: 'other/docs',

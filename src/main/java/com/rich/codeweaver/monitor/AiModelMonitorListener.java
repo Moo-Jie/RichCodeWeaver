@@ -46,21 +46,6 @@ public class AiModelMonitorListener implements ChatModelListener {
 
     /**
      * AI 模型请求开始时的回调方法
-     * <p>
-     * 该方法在 AI 模型请求发送前被调用，主要完成以下任务：
-     * <ul>
-     *   <li>记录请求开始时间，用于后续计算响应时长</li>
-     *   <li>从 ThreadLocal 获取监控上下文，并存储到请求属性中</li>
-     *   <li>记录请求开始的指标（status=started）</li>
-     * </ul>
-     * </p>
-     *
-     * <p>线程切换问题：</p>
-     * <ul>
-     *   <li>onRequest 在主线程执行，可以直接从 ThreadLocal 获取上下文</li>
-     *   <li>onResponse/onError 可能在其他线程执行，无法直接访问 ThreadLocal</li>
-     *   <li>因此需要将上下文存储到 requestContext.attributes() 中传递</li>
-     * </ul>
      *
      * @param requestContext AI 模型请求上下文，包含请求参数和属性存储
      */

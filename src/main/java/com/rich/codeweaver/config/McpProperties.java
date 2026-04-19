@@ -3,6 +3,10 @@ package com.rich.codeweaver.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * MCP 配置属性
  * 用于承接 application.yml / application-local.yml 中的 mcp.* 配置
@@ -34,4 +38,18 @@ public class McpProperties {
      * 某个 MCP 服务端初始化失败时，是否让整个 ToolProvider 构建失败
      **/
     private boolean failIfOneServerFails = false;
+
+    private long initializationTimeoutMillis = 20000L;
+
+    private Map<String, McpServerProperties> servers = new LinkedHashMap<>();
+
+    @Data
+    public static class McpServerProperties {
+
+        private String command;
+
+        private List<String> args;
+
+        private Map<String, String> env = new LinkedHashMap<>();
+    }
 }

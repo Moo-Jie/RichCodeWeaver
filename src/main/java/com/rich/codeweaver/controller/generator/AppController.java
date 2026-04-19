@@ -150,6 +150,27 @@ public class AppController {
     }
 
     /**
+     * 刷新产物（仅重新构建，不执行部署）
+     *
+     * @param appDeployRequest 刷新请求参数
+     * @param request          请求信息
+     * @return 刷新是否成功
+     */
+    @PostMapping("/refresh")
+    public BaseResponse<Boolean> refreshApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR, "刷新请求参数不能为空");
+
+        Long appId = appDeployRequest.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+
+        Boolean result = appService.refreshApp(appId, loginUser);
+        return ResultUtils.success(result);
+    }
+
+    /**
      * 创建 AI 产物
      *
      * @param appAddRequest 产物添加请求参数

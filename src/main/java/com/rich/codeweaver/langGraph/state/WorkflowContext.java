@@ -1,5 +1,6 @@
 package com.rich.codeweaver.langGraph.state;
 
+import com.rich.codeweaver.monitor.MonitorContext;
 import com.rich.codeweaver.model.dto.generator.CodeReviewResponse;
 import com.rich.codeweaver.model.entity.App;
 import com.rich.codeweaver.model.entity.ImageResource;
@@ -39,6 +40,14 @@ public class WorkflowContext implements Serializable {
      * 产物 ID
      */
     private Long appId;
+    /**
+     * 用户 ID
+     */
+    private Long userId;
+    /**
+     * 生成模式
+     */
+    private String genMode;
     /**
      * 当前执行步骤
      */
@@ -104,6 +113,17 @@ public class WorkflowContext implements Serializable {
      */
     public static Map<String, Object> saveContext(WorkflowContext context) {
         return Map.of(WORKFLOW_CONTEXT_KEY, context);
+    }
+
+    public MonitorContext toMonitorContext() {
+        if (userId == null || appId == null || genMode == null || genMode.isBlank()) {
+            return null;
+        }
+        return MonitorContext.builder()
+                .userId(userId.toString())
+                .appId(appId.toString())
+                .genMode(genMode)
+                .build();
     }
 
     /**

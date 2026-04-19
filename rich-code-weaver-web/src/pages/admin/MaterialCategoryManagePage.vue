@@ -86,7 +86,7 @@
               <a-switch
                 :checked="item.isEnabled === 1"
                 size="small"
-                @change="(checked) => toggleEnabled(item, checked)"
+                @change="handleToggleEnabled(item, $event)"
               />
             </div>
           </div>
@@ -110,7 +110,7 @@
               </a-button>
               <a-popconfirm
                 title="确定删除此分类吗？"
-                @confirm="handleDelete(item.id)"
+                @confirm="confirmDelete(item.id)"
                 placement="topRight"
               >
                 <a-button type="text" size="small" danger>
@@ -154,7 +154,7 @@
             <a-switch
               :checked="record.isEnabled === 1"
               size="small"
-              @change="(checked) => toggleEnabled(record, checked)"
+              @change="handleToggleEnabled(record, $event)"
             />
           </template>
           <template v-if="column.key === 'action'">
@@ -162,7 +162,7 @@
               <a-button type="link" size="small" @click="showEditModal(record)">
                 <EditOutlined /> 编辑
               </a-button>
-              <a-popconfirm title="确定删除此分类吗？" @confirm="handleDelete(record.id)">
+              <a-popconfirm title="确定删除此分类吗？" @confirm="confirmDelete(record.id)">
                 <a-button type="link" size="small" danger>
                   <DeleteOutlined /> 删除
                 </a-button>
@@ -375,6 +375,10 @@ const loadCategories = async () => {
   }
 }
 
+const handleToggleEnabled = (record: API.MaterialCategoryVO, checked: boolean) => {
+  toggleEnabled(record, checked)
+}
+
 // 表格分页变化
 const handleTableChange = (pag: any) => {
   pagination.value.current = pag.current
@@ -466,6 +470,13 @@ const handleDelete = async (id: number) => {
   } catch (e) {
     message.error('删除失败')
   }
+}
+
+const confirmDelete = (id?: number) => {
+  if (id == null) {
+    return
+  }
+  handleDelete(id)
 }
 
 onMounted(() => {

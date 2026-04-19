@@ -31,7 +31,7 @@
             </a-avatar>
             <a-upload
               :before-upload="handleAvatarUpload"
-              :custom-request="({ file }) => handleAvatarUpload(file as File)"
+              :custom-request="handleAvatarCustomRequest"
               :show-upload-list="false"
               class="avatar-uploader"
               name="avatar"
@@ -325,7 +325,7 @@ const emailForm = reactive({
 // 获取用户信息
 const fetchUserInfo = async () => {
   try {
-    const res = await getLoginUser(loginUserStore.loginUser.id)
+    const res = await getLoginUser()
     if (res.data.code === 0 && res.data.data) {
       Object.assign(userInfo, res.data.data)
       Object.assign(editForm, {
@@ -533,6 +533,10 @@ const handleAvatarUpload = async (file: File) => {
     message.error('头像上传失败，请稍后重试')
   }
   return false // 阻止默认上传行为
+}
+
+const handleAvatarCustomRequest = async (options: { file: File }) => {
+  await handleAvatarUpload(options.file)
 }
 
 // 退出登录
