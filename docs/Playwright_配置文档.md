@@ -52,14 +52,21 @@ java -cp "target/rich-code-weaver-file-1.0-SNAPSHOT.jar;%USERPROFILE%\.m2\reposi
 #### Linux 生产环境
 
 ```bash
-# 方式1：使用 Maven 插件（推荐）
-mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install chromium"
-
-# 方式2：使用已编译的 jar
-java -cp "target/rich-code-weaver-file-1.0-SNAPSHOT.jar:~/.m2/repository/com/microsoft/playwright/playwright/1.48.0/playwright-1.48.0.jar" com.microsoft.playwright.CLI install chromium
-
-# 如果缺少系统依赖，执行：
-mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install-deps chromium"
+# 安装所有必需依赖
+dnf install -y \
+mesa-libgbm \
+alsa-lib \
+libxshmfence \
+atk \
+at-spi2-atk \
+cups-libs \
+libdrm \
+libxkbcommon \
+libwayland-client \
+libwayland-cursor \
+libwayland-egl \
+mesa-libEGL \
+mesa-libGL
 ```
 
 #### Docker 环境

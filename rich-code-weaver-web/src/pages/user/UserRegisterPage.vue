@@ -146,12 +146,18 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { HomeOutlined, LockOutlined, MailOutlined, SafetyOutlined, UserOutlined } from '@ant-design/icons-vue'
-import { getMathCaptcha, sendEmailCode, userRegister } from '@/api/userController'
-import { message } from 'ant-design-vue'
-import { validateEmail } from '@/utils/emailUtil'
+import {onMounted, reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {
+  HomeOutlined,
+  LockOutlined,
+  MailOutlined,
+  SafetyOutlined,
+  UserOutlined
+} from '@ant-design/icons-vue'
+import {getMathCaptcha, sendEmailCode, userRegister} from '@/api/userController'
+import {message} from 'ant-design-vue'
+import {validateEmail} from '@/utils/emailUtil'
 
 const router = useRouter()
 const submitting = ref(false)

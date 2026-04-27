@@ -354,8 +354,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {message} from 'ant-design-vue'
 import {
   CheckCircleFilled,
   CloseCircleFilled,
@@ -364,20 +364,20 @@ import {
   SaveOutlined,
   SearchOutlined,
   SyncOutlined
- } from '@ant-design/icons-vue'
- import { MdEditor } from 'md-editor-v3'
- import 'md-editor-v3/lib/style.css'
- import {
+} from '@ant-design/icons-vue'
+import {MdEditor} from 'md-editor-v3'
+import 'md-editor-v3/lib/style.css'
+import {
   addRagDocument,
   deleteRagDocument,
   listRagDocumentByPage,
   reindexRagDocuments,
   updateRagDocument
- } from '@/api/ragDocumentController'
+} from '@/api/ragDocumentController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
- import { listRagParams, updateRagParam } from '@/api/ragParamController'
+import {listRagParams, updateRagParam} from '@/api/ragParamController'
 
- // ── 通用状态 ──────────────────────────────────────────────
+// ── 通用状态 ──────────────────────────────────────────────
 const loading = ref(false)
 const dataList = ref<API.RagDocumentVO[]>([])
 const isEdit = ref(false)

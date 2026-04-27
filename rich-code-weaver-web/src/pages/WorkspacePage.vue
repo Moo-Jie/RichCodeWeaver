@@ -89,6 +89,19 @@
           @remove-material="removeMaterial"
           @clear-materials="clearMaterials"
         />
+        <div class="home-meta">
+          <div class="home-meta-inner">
+            <span class="home-meta-item home-meta-filing">
+              <img alt="备案标识" class="home-meta-icon" src="@/assets/ICPFiling.png" />
+              <span>鲁ICP备2024125764号-2</span>
+            </span>
+            <span class="home-meta-divider">|</span>
+            <span class="home-meta-item">版权所有 © MOJIE TEAM</span>
+            <span class="home-meta-divider">|</span>
+            <span class="home-meta-item">作品内容由AI生成，详情请查看</span>
+            <router-link class="home-meta-link" to="/other/ai-generated-content">《AI 生成内容服务使用规范与权利义务声明》</router-link>
+          </div>
+        </div>
         </div>
         <CustomerServicePanel />
       </div>
@@ -156,6 +169,7 @@
           :collaborators="collaborators"
           :deploying="deploying"
           :downloading="downloading"
+          :refreshing="refreshing"
           :hot-stat="hotStat"
           :is-admin="isAdmin"
           :can-edit-app="canEditApp"
@@ -173,6 +187,7 @@
           @open-comment="commentDialogOpen = true"
           @preview-fullscreen="openInNewTab"
           @re-deploy="confirmReDeploy"
+          @refresh-app="refreshArtifact"
           @show-detail="showAppDetail"
           @toggle-edit="toggleEditMode"
           @toggle-favorite="handleToggleFavorite"
@@ -255,6 +270,7 @@ import {
   addApp,
   deleteApp as deleteAppApi,
   deployApp as deployAppApi,
+  refreshApp as refreshAppApi,
   getAppVoById,
   optimizePrompt
 } from '@/api/appController'
@@ -405,6 +421,51 @@ const handleTemplateConfirm = (prompt: string) => {
   })
 }
 
+const refreshArtifact = () => {
+  if (!appId.value) return
+  if (refreshing.value) return
+
+  if (refreshDebounceTimer) {
+    clearTimeout(refreshDebounceTimer)
+  }
+
+  refreshDebounceTimer = setTimeout(() => {
+    void doRefreshArtifact()
+  }, 450)
+}
+
+const doRefreshArtifact = async () => {
+  if (!appId.value || refreshing.value) return
+
+  const now = Date.now()
+  if (now - lastRefreshTriggerAt.value < 1000) {
+    return
+  }
+  lastRefreshTriggerAt.value = now
+
+  // Auto-exit visual edit mode
+  if (isEditMode.value) {
+    isEditMode.value = false
+    visualEditor.value?.disableEditMode()
+    clearSelection()
+  }
+
+  refreshing.value = true
+  try {
+    const res = await refreshAppApi({ appId: appId.value as unknown as number })
+    if (res.data.code === 0 && res.data.data) {
+      message.success('产物刷新成功（已重新构建）')
+      updatePreview()
+    } else {
+      message.error('产物刷新失败：' + (res.data.message || ''))
+    }
+  } catch (error) {
+    message.error('产物刷新失败，请重试')
+  } finally {
+    refreshing.value = false
+  }
+}
+
 const getColorSchemePreview = (tpl: API.PromptTemplateVO): string[] => {
   if (!tpl.templateFields) return []
   try {
@@ -488,8 +549,11 @@ const previewReady = ref(false)
 // === Deploy State ===
 const deploying = ref(false)
 const downloading = ref(false)
+const refreshing = ref(false)
 const deployModalVisible = ref(false)
 const deployUrl = ref('')
+const lastRefreshTriggerAt = ref(0)
+let refreshDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
 // === Visual Editor State ===
 const visualEditor = ref<visualEditorUtil | null>(null)
@@ -1605,6 +1669,10 @@ watch(
 onUnmounted(() => {
   window.removeEventListener('message', handleIframeMessage)
   visualEditor.value?.disableEditMode()
+  if (refreshDebounceTimer) {
+    clearTimeout(refreshDebounceTimer)
+    refreshDebounceTimer = null
+  }
   if (timer.value) clearInterval(timer.value)
 })
 
@@ -1912,9 +1980,77 @@ const handleIframeMessage = (event: MessageEvent) => {
   color: #1a1a1a;
 }
 
+.home-meta {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 6px;
+}
+
+.home-meta-inner {
+  width: 100%;
+  max-width: 1120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 10px 8px;
+}
+
+.home-meta-item,
+.home-meta-link,
+.home-meta-divider {
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.home-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8c8c8c;
+}
+
+.home-meta-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.home-meta-divider {
+  color: #d0d0d0;
+}
+
+.home-meta-link {
+  color: #666;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.home-meta-link:hover {
+  color: #1a1a1a;
+}
+
 @media (max-width: 900px) {
   .quick-send-grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-meta {
+    padding-top: 10px;
+  }
+
+  .home-meta-inner {
+    max-width: 100%;
+    padding: 12px 0;
+  }
+
+  .home-meta-link,
+  .home-meta-item {
+    white-space: normal;
+    text-align: center;
   }
 }
 

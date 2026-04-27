@@ -221,8 +221,8 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {message} from 'ant-design-vue'
 import {
   CalendarOutlined,
   DeleteOutlined,
@@ -233,9 +233,22 @@ import {
   SearchOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import { deleteUser, listUserVoByPage, resetUserPassword, updateUser } from '@/api/userController'
+import {deleteUser, listUserVoByPage, resetUserPassword, updateUser} from '@/api/userController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import dayjs from 'dayjs'
+
+type UserEditForm = {
+  id?: number
+  userAccount: string
+  userName: string
+  userRole: string
+  userProfile: string
+}
+
+type PasswordForm = {
+  id?: number
+  userName: string
+}
 
 // 表格列定义
 const columns = [
@@ -303,8 +316,8 @@ const editVisible = ref(false)
 const passwordVisible = ref(false)
 
 // 编辑表单
-const editForm = reactive({
-  id: '',
+const editForm = reactive<UserEditForm>({
+  id: undefined,
   userAccount: '',
   userName: '',
   userRole: '',
@@ -312,8 +325,9 @@ const editForm = reactive({
 })
 
 // 密码表单
-const passwordForm = reactive({
-  id: ''
+const passwordForm = reactive<PasswordForm>({
+  id: undefined,
+  userName: ''
 })
 
 // 获取数据
@@ -330,7 +344,7 @@ const fetchData = async () => {
     }
   } catch (error) {
     console.error('获取用户数据失败：', error)
-    message.error('获取数据失败:' + res.data.message)
+    message.error('获取数据失败，请稍后重试')
   }
 }
 
@@ -385,6 +399,10 @@ const showEditModal = (user: API.UserVO) => {
 
 // 提交编辑信息
 const handleEditSubmit = async () => {
+  if (!editForm.id) {
+    message.warning('用户ID不存在')
+    return
+  }
   try {
     const res = await updateUser(editForm)
     if (res.data.code === 0) {
@@ -396,7 +414,7 @@ const handleEditSubmit = async () => {
     }
   } catch (error) {
     console.error('更新用户信息失败：', error)
-    message.error('更新失败:' + res.data.message)
+    message.error('更新失败，请稍后重试')
   }
 }
 
@@ -411,6 +429,10 @@ const showResetPasswordModal = (user: API.UserVO) => {
 
 // 提交重置密码
 const handlePasswordSubmit = async () => {
+  if (!passwordForm.id) {
+    message.warning('用户ID不存在')
+    return
+  }
   try {
     const res = await resetUserPassword({ userId: passwordForm.id })
     if (res.data.code === 0) {
@@ -421,12 +443,12 @@ const handlePasswordSubmit = async () => {
     }
   } catch (error) {
     console.error('重置密码失败：', error)
-    message.error('重置失败::' + res.data.message)
+    message.error('重置失败，请稍后重试')
   }
 }
 
 // 删除用户
-const doDelete = async (id: string | undefined) => {
+const doDelete = async (id: number | undefined) => {
   if (!id) return
 
   try {
@@ -439,7 +461,7 @@ const doDelete = async (id: string | undefined) => {
     }
   } catch (error) {
     console.error('用户删除失败：', error)
-    message.error('删除操作失败:' + res.data.message)
+    message.error('删除操作失败，请稍后重试')
   }
 }
 

@@ -195,4 +195,13 @@ public interface AppService extends IService<App> {
      * @author DuRuiChi
      **/
     File getDelOutputDir(App app);
+
+    /**
+     * 刷新产物（重新构建 Vue 项目，不执行部署）
+     *
+     * @param appId     产物 id
+     * @param loginUser 登录用户
+     * @return 是否刷新成功
+     */
+    Boolean refreshApp(Long appId, User loginUser);
 }

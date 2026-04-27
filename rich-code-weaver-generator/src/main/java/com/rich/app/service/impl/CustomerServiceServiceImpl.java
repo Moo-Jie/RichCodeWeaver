@@ -3,9 +3,9 @@ package com.rich.app.service.impl;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.rich.ai.monitor.MonitorContext;
+import com.rich.ai.monitor.MonitorContextHolder;
 import com.rich.ai.service.AiCustomerService;
-import com.rich.common.constant.CustomerServiceConstant;
-import com.rich.common.constant.StreamEventConstant;
 import com.rich.app.factory.AiCustomerServiceFactory;
 import com.rich.app.model.StreamEvent;
 import com.rich.app.model.StreamSession;
@@ -14,6 +14,8 @@ import com.rich.app.service.CustomerServiceMessageService;
 import com.rich.app.service.CustomerServiceService;
 import com.rich.app.service.StreamSessionService;
 import com.rich.app.utils.ConvertTokenStreamToFluxUtils.ConvertCustomerServiceTokenStreamToFluxUtils;
+import com.rich.common.constant.CustomerServiceConstant;
+import com.rich.common.constant.StreamEventConstant;
 import com.rich.common.constant.UserConstant;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
@@ -111,9 +113,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      * 查询指定会话的消息列表
      *
      * @param conversationId 会话 ID
-     * @param pageSize 分页大小
+     * @param pageSize       分页大小
      * @param lastCreateTime 上一页最后一条时间
-     * @param request 请求对象
+     * @param request        请求对象
      * @return 消息列表
      */
     @Override
@@ -128,7 +130,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      * 发起或续接 AI 客服流式会话
      *
      * @param chatRequest 对话请求
-     * @param request 请求对象
+     * @param request     请求对象
      * @return SSE 事件流
      */
     @Override
@@ -168,8 +170,8 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      * 启动 AI 客服响应流
      *
      * @param conversationId 会话 ID
-     * @param sessionKey 流式会话 key
-     * @param userMessage 用户消息
+     * @param sessionKey     流式会话 key
+     * @param userMessage    用户消息
      * @param visitorContext 访客上下文
      */
     private void startAiResponseStreaming(Long conversationId, String sessionKey, String userMessage, VisitorContext visitorContext) {
@@ -177,37 +179,46 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                 conversationId, aiCustomerServiceFactory.isCustomerServiceRagEnabled());
         AiCustomerService customerService = aiCustomerServiceFactory.getCustomerService(conversationId);
         StringBuilder aiResponseBuilder = new StringBuilder();
+        MonitorContext monitorContext = MonitorContext.builder()
+                .userId(String.valueOf(visitorContext.streamUserId()))
+                .appId(String.valueOf(conversationId))
+                .genMode("customer_service")
+                .build();
         Flux<String> responseFlux = convertCustomerServiceTokenStreamToFluxUtils.convertTokenStreamToFlux(
                 customerService.chatStream(userMessage, conversationId));
-        responseFlux.subscribe(chunk -> {
-                    if (StrUtil.isEmpty(chunk)) {
-                        return;
-                    }
-                    // 实时缓存 AI 输出，并把增量片段推送给前端
-                    aiResponseBuilder.append(chunk);
-                    addMessageEvent(sessionKey, chunk);
-                }, error -> {
-                    log.error("AI 客服流式响应失败，conversationId={}", conversationId, error);
-                    String errorMsg = error.getMessage() != null ? error.getMessage() : AI_RESPONSE_FAILED_MESSAGE;
-                    addServerErrorEvent(sessionKey, errorMsg);
-                    streamSessionService.markError(sessionKey, errorMsg);
-                }, () -> {
-                    String aiResponse = aiResponseBuilder.toString();
-                    if (StrUtil.isNotBlank(aiResponse)) {
-                        customerServiceMessageService.addMessage(conversationId, CustomerServiceMessageRoleEnum.AI.getValue(),
-                                aiResponse, visitorContext.userId(), visitorContext.visitorKey());
-                        customerServiceConversationService.refreshConversation(conversationId, aiResponse,
-                                LocalDateTime.now(), false);
-                    }
-                    addEndEvent(sessionKey);
-                    streamSessionService.markCompleted(sessionKey);
-                });
+        try {
+            MonitorContextHolder.setContext(monitorContext);
+            responseFlux.subscribe(chunk -> {
+                if (StrUtil.isEmpty(chunk)) {
+                    return;
+                }
+                aiResponseBuilder.append(chunk);
+                addMessageEvent(sessionKey, chunk);
+            }, error -> {
+                log.error("AI 客服流式响应失败，conversationId={}", conversationId, error);
+                String errorMsg = error.getMessage() != null ? error.getMessage() : AI_RESPONSE_FAILED_MESSAGE;
+                addServerErrorEvent(sessionKey, errorMsg);
+                streamSessionService.markError(sessionKey, errorMsg);
+            }, () -> {
+                String aiResponse = aiResponseBuilder.toString();
+                if (StrUtil.isNotBlank(aiResponse)) {
+                    customerServiceMessageService.addMessage(conversationId, CustomerServiceMessageRoleEnum.AI.getValue(),
+                            aiResponse, visitorContext.userId(), visitorContext.visitorKey());
+                    customerServiceConversationService.refreshConversation(conversationId, aiResponse,
+                            LocalDateTime.now(), false);
+                }
+                addEndEvent(sessionKey);
+                streamSessionService.markCompleted(sessionKey);
+            });
+        } finally {
+            MonitorContextHolder.clearContext();
+        }
     }
 
     /**
      * 跟随既有流式会话，持续向前端推送增量事件
      *
-     * @param sessionKey 流式会话 key
+     * @param sessionKey  流式会话 key
      * @param lastEventId 前端最后收到的事件 ID
      * @return SSE 事件流
      */
@@ -248,8 +259,8 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      * 生成 AI 客服流式会话 key
      *
      * @param conversationId 会话 ID
-     * @param identityKey 身份标识
-     * @param message 用户消息
+     * @param identityKey    身份标识
+     * @param message        用户消息
      * @return 流式会话 key
      */
     private String generateSessionKey(Long conversationId, String identityKey, String message) {
@@ -310,7 +321,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      * 记录普通消息事件
      *
      * @param sessionKey 流式会话 key
-     * @param chunk 文本片段
+     * @param chunk      文本片段
      */
     private void addMessageEvent(String sessionKey, String chunk) {
         String eventId = streamSessionService.generateEventId(sessionKey);
@@ -322,7 +333,7 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
      * 记录服务端错误事件
      *
      * @param sessionKey 流式会话 key
-     * @param errorMsg 错误信息
+     * @param errorMsg   错误信息
      */
     private void addServerErrorEvent(String sessionKey, String errorMsg) {
         String eventId = streamSessionService.generateEventId(sessionKey);
@@ -344,9 +355,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
     /**
      * 构造通用流事件对象
      *
-     * @param eventId 事件 ID
+     * @param eventId   事件 ID
      * @param eventType 事件类型
-     * @param data 事件数据
+     * @param data      事件数据
      * @return 流事件
      */
     private StreamEvent buildStreamEvent(String eventId, String eventType, String data) {

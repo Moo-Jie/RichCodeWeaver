@@ -169,6 +169,8 @@ public class CodeGenWorkflowApp {
                     // 初始化工作流上下文
                     WorkflowContext initialContext = WorkflowContext.builder()
                             .appId(appId)
+                            .userId(userId)
+                            .genMode("workflow")
                             .originalPrompt(originalPrompt)
                             .generationType(type)
                             .currentStep("工作流初始化")

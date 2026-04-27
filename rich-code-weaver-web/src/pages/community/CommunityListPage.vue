@@ -287,11 +287,18 @@ const overviewCards = computed(() => {
   return [
     {
       label: '当前话题',
-      value: postsTotal.value || posts.value.length
+      value: postsTotal.value || posts.value.length,
+      desc: '当前筛选条件下的帖子总量'
     },
     {
       label: '问答求助',
-      value: questionCount
+      value: questionCount,
+      desc: '社区内正在寻求帮助的问题帖'
+    },
+    {
+      label: '经验分享',
+      value: shareCount,
+      desc: `其中置顶内容 ${topCount} 条`
     }
   ]
 })

@@ -33,6 +33,7 @@ import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.DeleteRequest;
+import com.rich.common.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import com.rich.model.dto.app.AppAddRequest;
 import com.rich.model.dto.app.AppAdminUpdateRequest;
 import com.rich.model.dto.app.AppQueryRequest;
@@ -63,6 +64,7 @@ import java.io.File;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -175,6 +177,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      */
     private static final String CONTENT_TYPE_OCTET_STREAM = "application/octet-stream";
 
+    /**
+     * 刷新操作防抖窗口（毫秒）
+     */
+    private static final long REFRESH_DEBOUNCE_MILLIS = 1500L;
+
+    /**
+     * 刷新失败时返回给前端的构建日志最大长度
+     */
+    private static final int REFRESH_BUILD_LOG_MAX_LENGTH = 800;
+
+    /**
+     * 正在刷新中的产物 ID 集合（用于防止重复触发构建）
+     */
+    private static final Set<Long> REFRESHING_APP_IDS = ConcurrentHashMap.newKeySet();
+
+    /**
+     * 产物最近一次刷新触发时间（用于防抖）
+     */
+    private static final Map<Long, Long> APP_LAST_REFRESH_TIME = new ConcurrentHashMap<>();
+
+
     @Resource
     @Lazy
     private AppService appService;
@@ -211,6 +234,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private MaterialService materialService;
+
+    @Resource
+    private BuildWebProjectExecutor buildWebProjectExecutor;
 
     /**
      * 执行 AI 对话并并生成代码(流式，支持断线重连)
@@ -526,10 +552,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 return ResponseEntity.notFound().build();
             }
 
-            // 返回产物文件资源
+            // 返回产物文件资源（禁用强缓存，确保 AI 修改代码后预览立即生效）
             FileSystemResource fileSystemResource = new FileSystemResource(file);
             return ResponseEntity.ok()
                     .header("Content-Type", getContentTypeWithCharset(filePath))
+                    .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                    .header("Pragma", "no-cache")
+                    .header("Expires", "0")
                     .body(fileSystemResource);
         } catch (Exception e) {
             log.error("预览产物失败：系统错误 - appId={}, error={}", appId, e.getMessage(), e);
@@ -683,6 +712,97 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         String outputDirName = app.getCodeGenType() + "_" + app.getId();
         return new File(CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
     }
+
+    /**
+     * 刷新产物（仅重新构建 Vue 项目，不执行部署）
+     *
+     * @param appId     产物 id
+     * @param loginUser 登录用户
+     * @return 是否刷新成功
+     */
+    @Override
+    public Boolean refreshApp(Long appId, User loginUser) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        ThrowUtils.throwIf(loginUser.getId() == null || loginUser.getId() <= 0, ErrorCode.NOT_LOGIN_ERROR, "用户ID无效");
+
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+        ThrowUtils.throwIf(!CodeGeneratorTypeEnum.VUE_PROJECT.getValue().equals(app.getCodeGenType()),
+                ErrorCode.OPERATION_ERROR, "仅 VUE 项目支持刷新产物");
+
+        if (!hasRefreshPermission(app, loginUser)) {
+            log.warn("刷新产物失败：权限不足 - appId={}, userId={}, ownerId={}",
+                    appId, loginUser.getId(), app.getUserId());
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "这不是您可编辑的产物，无法刷新");
+        }
+
+        long now = System.currentTimeMillis();
+        Long lastRefreshTime = APP_LAST_REFRESH_TIME.get(appId);
+        if (lastRefreshTime != null && now - lastRefreshTime < REFRESH_DEBOUNCE_MILLIS) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "操作过于频繁，请稍后再试");
+        }
+
+        if (!REFRESHING_APP_IDS.add(appId)) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "当前产物正在刷新中，请勿重复点击");
+        }
+
+        APP_LAST_REFRESH_TIME.put(appId, now);
+        try {
+            File projectRootDir = getBuildSourceDir(app);
+            BuildWebProjectExecutor.BuildResult buildResult =
+                    buildWebProjectExecutor.buildProjectWithLog(projectRootDir.getAbsolutePath());
+            if (!buildResult.success()) {
+                String buildLog = StrUtil.blankToDefault(buildResult.log(), "无构建日志输出");
+                log.warn("刷新产物构建失败: appId={}, phase={}, buildLog=\n{}", appId, buildResult.phase(), buildLog);
+                throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                        "刷新产物失败（" + buildResult.phase() + "）\n"
+                                + "【构建日志】\n"
+                                + extractBuildLogSnippet(buildLog));
+            }
+            log.info("刷新产物成功: appId={}, projectPath={}", appId, projectRootDir.getAbsolutePath());
+            return true;
+        } finally {
+            REFRESHING_APP_IDS.remove(appId);
+        }
+    }
+
+    /**
+     * 判断是否有刷新产物权限（所有者、管理员、已接受协作者）
+     */
+    private boolean hasRefreshPermission(App app, User loginUser) {
+        if (app.getUserId().equals(loginUser.getId())) {
+            return true;
+        }
+        if (UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
+            return true;
+        }
+        return collaboratorService.isCollaborator(app.getId(), loginUser.getId());
+    }
+
+    /**
+     * 截断构建日志，避免错误消息过长
+     */
+    private String extractBuildLogSnippet(String buildLog) {
+        if (StrUtil.isBlank(buildLog)) {
+            return "无构建日志输出";
+        }
+        String normalizedLog = buildLog.replace("\r\n", "\n");
+        if (normalizedLog.length() <= REFRESH_BUILD_LOG_MAX_LENGTH) {
+            return normalizedLog;
+        }
+        return normalizedLog.substring(0, REFRESH_BUILD_LOG_MAX_LENGTH)
+                + "\n...(日志已截断，完整内容请查看服务端日志)";
+    }
+
+    /**
+     * 构建项目根目录（用于执行 npm install / npm run build）
+     */
+    private File getBuildSourceDir(App app) {
+        String outputDirName = app.getCodeGenType() + "_" + app.getId();
+        return new File(CODE_OUTPUT_ROOT_DIR + File.separator + outputDirName);
+    }
+
 
     /**
      * 构建代码部署文件夹

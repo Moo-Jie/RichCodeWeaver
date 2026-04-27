@@ -46,21 +46,7 @@ public class AiModelMonitorListener implements ChatModelListener {
 
     /**
      * AI 模型请求开始时的回调方法
-     * <p>
-     * 该方法在 AI 模型请求发送前被调用，主要完成以下任务：
-     * <ul>
-     *   <li>记录请求开始时间，用于后续计算响应时长</li>
-     *   <li>从 ThreadLocal 获取监控上下文，并存储到请求属性中</li>
-     *   <li>记录请求开始的指标（status=started）</li>
-     * </ul>
-     * </p>
-     *
-     * <p>线程切换问题：</p>
-     * <ul>
-     *   <li>onRequest 在主线程执行，可以直接从 ThreadLocal 获取上下文</li>
-     *   <li>onResponse/onError 可能在其他线程执行，无法直接访问 ThreadLocal</li>
-     *   <li>因此需要将上下文存储到 requestContext.attributes() 中传递</li>
-     * </ul>
+     * 记录请求开始时间，用于后续计算响应时长，从 ThreadLocal 获取监控上下文，并存储到请求属性中，记录请求开始的指标（status=started）
      *
      * @param requestContext AI 模型请求上下文，包含请求参数和属性存储
      */
@@ -100,22 +86,11 @@ public class AiModelMonitorListener implements ChatModelListener {
 
     /**
      * AI 模型响应成功时的回调方法
-     * <p>
-     * 该方法在 AI 模型成功返回响应后被调用，主要完成以下任务：
-     * <ul>
-     *   <li>从请求属性中获取监控上下文（因为可能在不同线程）</li>
-     *   <li>记录请求成功的指标（status=success）</li>
-     *   <li>记录响应时间（从请求开始到响应结束的时长）</li>
-     *   <li>记录 Token 使用情况（input/output/total）</li>
-     * </ul>
-     * </p>
      *
-     * <p>注意事项：</p>
-     * <ul>
-     *   <li>该方法可能在与 onRequest 不同的线程中执行</li>
-     *   <li>必须从 attributes 中获取上下文，而不是 ThreadLocal</li>
-     *   <li>Token 信息可能为 null，需要进行空值检查</li>
-     * </ul>
+     * 从请求属性中获取监控上下文（因为可能在不同线程）
+     * 记录请求成功的指标（status=success）
+     * 记录响应时间（从请求开始到响应结束的时长）
+     * 记录 Token 使用情况（input/output/total）
      *
      * @param responseContext AI 模型响应上下文，包含响应数据和请求属性
      */
@@ -156,22 +131,11 @@ public class AiModelMonitorListener implements ChatModelListener {
 
     /**
      * AI 模型调用出错时的回调方法
-     * <p>
-     * 该方法在 AI 模型调用失败时被调用，主要完成以下任务：
-     * <ul>
-     *   <li>从请求属性中获取监控上下文</li>
-     *   <li>记录请求失败的指标（status=error）</li>
-     *   <li>记录错误信息和错误次数</li>
-     *   <li>记录响应时间（即使是错误响应也需要记录）</li>
-     * </ul>
-     * </p>
      *
-     * <p>为什么要记录错误响应的时间：</p>
-     * <ul>
-     *   <li>分析错误请求的特征（如是否因为超时导致）</li>
-     *   <li>对比成功请求和失败请求的响应时间差异</li>
-     *   <li>识别性能瓶颈和系统问题</li>
-     * </ul>
+     * 从请求属性中获取监控上下文
+     * 记录请求失败的指标（status=error）
+     * 记录错误信息和错误次数
+     * 记录响应时间（即使是错误响应也需要记录）
      *
      * @param errorContext AI 模型错误上下文，包含错误信息和请求属性
      */
@@ -217,19 +181,10 @@ public class AiModelMonitorListener implements ChatModelListener {
 
     /**
      * 记录响应时间的私有辅助方法
-     * <p>
+     *
      * 从请求属性中获取开始时间，计算响应时长，并记录到监控系统。
      * 该方法被 onResponse 和 onError 共同调用，确保所有请求（无论成功或失败）
      * 的响应时间都被记录。
-     * </p>
-     *
-     * <p>实现细节：</p>
-     * <ul>
-     *   <li>从 attributes 中获取请求开始时间（由 onRequest 存储）</li>
-     *   <li>计算当前时间与开始时间的差值</li>
-     *   <li>调用指标收集器记录响应时间</li>
-     *   <li>如果开始时间不存在，记录警告但不抛出异常</li>
-     * </ul>
      *
      * @param attributes 请求属性，包含开始时间等信息
      * @param userId     用户ID
@@ -264,24 +219,9 @@ public class AiModelMonitorListener implements ChatModelListener {
 
     /**
      * 记录 Token 使用情况的私有辅助方法
-     * <p>
+     *
      * 从响应上下文中提取 Token 使用信息，并分别记录输入、输出和总计 Token 数量。
      * 该方法仅在 onResponse 中调用，因为只有成功的响应才包含 Token 信息。
-     * </p>
-     *
-     * <p>Token 类型说明：</p>
-     * <ul>
-     *   <li>input: 输入 Token 数量，即用户提示词消耗的 Token</li>
-     *   <li>output: 输出 Token 数量，即 AI 生成内容消耗的 Token</li>
-     *   <li>total: 总 Token 数量，通常等于 input + output</li>
-     * </ul>
-     *
-     * <p>注意事项：</p>
-     * <ul>
-     *   <li>Token 信息可能为 null，需要进行空值检查</li>
-     *   <li>不同模型的 Token 计算方式可能不同</li>
-     *   <li>某些模型可能不提供详细的 Token 统计</li>
-     * </ul>
      *
      * @param responseContext 响应上下文，包含 Token 使用信息
      * @param userId          用户ID

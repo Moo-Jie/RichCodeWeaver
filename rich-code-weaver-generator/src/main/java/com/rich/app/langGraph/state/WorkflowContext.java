@@ -1,6 +1,7 @@
 package com.rich.app.langGraph.state;
 
 import com.rich.ai.model.CodeReviewResponse;
+import com.rich.ai.monitor.MonitorContext;
 import com.rich.app.service.AppService;
 import com.rich.common.utils.SpringContextUtil;
 import com.rich.model.entity.App;
@@ -39,6 +40,14 @@ public class WorkflowContext implements Serializable {
      * 产物 ID
      */
     private Long appId;
+    /**
+     * 用户 ID
+     */
+    private Long userId;
+    /**
+     * 生成模式
+     */
+    private String genMode;
     /**
      * 当前执行步骤
      */
@@ -104,6 +113,17 @@ public class WorkflowContext implements Serializable {
      */
     public static Map<String, Object> saveContext(WorkflowContext context) {
         return Map.of(WORKFLOW_CONTEXT_KEY, context);
+    }
+
+    public MonitorContext toMonitorContext() {
+        if (userId == null || appId == null || genMode == null || genMode.isBlank()) {
+            return null;
+        }
+        return MonitorContext.builder()
+                .userId(userId.toString())
+                .appId(appId.toString())
+                .genMode(genMode)
+                .build();
     }
 
     /**

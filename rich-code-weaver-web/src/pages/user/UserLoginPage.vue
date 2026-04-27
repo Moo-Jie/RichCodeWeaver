@@ -94,13 +94,13 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { HomeOutlined, LockOutlined, MailOutlined } from '@ant-design/icons-vue'
-import { userLogin } from '@/api/userController'
-import { useLoginUserStore } from '@/stores/loginUser'
-import { message } from 'ant-design-vue'
-import { validateEmail } from '@/utils/emailUtil'
+import {reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {HomeOutlined, LockOutlined, MailOutlined} from '@ant-design/icons-vue'
+import {userLogin} from '@/api/userController'
+import {useLoginUserStore} from '@/stores/loginUser'
+import {message} from 'ant-design-vue'
+import {validateEmail} from '@/utils/emailUtil'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()

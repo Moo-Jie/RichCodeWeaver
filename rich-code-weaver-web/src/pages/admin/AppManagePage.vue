@@ -244,9 +244,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import {computed, onMounted, reactive, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {message} from 'ant-design-vue'
 import {
   ArrowRightOutlined,
   CalendarOutlined,
@@ -256,18 +256,18 @@ import {
   EyeOutlined,
   InfoCircleOutlined,
   UserOutlined
- } from '@ant-design/icons-vue'
- import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
- import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
- import { formatTime } from '@/utils/timeUtil.ts'
- import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
- import UserInfo from '@/components/UserInfo.vue'
- import AppInfo from '@/components/AppInfo.vue'
+} from '@ant-design/icons-vue'
+import {deleteApp, listAppVoByPageByAdmin, updateAppByAdmin} from '@/api/appController'
+import {CODE_GEN_TYPE_OPTIONS, formatCodeGenType} from '@/enums/codeGenTypes.ts'
+import {formatTime} from '@/utils/timeUtil.ts'
+import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
+import UserInfo from '@/components/UserInfo.vue'
+import AppInfo from '@/components/AppInfo.vue'
 
- const router = useRouter()
+const router = useRouter()
 // 查看产物详情
 const appDetailVisible = ref(false)
-const currentApp = ref<API.AppVO | null>(null)
+const currentApp = ref<API.AppVO>()
 
 const showAppDetail = (app: API.AppVO) => {
   currentApp.value = app
@@ -370,7 +370,7 @@ const fetchData = async () => {
     }
   } catch (error) {
     console.error('获取数据失败：', error)
-    message.error('获取数据失败:' + res.data.message)
+    message.error('获取数据失败，请稍后重试')
   }
 }
 
@@ -419,7 +419,7 @@ const pagination = computed(() => {
 // 重置搜索
 const resetSearch = () => {
   searchParams.appName = ''
-  searchParams.userId = ''
+  searchParams.userId = undefined
   searchParams.codeGenType = ''
   searchParams.pageNum = 1
   fetchData()
@@ -496,7 +496,7 @@ const toggleFeatured = async (app: API.AppVO) => {
     }
   } catch (error) {
     console.error('操作失败：', error)
-    message.error('操作失败:' + res.data.message)
+    message.error('操作失败，请稍后重试')
   }
 }
 
@@ -514,7 +514,7 @@ const doDeleteApp = async (id: number | undefined) => {
     }
   } catch (error) {
     console.error('删除失败：', error)
-    message.error('删除失败:' + res.data.message)
+    message.error('删除失败，请稍后重试')
   }
 }
 </script>

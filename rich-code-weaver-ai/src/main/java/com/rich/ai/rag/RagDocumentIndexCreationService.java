@@ -186,13 +186,13 @@ public class RagDocumentIndexCreationService {
             return;
         }
 
-        // 4.构建文档切分器
+        // 构建文档切分器
         // 使用递归分割器，按照 Markdown 文档结构进行智能切分
         // 切分优先级：段落（\n\n）→ 行（\n）→ 空格 → 字符
         // 这样能最大程度保持文档的语义完整性
         DocumentSplitter splitter = buildDocumentSplitter();
 
-        // 5.使用 EmbeddingStoreIngestor 执行摄入管道
+        // 使用 EmbeddingStoreIngestor 执行摄入管道
         // EmbeddingStoreIngestor 是 langchain4j 提供的标准摄入工具，封装了：
         //   文档切分（DocumentSplitter）→ 向量化（EmbeddingModel）→ 存储（EmbeddingStore）
         EmbeddingStoreIngestor ingestor = buildEmbeddingStoreIngestor(splitter);
@@ -318,7 +318,7 @@ public class RagDocumentIndexCreationService {
     private DocumentSplitter buildDocumentSplitter() {
         int maxSegmentSize = ragParamProvider != null ? ragParamProvider.getMaxSegmentSize() : RagConstant.DEFAULT_MAX_SEGMENT_SIZE;
         int maxOverlapSize = ragParamProvider != null ? ragParamProvider.getMaxOverlapSize() : RagConstant.DEFAULT_MAX_OVERLAP_SIZE;
-        log.info("【{}】切分参数：maxSegmentSize={}, maxOverlapSize={}", INGEST_LOG_TAG, maxSegmentSize, maxOverlapSize);
+//        log.info("【{}】切分参数：maxSegmentSize={}, maxOverlapSize={}", INGEST_LOG_TAG, maxSegmentSize, maxOverlapSize);
         return DocumentSplitters.recursive(maxSegmentSize, maxOverlapSize);
     }
 

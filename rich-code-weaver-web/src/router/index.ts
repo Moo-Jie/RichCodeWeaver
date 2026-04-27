@@ -17,6 +17,7 @@ import SystemPromptManagePage from '@/pages/admin/SystemPromptManagePage.vue'
 import RagManagePage from '@/pages/admin/RagManagePage.vue'
 import MaterialManagePage from '@/pages/admin/MaterialManagePage.vue'
 import HigressManagePage from '@/pages/admin/HigressManagePage.vue'
+import GrafanaMonitorPage from '@/pages/admin/GrafanaMonitorPage.vue'
 import MyMaterialPage from '@/pages/material/MyMaterialPage.vue'
 import CommunityListPage from '@/pages/community/CommunityListPage.vue'
 import CommunityDetailPage from '@/pages/community/CommunityDetailPage.vue'
@@ -24,6 +25,7 @@ import DocsPage from '@/pages/other/DocsPage.vue'
 import AboutPage from '@/pages/other/AboutPage.vue'
 import PrivacyPage from '@/pages/other/PrivacyPage.vue'
 import TermsPage from '@/pages/other/TermsPage.vue'
+import AiGeneratedContentPage from '@/pages/other/AiGeneratedContentPage.vue'
 
 /**
  * 路由配置
@@ -133,6 +135,11 @@ const router = createRouter({
           component: HigressManagePage
         },
         {
+          path: 'admin/grafanaMonitor',
+          name: '系统监控',
+          component: GrafanaMonitorPage
+        },
+        {
           path: 'other/docs',
           name: '文档',
           component: DocsPage
@@ -146,6 +153,11 @@ const router = createRouter({
           path: 'other/privacy',
           name: '用户隐私协议',
           component: PrivacyPage
+        },
+        {
+          path: 'other/ai-generated-content',
+          name: 'AI生成内容声明',
+          component: AiGeneratedContentPage
         },
         {
           path: 'other/terms',

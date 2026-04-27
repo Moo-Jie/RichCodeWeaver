@@ -75,13 +75,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
-import { GlobalOutlined, HeartFilled } from '@ant-design/icons-vue'
-import { useAppStore } from '@/stores/appStore'
-import { getAppVoById } from '@/api/appController'
-import { listMyFavorites, toggleAppFavorite } from '@/api/socialController'
+import {computed, onMounted, ref} from 'vue'
+import {useRouter} from 'vue-router'
+import {message} from 'ant-design-vue'
+import {GlobalOutlined, HeartFilled} from '@ant-design/icons-vue'
+import {useAppStore} from '@/stores/appStore'
+import {getAppVoById} from '@/api/appController'
+import {listMyFavorites, toggleAppFavorite} from '@/api/socialController'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -136,6 +136,10 @@ const filteredApps = computed(() => {
 
 // 取消收藏
 const handleUnfavorite = async (app: API.AppVO) => {
+  if (!app.id) {
+    message.warning('数字产物ID不存在')
+    return
+  }
   try {
     const res = await toggleAppFavorite({ appId: app.id })
     if (res.data.code === 0) {

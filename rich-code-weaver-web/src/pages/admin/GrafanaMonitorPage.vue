@@ -1,8 +1,8 @@
 <template>
-  <div class="higress-manage-page">
+  <div class="grafana-monitor-page">
     <div class="page-header">
-      <h2>Higress AI 网关管理</h2>
-      <p class="page-description">管理Higress AI网关配置</p>
+      <h2>AI 模型系统监控</h2>
+      <p class="page-description">嵌入 Grafana 仪表盘，实时查看 AI 模型请求量、Token 消耗、响应时间与错误率等核心指标。</p>
     </div>
 
     <AdminBackToDashboardButton class="page-back-entry" />
@@ -10,14 +10,15 @@
     <div class="iframe-container">
       <div v-if="loading" class="loading-overlay">
         <a-spin size="large" />
-        <p>正在加载Higress管理界面...</p>
+        <p>正在加载监控面板...</p>
       </div>
 
       <iframe
-        ref="higressIframe"
-        :src="higressUrl"
+        ref="monitorIframe"
+        :src="grafanaUrl"
         class="management-iframe"
         frameborder="0"
+        allow="fullscreen"
         @load="handleIframeLoad"
         @error="handleIframeError"
       />
@@ -26,7 +27,7 @@
         <a-result
           status="error"
           title="加载失败"
-          :sub-title="`无法连接到Higress管理界面: ${higressUrl}`"
+          sub-title="无法连接到 Grafana 监控面板，请检查网络或服务状态。"
         >
           <template #extra>
             <a-button type="primary" @click="reloadIframe">
@@ -43,51 +44,69 @@
 </template>
 
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
-import {message} from 'ant-design-vue'
+import { onMounted, ref } from 'vue'
+import { message } from 'ant-design-vue'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 
-const higressUrl = import.meta.env.VITE_HIGRESS_URL || 'http://localhost:8001'
+const baseGrafanaUrl = import.meta.env.VITE_GRAFANA_URL
+  || 'https://rubyyan.cn/grafana/d/ai-model-monitoring/richcodeweaver'
+
+const grafanaParams = new URLSearchParams({
+  orgId: '1',
+  from: 'now-7d',
+  to: 'now',
+  timezone: 'browser',
+  'var-DS_PROMETHEUS': 'cfj5oyy7f74zkc',
+  refresh: '5s',
+  theme: 'light',  // 之前设置的浅色主题
+  // 以下三选一，根据需求选择
+  // kiosk: 'tv',     // 推荐：只隐藏左侧边栏，保留顶部菜单
+  // kiosk: 'full', // 隐藏侧边栏，保留顶部菜单和下拉框
+  kiosk: '',     // 隐藏侧边栏和顶部菜单（极简模式）
+})
+
+const grafanaUrl = `${baseGrafanaUrl}?${grafanaParams.toString()}`
+
 const loading = ref(true)
 const error = ref(false)
-const higressIframe = ref<HTMLIFrameElement>()
+const monitorIframe = ref<HTMLIFrameElement>()
 
 const handleIframeLoad = () => {
   loading.value = false
   error.value = false
-  message.success('Higress管理界面加载成功')
+  message.success('监控面板加载成功')
 }
 
 const handleIframeError = () => {
   loading.value = false
   error.value = true
-  message.error('Higress管理界面加载失败')
+  message.error('监控面板加载失败')
 }
 
 const reloadIframe = () => {
-  if (higressIframe.value) {
+  if (monitorIframe.value) {
     loading.value = true
     error.value = false
-    higressIframe.value.src = higressUrl
+    monitorIframe.value.src = grafanaUrl
   }
 }
 
 const openInNewTab = () => {
-  window.open(higressUrl, '_blank')
+  const externalUrl = grafanaUrl.replace('&kiosk=', '')
+  window.open(externalUrl, '_blank')
 }
 
 onMounted(() => {
-  // Set a timeout to show error if iframe doesn't load within 10 seconds
   setTimeout(() => {
     if (loading.value) {
       handleIframeError()
     }
-  }, 10000)
+  }, 15000)
 })
 </script>
 
 <style scoped>
-.higress-manage-page {
+.grafana-monitor-page {
   height: 100vh;
   display: flex;
   flex-direction: column;

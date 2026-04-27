@@ -40,6 +40,15 @@
             <DownloadOutlined />
             <span>{{ downloading ? '下载中...' : '下载代码' }}</span>
           </button>
+          <button
+            v-if="app?.codeGenType === 'vue_project'"
+            :disabled="isGenerating || deploying || refreshing"
+            class="panel-btn"
+            @click="$emit('refreshApp')"
+          >
+            <ReloadOutlined />
+            <span>{{ refreshing ? '刷新中...' : '刷新产物' }}</span>
+          </button>
           <template v-if="isDeployed">
             <button :disabled="isGenerating" class="panel-btn" @click="$emit('reDeploy')">
               <CloudUploadOutlined />
@@ -127,6 +136,7 @@ import {
   InfoCircleOutlined,
   LikeFilled,
   LikeOutlined,
+  ReloadOutlined,
   ShareAltOutlined,
   StarFilled,
   StarOutlined,
@@ -147,6 +157,7 @@ interface Props {
   previewUrl: string
   deploying: boolean
   downloading: boolean
+  refreshing: boolean
   isEditMode?: boolean
   hotStat?: API.AppHotStatVO | null
 }
@@ -159,7 +170,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits([
   'toggle', 'showDetail', 'previewFullscreen', 'download',
-  'deploy', 'reDeploy', 'visitSite', 'toggleEdit',
+  'deploy', 'reDeploy', 'refreshApp', 'visitSite', 'toggleEdit',
   'toggleLike', 'toggleFavorite', 'doShare', 'openComment',
   'inviteCollab'
 ])

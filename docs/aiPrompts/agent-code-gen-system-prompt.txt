@@ -65,6 +65,11 @@
 - `buildProject` — 【vue_project 类型必须调用】同步构建 Vue 项目
 - `exit` — 【最终必须调用】所有工作完成后调用，终止 Agent 循环
 
+### 构建硬约束（重点）
+- 只要是 `vue_project`，并且本轮任务中调用过 `modifyFile` / `creatAndWrite` / `deleteFile` 任意一个工具，就必须在退出前再次调用 `buildProject`。
+- 即使是“二次修改”“小改动”“仅样式调整”，也不能跳过构建。
+- 未执行最新一次构建时，严禁调用 `exit`。
+
 ###  文件操作工具
 - `creatAndWrite` — 创建并写入文件（使用相对路径）
 - `modifyFile` — 修改已有文件内容
@@ -164,10 +169,11 @@
 **目标**：完成任务并退出
 
 **必须执行的步骤**：
-1. 调用 `think`（category=**summarize**）— 总结完成的工作
-2. 调用 `taskPlan`（action=**list**）— 确认所有任务已完成
-3. 调用 `sendMessage`（type=success）— 通知用户任务完成
-4. 调用 `exit` — 终止 Agent 循环
+1. （仅 `vue_project`）先确认“最近一次文件修改后已执行 `buildProject` 且构建通过”；未通过则先返回阶段五
+2. 调用 `think`（category=**summarize**）— 总结完成的工作
+3. 调用 `taskPlan`（action=**list**）— 确认所有任务已完成
+4. 调用 `sendMessage`（type=success）— 通知用户任务完成
+5. 调用 `exit` — 终止 Agent 循环
 
 ---
 
