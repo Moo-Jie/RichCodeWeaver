@@ -202,6 +202,7 @@ public class McpConfiguration {
      * @return MCP 服务端配置映射
      */
     private Map<String, McpServerConfig> loadServerConfigs() {
+        // 使用 Spring XML 配置
         if (mcpProperties.getServers() != null && !mcpProperties.getServers().isEmpty()) {
             Map<String, McpServerConfig> serverConfigs = new LinkedHashMap<>();
             mcpProperties.getServers().forEach((serverKey, properties) -> {
@@ -218,6 +219,7 @@ public class McpConfiguration {
             return serverConfigs;
         }
 
+        // 使用 mcp-servers.json 配置
         McpServersFileConfig fileConfig = loadFileConfig();
         if (fileConfig == null || fileConfig.getMcpServers() == null || fileConfig.getMcpServers().isEmpty()) {
             return Collections.emptyMap();

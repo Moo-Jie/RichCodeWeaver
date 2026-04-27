@@ -221,8 +221,8 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref} from 'vue'
-import {message} from 'ant-design-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { message } from 'ant-design-vue'
 import {
   CalendarOutlined,
   DeleteOutlined,
@@ -233,7 +233,7 @@ import {
   SearchOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import {deleteUser, listUserVoByPage, resetUserPassword, updateUser} from '@/api/userController'
+import { deleteUser, listUserVoByPage, resetUserPassword, updateUser } from '@/api/userController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import dayjs from 'dayjs'
 

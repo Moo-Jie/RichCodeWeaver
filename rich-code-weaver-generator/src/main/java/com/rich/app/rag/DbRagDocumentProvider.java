@@ -1,8 +1,8 @@
 package com.rich.app.rag;
 
 import com.rich.ai.rag.RagDocumentProvider;
-import com.rich.common.constant.RagConstant;
 import com.rich.app.service.RagDocumentService;
+import com.rich.common.constant.RagConstant;
 import com.rich.model.entity.RagDocument;
 import com.rich.model.enums.RagDocumentBizTypeEnum;
 import dev.langchain4j.data.document.Document;

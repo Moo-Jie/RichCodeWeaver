@@ -1,8 +1,8 @@
 package com.rich.app.rag;
 
 import com.rich.ai.rag.RagParamProvider;
-import com.rich.common.constant.RagConstant;
 import com.rich.app.service.RagParamService;
+import com.rich.common.constant.RagConstant;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

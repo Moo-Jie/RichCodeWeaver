@@ -89,12 +89,12 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {message, Modal} from 'ant-design-vue'
-import {DeleteOutlined, EditOutlined, PlusOutlined} from '@ant-design/icons-vue'
-import {useAppStore} from '@/stores/appStore'
-import {deleteApp, listMyAppVoByPage} from '@/api/appController'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { message, Modal } from 'ant-design-vue'
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import { useAppStore } from '@/stores/appStore'
+import { deleteApp, listMyAppVoByPage } from '@/api/appController'
 
 const router = useRouter()
 const appStore = useAppStore()

@@ -354,8 +354,8 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref} from 'vue'
-import {message} from 'ant-design-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { message } from 'ant-design-vue'
 import {
   CheckCircleFilled,
   CloseCircleFilled,
@@ -365,7 +365,7 @@ import {
   SearchOutlined,
   SyncOutlined
 } from '@ant-design/icons-vue'
-import {MdEditor} from 'md-editor-v3'
+import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import {
   addRagDocument,
@@ -375,7 +375,7 @@ import {
   updateRagDocument
 } from '@/api/ragDocumentController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
-import {listRagParams, updateRagParam} from '@/api/ragParamController'
+import { listRagParams, updateRagParam } from '@/api/ragParamController'
 
 // ── 通用状态 ──────────────────────────────────────────────
 const loading = ref(false)

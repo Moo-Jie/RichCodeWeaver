@@ -43,8 +43,8 @@
 </template>
 
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
-import {message} from 'ant-design-vue'
+import { onMounted, ref } from 'vue'
+import { message } from 'ant-design-vue'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 
 const higressUrl = import.meta.env.VITE_HIGRESS_URL || 'http://localhost:8001'

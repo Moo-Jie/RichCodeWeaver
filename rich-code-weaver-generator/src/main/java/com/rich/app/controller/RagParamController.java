@@ -1,7 +1,7 @@
 package com.rich.app.controller;
 
-import com.rich.common.constant.RagConstant;
 import com.rich.app.service.RagParamService;
+import com.rich.common.constant.RagConstant;
 import com.rich.common.constant.UserConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;

@@ -2,8 +2,8 @@ package com.rich.app.utils.streamHandle;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.rich.common.constant.StreamEventConstant;
 import com.rich.app.service.ChatHistoryService;
+import com.rich.common.constant.StreamEventConstant;
 import com.rich.model.enums.ChatHistoryTypeEnum;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;

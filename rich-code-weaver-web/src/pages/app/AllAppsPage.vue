@@ -148,11 +148,11 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {useAppStore} from '@/stores/appStore'
-import {getAppVoById, listStarAppVoByPage} from '@/api/appController'
-import {listHotApps} from '@/api/socialController'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAppStore } from '@/stores/appStore'
+import { getAppVoById, listStarAppVoByPage } from '@/api/appController'
+import { listHotApps } from '@/api/socialController'
 import {
   CommentOutlined,
   CrownOutlined,

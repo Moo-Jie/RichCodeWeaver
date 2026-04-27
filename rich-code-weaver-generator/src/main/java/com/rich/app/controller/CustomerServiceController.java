@@ -1,7 +1,7 @@
 package com.rich.app.controller;
 
-import com.rich.common.constant.CustomerServiceConstant;
 import com.rich.app.service.CustomerServiceService;
+import com.rich.common.constant.CustomerServiceConstant;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;

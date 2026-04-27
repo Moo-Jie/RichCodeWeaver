@@ -244,9 +244,9 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {message} from 'ant-design-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import {
   ArrowRightOutlined,
   CalendarOutlined,
@@ -257,9 +257,9 @@ import {
   InfoCircleOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
-import {deleteApp, listAppVoByPageByAdmin, updateAppByAdmin} from '@/api/appController'
-import {CODE_GEN_TYPE_OPTIONS, formatCodeGenType} from '@/enums/codeGenTypes.ts'
-import {formatTime} from '@/utils/timeUtil.ts'
+import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
+import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
+import { formatTime } from '@/utils/timeUtil.ts'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import UserInfo from '@/components/UserInfo.vue'
 import AppInfo from '@/components/AppInfo.vue'

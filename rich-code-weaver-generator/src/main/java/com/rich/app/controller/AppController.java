@@ -2,25 +2,19 @@ package com.rich.app.controller;
 
 import com.mybatisflex.core.paginate.Page;
 import com.rich.ai.service.AiPromptOptimizationService;
-import com.rich.common.constant.AppOwnershipConstant;
 import com.rich.app.service.AppService;
 import com.rich.client.innerService.InnerCollaboratorService;
 import com.rich.client.innerService.InnerFileService;
 import com.rich.client.innerService.InnerUserService;
-
+import com.rich.common.constant.AppOwnershipConstant;
 import com.rich.common.constant.UserConstant;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
 import com.rich.common.model.DeleteRequest;
 import com.rich.common.utils.ResultUtils;
-
 import com.rich.model.annotation.AuthCheck;
-import com.rich.model.dto.app.AppAddRequest;
-import com.rich.model.dto.app.AppAdminUpdateRequest;
-import com.rich.model.dto.app.AppDeployRequest;
-import com.rich.model.dto.app.AppQueryRequest;
-import com.rich.model.dto.app.AppUpdateRequest;
+import com.rich.model.dto.app.*;
 import com.rich.model.entity.App;
 import com.rich.model.entity.User;
 import com.rich.model.vo.AppVO;

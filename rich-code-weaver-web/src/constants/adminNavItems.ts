@@ -1,9 +1,7 @@
 import type { Component } from 'vue'
 import {
   AlignLeftOutlined,
-  ApiOutlined,
   AppstoreOutlined,
-  CloudServerOutlined,
   CommentOutlined,
   CopyOutlined,
   DashboardOutlined,

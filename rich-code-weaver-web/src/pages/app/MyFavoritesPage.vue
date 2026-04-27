@@ -75,13 +75,13 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted, ref} from 'vue'
-import {useRouter} from 'vue-router'
-import {message} from 'ant-design-vue'
-import {GlobalOutlined, HeartFilled} from '@ant-design/icons-vue'
-import {useAppStore} from '@/stores/appStore'
-import {getAppVoById} from '@/api/appController'
-import {listMyFavorites, toggleAppFavorite} from '@/api/socialController'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
+import { GlobalOutlined, HeartFilled } from '@ant-design/icons-vue'
+import { useAppStore } from '@/stores/appStore'
+import { getAppVoById } from '@/api/appController'
+import { listMyFavorites, toggleAppFavorite } from '@/api/socialController'
 
 const router = useRouter()
 const appStore = useAppStore()

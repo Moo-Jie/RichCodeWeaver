@@ -239,7 +239,11 @@ import { message } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { listAppVoByPageByAdmin } from '@/api/appController'
 import { listAppChatHistoryByPageAdmin } from '@/api/chatHistoryController'
-import { listEnabledCategories, listMaterialCategoryByPage, listAllMaterialByPage } from '@/api/materialController'
+import {
+  listAllMaterialByPage,
+  listEnabledCategories,
+  listMaterialCategoryByPage
+} from '@/api/materialController'
 import { listPromptTemplateByPage } from '@/api/promptTemplateController'
 import { listRagDocumentByPage } from '@/api/ragDocumentController'
 import { listSystemPromptByPage } from '@/api/systemPromptController'

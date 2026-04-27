@@ -365,19 +365,19 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, nextTick, onMounted, onUnmounted, ref} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
-import type {TourProps} from 'ant-design-vue'
-import {message, Modal, Tour} from 'ant-design-vue'
-import {useLoginUserStore} from '@/stores/loginUser'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import type { TourProps } from 'ant-design-vue'
+import { message, Modal, Tour } from 'ant-design-vue'
+import { useLoginUserStore } from '@/stores/loginUser'
 import {
   deleteApp as deleteAppApi,
   deployApp as deployAppApi,
   getAppVoById
 } from '@/api/appController'
-import {CodeGenTypeEnum, formatCodeGenType} from '@/enums/codeGenTypes.ts'
+import { CodeGenTypeEnum, formatCodeGenType } from '@/enums/codeGenTypes.ts'
 import request from '@/request'
-import {listAppChatHistoryByPage} from '@/api/chatHistoryController'
+import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppInfo from '@/components/AppInfo.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
@@ -399,8 +399,8 @@ import {
   SendOutlined,
   StarFilled
 } from '@ant-design/icons-vue'
-import {type ElementInfo, visualEditorUtil} from '@/utils/visualEditorUtil'
-import {parseBatchContent, StreamChunkParserContext} from '@/utils/streamChunkParser'
+import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
+import { parseBatchContent, StreamChunkParserContext } from '@/utils/streamChunkParser'
 
 const route = useRoute()
 const router = useRouter()

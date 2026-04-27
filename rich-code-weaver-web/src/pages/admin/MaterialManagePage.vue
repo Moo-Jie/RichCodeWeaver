@@ -350,11 +350,11 @@ import {
   listMaterialCategoryByPage,
   updateMaterial,
   updateMaterialCategory
- } from '@/api/materialController'
- import { uploadFile } from '@/api/fileController'
+} from '@/api/materialController'
+import { uploadFile } from '@/api/fileController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 
- const activeTab = ref('material')
+const activeTab = ref('material')
 
 // ===== 分类数据（两个 tab 共用） =====
 const categories = ref<API.MaterialCategoryVO[]>([])

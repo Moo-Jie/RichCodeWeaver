@@ -1,4 +1,6 @@
-# Prometheus 配置文件（启动时需指定本配置文件路径）
+# Prometheus 配置文件模板（启动时需指定本配置文件路径）
+# 使用时去除 “-tmp” 后缀
+
 global:
   scrape_interval: 15s      # 全局抓取间隔
   evaluation_interval: 15s  # 规则评估间隔
@@ -22,7 +24,7 @@ scrape_configs:
       - targets: ['localhost:9090']
 
   # Spring Boot 应用监控 - Generator 服务
-  - job_name: 'rich-code-weaver'
+  - job_name: 'rich-code-weaver-generator'
     metrics_path: '/api/actuator/prometheus'  # Spring Boot Actuator 端点
     static_configs:
       - targets: ['localhost:8101']  # 应用服务器地址

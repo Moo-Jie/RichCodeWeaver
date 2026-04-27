@@ -270,9 +270,9 @@ import {
   addApp,
   deleteApp as deleteAppApi,
   deployApp as deployAppApi,
-  refreshApp as refreshAppApi,
   getAppVoById,
-  optimizePrompt
+  optimizePrompt,
+  refreshApp as refreshAppApi
 } from '@/api/appController'
 import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum } from '@/enums/codeGenTypes'
