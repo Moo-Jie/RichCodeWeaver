@@ -1,0 +1,12 @@
+# 线上配置 (使用时去除文件 “-tmp”后缀)
+
+spring:
+  # redis
+  data:
+    redis:
+      database: 5
+      port: 6379
+      host: 127.0.0.1
+      password: xxxxxx
+      # 连接超时时间
+      timeout: 5000

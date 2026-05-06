@@ -1,5 +1,4 @@
-# Prometheus 配置文件模板（启动时需指定本配置文件路径）
-# 使用时去除 “-tmp” 后缀
+# Prometheus 配置文件模板，启动时需指定本配置文件路径 (使用时去除文件 “-tmp”后缀)
 
 global:
   scrape_interval: 15s      # 全局抓取间隔

@@ -1,0 +1,36 @@
+# 本地配置 (使用时去除文件 “-tmp”后缀)
+
+# 阿里云OSS配置
+aliyun:
+  oss:
+    end-point: xxxxxx
+    access-key-id: xxxxxx
+    access-key-secret: xxxxxx
+    bucket-name: xxxxxx
+
+# Dubbo
+dubbo:
+  registry:
+    # nacos 注册中心启动地址
+    address:
+    register-mode: interface
+  protocol:
+    name: tri
+    # 协议端口
+    port: 50053
+  consumer:
+    timeout: 150000
+  provider:
+    timeout: 150000
+  application:
+    qos-port: 33335
+
+# Spring Boot Admin Client 配置
+spring.boot.admin.client:
+  # Spring Boot Admin Server 地址
+  url: http://localhost:9001
+  instance:
+    # 服务实例名称
+    name: ${spring.application.name}
+    # 服务访问地址
+    service-base-url: http://localhost:${server.port}

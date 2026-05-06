@@ -1,0 +1,170 @@
+# 生产配置 (使用时去除文件 “-tmp”后缀)
+
+spring:
+  # mysql
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/rich_code_weaver
+    username: rich_code_weaver
+    password: xxxxxx
+  # redis
+  data:
+    redis:
+      database: 5
+      port: 6379
+      host: 127.0.0.1
+      password: xxxxxx
+      # 连接超时时间
+      timeout: 5000
+      # 过期时间
+      ttl: 5000
+
+# Dubbo
+dubbo:
+  registry:
+    # nacos 注册中心启动地址
+    address: nacos://xxxxxx:8848?username=nacos&password=nacos
+    register-mode: interface
+  protocol:
+    name: tri
+    port: 50051
+  consumer:
+    timeout: 60000
+  provider:
+    timeout: 60000
+  # Dubbo QoS 配置
+  application:
+    qos-port: 33333
+
+# Spring Boot Admin Client 配置
+spring.boot.admin.client:
+  # Spring Boot Admin Server 地址
+  url: http://localhost:9001
+  instance:
+    # 服务实例名称
+    name: ${spring.application.name}
+    # 服务访问地址
+    service-base-url: http://localhost:${server.port}
+# 阿里云 DashScope 配置（用于图片生成）
+dashscope:
+  api-key: xxxxxx
+
+# 百度搜索API配置
+# 百度千帆平台配置
+baidu:
+  qianfan:
+    # AppBuilder API Key（用于搜索功能）
+    # 获取地址：https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application
+    appbuilder-api-key: xxxxxx
+
+# 接口盒子配置（图片搜索）
+apihz:
+  image-search:
+    # 接口盒子ID（默认值为公共测试ID，建议替换为自己的）
+    id: xxxxxx
+    # 接口盒子开发者KEY（默认值为公共测试KEY，建议替换为自己的）
+    key: xxxxxx
+
+# langchain4j 配置（使用阿里云百炼AI）
+langchain4j:
+  open-ai:
+    # 基础模型配置参数（用于简单的 AI 服务，如：代码审查、代码生成策略选择、网络资源收集、图片资源构建等）
+    chat-model:
+      # 阿里云百炼AI接口地址
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      # 阿里云百炼AI接口密钥
+      api-key: xxxxxx
+      # 模型名称（使用qwen-plus作为基础模型）
+      model-name: qwen-plus
+      # 开启请求日志
+      log-requests: true
+      # 开启响应日志
+      log-responses: true
+      # 最大 token 数
+      max-tokens: 8192
+      # 超时设置（毫秒）- 增加超时时间以处理网络资源整理等耗时操作
+      timeout: 180000
+
+    # 基础流式模型配置参数（用于构建简单的产物，如：构建单文件产物、多文件产物等）
+    streaming-chat-model:
+      # 阿里云百炼AI接口地址
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      # 阿里云百炼AI接口密钥
+      api-key: xxxxxx
+      # 模型名称（使用qwen-turbo作为流式模型，速度更快）
+      model-name: qwen3-coder-plus
+      # 最大 token 数
+      max-tokens: 32768
+      # 超时设置（毫秒）- 增加超时时间
+      timeout: 1200000
+      # 开启请求日志
+      log-requests: true
+      # 开启响应日志
+      log-responses: true
+
+    # AI 客服流式模型配置参数（用于首页客服问答，轻量对话，一切从简）
+    customer-service-streaming-chat-model:
+      # 阿里云百炼AI接口地址
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      # 阿里云百炼AI接口密钥
+      api-key: xxxxxx
+      # 模型名称（客服问答使用轻量通用聊天模型）
+      model-name: qwen-plus
+      # 最大 token 数
+      max-tokens: 8192
+      # 超时设置（毫秒）
+      timeout: 180000
+      # 开启请求日志
+      log-requests: true
+      # 开启响应日志
+      log-responses: true
+
+    # 推理流式模型配置参数（用于构建复杂的产物，如：构建工程化项目等）
+    # 使用 Qwen3-Coder-Plus - 专为代码生成优化的旗舰模型
+    reasoning-streaming-chat-model:
+      # 阿里云百炼AI接口地址
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      # 阿里云百炼AI接口密钥
+      api-key: xxxxxx
+      # 模型名称（使用qwen3-coder-plus - 具备强大的Coding Agent能力，擅长工具调用和环境交互）
+      model-name: qwen3-coder-plus
+      # 最大 token 数（qwen3-coder-plus支持最大65536输出tokens，但建议设置合理值以控制成本）
+      max-tokens: 32768
+      # 超时设置（毫秒）- 推理模型需要更长的超时时间，尤其是处理大型代码库时
+      timeout: 3200000
+      # 开启请求日志
+      log-requests: true
+      # 开启响应日志
+      log-responses: true
+      # 温度参数（可选，控制输出随机性，0.0-2.0，默认1.0，代码生成建议0.3-0.7）
+      # temperature: 0.5
+      # Top P参数（可选，核采样参数，0.0-1.0，默认1.0）
+      # top-p: 0.8
+
+# RAG 知识库检索增强配置
+rag:
+  # RAG 功能总开关
+  enabled: true
+  # 应用启动时自动检查并摄入知识库文档（首次启动时自动执行，已有数据时跳过）
+  auto-ingest-on-startup: true
+  # 知识库文档目录路径（绝对路径，存放 .md 格式的开发规范文档）
+  docs-path: E:/AAA_idea_java/RichCodeWeaver/docs/ragDocs
+  # PGVector 向量数据库连接配置
+  pgvector:
+    host: xxxxxx
+    port: 5432
+    database: xxxxxx
+    user: xxxxxx
+    password: xxxxxx
+    table: rag_embeddings
+    dimension: 1536
+    use-index: true
+  # Embedding 向量模型配置
+  embedding-model:
+    api-key: xxxxxx
+    model-name: text-embedding-v4
+
+mcp:
+  enabled: true
+  fail-if-one-server-fails: false
+  initialization-timeout-millis: 60000

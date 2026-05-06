@@ -1,0 +1,57 @@
+﻿# 本地配置 (使用时去除文件 “-tmp”后缀)
+
+# JavaMailSender 邮件服务配置
+spring:
+  mail:
+    # SMTP 服务器地址
+    host: smtp.qq.com
+    # 发件人邮箱账号
+    username: xxxxxx
+    # 邮箱授权码（非登录密码）
+    password: xxxxxx
+    # SMTP 端口
+    port: 465
+    # 默认编码
+    default-encoding: utf-8
+    # 邮件协议
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          # 开启 SMTP 认证
+          auth: true
+          starttls:
+            # 开启 STARTTLS
+            enable: true
+            required: true
+          ssl:
+            # 开启 SSL 加密
+            enable: true
+          socketFactory:
+            port: 465
+            class: javax.net.ssl.SSLSocketFactory
+
+# 邮件通知配置
+notification:
+  emails:
+    # 发件人显示名称和邮箱
+    from: "RichCodeWeaver 监控系统 <1745966516@qq.com>"
+    # 收件人邮箱列表（可添加多个）
+    recipients:
+      - xxxxxx
+      - xxxxxx
+    # 抄送邮箱列表（可选）
+    cc:
+    # - manager@example.com
+    # 是否启用邮件通知
+    enabled: true
+    # 通知场景配置
+    scenarios:
+      # 服务上线通知
+      service-up: true
+      # 服务下线通知
+      service-down: true
+      # 服务状态未知通知
+      service-unknown: false
+      # 服务离线通知
+      service-offline: true
