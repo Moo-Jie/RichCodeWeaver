@@ -17,6 +17,8 @@ import com.rich.app.langGraph.CodeGenWorkflowApp;
 import com.rich.app.mapper.AppMapper;
 import com.rich.app.model.StreamEvent;
 import com.rich.app.model.StreamSession;
+import com.rich.app.mq.producer.ScreenshotProducer;
+import com.rich.app.mq.producer.VueProjectBuildProducer;
 import com.rich.app.service.AppService;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.app.service.MaterialService;
@@ -237,6 +239,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private BuildWebProjectExecutor buildWebProjectExecutor;
+
+    @Resource
+    private VueProjectBuildProducer vueProjectBuildProducer;
+
+    @Resource
+    private ScreenshotProducer screenshotProducer;
 
     /**
      * 执行 AI 对话并并生成代码(流式，支持断线重连)
@@ -778,6 +786,202 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             return true;
         }
         return collaboratorService.isCollaborator(app.getId(), loginUser.getId());
+    }
+
+    /**
+     * 部署产物(异步版本)
+     * Vue项目发送到消息队列异步构建
+     * HTML/MULTI_FILE直接部署
+     *
+     * @param appId     产物id
+     * @param loginUser 登录用户
+     * @return 部署URL(Vue项目为临时URL)
+     * @author DuRuiChi
+     * @create 2026/5/6
+     */
+    @Override
+    public String deployAppAsync(Long appId, User loginUser) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+
+        // 查询产物信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+
+        // 权限校验：仅产物所有者可部署
+        if (!app.getUserId().equals(loginUser.getId())) {
+            log.warn("部署产物失败：权限不足 - appId={}, userId={}, ownerId={}",
+                    appId, loginUser.getId(), app.getUserId());
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "这不是您的产物，无法部署");
+        }
+
+        // 获取或生成部署密钥
+        String deployKey = app.getDeployKey();
+        if (StrUtil.isBlank(deployKey)) {
+            deployKey = RandomUtil.randomString(DEPLOY_KEY_LENGTH);
+            log.info("生成新的部署密钥: appId={}, deployKey={}", appId, deployKey);
+        }
+
+        String codeGenType = app.getCodeGenType();
+        String appUrl;
+
+        // 根据代码生成类型选择部署策略
+        if (CodeGeneratorTypeEnum.VUE_PROJECT.getValue().equals(codeGenType)) {
+            // Vue项目：发送构建任务到消息队列
+            appUrl = deployVueProjectAsync(app, loginUser, deployKey);
+        } else {
+            // HTML/MULTI_FILE：直接复制文件并部署
+            appUrl = deployStaticFilesSync(app, deployKey);
+        }
+
+        return appUrl;
+    }
+
+    /**
+     * 部署Vue项目(异步)
+     */
+    private String deployVueProjectAsync(App app, User loginUser, String deployKey) {
+        Long appId = app.getId();
+        
+        // 获取项目路径
+        String codeGenType = app.getCodeGenType();
+        String projectPath = CODE_OUTPUT_ROOT_DIR + File.separator 
+                + codeGenType + "_" + appId;
+
+        File projectDir = new File(projectPath);
+        if (!projectDir.exists() || !projectDir.isDirectory()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "项目目录不存在，请先生成代码");
+        }
+
+        // 发送构建任务到消息队列
+        boolean sent = vueProjectBuildProducer.sendBuildTask(
+                appId, loginUser.getId(), projectPath, deployKey);
+
+        if (!sent) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "构建任务提交失败，请稍后重试");
+        }
+
+        // 更新产物信息（记录部署密钥，但不记录部署时间，等构建完成后再更新）
+        App updateApp = new App();
+        updateApp.setId(appId);
+        updateApp.setDeployKey(deployKey);
+        this.updateById(updateApp);
+
+        // 返回临时URL（构建完成后通过WebSocket通知前端）
+        String appUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        log.info("Vue项目构建任务已提交: appId={}, deployKey={}, appUrl={}", appId, deployKey, appUrl);
+
+        return appUrl;
+    }
+
+    /**
+     * 部署静态文件(同步)
+     */
+    private String deployStaticFilesSync(App app, String deployKey) {
+        Long appId = app.getId();
+
+        try {
+            // 构建代码输出文件夹路径
+            File outputDir = getOutputDir(app);
+
+            // 校验代码输出文件夹是否存在
+            if (!outputDir.exists() || !outputDir.isDirectory()) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "源码目录不存在，请先生成代码");
+            }
+
+            // 构建代码部署文件夹路径
+            File deployDir = new File(CODE_DEPLOY_ROOT_DIR + File.separator + deployKey);
+
+            // 复制目录内容
+            FileUtil.copyContent(outputDir, deployDir, true);
+            log.info("产物文件复制成功: appId={}, from={}, to={}",
+                    appId, outputDir.getAbsolutePath(), deployDir.getAbsolutePath());
+
+            // 更新产物信息
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setDeployKey(deployKey);
+            updateApp.setDeployedTime(LocalDateTime.now());
+            this.updateById(updateApp);
+
+            // 构建部署访问URL
+            String appUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+            log.info("产物部署成功: appId={}, deployKey={}, appUrl={}", appId, deployKey, appUrl);
+
+            // 异步生成截图
+            generateScreenshotAsync(appId, appUrl);
+
+            return appUrl;
+
+        } catch (Exception e) {
+            log.error("部署产物失败: appId={}, error={}", appId, e.getMessage(), e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "产物部署失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 异步生成截图(消息队列版本)
+     */
+    private void generateScreenshotAsync(Long appId, String appUrl) {
+        // 发送截图生成任务到消息队列
+        boolean sent = screenshotProducer.sendScreenshotTask(appId, appUrl, "COVER");
+        
+        if (sent) {
+            log.info("截图生成任务已提交: appId={}, appUrl={}", appId, appUrl);
+        } else {
+            log.warn("截图生成任务提交失败，使用默认封面: appId={}", appId);
+            // 失败降级：使用默认封面
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setCover(AppConstant.APP_COVER);
+            this.updateById(updateApp);
+        }
+    }
+
+    /**
+     * 刷新产物(异步版本)
+     * 重新构建Vue项目，发送到消息队列
+     *
+     * @param appId     产物 id
+     * @param loginUser 登录用户
+     * @return 是否提交成功
+     * @author DuRuiChi
+     * @create 2026/5/6
+     */
+    @Override
+    public Boolean refreshAppAsync(Long appId, User loginUser) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+
+        // 查询产物信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "产物不存在");
+        ThrowUtils.throwIf(!CodeGeneratorTypeEnum.VUE_PROJECT.getValue().equals(app.getCodeGenType()),
+                ErrorCode.OPERATION_ERROR, "仅VUE项目支持刷新产物");
+
+        // 权限校验
+        if (!hasRefreshPermission(app, loginUser)) {
+            log.warn("刷新产物失败：权限不足 - appId={}, userId={}, ownerId={}",
+                    appId, loginUser.getId(), app.getUserId());
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "这不是您可编辑的产物，无法刷新");
+        }
+
+        // 获取项目路径
+        String projectPath = CODE_OUTPUT_ROOT_DIR + File.separator 
+                + app.getCodeGenType() + "_" + appId;
+
+        // 发送构建任务到消息队列
+        boolean sent = vueProjectBuildProducer.sendBuildTask(
+                appId, loginUser.getId(), projectPath, app.getDeployKey());
+
+        if (!sent) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "刷新任务提交失败，请稍后重试");
+        }
+
+        log.info("刷新产物任务已提交: appId={}", appId);
+        return true;
     }
 
     /**

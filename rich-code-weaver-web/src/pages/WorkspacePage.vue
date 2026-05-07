@@ -270,10 +270,13 @@ import {
   addApp,
   deleteApp as deleteAppApi,
   deployApp as deployAppApi,
+  deployAppAsync as deployAppAsyncApi,
   getAppVoById,
   optimizePrompt,
-  refreshApp as refreshAppApi
+  refreshApp as refreshAppApi,
+  refreshAppAsync as refreshAppAsyncApi
 } from '@/api/appController'
+import taskProgressService from '@/utils/taskProgressService'
 import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
 import { CodeGenTypeEnum } from '@/enums/codeGenTypes'
 import {
@@ -451,17 +454,45 @@ const doRefreshArtifact = async () => {
   }
 
   refreshing.value = true
+  const isVueProject = appStore.selectedApp?.codeGenType === CodeGenTypeEnum.VUE_PROJECT
+
   try {
-    const res = await refreshAppApi({ appId: appId.value as unknown as number })
-    if (res.data.code === 0 && res.data.data) {
-      message.success('产物刷新成功（已重新构建）')
-      updatePreview()
+    if (isVueProject) {
+      // Vue项目使用异步刷新 + WebSocket进度
+      const res = await refreshAppAsyncApi({ appId: appId.value as unknown as number })
+      if (res.data.code === 0 && res.data.data) {
+        message.loading({ content: '刷新任务已提交，正在重新构建...', key: 'refresh-progress', duration: 0 })
+        await taskProgressService.subscribeTaskProgress(appId.value, (progress: any) => {
+          if (progress.status === 'RUNNING') {
+            message.loading({ content: progress.message || '构建中...', key: 'refresh-progress', duration: 0 })
+          } else if (progress.status === 'SUCCESS') {
+            message.success({ content: '产物刷新成功（已重新构建）', key: 'refresh-progress' })
+            refreshing.value = false
+            updatePreview()
+            taskProgressService.unsubscribeTaskProgress(appId.value!)
+          } else if (progress.status === 'FAILED') {
+            message.error({ content: '产物刷新失败: ' + (progress.message || ''), key: 'refresh-progress' })
+            refreshing.value = false
+            taskProgressService.unsubscribeTaskProgress(appId.value!)
+          }
+        })
+      } else {
+        message.error('产物刷新失败：' + (res.data.message || ''))
+        refreshing.value = false
+      }
     } else {
-      message.error('产物刷新失败：' + (res.data.message || ''))
+      // 非Vue项目使用同步刷新
+      const res = await refreshAppApi({ appId: appId.value as unknown as number })
+      if (res.data.code === 0 && res.data.data) {
+        message.success('产物刷新成功（已重新构建）')
+        updatePreview()
+      } else {
+        message.error('产物刷新失败：' + (res.data.message || ''))
+      }
+      refreshing.value = false
     }
   } catch (error) {
     message.error('产物刷新失败，请重试')
-  } finally {
     refreshing.value = false
   }
 }
@@ -1243,20 +1274,63 @@ const deployApp = async () => {
   }
 
   deploying.value = true
+  const isVueProject = appStore.selectedApp?.codeGenType === CodeGenTypeEnum.VUE_PROJECT
+
   try {
-    const res = await deployAppApi({ appId: appId.value as unknown as number })
-    if (res.data.code === 0 && res.data.data) {
-      deployUrl.value = res.data.data
-      deployModalVisible.value = true
-      message.success('部署成功')
-      await refreshAppInfoOnly()
+    if (isVueProject) {
+      // Vue项目使用异步部署 + WebSocket进度推送
+      const res = await deployAppAsyncApi({ appId: appId.value as unknown as number })
+      if (res.data.code === 0 && res.data.data) {
+        deployUrl.value = res.data.data
+        message.loading({ content: '任务已提交，正在构建部署...', key: 'deploy-progress', duration: 0 })
+        await subscribeDeployProgress()
+      } else {
+        message.error('部署失败：' + (res.data.message || ''))
+        deploying.value = false
+      }
     } else {
-      message.error('部署失败：' + (res.data.message || ''))
+      // HTML/MULTI_FILE使用同步部署
+      const res = await deployAppApi({ appId: appId.value as unknown as number })
+      if (res.data.code === 0 && res.data.data) {
+        deployUrl.value = res.data.data
+        deployModalVisible.value = true
+        message.success('部署成功')
+        await refreshAppInfoOnly()
+      } else {
+        message.error('部署失败：' + (res.data.message || ''))
+      }
+      deploying.value = false
     }
   } catch (error) {
     message.error('部署失败，请重试')
-  } finally {
     deploying.value = false
+  }
+}
+
+/** 订阅部署进度 WebSocket 推送 */
+const subscribeDeployProgress = async () => {
+  if (!appId.value) return
+  try {
+    await taskProgressService.subscribeTaskProgress(appId.value, (progress: any) => {
+      if (progress.status === 'RUNNING') {
+        message.loading({ content: progress.message || '构建中...', key: 'deploy-progress', duration: 0 })
+      } else if (progress.status === 'SUCCESS') {
+        message.success({ content: '部署成功', key: 'deploy-progress' })
+        deploying.value = false
+        if (progress.result) deployUrl.value = progress.result
+        deployModalVisible.value = true
+        refreshAppInfoOnly()
+        taskProgressService.unsubscribeTaskProgress(appId.value!)
+      } else if (progress.status === 'FAILED') {
+        message.error({ content: '部署失败: ' + (progress.message || '未知错误'), key: 'deploy-progress' })
+        deploying.value = false
+        taskProgressService.unsubscribeTaskProgress(appId.value!)
+      } else if (progress.status === 'RETRYING') {
+        message.loading({ content: '构建失败，正在重试...', key: 'deploy-progress', duration: 0 })
+      }
+    })
+  } catch (err) {
+    console.error('WebSocket订阅失败，部署已在后台执行', err)
   }
 }
 
@@ -1275,19 +1349,33 @@ const confirmReDeploy = async () => {
     cancelText: '取消',
     onOk: async () => {
       deploying.value = true
+      const isVueProject = appStore.selectedApp?.codeGenType === CodeGenTypeEnum.VUE_PROJECT
+
       try {
-        const res = await deployAppApi({ appId: appId.value as unknown as number })
-        if (res.data.code === 0 && res.data.data) {
-          deployUrl.value = res.data.data
-          deployModalVisible.value = true
-          message.success('重新部署成功')
-          await refreshAppInfoOnly()
+        if (isVueProject) {
+          const res = await deployAppAsyncApi({ appId: appId.value as unknown as number })
+          if (res.data.code === 0 && res.data.data) {
+            deployUrl.value = res.data.data
+            message.loading({ content: '任务已提交，正在构建部署...', key: 'deploy-progress', duration: 0 })
+            await subscribeDeployProgress()
+          } else {
+            message.error('重新部署失败：' + (res.data.message || ''))
+            deploying.value = false
+          }
         } else {
-          message.error('重新部署失败：' + (res.data.message || ''))
+          const res = await deployAppApi({ appId: appId.value as unknown as number })
+          if (res.data.code === 0 && res.data.data) {
+            deployUrl.value = res.data.data
+            deployModalVisible.value = true
+            message.success('重新部署成功')
+            await refreshAppInfoOnly()
+          } else {
+            message.error('重新部署失败：' + (res.data.message || ''))
+          }
+          deploying.value = false
         }
       } catch (error) {
         message.error('重新部署失败，请重试')
-      } finally {
         deploying.value = false
       }
     }
@@ -1674,6 +1762,10 @@ onUnmounted(() => {
     refreshDebounceTimer = null
   }
   if (timer.value) clearInterval(timer.value)
+  // 清理WebSocket订阅
+  if (appId.value) {
+    taskProgressService.unsubscribeTaskProgress(appId.value)
+  }
 })
 
 const handleIframeMessage = (event: MessageEvent) => {

@@ -3,6 +3,7 @@ package com.rich.app.controller;
 import com.mybatisflex.core.paginate.Page;
 import com.rich.ai.service.AiPromptOptimizationService;
 import com.rich.app.service.AppService;
+import com.rich.app.service.TaskExecutionService;
 import com.rich.client.innerService.InnerCollaboratorService;
 import com.rich.client.innerService.InnerFileService;
 import com.rich.client.innerService.InnerUserService;
@@ -16,6 +17,7 @@ import com.rich.common.utils.ResultUtils;
 import com.rich.model.annotation.AuthCheck;
 import com.rich.model.dto.app.*;
 import com.rich.model.entity.App;
+import com.rich.model.entity.TaskExecution;
 import com.rich.model.entity.User;
 import com.rich.model.vo.AppVO;
 import jakarta.annotation.Resource;
@@ -67,6 +69,9 @@ public class AppController {
 
     @Resource
     private AiPromptOptimizationService aiPromptOptimizationService;
+
+    @Resource
+    private TaskExecutionService taskExecutionService;
 
     // 注入外部文件上传服务的代理对象
     @DubboReference
@@ -126,7 +131,9 @@ public class AppController {
     }
 
     /**
-     * 部署产物
+     * 部署产物(同步版本，保持向后兼容)
+     * HTML/MULTI_FILE直接部署
+     * Vue项目同步构建(阻塞等待)
      *
      * @param appDeployRequest 部署请求参数
      * @param request          请求信息
@@ -149,7 +156,33 @@ public class AppController {
     }
 
     /**
-     * 刷新产物（仅重新构建，不执行部署）
+     * 部署产物(异步版本，推荐使用)
+     * Vue项目发送到消息队列异步构建
+     * HTML/MULTI_FILE直接部署
+     *
+     * @param appDeployRequest 部署请求参数
+     * @param request          请求信息
+     * @return 部署URL(Vue项目为临时URL，需通过WebSocket获取最终状态)
+     * @author DuRuiChi
+     * @create 2026/5/6
+     **/
+    @PostMapping("/deploy/async")
+    public BaseResponse<String> deployAppAsync(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR, "部署请求参数不能为空");
+
+        Long appId = appDeployRequest.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+
+        User loginUser = InnerUserService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+
+        String deployUrl = appService.deployAppAsync(appId, loginUser);
+        return ResultUtils.success(deployUrl);
+    }
+
+    /**
+     * 刷新产物(同步版本，保持向后兼容)
+     * 仅重新构建，不执行部署
      *
      * @param appDeployRequest 刷新请求参数
      * @param request          请求信息
@@ -167,6 +200,46 @@ public class AppController {
 
         Boolean result = appService.refreshApp(appId, loginUser);
         return ResultUtils.success(result);
+    }
+
+    /**
+     * 刷新产物(异步版本，推荐使用)
+     * 重新构建Vue项目，发送到消息队列
+     *
+     * @param appDeployRequest 刷新请求参数
+     * @param request          请求信息
+     * @return 是否提交成功
+     * @author DuRuiChi
+     * @create 2026/5/6
+     */
+    @PostMapping("/refresh/async")
+    public BaseResponse<Boolean> refreshAppAsync(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+        ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR, "刷新请求参数不能为空");
+
+        Long appId = appDeployRequest.getAppId();
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+
+        User loginUser = InnerUserService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+
+        Boolean result = appService.refreshAppAsync(appId, loginUser);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 查询任务状态
+     * 用于前端轮询或WebSocket连接失败时的降级方案
+     *
+     * @param appId 产物ID
+     * @return 任务执行记录
+     * @author DuRuiChi
+     * @create 2026/5/6
+     */
+    @GetMapping("/task/status")
+    public BaseResponse<TaskExecution> getTaskStatus(@RequestParam Long appId) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "产物ID无效");
+        TaskExecution task = taskExecutionService.getLatestByAppId(appId);
+        return ResultUtils.success(task);
     }
 
     /**

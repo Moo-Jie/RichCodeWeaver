@@ -50,6 +50,18 @@ export async function deployApp(body: API.AppDeployRequest, options?: { [key: st
   })
 }
 
+/** 部署产物(异步版本) POST /generator/app/deploy/async */
+export async function deployAppAsync(body: API.AppDeployRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseString>('/generator/app/deploy/async', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    data: body,
+    ...(options || {})
+  })
+}
+
 /** 此处后端没有提供注释 POST /generator/app/refresh */
 export async function refreshApp(body: API.AppDeployRequest, options?: { [key: string]: any }) {
   return request<API.BaseResponseBoolean>('/generator/app/refresh', {
@@ -58,6 +70,29 @@ export async function refreshApp(body: API.AppDeployRequest, options?: { [key: s
       'Content-Type': 'application/json'
     },
     data: body,
+    ...(options || {})
+  })
+}
+
+/** 刷新产物(异步版本) POST /generator/app/refresh/async */
+export async function refreshAppAsync(body: API.AppDeployRequest, options?: { [key: string]: any }) {
+  return request<API.BaseResponseBoolean>('/generator/app/refresh/async', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    data: body,
+    ...(options || {})
+  })
+}
+
+/** 查询任务状态 GET /generator/app/task/status */
+export async function getTaskStatus(params: { appId: number }, options?: { [key: string]: any }) {
+  return request<API.BaseResponseTaskExecution>('/generator/app/task/status', {
+    method: 'GET',
+    params: {
+      ...params
+    },
     ...(options || {})
   })
 }

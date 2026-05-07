@@ -5,6 +5,7 @@ import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
 import com.rich.common.utils.ResultUtils;
 import com.rich.file.service.FileService;
+import com.rich.file.service.impl.FileServiceAsyncImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.annotation.Resource;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
@@ -31,8 +33,11 @@ public class FileController {
     @Autowired
     private FileService fileService;
 
+    @Resource
+    private FileServiceAsyncImpl fileServiceAsync;
+
     /**
-     * 文件上传接口
+     * 文件上传接口(同步版本，保持向后兼容)
      *
      * @param file 上传的文件
      * @return 文件上传成功后的URL
@@ -48,6 +53,24 @@ public class FileController {
             String imgFileStr = fileService.upload(file);
             return ResultUtils.success(imgFileStr);
         }
+    }
+
+    /**
+     * 文件上传接口(异步版本，推荐使用)
+     * 文件先保存到临时目录，然后发送到消息队列异步上传
+     *
+     * @param file 上传的文件
+     * @return 消息ID(可用于查询上传状态)
+     * @author DuRuiChi
+     * @create 2026/5/6
+     */
+    @PostMapping("/upload/async")
+    public BaseResponse<String> uploadAsync(@RequestPart("file") MultipartFile file) {
+        // 参数校验
+        ThrowUtils.throwIf(file == null, ErrorCode.PARAMS_ERROR, "上传文件不能为空");
+        // 异步上传文件
+        String messageId = fileServiceAsync.uploadAsync(file);
+        return ResultUtils.success(messageId);
     }
 
     @GetMapping("/proxy/image")

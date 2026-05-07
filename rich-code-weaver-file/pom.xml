@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.rich</groupId>
         <artifactId>rich-code-weaver-parent</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>2.0</version>
     </parent>
 
     <artifactId>rich-code-weaver-file</artifactId>
@@ -22,13 +22,13 @@
         <dependency>
             <groupId>com.rich</groupId>
             <artifactId>rich-code-weaver-common</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>2.0</version>
         </dependency>
         <!-- 内部接口模块 -->
         <dependency>
             <groupId>com.rich</groupId>
             <artifactId>rich-code-weaver-client</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>2.0</version>
         </dependency>
         <!-- 阿里云 OSS -->
         <!-- OSS依赖-->
@@ -69,6 +69,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- RabbitMQ依赖（统一使用starter） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
     </dependencies>
 

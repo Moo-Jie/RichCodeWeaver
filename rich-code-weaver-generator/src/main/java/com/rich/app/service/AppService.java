@@ -170,6 +170,18 @@ public interface AppService extends IService<App> {
     String deployApp(Long appId, User loginUser);
 
     /**
+     * 部署产物(异步版本)
+     * Vue项目发送到消息队列异步构建
+     *
+     * @param appId     产物id
+     * @param loginUser 登录用户
+     * @return java.lang.String 部署URL(Vue项目为临时URL)
+     * @author DuRuiChi
+     * @create 2026/5/6
+     */
+    String deployAppAsync(Long appId, User loginUser);
+
+    /**
      * 构建代码输出文件夹
      *
      * @param app 产物实体
@@ -204,4 +216,16 @@ public interface AppService extends IService<App> {
      * @return 是否刷新成功
      */
     Boolean refreshApp(Long appId, User loginUser);
+
+    /**
+     * 刷新产物(异步版本)
+     * 重新构建Vue项目，发送到消息队列
+     *
+     * @param appId     产物 id
+     * @param loginUser 登录用户
+     * @return 是否提交成功
+     * @author DuRuiChi
+     * @create 2026/5/6
+     */
+    Boolean refreshAppAsync(Long appId, User loginUser);
 }

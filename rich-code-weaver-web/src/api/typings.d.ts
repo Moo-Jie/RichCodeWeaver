@@ -1155,4 +1155,29 @@ declare namespace API {
     data?: AppCollaboratorVO[]
     message?: string
   }
+
+  // ===== Task Execution Types =====
+
+  /** 任务执行记录 */
+  type TaskExecution = {
+    id?: number
+    taskType?: string
+    appId?: number
+    userId?: number
+    status?: string
+    progress?: number
+    result?: string
+    retryCount?: number
+    maxRetries?: number
+    startTime?: string
+    endTime?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  type BaseResponseTaskExecution = {
+    code?: number
+    data?: TaskExecution
+    message?: string
+  }
 }
