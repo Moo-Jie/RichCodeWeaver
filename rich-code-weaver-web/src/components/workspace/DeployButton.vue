@@ -71,10 +71,10 @@
 </template>
 
 <script setup>
-import { ref, onUnmounted } from 'vue';
-import { ElMessage } from 'element-plus';
-import { deployAppAsync, getTaskStatus } from '@/api/appController';
-import taskProgressService from '@/utils/taskProgressService';
+import { onUnmounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { deployAppAsync } from '@/api/appController'
+import taskProgressService from '@/utils/taskProgressService'
 
 const props = defineProps({
   appId: {

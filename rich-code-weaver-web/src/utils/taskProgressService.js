@@ -1,12 +1,12 @@
 /**
  * 任务进度服务
  * 用于订阅WebSocket任务进度推送
- * 
+ *
  * @author DuRuiChi
  * @create 2026-05-06
  */
-import SockJS from 'sockjs-client';
-import Stomp from 'stompjs';
+import SockJS from 'sockjs-client'
+import Stomp from 'stompjs'
 
 class TaskProgressService {
   constructor() {
@@ -56,7 +56,7 @@ class TaskProgressService {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       console.log(`尝试重新连接WebSocket (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
-      
+
       setTimeout(() => {
         this.connect().catch(() => {
           console.warn('WebSocket重连失败');
@@ -69,7 +69,7 @@ class TaskProgressService {
 
   /**
    * 订阅任务进度
-   * 
+   *
    * @param {Number} appId 产物ID
    * @param {Function} callback 进度回调函数
    * @returns {Promise} 订阅Promise
@@ -86,7 +86,7 @@ class TaskProgressService {
     }
 
     const destination = `/topic/task/progress/${appId}`;
-    
+
     try {
       const subscription = this.stompClient.subscribe(destination, (message) => {
         try {
@@ -108,7 +108,7 @@ class TaskProgressService {
 
   /**
    * 取消订阅任务进度
-   * 
+   *
    * @param {Number} appId 产物ID
    */
   unsubscribeTaskProgress(appId) {

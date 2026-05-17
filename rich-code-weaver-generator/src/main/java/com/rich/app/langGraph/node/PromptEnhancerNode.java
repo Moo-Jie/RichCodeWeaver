@@ -50,7 +50,7 @@ public class PromptEnhancerNode {
         // 3.首次生成：构建强化后的提示词，资源前置 + 强制指令 + 用户需求在后
         StringBuilder enhancedPromptBuilder = new StringBuilder();
 
-        // === 素材区域：放在用户需求之前，确保 AI 优先看到并使用 ===
+        // 素材区域：放在用户需求之前，确保 AI 优先看到并使用
         boolean hasResources = false;
         String imageListStr = context.getImageListStr();
         String webResourceListStr = context.getWebResourceListStr();

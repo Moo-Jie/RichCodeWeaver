@@ -39,7 +39,7 @@ public class AICodeReviewNode {
             CodeGeneratorTypeEnum generationType = context.getGenerationType();
             CodeReviewResponse codeReviewResponse;
             try {
-                // ====== 结构性预检查：检查关键文件是否存在（AI 审查无法检测磁盘文件缺失） ======
+                // 结构性预检查：检查关键文件是否存在（AI 审查无法检测磁盘文件缺失）
                 List<String> structuralErrors = checkProjectStructure(outputDir, generationType);
                 if (!structuralErrors.isEmpty()) {
                     log.warn("项目结构检查未通过，发现 {} 个结构性错误", structuralErrors.size());
@@ -49,7 +49,7 @@ public class AICodeReviewNode {
                             .suggestionList(buildStructuralSuggestions(generationType))
                             .build();
                 } else {
-                    // ====== AI 代码审查 ======
+                    // AI 代码审查
                     String codeContent = CodeConcatenateUtiles.readAndConcatenateCodeFiles(outputDir);
                     if (StrUtil.isBlank(codeContent)) {
                         log.warn("未找到可审查的代码文件");

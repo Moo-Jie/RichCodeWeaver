@@ -214,7 +214,7 @@ public class AiCustomerServiceFactory {
                 // 客服使用专用流式模型
                 .streamingChatModel(streamingChatModel)
                 // 系统提示词 + 增量摘要上下文拼接（systemMessageProvider 每次调用时动态获取最新摘要）
-                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPrompt, (Long) memoryId, AiServiceConstant.SUMMARY_TYPE_CUSTOMER_SERVICE))
+                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPrompt, (Long) memoryId))
                 // 直接绑定当前 conversationId 对应的 chatMemory，保持多轮客服上下文连续
                 .chatMemory(chatMemory)
                 // 同时保留 chatMemoryProvider，兼容依赖 MemoryId 的调用方式
@@ -224,13 +224,12 @@ public class AiCustomerServiceFactory {
     /**
      * 将近期对话摘要拼接到系统提示词末尾，为 LLM 提供全局上下文
      *
-     * @param basePrompt  原始系统提示词
-     * @param memoryId    记忆标识（conversationId）
-     * @param summaryType 摘要类型
+     * @param basePrompt 原始系统提示词
+     * @param memoryId   记忆标识（conversationId）
      * @return 拼接摘要后的系统提示词
      */
-    private String appendSummaryToPrompt(String basePrompt, Long memoryId, String summaryType) {
-        String summary = aiChatSummaryService.getLatestSummaryContent(memoryId, summaryType);
+    private String appendSummaryToPrompt(String basePrompt, Long memoryId) {
+        String summary = aiChatSummaryService.getLatestSummaryContent(memoryId, AiServiceConstant.SUMMARY_TYPE_CUSTOMER_SERVICE);
         if (summary == null || summary.isBlank()) {
             return basePrompt;
         }

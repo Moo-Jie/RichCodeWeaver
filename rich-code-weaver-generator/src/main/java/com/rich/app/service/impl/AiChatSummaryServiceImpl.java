@@ -119,8 +119,6 @@ public class AiChatSummaryServiceImpl extends ServiceImpl<AiChatSummaryMapper, A
         return summary != null ? summary.getSummaryContent() : null;
     }
 
-    // ======================== 内部方法 ========================
-
     /**
      * 统计指定会话的 AI 响应轮数
      * Agent/Workflow 查 chat_history 表，CustomerService 查 customer_service_message 表

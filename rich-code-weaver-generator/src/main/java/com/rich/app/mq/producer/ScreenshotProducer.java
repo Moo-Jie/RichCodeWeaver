@@ -5,8 +5,6 @@ import com.rich.app.mq.config.RabbitMQConfig;
 import com.rich.app.mq.metrics.TaskMetrics;
 import com.rich.app.mq.model.TaskMessage;
 import com.rich.app.service.TaskExecutionService;
-import com.rich.common.exception.BusinessException;
-import com.rich.common.exception.ErrorCode;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
