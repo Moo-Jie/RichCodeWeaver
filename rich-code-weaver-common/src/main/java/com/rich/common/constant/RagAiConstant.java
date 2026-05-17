@@ -33,6 +33,11 @@ public final class RagAiConstant {
      */
     public static final String RAG_EMBEDDING_STORE_BEAN = "ragEmbeddingStore";
 
+    /**
+     * RAG RerankModel Bean 名称
+     */
+    public static final String RAG_RERANK_MODEL_BEAN = "ragRerankModel";
+
     private RagAiConstant() {
     }
 }

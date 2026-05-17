@@ -1,4 +1,4 @@
-package com.rich.ai.config;
+package com.rich.ai.config.chatModel;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;

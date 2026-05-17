@@ -1,4 +1,4 @@
-package com.rich.ai.config;
+package com.rich.ai.config.chatModel;
 
 import com.rich.ai.monitor.AiModelMonitorListener;
 import dev.langchain4j.model.chat.StreamingChatModel;

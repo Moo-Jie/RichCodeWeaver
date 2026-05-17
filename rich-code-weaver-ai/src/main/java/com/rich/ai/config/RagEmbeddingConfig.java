@@ -2,6 +2,7 @@ package com.rich.ai.config;
 
 import cn.hutool.core.util.StrUtil;
 import com.rich.ai.rag.embeddingModel.DashScopeTextEmbeddingModel;
+import com.rich.ai.config.chatModel.DashScopeTextRerankModel;
 import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
 import com.rich.ai.rag.documentIndex.RagDocumentIndexCreationService;
 import dev.langchain4j.data.segment.TextSegment;
@@ -80,6 +81,42 @@ public class RagEmbeddingConfig {
             return buildMilvusEmbeddingStore(ragPropertiesConfig.getMilvus());
         }
         return buildPgVectorEmbeddingStore(ragPropertiesConfig.getPgvector());
+    }
+
+    /**
+     * 创建 Rerank 重排序模型 Bean
+     * 使用阿里云 DashScope Text-Rerank API（Qwen3-VL-Rerank）
+     * 仅在 rag.rerank.enabled=true 时创建
+     *
+     * @param ragPropertiesConfig RAG 配置属性，包含 Rerank 模型参数
+     * @return DashScopeTextRerankModel 重排序模型实例，未启用时返回 null
+     * @author DuRuiChi
+     * @create 2026/5/17
+     **/
+    @Bean("ragRerankModel")
+    public DashScopeTextRerankModel ragRerankModel(RagPropertiesConfig ragPropertiesConfig) {
+        RagPropertiesConfig.RerankModelProperties rerankProps = ragPropertiesConfig.getRerank();
+        if (!rerankProps.isEnabled()) {
+            log.info("【RAG】Rerank 重排序功能未启用（rag.rerank.enabled=false）");
+            return null;
+        }
+
+        // API 密钥：优先使用 rerank 专属密钥，留空时复用 embedding-model 的密钥
+        String apiKey = StrUtil.isNotBlank(rerankProps.getApiKey())
+                ? rerankProps.getApiKey()
+                : ragPropertiesConfig.getEmbeddingModel().getApiKey();
+
+        log.info("【RAG】初始化 Rerank 重排序模型（DashScope），模型名称: {}，topN: {}",
+                rerankProps.getModelName(), rerankProps.getTopN());
+
+        DashScopeTextRerankModel model = new DashScopeTextRerankModel(
+                rerankProps.getModelName(),
+                apiKey,
+                rerankProps.getTopN()
+        );
+
+        log.info("【RAG】Rerank 重排序模型初始化完成");
+        return model;
     }
 
     private EmbeddingStore<TextSegment> buildPgVectorEmbeddingStore(RagPropertiesConfig.PgVectorProperties pgProps) {

@@ -54,6 +54,11 @@ public class RagPropertiesConfig {
      **/
     private EmbeddingModelProperties embeddingModel = new EmbeddingModelProperties();
 
+    /**
+     * Rerank 重排序模型配置
+     **/
+    private RerankModelProperties rerank = new RerankModelProperties();
+
     public boolean useMilvus() {
         return "milvus".equalsIgnoreCase(storeType == null ? "pgvector" : storeType.trim().toLowerCase(Locale.ROOT));
     }
@@ -172,5 +177,34 @@ public class RagPropertiesConfig {
          * 推荐：text-embedding-v4（通义实验室基于 Qwen3 训练，支持 64~2048 自定义维度）
          **/
         private String modelName = "text-embedding-v4";
+    }
+
+    /**
+     * Rerank 重排序模型配置
+     * 使用阿里云 DashScope Text-Rerank API
+     **/
+    @Data
+    public static class RerankModelProperties {
+        /**
+         * Rerank 功能开关，设为 false 时跳过重排序
+         **/
+        private boolean enabled = false;
+
+        /**
+         * Rerank 模型名称
+         * 推荐：qwen3-vl-rerank（通义实验室多模态重排序模型）
+         **/
+        private String modelName = "qwen3-vl-rerank";
+
+        /**
+         * DashScope API 密钥（留空时复用 embedding-model 的 api-key）
+         **/
+        private String apiKey;
+
+        /**
+         * 重排序后返回的最大结果数
+         * 建议设为 3~5，过多则 Rerank 意义降低
+         **/
+        private int topN = 3;
     }
 }

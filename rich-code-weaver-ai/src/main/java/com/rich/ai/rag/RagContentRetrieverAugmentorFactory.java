@@ -2,6 +2,7 @@ package com.rich.ai.rag;
 
 import com.rich.ai.config.RagEmbeddingConfig;
 import com.rich.ai.rag.documentIndex.RagDocumentIndexCreationService;
+import com.rich.ai.config.chatModel.DashScopeTextRerankModel;
 import com.rich.common.constant.RagAiConstant;
 import com.rich.common.constant.RagConstant;
 import dev.langchain4j.data.segment.TextSegment;
@@ -9,6 +10,7 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.DefaultRetrievalAugmentor;
 import dev.langchain4j.rag.RetrievalAugmentor;
+import dev.langchain4j.rag.content.Content;
 import dev.langchain4j.rag.content.injector.ContentInjector;
 import dev.langchain4j.rag.content.injector.DefaultContentInjector;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -90,6 +92,12 @@ public class RagContentRetrieverAugmentorFactory {
      **/
     @Resource(name = RagAiConstant.RAG_EMBEDDING_STORE_BEAN)
     private EmbeddingStore<TextSegment> embeddingStore;
+
+    /**
+     * Rerank 重排序模型，检索阶段对结果进行语义重排序（可选注入）
+     **/
+    @Autowired(required = false)
+    private DashScopeTextRerankModel rerankModel;
 
     /**
      * Agent 模式专用的 codeGenType 标识
@@ -220,7 +228,7 @@ public class RagContentRetrieverAugmentorFactory {
     /**
      * 构建 RetrievalAugmentor（可选附带检索日志）
      *
-     * @param metadataFilter 元数据过滤器
+     * @param metadataFilter  元数据过滤器
      * @param retrieverLogTag 检索日志标识
      * @return RetrievalAugmentor 检索增强器实例
      */
@@ -230,10 +238,17 @@ public class RagContentRetrieverAugmentorFactory {
         double minScore = getMinScore();
         String injectionTemplate = getInjectionTemplate();
 
-        // 2：构建 ContentRetriever（内容检索器）
-        // 基于 PGVector 的向量相似度检索，附加 codeGenType 元数据过滤
-        ContentRetriever delegateContentRetriever = buildDelegateContentRetriever(metadataFilter, maxResults, minScore);
-        ContentRetriever contentRetriever = wrapContentRetrieverWithLog(delegateContentRetriever, retrieverLogTag);
+        // 2：构建 ContentRetriever（内容检索器）,用于向量相似度检索
+        // 创建默认内容检索器，附加 codeGenType 元数据过滤
+        ContentRetriever defaultContentRetriever = EmbeddingStoreContentRetriever.builder()
+                .embeddingStore(embeddingStore)
+                .embeddingModel(embeddingModel)
+                .maxResults(maxResults)
+                .minScore(minScore)
+                .filter(metadataFilter)
+                .build();
+        // 自定义创建默认内容检索器，封装额外的 Rerank、日志输出等逻辑
+        ContentRetriever contentRetriever = wrapContentRetrieverWithLog(defaultContentRetriever, retrieverLogTag);
 
         // 3：构建 ContentInjector（内容注入器）
         // 使用自定义提示词模板，将检索到的知识库内容以权威参考形式注入用户消息
@@ -276,38 +291,39 @@ public class RagContentRetrieverAugmentorFactory {
     }
 
     /**
-     * 构建基础内容检索器
-     *
-     * @param metadataFilter 元数据过滤器
-     * @param maxResults 最大返回数量
-     * @param minScore 最低分数
-     * @return 内容检索器
-     */
-    private ContentRetriever buildDelegateContentRetriever(Filter metadataFilter, int maxResults, double minScore) {
-        return EmbeddingStoreContentRetriever.builder()
-                .embeddingStore(embeddingStore)
-                .embeddingModel(embeddingModel)
-                .maxResults(maxResults)
-                .minScore(minScore)
-                .filter(metadataFilter)
-                .build();
-    }
-
-    /**
-     * 根据日志标识包装检索器
-     * 没有日志标识时直接返回原检索器
+     * 自定义内容检索器
+     * 封装额外的 Rerank 重排序、日志输出等逻辑
      *
      * @param delegateContentRetriever 原始检索器
-     * @param retrieverLogTag 日志标识
+     * @param retrieverLogTag          日志标识
      * @return 包装后的检索器
      */
     private ContentRetriever wrapContentRetrieverWithLog(ContentRetriever delegateContentRetriever, String retrieverLogTag) {
-        if (retrieverLogTag == null || retrieverLogTag.isBlank()) {
+        boolean hasLogTag = retrieverLogTag != null && !retrieverLogTag.isBlank();
+        boolean hasRerank = rerankModel != null;
+
+        // 无需包装：既无日志标识也无 Rerank 模型
+        if (!hasLogTag && !hasRerank) {
             return delegateContentRetriever;
         }
+
+        // lambda 表达式创建 ContentRetriever 实现类，实现自定义 retrieve 方法
         return query -> {
-            var contents = delegateContentRetriever.retrieve(query);
-            log.info("【{}】已执行知识库检索，命中 {} 条内容", retrieverLogTag, contents.size());
+            // 1.调用默认查询方法，执行相似度匹配
+            List<Content> contents = delegateContentRetriever.retrieve(query);
+            if (hasLogTag) {
+                log.info("【{}】已执行知识库检索，命中 {} 条内容", retrieverLogTag, contents.size());
+            }
+
+            // 2. Rerank 重排序
+            if (hasRerank && !contents.isEmpty()) {
+                contents = rerankModel.rerank(query.text(), contents);
+                if (hasLogTag) {
+                    log.info("【{}】Rerank 重排序完成，保留 {} 条内容", retrieverLogTag, contents.size());
+                }
+            }
+
+            // TODO 3. 执行提示压缩（暂不实现，当前业务暂时无需进行提示压缩，节约 token）
             return contents;
         };
     }
