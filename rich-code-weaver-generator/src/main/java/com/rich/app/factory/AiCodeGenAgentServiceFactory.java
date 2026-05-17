@@ -5,20 +5,23 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.ai.agent.AiCodeGenAgentService;
 import com.rich.ai.aiTools.ToolsManager;
 import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
+import com.rich.app.service.AiChatSummaryService;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.client.innerService.InnerSystemPromptService;
 import com.rich.common.constant.AiServiceConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.utils.SpringContextUtil;
-import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.memory.ChatMemory;
+import dev.langchain4j.memory.chat.TokenWindowChatMemory;
+import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.tool.ToolProvider;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -61,10 +64,16 @@ public class AiCodeGenAgentServiceFactory {
     private ToolsManager toolsManager;
 
     /**
-     * Redis 类型的 ChatMemory 存储
+     * 对话记忆存储（底层为 Redis + 截断装饰器，防止 bigkey）
      */
     @Resource
-    private RedisChatMemoryStore redisChatMemoryStore;
+    private ChatMemoryStore chatMemoryStore;
+
+    /**
+     * Token 计数器，用于按 Token 数维护动态滑动窗口
+     */
+    @Resource
+    private TokenCountEstimator tokenCountEstimator;
 
     /**
      * 对话历史服务，用于从数据库加载历史消息
@@ -77,6 +86,12 @@ public class AiCodeGenAgentServiceFactory {
      */
     @DubboReference
     private InnerSystemPromptService innerSystemPromptService;
+
+    /**
+     * 对话增量摘要服务，用于获取近期对话摘要补充全局上下文
+     */
+    @Resource
+    private AiChatSummaryService aiChatSummaryService;
 
     /**
      * RAG 检索增强器工厂（可选注入，RAG 未启用时为 null）
@@ -116,7 +131,7 @@ public class AiCodeGenAgentServiceFactory {
         String systemPrompt = loadAgentSystemPrompt();
 
         // 2.创建对话记忆（基于 appId 隔离，Redis 存储）
-        MessageWindowChatMemory chatMemory = buildChatMemory(appId);
+        TokenWindowChatMemory chatMemory = buildChatMemory(appId);
 
         // 3.从数据库加载历史对话到 Redis 记忆中
         loadAgentChatHistory(appId, chatMemory);
@@ -150,16 +165,20 @@ public class AiCodeGenAgentServiceFactory {
     }
 
     /**
-     * 构建 Agent 对话记忆
+     * 构建 Agent 对话记忆（Token 滑动窗口）
      *
      * @param appId 产物 ID
      * @return 对话记忆
      */
-    private MessageWindowChatMemory buildChatMemory(Long appId) {
-        return MessageWindowChatMemory.builder()
+    private TokenWindowChatMemory buildChatMemory(Long appId) {
+        log.info("构建 Agent TokenWindowChatMemory: appId={}, maxTokens={}", appId, AiServiceConstant.CHAT_MEMORY_MAX_TOKENS);
+        return TokenWindowChatMemory.builder()
                 .id(appId)
-                .chatMemoryStore(redisChatMemoryStore)
-                .maxMessages(AiServiceConstant.CHAT_MEMORY_MAX_MESSAGES)
+                // 两大核心参数：
+                // 基于 Redis 的对话记忆存储模型（Big Key 切片/超长截断处理）
+                .chatMemoryStore(chatMemoryStore)
+                // 基于 OpenAiTokenCountEstimator 的 Token 估算器
+                .maxTokens(AiServiceConstant.CHAT_MEMORY_MAX_TOKENS, tokenCountEstimator)
                 .build();
     }
 
@@ -169,7 +188,7 @@ public class AiCodeGenAgentServiceFactory {
      * @param appId 产物 ID
      * @param chatMemory 对话记忆
      */
-    private void loadAgentChatHistory(Long appId, MessageWindowChatMemory chatMemory) {
+    private void loadAgentChatHistory(Long appId, ChatMemory chatMemory) {
         Boolean loaded = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, AiServiceConstant.DEFAULT_HISTORY_LOAD_LIMIT);
         if (Boolean.FALSE.equals(loaded)) {
             chatMemory.add(UserMessage.from(AiServiceConstant.HISTORY_LOAD_FAILED_MESSAGE));
@@ -186,14 +205,14 @@ public class AiCodeGenAgentServiceFactory {
      * @return Agent 服务构建器
      */
     private AiServices<AiCodeGenAgentService> buildBaseAgentService(String systemPrompt,
-                                                                    MessageWindowChatMemory chatMemory,
+                                                                    ChatMemory chatMemory,
                                                                     StreamingChatModel reasoningStreamingChatModel) {
         // Agent 模式本身就是推理 + 工具调用链，因此这里直接将本地工具与 MCP 工具一并挂载
         AiServices<AiCodeGenAgentService> builder = AiServices.builder(AiCodeGenAgentService.class)
                 // Agent 全程使用推理流式模型，确保 Think -> Act -> Observe 链路稳定运行
                 .streamingChatModel(reasoningStreamingChatModel)
-                // 系统提示词仍然沿用数据库中的 Agent Prompt，不改变原有规划/执行策略
-                .systemMessageProvider(memoryId -> systemPrompt)
+                // 系统提示词
+                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPrompt, (Long) memoryId, AiServiceConstant.SUMMARY_TYPE_AGENT))
                 // 原有本地工具全部保留，例如 taskPlan / think / 文件工具 等
                 .tools(toolsManager.getAllTools())
                 // 限制连续工具调用次数，避免模型异常循环调用工具
@@ -214,6 +233,22 @@ public class AiCodeGenAgentServiceFactory {
 
         // 返回 builder 继续给后面的 RAG 挂载逻辑复用，最后在 createAgentService 中统一 build
         return builder;
+    }
+
+    /**
+     * 将近期对话摘要拼接到系统提示词末尾，为 LLM 提供全局上下文
+     *
+     * @param basePrompt  原始系统提示词
+     * @param memoryId    记忆标识
+     * @param summaryType 摘要类型
+     * @return 拼接摘要后的系统提示词
+     */
+    private String appendSummaryToPrompt(String basePrompt, Long memoryId, String summaryType) {
+        String summary = aiChatSummaryService.getLatestSummaryContent(memoryId, summaryType);
+        if (summary == null || summary.isBlank()) {
+            return basePrompt;
+        }
+        return basePrompt + AiServiceConstant.SUMMARY_CONTEXT_PREFIX + summary;
     }
 
     /**

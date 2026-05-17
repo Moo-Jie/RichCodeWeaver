@@ -9,11 +9,13 @@ import com.rich.ai.service.AiCustomerService;
 import com.rich.app.factory.AiCustomerServiceFactory;
 import com.rich.app.model.StreamEvent;
 import com.rich.app.model.StreamSession;
+import com.rich.app.service.AiChatSummaryService;
 import com.rich.app.service.CustomerServiceConversationService;
 import com.rich.app.service.CustomerServiceMessageService;
 import com.rich.app.service.CustomerServiceService;
 import com.rich.app.service.StreamSessionService;
 import com.rich.app.utils.ConvertTokenStreamToFluxUtils.ConvertCustomerServiceTokenStreamToFluxUtils;
+import com.rich.common.constant.AiServiceConstant;
 import com.rich.common.constant.CustomerServiceConstant;
 import com.rich.common.constant.StreamEventConstant;
 import com.rich.common.constant.UserConstant;
@@ -82,6 +84,9 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
 
     @Resource
     private StreamSessionService streamSessionService;
+
+    @Resource
+    private AiChatSummaryService aiChatSummaryService;
 
     /**
      * 创建客服会话
@@ -206,6 +211,8 @@ public class CustomerServiceServiceImpl implements CustomerServiceService {
                             aiResponse, visitorContext.userId(), visitorContext.visitorKey());
                     customerServiceConversationService.refreshConversation(conversationId, aiResponse,
                             LocalDateTime.now(), false);
+                    // AI 响应保存成功后，异步触发增量摘要检查
+                    aiChatSummaryService.tryTriggerSummary(conversationId, AiServiceConstant.SUMMARY_TYPE_CUSTOMER_SERVICE);
                 }
                 addEndEvent(sessionKey);
                 streamSessionService.markCompleted(sessionKey);

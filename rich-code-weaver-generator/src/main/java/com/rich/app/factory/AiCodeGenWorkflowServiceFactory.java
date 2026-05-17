@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.rich.ai.aiTools.ToolsManager;
 import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
 import com.rich.ai.service.AiCodeGeneratorService;
+import com.rich.app.service.AiChatSummaryService;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.client.innerService.InnerSystemPromptService;
 import com.rich.common.constant.AiServiceConstant;
@@ -12,15 +13,17 @@ import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.utils.SpringContextUtil;
 import com.rich.model.enums.CodeGeneratorTypeEnum;
-import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.memory.ChatMemory;
+import dev.langchain4j.memory.chat.TokenWindowChatMemory;
+import dev.langchain4j.model.TokenCountEstimator;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.tool.ToolProvider;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
@@ -81,10 +84,16 @@ public class AiCodeGenWorkflowServiceFactory {
     private ToolsManager toolsManager;
 
     /**
-     * Redis 类型的 ChatMemory 存储，用于存储对话历史
+     * 对话记忆存储（底层为 Redis + 截断装饰器，防止 bigkey）
      **/
     @Resource
-    private RedisChatMemoryStore redisChatMemoryStore;
+    private ChatMemoryStore chatMemoryStore;
+
+    /**
+     * Token 计数器，用于按 Token 数维护动态滑动窗口
+     */
+    @Resource
+    private TokenCountEstimator tokenCountEstimator;
 
     /**
      * 对话历史服务，用于从数据库加载和保存对话历史
@@ -97,6 +106,12 @@ public class AiCodeGenWorkflowServiceFactory {
      **/
     @DubboReference
     private InnerSystemPromptService innerSystemPromptService;
+
+    /**
+     * 对话增量摘要服务，用于获取近期对话摘要补充全局上下文
+     */
+    @Resource
+    private AiChatSummaryService aiChatSummaryService;
 
     /**
      * RAG 知识库检索增强工厂
@@ -145,7 +160,7 @@ public class AiCodeGenWorkflowServiceFactory {
         String systemPromptContent = loadSystemPromptContent(codeGenTypeEnum);
 
         // 2：根据 appId 创建独立的对话记忆（ChatMemory）
-        MessageWindowChatMemory chatMemory = buildChatMemory(appId);
+        TokenWindowChatMemory chatMemory = buildChatMemory(appId);
 
         // 3：从数据库中加载对话历史到 Redis 类型的 chatMemory 中
         loadWorkflowChatHistory(appId, chatMemory);
@@ -153,12 +168,11 @@ public class AiCodeGenWorkflowServiceFactory {
         // 4：构建 AI 服务实例的基础配置（使用 systemMessageProvider 编程式指定系统提示词）
         AiServices<AiCodeGeneratorService> aiCodeGenServices = buildBaseWorkflowAiService(systemPromptContent, chatMemory);
 
-        // 4.5：注入 RAG 知识库检索增强器（如果 RAG 功能已启用）
+        // 注入 RAG 知识库检索增强器（如果 RAG 功能已启用）
         // RetrievalAugmentor 会在每次 AI 调用前自动执行：
         //   1. 将用户查询向量化
         //   2. 在 PGVector 中按 codeGenType 过滤检索相关知识库片段
         //   3. 将检索到的开发规范以权威参考形式注入到用户消息中
-        // 这样 AI 生成代码时会参考知识库中的开发规范，降低幻觉概率
         attachWorkflowRagAugmentor(aiCodeGenServices, appId, codeGenTypeEnum);
 
         // 5：根据代码生成类型选择不同的 AI 模型和配置
@@ -185,12 +199,13 @@ public class AiCodeGenWorkflowServiceFactory {
      * @param appId 产物 ID
      * @return 对话记忆
      */
-    private MessageWindowChatMemory buildChatMemory(long appId) {
-        return MessageWindowChatMemory
+    private TokenWindowChatMemory buildChatMemory(long appId) {
+        log.info("构建 Workflow TokenWindowChatMemory: appId={}, maxTokens={}", appId, AiServiceConstant.CHAT_MEMORY_MAX_TOKENS);
+        return TokenWindowChatMemory
                 .builder()
                 .id(appId)  // 使用 appId 作为唯一标识
-                .chatMemoryStore(redisChatMemoryStore)  // 指定为 Redis 类型的存储
-                .maxMessages(AiServiceConstant.CHAT_MEMORY_MAX_MESSAGES)  // 最大保留固定条数消息（滑动窗口）
+                .chatMemoryStore(chatMemoryStore)  // 底层 Redis 存储，带消息截断保护
+                .maxTokens(AiServiceConstant.CHAT_MEMORY_MAX_TOKENS, tokenCountEstimator)  // 按 Token 数动态维护滑动窗口
                 .build();
     }
 
@@ -216,7 +231,7 @@ public class AiCodeGenWorkflowServiceFactory {
      * @param appId 产物 ID
      * @param chatMemory 对话记忆
      */
-    private void loadWorkflowChatHistory(long appId, MessageWindowChatMemory chatMemory) {
+    private void loadWorkflowChatHistory(long appId, ChatMemory chatMemory) {
         Boolean isSave = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, AiServiceConstant.DEFAULT_HISTORY_LOAD_LIMIT);
         if (!isSave) {
             chatMemory.add(UserMessage.from(AiServiceConstant.HISTORY_LOAD_FAILED_MESSAGE));
@@ -232,10 +247,10 @@ public class AiCodeGenWorkflowServiceFactory {
      * @return AI 服务构建器
      */
     private AiServices<AiCodeGeneratorService> buildBaseWorkflowAiService(String systemPromptContent,
-                                                                          MessageWindowChatMemory chatMemory) {
+                                                                          ChatMemory chatMemory) {
         return AiServices.builder(AiCodeGeneratorService.class)
                 .chatModel(chatModel)
-                .systemMessageProvider(memoryId -> systemPromptContent)
+                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPromptContent, (Long) memoryId, AiServiceConstant.SUMMARY_TYPE_WORKFLOW))
                 .maxSequentialToolsInvocations(AiServiceConstant.WORKFLOW_MAX_TOOLS_INVOCATIONS)
                 .chatMemory(chatMemory);
     }
@@ -281,7 +296,7 @@ public class AiCodeGenWorkflowServiceFactory {
      * @return AI 服务实例
      */
     private AiCodeGeneratorService buildReasoningWorkflowService(AiServices<AiCodeGeneratorService> aiCodeGenServices,
-                                                                 MessageWindowChatMemory chatMemory) {
+                                                                 ChatMemory chatMemory) {
         // 推理模式单独使用 reasoning-streaming-chat-model，普通流式模式不会走这里
         StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean(
                 AiServiceConstant.REASONING_STREAMING_CHAT_MODEL_BEAN, StreamingChatModel.class);
@@ -307,6 +322,22 @@ public class AiCodeGenWorkflowServiceFactory {
 
         // 最终构建出可直接执行推理 + 工具调用的 AI 服务实例
         return builder.build();
+    }
+
+    /**
+     * 将近期对话摘要拼接到系统提示词末尾，为 LLM 提供全局上下文
+     *
+     * @param basePrompt  原始系统提示词
+     * @param memoryId    记忆标识
+     * @param summaryType 摘要类型
+     * @return 拼接摘要后的系统提示词
+     */
+    private String appendSummaryToPrompt(String basePrompt, Long memoryId, String summaryType) {
+        String summary = aiChatSummaryService.getLatestSummaryContent(memoryId, summaryType);
+        if (summary == null || summary.isBlank()) {
+            return basePrompt;
+        }
+        return basePrompt + AiServiceConstant.SUMMARY_CONTEXT_PREFIX + summary;
     }
 
     /**

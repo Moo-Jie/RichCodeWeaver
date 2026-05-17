@@ -7,6 +7,7 @@ import com.rich.app.langGraph.state.WorkflowContext;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.app.utils.streamHandle.CommonStreamHandler;
 import com.rich.app.utils.streamHandle.JsonStreamHandler;
+import com.rich.common.constant.AiServiceConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.model.enums.CodeGeneratorTypeEnum;
@@ -403,12 +404,11 @@ public class CodeGenWorkflowApp {
             });
         });
         // 处理流，把收集 AI 响应内容保存到对话历史，并进一步处理为响应给前端的最终内容
-        // 注意：不要在此处添加 doOnComplete 保存对话历史，CommonStreamHandler.doFinally 已统一处理保存逻辑
         return commonStreamHandler.handleStream(
                 fluxStream
                         // 过滤空字串
                         .filter(StrUtil::isNotEmpty),
-                chatHistoryService, appId, userId, aiResponseBuilder);
+                chatHistoryService, appId, userId, aiResponseBuilder, AiServiceConstant.SUMMARY_TYPE_WORKFLOW);
     }
 
     /**

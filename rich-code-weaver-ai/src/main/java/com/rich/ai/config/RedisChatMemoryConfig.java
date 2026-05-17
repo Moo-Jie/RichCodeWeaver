@@ -1,10 +1,16 @@
 package com.rich.ai.config;
 
-import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
+import com.rich.ai.memory.chat.ChunkedRedisChatMemoryStore;
+import com.rich.common.constant.AiServiceConstant;
+import dev.langchain4j.model.TokenCountEstimator;
+import dev.langchain4j.model.openai.OpenAiTokenCountEstimator;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
  * redis 整合 Langchain4j 配置
@@ -12,35 +18,11 @@ import org.springframework.context.annotation.Configuration;
  * @author DuRuiChi
  * @create 2025/12/18
  **/
+@Slf4j
 @Configuration
 @ConfigurationProperties(prefix = "spring.data.redis")
 @Data
 public class RedisChatMemoryConfig {
-
-    /**
-     * redis 主机
-     */
-    private String host;
-
-    /**
-     * redis 账户
-     */
-    private String user;
-
-    /**
-     * redis 密码
-     */
-    private String password;
-
-    /**
-     * redis 端口
-     */
-    private int port;
-
-    /**
-     * redis 数据库
-     */
-    private int database;
 
     /**
      * redis 过期时间
@@ -48,59 +30,39 @@ public class RedisChatMemoryConfig {
     private long ttl;
 
     /**
-     * Redis整合Langchain4j配置
-     * 创建Redis聊天记忆存储，用于持久化AI对话历史
-     * 支持TTL（生存时间）配置，自动清理过期的对话记录
+     * 创建带分片保护的聊天记忆存储
      *
-     * @return dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore Redis聊天记忆存储实例
+     * @return ChatMemoryStore 聊天记忆存储实例
      * @author DuRuiChi
      * @create 2025/12/18
      **/
     @Bean
-    public RedisChatMemoryStore redisChatMemoryStore() {
-        // 构建Redis聊天记忆存储
-        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder();
+    public ChatMemoryStore chatMemoryStore(StringRedisTemplate stringRedisTemplate) {
+        return new ChunkedRedisChatMemoryStore(
+                stringRedisTemplate,
+                ttl,
+                AiServiceConstant.CHAT_MEMORY_CHUNK_SIZE,
+                AiServiceConstant.CHAT_MEMORY_MAX_CHUNKS_PER_MESSAGE,
+                AiServiceConstant.CHAT_MEMORY_MAX_MESSAGE_CHARS,
+                AiServiceConstant.CHAT_MEMORY_TRUNCATION_SUFFIX,
+                AiServiceConstant.CHAT_MEMORY_TOOL_FOLD_KEEP_RECENT,
+                AiServiceConstant.CHAT_MEMORY_TOOL_FOLDED_RESULT,
+                AiServiceConstant.CHAT_MEMORY_TOOL_FOLDED_ARGUMENTS
+        );
+    }
 
-        // 设置Redis主机地址（必需参数）
-        if (host != null && !host.trim().isEmpty()) {
-            builder.host(host);
-        } else {
-            // 如果未配置主机地址，使用默认值localhost
-            builder.host("localhost");
-        }
-
-        // 设置Redis端口（必需参数）
-        if (port > 0 && port <= 65535) {
-            builder.port(port);
-        } else {
-            // 如果端口无效，使用默认值6379
-            builder.port(6379);
-        }
-
-        // 设置Redis数据库索引（可选参数，默认为0）
-        if (database >= 0 && database <= 15) {
-//            builder.database(database);
-        }
-
-        // 设置用户名（可选参数，生产环境建议启用）
-        // 注意：当前已注释，上线时需要取消注释以启用认证
-        // if (user != null && !user.trim().isEmpty()) {
-        //     builder.user(user);
-        // }
-
-        // 设置密码（可选参数，生产环境建议启用）
-        // 注意：当前已注释，上线时需要取消注释以启用认证
-         if (password != null && !password.trim().isEmpty()) {
-             builder.password(password);
-         }
-
-        // 设置TTL（生存时间，单位：秒）
-        // TTL用于自动清理过期的对话记录，避免Redis内存占用过高
-        if (ttl > 0) {
-            builder.ttl(ttl);
-        }
-
-        // 构建并返回Redis聊天记忆存储实例
-        return builder.build();
+    /**
+     * Token 计数器（用于 TokenWindowChatMemory 按 Token 淘汰旧消息）
+     * 使用 OpenAiTokenCountEstimator 近似计数，对 Qwen 等兼容模型同样适用
+     *
+     * @return TokenCountEstimator Token 计数器
+     */
+    @Bean
+    public TokenCountEstimator chatMemoryTokenCountEstimator() {
+        log.info("初始化 Token 计数器，近似模型: {}", AiServiceConstant.CHAT_MEMORY_TOKENIZER_MODEL);
+        // OpenAiTokenCountEstimator 是 Langchain4j 内置的本地 Token 估算工具
+        // 使用 OpenAI 官方为 gpt-4o 模型制定的 Token 计算标准，来做本地分词和计数，不是调用大模型
+        // （Qwen3-Coder-Plus 采用的分词编码 = O200K_BASE，与 “GPT_4O("gpt-4o", EncodingType.O200K_BASE, 128000)” 完美适配）
+        return new OpenAiTokenCountEstimator(AiServiceConstant.CHAT_MEMORY_TOKENIZER_MODEL);
     }
 }

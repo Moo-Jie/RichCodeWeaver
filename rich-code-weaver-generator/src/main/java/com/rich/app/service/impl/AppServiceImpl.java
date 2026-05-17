@@ -310,8 +310,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 素材处理：将选中的素材内容拼接到消息中
         String finalMessage = appendMaterialPromptIfNecessary(appId, userId, message, materialIds);
 
-        // 保存用户消息到对话历史（仅新建会话时保存，重连不保存）
-        // 注意：保存的是原始消息，不包含素材内容（素材内容仅用于AI生成）
+        // 保存用户消息到数据库（仅新建会话时保存，重连不保存）（保存的是原始消息，不包含素材内容）
+        // Redis 中的数据由 Langchain4j MessageWindowChatMemory 在每次对话时自动维护，此处无需同步存储
         boolean isSaveMsgSuccess = chatHistoryService.addChatMessage(appId, message, ChatHistoryTypeEnum.USER.getValue(), userId);
         ThrowUtils.throwIf(!isSaveMsgSuccess, ErrorCode.OPERATION_ERROR, "保存用户消息失败");
 

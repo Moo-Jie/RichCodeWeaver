@@ -4,6 +4,7 @@ import cn.hutool.core.util.StrUtil;
 import com.rich.ai.agent.AiCodeGenAgentService;
 import com.rich.app.factory.AiCodeGenAgentServiceFactory;
 import com.rich.app.service.ChatHistoryService;
+import com.rich.common.constant.AiServiceConstant;
 import com.rich.app.utils.ConvertTokenStreamToFluxUtils.ConvertAgentTokenStreamToFluxUtils;
 import com.rich.app.utils.streamHandle.JsonStreamHandler;
 import dev.langchain4j.service.TokenStream;
@@ -75,7 +76,8 @@ public class CodeGenAgent {
                 agentFlux.filter(StrUtil::isNotEmpty),
                 chatHistoryService,
                 appId,
-                userId
+                userId,
+                AiServiceConstant.SUMMARY_TYPE_AGENT
         );
     }
 }

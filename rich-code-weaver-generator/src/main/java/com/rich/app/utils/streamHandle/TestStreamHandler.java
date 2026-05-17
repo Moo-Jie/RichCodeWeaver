@@ -28,7 +28,7 @@ public class TestStreamHandler {
      * @param userId             用户 ID
      * @return 处理后的 AI 响应流
      */
-    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId) {
+    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, String summaryType) {
         // 用于收集 AI 响应内容的 StringBuilder
         StringBuilder aiResponseBuilder = new StringBuilder();
         // 处理 AI 响应流
@@ -44,6 +44,7 @@ public class TestStreamHandler {
                 chatHistoryService,
                 appId,
                 userId,
-                aiResponseBuilder);
+                aiResponseBuilder,
+                summaryType);
     }
 }

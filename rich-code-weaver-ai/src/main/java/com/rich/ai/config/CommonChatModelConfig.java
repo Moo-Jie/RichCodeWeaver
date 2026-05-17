@@ -141,6 +141,20 @@ public class CommonChatModelConfig {
     }
 
     /**
+     * 对话增量摘要生成模型（支持多例模式）
+     * 用于异步生成对话摘要，轻量调用无需推理模型
+     *
+     * @return dev.langchain4j.model.chat.ChatModel 聊天模型实例
+     * @author DuRuiChi
+     * @create 2026/5/17
+     **/
+    @Bean
+    @Scope("prototype")
+    public ChatModel summaryChatModel() {
+        return buildChatModel();
+    }
+
+    /**
      * 通用的聊天模型构建方法
      * 统一处理所有聊天模型的配置和参数校验，避免代码重复
      *

@@ -57,7 +57,7 @@ public class JsonStreamHandler {
      * @param userId             用户 ID
      * @return 处理后的 AI 响应流
      */
-    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId) {
+    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, String summaryType) {
         // 收集 AI 响应内容，用于保存到对话历史
         StringBuilder aiResponseBuilder = new StringBuilder();
 
@@ -66,7 +66,7 @@ public class JsonStreamHandler {
         Set<String> seenToolIds = new HashSet<>();
 
         // 处理 AI 响应流
-        // 注意：不要在此处添加 doOnComplete 保存对话历史，CommonStreamHandler.doFinally 已统一处理保存逻辑
+        // 注意：不在此处添加 doOnComplete 保存对话历史，CommonStreamHandler.doFinally 已统一处理保存逻辑
         return commonStreamHandler.handleStream(
                 stringFlux
                         // 收集并解析 AI 响应内容的 TokenStream 数据块，用于保存到对话历史
@@ -79,7 +79,8 @@ public class JsonStreamHandler {
                 chatHistoryService,
                 appId,
                 userId,
-                aiResponseBuilder);
+                aiResponseBuilder,
+                summaryType);
     }
 
     /**

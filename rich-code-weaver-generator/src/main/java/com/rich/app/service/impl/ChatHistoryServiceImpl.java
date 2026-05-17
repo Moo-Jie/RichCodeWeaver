@@ -18,7 +18,7 @@ import com.rich.model.entity.User;
 import com.rich.model.enums.ChatHistoryTypeEnum;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.memory.ChatMemory;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -241,7 +241,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
      * @create 2025/12/16
      **/
     @Override
-    public Boolean loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {
+    public Boolean loadChatHistoryToMemory(Long appId, ChatMemory chatMemory, int maxCount) {
         try {
             // 参数校验：确保产物ID、聊天记忆对象和加载数量有效
             if (appId == null || appId <= 0) {
@@ -257,48 +257,53 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                 return false;
             }
 
-            // 构建查询条件：跳过第1条（最新记录），加载后续 maxCount 条
-            // 原因：排除当前未处理的最新消息，避免重复加载到上下文中
-            QueryWrapper queryWrapper = QueryWrapper.create()
-                    .eq(ChatHistory::getAppId, appId)  // 筛选指定产物的对话历史
-                    .orderBy(ChatHistory::getCreateTime, false)  // 按创建时间降序排列（最新在前）
-                    .limit(1, maxCount);  // 跳过第1条，取后续maxCount条
+            // 优先使用 Redis 中已有的对话记忆
+            // Redis 中的数据由 Langchain4j MessageWindowChatMemory 在每次对话时自动维护
+            try {
+                List<?> existingMessages = chatMemory.messages();
+                if (existingMessages != null && !existingMessages.isEmpty()) {
+                    log.info("Redis 中已存在 appId: {} 的 {} 条对话记忆，跳过数据库加载",
+                            appId, existingMessages.size());
+                    return true;
+                }
+            } catch (Exception e) {
+                log.warn("检查 Redis 对话记忆时异常，将从数据库回填: appId={}, error={}", appId, e.getMessage());
+            }
 
-            // 查询对话历史记录
+            // 跳过第1条（最新记录）：该记录是触发本次 AI 服务创建的用户消息，
+            // 会由 Langchain4j 在 chatStream() 调用时自动加入 chatMemory，此处跳过防止重复
+            QueryWrapper queryWrapper = QueryWrapper.create()
+                    .eq(ChatHistory::getAppId, appId)
+                    .orderBy(ChatHistory::getCreateTime, false)
+                    .limit(1, maxCount);
+
             List<ChatHistory> historyList = this.list(queryWrapper);
             if (CollUtil.isEmpty(historyList)) {
-                log.info("加载对话历史：无历史记录 - appId={}", appId);
+                log.info("冷启动回填：appId={} 无历史记录", appId);
                 return false;
             }
 
             // 反转列表，转换为正序（旧→新），符合对话上下文的时间顺序
             historyList = historyList.reversed();
-            log.info("为 appId: {} 加载 {} 条历史记录到聊天记忆", appId, historyList.size());
+            log.info("冷启动回填：为 appId: {} 从 DB 加载 {} 条历史记录到 Redis 对话记忆",
+                    appId, historyList.size());
 
-            // 先清理历史缓存，防止重复加载（确保记忆中只有本次加载的历史）
+            // 清理后加载，确保 Redis 中只有本次回填的历史
             chatMemory.clear();
 
-            // 加载历史记录到记忆中（按时间顺序添加）
-            // UserMessage.from() 方法用于创建用户消息
-            // AiMessage.from() 方法用于创建AI消息
-            // chatMemory.add() 方法用于顺序添加历史消息到 chatMemory 中
             int loadedCount = 0;
             for (ChatHistory history : historyList) {
-                // 空值保护
                 if (history == null || StrUtil.isBlank(history.getMessage())) {
                     log.warn("跳过无效的历史记录: appId={}, historyId={}", appId,
                             history != null ? history.getId() : "null");
                     continue;
                 }
 
-                // 根据消息类型区分处理
                 String messageType = history.getMessageType();
                 if (ChatHistoryTypeEnum.USER.getValue().equals(messageType)) {
-                    // 加载用户消息到记忆
                     chatMemory.add(UserMessage.from(history.getMessage()));
                     loadedCount++;
                 } else if (ChatHistoryTypeEnum.AI.getValue().equals(messageType)) {
-                    // 加载 AI 消息到记忆
                     chatMemory.add(AiMessage.from(history.getMessage()));
                     loadedCount++;
                 } else {
@@ -306,7 +311,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
                 }
             }
 
-            log.info("加载对话历史到记忆成功: appId={}, loadedCount={}", appId, loadedCount);
+            log.info("冷启动回填成功: appId={}, loadedCount={}", appId, loadedCount);
             return true;
         } catch (Exception e) {
             log.error("【AI 服务实例缓存】加载对话历史失败，appId: {}，错误: {}", appId, e.getMessage(), e);

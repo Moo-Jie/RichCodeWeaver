@@ -5,7 +5,7 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.rich.model.dto.chathistory.ChatHistoryQueryRequest;
 import com.rich.model.entity.ChatHistory;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.memory.ChatMemory;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.time.LocalDateTime;
@@ -77,5 +77,5 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      * @author DuRuiChi
      * @create 2025/12/16
      **/
-    Boolean loadChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount);
+    Boolean loadChatHistoryToMemory(Long appId, ChatMemory chatMemory, int maxCount);
 }

@@ -34,6 +34,7 @@ public class WorkflowContext implements Serializable {
      * WorkflowContext 在 MessagesState 中的存储 key
      */
     public static final String WORKFLOW_CONTEXT_KEY = "workflowContext";
+
     @Serial
     private static final long serialVersionUID = 1L;
     /**

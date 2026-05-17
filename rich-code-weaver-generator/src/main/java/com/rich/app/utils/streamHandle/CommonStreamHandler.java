@@ -2,9 +2,11 @@ package com.rich.app.utils.streamHandle;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.rich.app.service.AiChatSummaryService;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.common.constant.StreamEventConstant;
 import com.rich.model.enums.ChatHistoryTypeEnum;
+import jakarta.annotation.Resource;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -20,6 +22,10 @@ import java.util.Map;
  **/
 @Component
 public class CommonStreamHandler {
+
+    @Resource
+    private AiChatSummaryService aiChatSummaryService;
+
     /**
      * 处理 AI 响应流的通用逻辑，用于处理为响应给前端的最终内容
      *
@@ -27,9 +33,13 @@ public class CommonStreamHandler {
      * @param chatHistoryService 对话历史服务
      * @param appId              产物 ID
      * @param userId             用户 ID
+     * @param aiResponseBuilder  AI 响应拼接器
+     * @param summaryType        摘要类型（AGENT / WORKFLOW / CUSTOMER_SERVICE）
      * @return 处理后的 AI 响应流
      */
-    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, StringBuilder aiResponseBuilder) {
+    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService,
+                                                      Long appId, Long userId, StringBuilder aiResponseBuilder,
+                                                      String summaryType) {
         // 处理 AI 响应流
         return stringFlux
                 // 错误处理
@@ -79,10 +89,14 @@ public class CommonStreamHandler {
                     try {
                         String aiResponse = aiResponseBuilder.toString();
                         if (StrUtil.isNotBlank(aiResponse)) {
+                            // AI 响应消息落库处理
+                            // Redis 中的数据由 Langchain4j TokenWindowChatMemory 在每次对话时自动维护，此处无需同步存储
                             chatHistoryService.addChatMessage(appId,
                                     aiResponse,
                                     ChatHistoryTypeEnum.AI.getValue(),
                                     userId);
+                            // AI 响应保存成功后，异步触发增量摘要检查
+                            aiChatSummaryService.tryTriggerSummary(appId, summaryType);
                         }
                     } catch (Exception e) {
                         chatHistoryService.addChatMessage(appId,

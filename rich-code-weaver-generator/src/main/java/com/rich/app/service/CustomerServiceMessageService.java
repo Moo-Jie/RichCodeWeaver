@@ -3,7 +3,7 @@ package com.rich.app.service;
 import com.mybatisflex.core.service.IService;
 import com.rich.model.entity.CustomerServiceMessage;
 import com.rich.model.vo.CustomerServiceMessageVO;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.memory.ChatMemory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -46,5 +46,5 @@ public interface CustomerServiceMessageService extends IService<CustomerServiceM
      * @param maxCount 最大加载数量
      * @return 是否加载成功
      */
-    Boolean loadChatHistoryToMemory(Long conversationId, MessageWindowChatMemory chatMemory, int maxCount);
+    Boolean loadChatHistoryToMemory(Long conversationId, ChatMemory chatMemory, int maxCount);
 }
