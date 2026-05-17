@@ -70,7 +70,7 @@
                   </button>
                 </div>
                 <div class="conversation-toolbar">
-                  <button class="new-chat-btn" title="新建对话" @click="handleCreateConversation">
+                  <button class="new-chat-btn" title="新建对话" @click="startFreshConversation">
                     <PlusOutlined />
                     <span>新建</span>
                   </button>
@@ -462,6 +462,10 @@ const clearGenerating = () => {
   localStorage.removeItem(GENERATING_KEY)
 }
 
+const clearPersistedActiveConversation = () => {
+  localStorage.removeItem(ACTIVE_CONVERSATION_KEY)
+}
+
 const getGeneratingInfo = (): { conversationId: number; prompt: string; timestamp: number } | null => {
   const raw = localStorage.getItem(GENERATING_KEY)
   if (!raw) return null
@@ -490,19 +494,19 @@ const closeEventSource = () => {
   currentEventSource = null
 }
 
-const restoreActiveConversation = () => {
-  const raw = localStorage.getItem(ACTIVE_CONVERSATION_KEY)
-  if (!raw) return
-  const id = Number(raw)
-  if (!Number.isNaN(id) && id > 0) {
-    activeConversationId.value = id
-  }
-}
-
 const persistActiveConversation = () => {
   if (activeConversationId.value) {
     localStorage.setItem(ACTIVE_CONVERSATION_KEY, String(activeConversationId.value))
   }
+}
+
+const startFreshConversation = () => {
+  activeConversationId.value = undefined
+  messages.value = []
+  userInput.value = ''
+  lastEventId.value = null
+  closeConversationHistory()
+  clearPersistedActiveConversation()
 }
 
 const handleInputChange = (value: string) => {
@@ -547,10 +551,13 @@ const loadConversations = async () => {
     const existingConversation = activeConversationId.value
       ? conversations.value.find((item) => item.id === activeConversationId.value)
       : undefined
-    if (!existingConversation && conversations.value.length > 0) {
-      activeConversationId.value = conversations.value[0].id
+    if (activeConversationId.value && !existingConversation) {
+      startFreshConversation()
+      return
     }
-    persistActiveConversation()
+    if (activeConversationId.value) {
+      persistActiveConversation()
+    }
   }
 }
 
@@ -589,6 +596,7 @@ const handleCreateConversation = async () => {
 const selectConversation = async (conversationId?: number) => {
   if (!conversationId) return
   activeConversationId.value = conversationId
+  userInput.value = ''
   persistActiveConversation()
   await loadMessages(conversationId)
   closeConversationHistory()
@@ -719,17 +727,14 @@ const handlePressEnter = (e: KeyboardEvent) => {
 }
 
 onMounted(async () => {
-  restoreActiveConversation()
   restoreFloatingPosition()
   syncFloatingPosition()
   window.addEventListener('resize', handleWindowResize)
   await checkRubyOnline()
   healthCheckTimer = setInterval(checkRubyOnline, 30000)
   if (!loginUserStore.loginUser?.id) return
+  startFreshConversation()
   await loadConversations()
-  if (!activeConversationId.value && conversations.value.length === 0) {
-    await handleCreateConversation()
-  }
   if (activeConversationId.value) {
     await loadMessages(activeConversationId.value)
   }

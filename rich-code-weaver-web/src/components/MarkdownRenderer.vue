@@ -352,6 +352,11 @@ const highlightCode = () => {
   overflow: hidden;
 }
 
+.markdown-content :deep(.tool-call-loading .tci-icon) {
+  animation: toolItemSpin 1s linear infinite;
+  transform-origin: center;
+}
+
 .markdown-content :deep(.tool-call-loading .tci-label) {
   background: #e0e0e0;
   color: #888;
@@ -375,6 +380,15 @@ const highlightCode = () => {
   }
   100% {
     background-position: -100% 0;
+  }
+}
+
+@keyframes toolItemSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 

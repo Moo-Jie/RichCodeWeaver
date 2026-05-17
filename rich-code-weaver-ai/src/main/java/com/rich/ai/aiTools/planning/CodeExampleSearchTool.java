@@ -107,7 +107,7 @@ public class CodeExampleSearchTool extends BaseTool {
             // 格式化搜索结果
             StringBuilder result = new StringBuilder();
             result.append("─".repeat(50)).append("\n");
-            result.append("📚 代码示例搜索结果（共 ").append(matches.size()).append(" 条）\n");
+            result.append("代码示例搜索结果（共 ").append(matches.size()).append(" 条）\n");
             result.append("─".repeat(50)).append("\n\n");
 
             for (int i = 0; i < matches.size(); i++) {

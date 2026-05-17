@@ -11,6 +11,7 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   modifyFile: '文件修改工具',
   deleteFile: '文件删除工具',
   readDir: '文件目录读取工具',
+  diffFile: '文件差异对比工具',
   searchWeb: '联网搜索工具',
   scrapeWebPage: '网页抓取工具',
   aiGeneratorImage: 'AI图片生成工具',
@@ -21,6 +22,8 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   sendMessage: '发送消息',
   setCodeGenType: '设置代码生成类型',
   buildProject: '构建 Vue 工程项目',
+  getUserProfile: '获取用户画像',
+  updateUserProfile: '更新用户画像',
   exit: '退出工具调用'
 }
 
@@ -31,6 +34,7 @@ const TOOL_ICONS: Record<string, string> = {
   modifyFile: '✏️',
   deleteFile: '🗑️',
   readDir: '📂',
+  diffFile: '🧩',
   searchWeb: '🌐',
   scrapeWebPage: '🕸️',
   aiGeneratorImage: '🎨',
@@ -40,8 +44,10 @@ const TOOL_ICONS: Record<string, string> = {
   think: '🧠',
   sendMessage: '💬',
   setCodeGenType: '⚙️',
-  buildProject: '�',
-  exit: '�'
+  buildProject: '🏗',
+  getUserProfile: '👤',
+  updateUserProfile: '📝',
+  exit: '🚪'
 }
 
 /** 任务计划数据接口 */
@@ -72,6 +78,82 @@ function getFileLang(filePath: string): string {
     yml: 'yaml', sh: 'bash', bat: 'batch', sql: 'sql', txt: 'text'
   }
   return langMap[ext] || ext
+}
+
+function clipText(value: unknown, maxLength: number = 36): string {
+  if (typeof value !== 'string') return ''
+  const normalized = value.replace(/\s+/g, ' ').trim()
+  if (!normalized) return ''
+  return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized
+}
+
+function getUserProfileFieldSummary(args: Record<string, any>): string {
+  const fieldLabelMap: Record<string, string> = {
+    preferredCodeGenType: '项目类型',
+    preferredGenMode: '生成模式',
+    techPreferences: '技术栈',
+    stylePreferences: '设计风格',
+    dislikedPatterns: '避雷项',
+    usageGoal: '使用目标',
+    experienceLevel: '技术水平',
+    preferredLanguage: '偏好语言',
+    customNotes: '备注'
+  }
+
+  const fields = Object.entries(fieldLabelMap)
+    .filter(([key]) => !!clipText(args[key]))
+    .map(([, label]) => label)
+
+  return fields.length > 0 ? `更新字段：${fields.join('、')}` : '更新用户画像'
+}
+
+function getToolExecutionSummary(toolName: string, args: Record<string, any>): string {
+  switch (toolName) {
+    case 'creatAndWrite':
+    case 'modifyFile':
+    case 'readFile':
+    case 'deleteFile':
+      return args.relativeFilePath || ''
+    case 'readDir':
+      return args.relativeDirPath || args.dirPath || '.'
+    case 'diffFile':
+      return [args.filePath1, args.filePath2].filter(Boolean).join(' ↔ ') || (args.originalContent || args.newContent ? '内容差异对比' : '')
+    case 'searchWeb':
+    case 'searchImages':
+    case 'searchCodeExample':
+      return clipText(args.query, 48)
+    case 'scrapeWebPage':
+      return clipText(args.scrapUrl || args.ScrapUrl || args.url, 64)
+    case 'aiGeneratorImage': {
+      const type = clipText(args.type, 18)
+      const description = clipText(args.description, 28)
+      return [type, description].filter(Boolean).join(' · ')
+    }
+    case 'taskPlan':
+      return args.action ? `操作：${args.action}` : '任务计划'
+    case 'think': {
+      const category = clipText(args.category, 18)
+      const summary = clipText(args.conclusion || args.thought, 28)
+      return [category, summary].filter(Boolean).join(' · ')
+    }
+    case 'sendMessage': {
+      const type = clipText(args.type, 18)
+      const title = clipText(args.title, 24)
+      return [type, title].filter(Boolean).join(' · ')
+    }
+    case 'setCodeGenType':
+      return args.codeGenType || ''
+    case 'buildProject':
+      return 'Vue 项目构建'
+    case 'getUserProfile':
+      return '读取当前用户画像'
+    case 'updateUserProfile':
+      return getUserProfileFieldSummary(args)
+    case 'exit':
+      return '结束当前任务'
+    default:
+      return ''
+  }
 }
 
 /**
@@ -173,9 +255,9 @@ export class StreamChunkParserContext {
     if (obj.arguments) {
       try {
         const args = JSON.parse(obj.arguments)
-        const filePath = args.relativeFilePath || args.relativeDirPath || ''
-        if (filePath) {
-          return `\n\n[工具调用结束] ${displayName} → ${filePath}\n\n`
+        const summary = getToolExecutionSummary(toolName, args)
+        if (summary) {
+          return `\n\n[工具调用结束] ${displayName} → ${summary}\n\n`
         }
       } catch {
         // arguments 解析失败，使用简单格式

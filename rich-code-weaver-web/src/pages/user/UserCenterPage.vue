@@ -122,6 +122,42 @@
           </a-button>
         </div>
       </a-card>
+
+      <a-card class="ai-profile-card">
+        <div class="card-header">
+          <h2>
+            <RobotOutlined />
+            AI 用户结构化画像
+          </h2>
+          <a-button class="gradient-button" type="primary" @click="showAiProfileModal">
+            <template #icon>
+              <EditOutlined />
+            </template>
+            我来添加/完善
+          </a-button>
+        </div>
+
+        <div class="ai-profile-tip">
+          <p>
+            这份结构化画像会作为 AI 个性化生成的长期参考；当你在对话中明确表达稳定偏好时，AI 也可能自动增量完善它。
+          </p>
+        </div>
+
+        <a-spin :spinning="loadingAiProfile">
+          <div v-if="hasAiProfileContent" class="ai-profile-grid">
+            <div v-for="item in aiProfileDisplayItems" :key="item.label" class="ai-profile-item">
+              <span class="ai-profile-label">{{ item.label }}</span>
+              <span :class="['ai-profile-value', { 'is-empty': !item.value }]">{{ item.value || '未设置' }}</span>
+            </div>
+          </div>
+          <div v-else class="ai-profile-empty">
+            <div class="ai-profile-empty-title">你还没有完善 AI 用户画像</div>
+            <div class="ai-profile-empty-desc">
+              点击“我来添加/完善”，告诉 AI 你偏好的项目类型、技术栈、设计风格与使用目标。
+            </div>
+          </div>
+        </a-spin>
+      </a-card>
     </div>
 
     <!-- 编辑信息模态框 -->
@@ -230,11 +266,86 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <a-modal
+      v-model:visible="aiProfileVisible"
+      :cancel-text="'取消'"
+      :confirm-loading="savingAiProfile"
+      :ok-text="'保存'"
+      class="custom-modal"
+      title="完善 AI 用户结构化画像"
+      @ok="handleAiProfileSubmit"
+    >
+      <div class="ai-profile-form-note">
+        AI 会把这里的信息作为个性化生成参考。当前保存为增量完善模式，已记录字段建议直接修改为新值。
+      </div>
+      <a-form :label-col="{ span: 7 }" :model="aiProfileForm" :wrapper-col="{ span: 17 }">
+        <a-form-item label="偏好项目类型">
+          <a-select
+            v-model:value="aiProfileForm.preferredCodeGenType"
+            :options="codeGenTypeOptions"
+            placeholder="请选择更常用的项目类型"
+          />
+        </a-form-item>
+        <a-form-item label="偏好生成模式">
+          <a-select
+            v-model:value="aiProfileForm.preferredGenMode"
+            :options="genModeOptions"
+            placeholder="请选择更偏好的生成模式"
+          />
+        </a-form-item>
+        <a-form-item label="技术栈偏好">
+          <a-textarea
+            v-model:value="aiProfileForm.techPreferences"
+            :rows="3"
+            placeholder="例如：偏好 Vue3、组件化、简洁依赖"
+          />
+        </a-form-item>
+        <a-form-item label="设计风格偏好">
+          <a-textarea
+            v-model:value="aiProfileForm.stylePreferences"
+            :rows="3"
+            placeholder="例如：白底、浅灰边框、深色文字、克制动效"
+          />
+        </a-form-item>
+        <a-form-item label="不喜欢的模式">
+          <a-textarea
+            v-model:value="aiProfileForm.dislikedPatterns"
+            :rows="3"
+            placeholder="例如：避免大面积渐变、避免复杂动效、避免 jQuery"
+          />
+        </a-form-item>
+        <a-form-item label="使用目标">
+          <a-input v-model:value="aiProfileForm.usageGoal" placeholder="例如：个人作品集、企业官网、课程作业" />
+        </a-form-item>
+        <a-form-item label="技术水平">
+          <a-select
+            v-model:value="aiProfileForm.experienceLevel"
+            :options="experienceLevelOptions"
+            placeholder="请选择当前技术水平"
+          />
+        </a-form-item>
+        <a-form-item label="偏好语言">
+          <a-select
+            v-model:value="aiProfileForm.preferredLanguage"
+            :options="languageOptions"
+            placeholder="请选择偏好语言"
+          />
+        </a-form-item>
+        <a-form-item label="补充备注">
+          <a-textarea
+            v-model:value="aiProfileForm.customNotes"
+            :rows="4"
+            placeholder="可补充你希望 AI 长期记住的偏好、约束或习惯"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { message } from 'ant-design-vue'
@@ -244,9 +355,11 @@ import {
   EditOutlined,
   LockOutlined,
   LogoutOutlined,
+  RobotOutlined,
   UploadOutlined,
   UserOutlined
 } from '@ant-design/icons-vue'
+import { getMyAiUserProfile, updateMyAiUserProfile } from '@/api/aiUserProfileController'
 import {
   bindEmail,
   getLoginUser,
@@ -262,6 +375,35 @@ import { validateEmail } from '@/utils/emailUtil'
 
 const router = useRouter()
 const loginUserStore = useLoginUserStore()
+
+const codeGenTypeLabelMap: Record<string, string> = {
+  single_html: '单页 HTML',
+  multi_file: '多文件项目',
+  vue_project: 'Vue 工程项目'
+}
+
+const genModeLabelMap: Record<string, string> = {
+  workflow: '工作流模式',
+  agent: 'Agent 模式'
+}
+
+const experienceLevelLabelMap: Record<string, string> = {
+  beginner: '初学者',
+  intermediate: '中级',
+  advanced: '高级'
+}
+
+const buildEmptyAiProfile = (): API.AiUserProfile => ({
+  preferredCodeGenType: '',
+  preferredGenMode: '',
+  techPreferences: '',
+  stylePreferences: '',
+  dislikedPatterns: '',
+  usageGoal: '',
+  experienceLevel: '',
+  preferredLanguage: '',
+  customNotes: ''
+})
 
 // 用户信息
 const userInfo = reactive({
@@ -281,11 +423,28 @@ const userInfo = reactive({
 const editVisible = ref(false)
 const passwordVisible = ref(false)
 const emailVisible = ref(false)
+const aiProfileVisible = ref(false)
 const emailCaptchaId = ref('')
 const emailCaptchaImage = ref('')
 const emailCountdown = ref(0)
 const emailSendingCode = ref(false)
+const loadingAiProfile = ref(false)
+const savingAiProfile = ref(false)
 let emailCountdownTimer: ReturnType<typeof setInterval> | null = null
+
+const aiProfileInfo = reactive<API.AiUserProfile>(buildEmptyAiProfile())
+
+const aiProfileForm = reactive<API.AiUserProfileUpdateRequest>({
+  preferredCodeGenType: '',
+  preferredGenMode: '',
+  techPreferences: '',
+  stylePreferences: '',
+  dislikedPatterns: '',
+  usageGoal: '',
+  experienceLevel: '',
+  preferredLanguage: '',
+  customNotes: ''
+})
 
 // 编辑表单
 const editForm = reactive({
@@ -300,6 +459,27 @@ const identitySelectOptions = identityOptions.map(item => ({
   label: item.label
 }))
 
+const codeGenTypeOptions = Object.entries(codeGenTypeLabelMap).map(([value, label]) => ({
+  value,
+  label
+}))
+
+const genModeOptions = Object.entries(genModeLabelMap).map(([value, label]) => ({
+  value,
+  label
+}))
+
+const experienceLevelOptions = Object.entries(experienceLevelLabelMap).map(([value, label]) => ({
+  value,
+  label
+}))
+
+const languageOptions = [
+  { value: '中文', label: '中文' },
+  { value: '英文', label: '英文' },
+  { value: '中英双语', label: '中英双语' }
+]
+
 const industryAutoOptions = industryOptions.map(item => ({
   value: item
 }))
@@ -307,6 +487,49 @@ const industryAutoOptions = industryOptions.map(item => ({
 const filterIndustry = (input: string, option: { value: string }) => {
   return option.value.toLowerCase().includes(input.toLowerCase())
 }
+
+const aiProfileDisplayItems = computed(() => [
+  {
+    label: '偏好项目类型',
+    value: codeGenTypeLabelMap[aiProfileInfo.preferredCodeGenType || ''] || aiProfileInfo.preferredCodeGenType || ''
+  },
+  {
+    label: '偏好生成模式',
+    value: genModeLabelMap[aiProfileInfo.preferredGenMode || ''] || aiProfileInfo.preferredGenMode || ''
+  },
+  {
+    label: '技术栈偏好',
+    value: aiProfileInfo.techPreferences || ''
+  },
+  {
+    label: '设计风格偏好',
+    value: aiProfileInfo.stylePreferences || ''
+  },
+  {
+    label: '不喜欢的模式',
+    value: aiProfileInfo.dislikedPatterns || ''
+  },
+  {
+    label: '使用目标',
+    value: aiProfileInfo.usageGoal || ''
+  },
+  {
+    label: '技术水平',
+    value: experienceLevelLabelMap[aiProfileInfo.experienceLevel || ''] || aiProfileInfo.experienceLevel || ''
+  },
+  {
+    label: '偏好语言',
+    value: aiProfileInfo.preferredLanguage || ''
+  },
+  {
+    label: '补充备注',
+    value: aiProfileInfo.customNotes || ''
+  }
+])
+
+const hasAiProfileContent = computed(() => {
+  return aiProfileDisplayItems.value.some(item => !!item.value && item.value.trim().length > 0)
+})
 
 // 密码表单
 const passwordForm = reactive({
@@ -321,6 +544,24 @@ const emailForm = reactive({
   captchaAnswer: '',
   emailCode: ''
 })
+
+const applyAiProfileData = (profile?: API.AiUserProfile) => {
+  Object.assign(aiProfileInfo, buildEmptyAiProfile(), profile || {})
+}
+
+const syncAiProfileForm = () => {
+  Object.assign(aiProfileForm, buildEmptyAiProfile(), {
+    preferredCodeGenType: aiProfileInfo.preferredCodeGenType || '',
+    preferredGenMode: aiProfileInfo.preferredGenMode || '',
+    techPreferences: aiProfileInfo.techPreferences || '',
+    stylePreferences: aiProfileInfo.stylePreferences || '',
+    dislikedPatterns: aiProfileInfo.dislikedPatterns || '',
+    usageGoal: aiProfileInfo.usageGoal || '',
+    experienceLevel: aiProfileInfo.experienceLevel || '',
+    preferredLanguage: aiProfileInfo.preferredLanguage || '',
+    customNotes: aiProfileInfo.customNotes || ''
+  })
+}
 
 // 获取用户信息
 const fetchUserInfo = async () => {
@@ -342,9 +583,66 @@ const fetchUserInfo = async () => {
   }
 }
 
+const fetchAiUserProfile = async () => {
+  loadingAiProfile.value = true
+  try {
+    const res = await getMyAiUserProfile()
+    if (res.data.code === 0) {
+      applyAiProfileData(res.data.data)
+    } else {
+      message.error('获取 AI 用户画像失败：' + (res.data.message || '请稍后重试'))
+    }
+  } catch (error) {
+    console.error('获取 AI 用户画像失败：', error)
+    message.error('获取 AI 用户画像失败，请稍后重试')
+  } finally {
+    loadingAiProfile.value = false
+  }
+}
+
 // 显示编辑模态框
 const showEditModal = () => {
   editVisible.value = true
+}
+
+const showAiProfileModal = () => {
+  syncAiProfileForm()
+  aiProfileVisible.value = true
+}
+
+const normalizeAiProfilePayload = (): API.AiUserProfileUpdateRequest => {
+  const payload: API.AiUserProfileUpdateRequest = {}
+  Object.entries(aiProfileForm).forEach(([key, value]) => {
+    const normalizedValue = typeof value === 'string' ? value.trim() : value
+    if (normalizedValue) {
+      payload[key as keyof API.AiUserProfileUpdateRequest] = normalizedValue
+    }
+  })
+  return payload
+}
+
+const handleAiProfileSubmit = async () => {
+  const payload = normalizeAiProfilePayload()
+  if (Object.keys(payload).length === 0) {
+    message.warning('请至少完善一项结构化画像信息')
+    return
+  }
+  savingAiProfile.value = true
+  try {
+    const res = await updateMyAiUserProfile(payload)
+    if (res.data.code === 0) {
+      applyAiProfileData(res.data.data)
+      aiProfileVisible.value = false
+      message.success('AI 用户画像更新成功')
+    } else {
+      message.error('更新失败：' + (res.data.message || '请稍后重试'))
+    }
+  } catch (error) {
+    console.error('更新 AI 用户画像失败：', error)
+    message.error('更新失败，请稍后重试')
+  } finally {
+    savingAiProfile.value = false
+  }
 }
 
 // 提交编辑信息
@@ -563,6 +861,7 @@ const maskEmail = (email: string) => {
 
 onMounted(() => {
   fetchUserInfo()
+  fetchAiUserProfile()
 })
 </script>
 
@@ -599,7 +898,7 @@ onMounted(() => {
   }
 }
 
-.info-card, .security-card {
+.info-card, .security-card, .ai-profile-card {
   background: #fff;
   border-radius: 12px;
   border: 1px solid #f0f0f0;
@@ -792,6 +1091,123 @@ onMounted(() => {
   }
 }
 
+.ai-profile-card {
+  grid-column: 1 / -1;
+  padding: 20px 24px;
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+
+    h2 {
+      margin: 0;
+      border: none;
+      padding-bottom: 0;
+    }
+  }
+
+  .ai-profile-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    border-radius: 10px;
+    border: 1px solid #f0f0f0;
+    background: #fafafa;
+
+    p {
+      margin: 0;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+  }
+
+  .ai-profile-tip-badge {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .ai-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+
+    @media (max-width: 992px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .ai-profile-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 104px;
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid #f0f0f0;
+    background: #fff;
+  }
+
+  .ai-profile-label {
+    color: #999;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .ai-profile-value {
+    color: #1a1a1a;
+    font-size: 14px;
+    line-height: 1.7;
+    word-break: break-word;
+
+    &.is-empty {
+      color: #bbb;
+    }
+  }
+
+  .ai-profile-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+    border: 1px dashed #e6e6e6;
+    border-radius: 12px;
+    background: #fafafa;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .ai-profile-empty-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+  }
+
+  .ai-profile-empty-desc {
+    max-width: 520px;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #888;
+  }
+}
+
 .gradient-button {
   background: #1a1a1a;
   border: none;
@@ -910,8 +1326,37 @@ onMounted(() => {
         min-height: 100px;
         resize: vertical;
       }
+
+      .ant-select {
+        .ant-select-selector {
+          border-radius: 8px !important;
+          border: 1px solid #f0f0f0 !important;
+          background: #fafafa !important;
+          min-height: 40px;
+          box-shadow: none !important;
+          padding: 4px 12px !important;
+          transition: all 0.2s ease;
+        }
+
+        &.ant-select-focused .ant-select-selector,
+        &:hover .ant-select-selector {
+          border-color: #1a1a1a !important;
+          background: #fff !important;
+        }
+      }
     }
   }
+}
+
+.ai-profile-form-note {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #f0f0f0;
+  background: #fafafa;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 /* 响应式设计 */
@@ -930,8 +1375,20 @@ onMounted(() => {
     }
   }
 
-  .info-card, .security-card {
+  .info-card, .security-card, .ai-profile-card {
     padding: 16px;
+  }
+
+  .ai-profile-card {
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .ai-profile-tip {
+      flex-direction: column;
+    }
   }
 
   .security-card .logout-section .logout-button {

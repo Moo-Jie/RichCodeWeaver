@@ -223,6 +223,13 @@ const collapseAllSections = (except?: 'apps' | 'about') => {
   aboutMenuExpanded.value = except === 'about'
 }
 
+const ensureOneExpanded = (preferred: 'apps' | 'about' = 'apps') => {
+  if (appsSectionExpanded.value || aboutMenuExpanded.value) {
+    return
+  }
+  collapseAllSections(preferred)
+}
+
 const isAppsGroupRoute = (path: string) => {
   return path.startsWith('/my/apps') || path.startsWith('/app/chat/')
 }
@@ -245,7 +252,7 @@ const toggleAboutMenu = () => {
     return
   }
   if (aboutMenuExpanded.value) {
-    collapseAllSections()
+    collapseAllSections('apps')
     return
   }
   collapseAllSections('about')
@@ -253,7 +260,7 @@ const toggleAboutMenu = () => {
 
 const toggleAppsSection = () => {
   if (appsSectionExpanded.value) {
-    collapseAllSections()
+    collapseAllSections('about')
     return
   }
   collapseAllSections('apps')
@@ -312,11 +319,10 @@ watch(
 watch(
   () => appStore.sidebarCollapsed,
   (collapsed) => {
-    if (collapsed) {
-      collapseAllSections()
-      return
+    if (!collapsed) {
+      syncExpandedSectionWithRoute()
+      ensureOneExpanded(route.path.startsWith('/other') ? 'about' : 'apps')
     }
-    syncExpandedSectionWithRoute()
   }
 )
 
@@ -324,6 +330,9 @@ watch(
   () => route.path,
   () => {
     syncExpandedSectionWithRoute()
+    if (!appStore.sidebarCollapsed) {
+      ensureOneExpanded(route.path.startsWith('/other') ? 'about' : 'apps')
+    }
   },
   { immediate: true }
 )

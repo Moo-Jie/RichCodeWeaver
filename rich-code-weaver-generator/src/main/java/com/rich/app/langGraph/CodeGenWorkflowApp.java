@@ -7,6 +7,7 @@ import com.rich.app.langGraph.state.WorkflowContext;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.app.utils.streamHandle.CommonStreamHandler;
 import com.rich.app.utils.streamHandle.JsonStreamHandler;
+import com.rich.ai.aiTools.userProfile.UserProfileGetTool;
 import com.rich.common.constant.AiServiceConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
@@ -160,6 +161,10 @@ public class CodeGenWorkflowApp {
                                                          ChatHistoryService chatHistoryService,
                                                          Long userId,
                                                          boolean isModification) {
+        // 填充 appId→userId 映射缓存（userId 为发起对话的调用方，非 App 归属者）
+        // 供 UserProfileGetTool / UserProfileUpdateTool 通过 @ToolMemoryId(appId) 反查 userId
+        UserProfileGetTool.APP_USER_MAPPING.put(appId, userId);
+
         // 每次执行使用局部 StringBuilder，避免并发问题
         StringBuilder aiResponseBuilder = new StringBuilder();
         // 构建 Agent 工作流风格的响应流

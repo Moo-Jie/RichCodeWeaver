@@ -5,6 +5,34 @@ declare namespace API {
     genMode?: 'workflow' | 'agent'
   }
 
+  type AiUserProfile = {
+    id?: number
+    userId?: number
+    preferredCodeGenType?: string
+    preferredGenMode?: string
+    techPreferences?: string
+    stylePreferences?: string
+    dislikedPatterns?: string
+    usageGoal?: string
+    experienceLevel?: string
+    preferredLanguage?: string
+    customNotes?: string
+    createTime?: string
+    updateTime?: string
+  }
+
+  type AiUserProfileUpdateRequest = {
+    preferredCodeGenType?: string
+    preferredGenMode?: string
+    techPreferences?: string
+    stylePreferences?: string
+    dislikedPatterns?: string
+    usageGoal?: string
+    experienceLevel?: string
+    preferredLanguage?: string
+    customNotes?: string
+  }
+
   type AppAdminUpdateRequest = {
     id?: number
     appName?: string
@@ -61,6 +89,12 @@ declare namespace API {
   type BaseResponseAppVO = {
     code?: number
     data?: AppVO
+    message?: string
+  }
+
+  type BaseResponseAiUserProfile = {
+    code?: number
+    data?: AiUserProfile
     message?: string
   }
 

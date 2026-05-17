@@ -122,6 +122,22 @@
       <!-- Mode switcher -->
       <ModeSwitch :mode="appStore.currentMode" @update:mode="handleModeSwitch" />
 
+      <div
+        v-if="taskProgressState.visible"
+        :class="['app-task-progress', `is-${taskProgressState.status.toLowerCase()}`]"
+      >
+        <div class="app-task-progress-main">
+          <div class="app-task-progress-meta">
+            <span class="app-task-progress-title">{{ taskProgressTitle }}</span>
+            <span class="app-task-progress-desc">{{ taskProgressState.message || '任务处理中...' }}</span>
+          </div>
+          <span class="app-task-progress-percent">{{ taskProgressPercent }}%</span>
+        </div>
+        <div class="app-task-progress-track">
+          <div class="app-task-progress-fill" :style="{ width: `${taskProgressPercent}%` }"></div>
+        </div>
+      </div>
+
       <!-- Body: content + right panel side by side -->
       <div class="workspace-body">
         <!-- Chat mode: full-width chat page (code response) -->
@@ -259,7 +275,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { EditOutlined, RightOutlined } from '@ant-design/icons-vue'
@@ -461,17 +477,21 @@ const doRefreshArtifact = async () => {
       // Vue项目使用异步刷新 + WebSocket进度
       const res = await refreshAppAsyncApi({ appId: appId.value as unknown as number })
       if (res.data.code === 0 && res.data.data) {
-        message.loading({ content: '刷新任务已提交，正在重新构建...', key: 'refresh-progress', duration: 0 })
+        setTaskProgressState('refresh', 'running', 5, '刷新任务已提交，正在重新构建...')
         await taskProgressService.subscribeTaskProgress(appId.value, (progress: any) => {
           if (progress.status === 'RUNNING') {
-            message.loading({ content: progress.message || '构建中...', key: 'refresh-progress', duration: 0 })
+            setTaskProgressState('refresh', 'running', progress.progress ?? 10, progress.message || '构建中...')
+          } else if (progress.status === 'RETRYING') {
+            setTaskProgressState('refresh', 'retrying', progress.progress ?? 0, progress.message || '正在重试...')
           } else if (progress.status === 'SUCCESS') {
-            message.success({ content: '产物刷新成功（已重新构建）', key: 'refresh-progress' })
+            finishTaskProgressState('refresh', 'success', progress.message || '产物刷新成功（已重新构建）', progress.progress ?? 100)
+            message.success('产物刷新成功（已重新构建）')
             refreshing.value = false
             updatePreview()
             taskProgressService.unsubscribeTaskProgress(appId.value!)
           } else if (progress.status === 'FAILED') {
-            message.error({ content: '产物刷新失败: ' + (progress.message || ''), key: 'refresh-progress' })
+            finishTaskProgressState('refresh', 'failed', progress.message || '产物刷新失败', progress.progress ?? 0)
+            message.error('产物刷新失败: ' + (progress.message || ''))
             refreshing.value = false
             taskProgressService.unsubscribeTaskProgress(appId.value!)
           }
@@ -492,6 +512,9 @@ const doRefreshArtifact = async () => {
       refreshing.value = false
     }
   } catch (error) {
+    if (isVueProject) {
+      finishTaskProgressState('refresh', 'failed', '产物刷新失败，请重试', taskProgressPercent.value)
+    }
     message.error('产物刷新失败，请重试')
     refreshing.value = false
   }
@@ -585,6 +608,84 @@ const deployModalVisible = ref(false)
 const deployUrl = ref('')
 const lastRefreshTriggerAt = ref(0)
 let refreshDebounceTimer: ReturnType<typeof setTimeout> | null = null
+let taskProgressHideTimer: ReturnType<typeof setTimeout> | null = null
+
+type TaskProgressType = 'deploy' | 'refresh' | ''
+type TaskProgressStatus = 'idle' | 'running' | 'success' | 'failed' | 'retrying'
+
+interface TaskProgressState {
+  visible: boolean
+  type: TaskProgressType
+  status: TaskProgressStatus
+  progress: number
+  message: string
+}
+
+const taskProgressState = reactive<TaskProgressState>({
+  visible: false,
+  type: '',
+  status: 'idle',
+  progress: 0,
+  message: ''
+})
+
+const taskProgressPercent = computed(() => Math.max(0, Math.min(100, Number(taskProgressState.progress) || 0)))
+
+const taskProgressTitle = computed(() => {
+  const actionLabel = taskProgressState.type === 'refresh' ? '产物刷新' : '构建部署'
+  switch (taskProgressState.status) {
+    case 'success':
+      return `${actionLabel}已完成`
+    case 'failed':
+      return `${actionLabel}失败`
+    case 'retrying':
+      return `${actionLabel}重试中`
+    default:
+      return `${actionLabel}进行中`
+  }
+})
+
+const clearTaskProgressHideTimer = () => {
+  if (taskProgressHideTimer) {
+    clearTimeout(taskProgressHideTimer)
+    taskProgressHideTimer = null
+  }
+}
+
+const setTaskProgressState = (
+  type: TaskProgressType,
+  status: TaskProgressStatus,
+  progress: number,
+  messageText: string
+) => {
+  clearTaskProgressHideTimer()
+  taskProgressState.visible = true
+  taskProgressState.type = type
+  taskProgressState.status = status
+  taskProgressState.progress = Math.max(0, Math.min(100, Number(progress) || 0))
+  taskProgressState.message = messageText
+}
+
+const resetTaskProgressState = () => {
+  clearTaskProgressHideTimer()
+  taskProgressState.visible = false
+  taskProgressState.type = ''
+  taskProgressState.status = 'idle'
+  taskProgressState.progress = 0
+  taskProgressState.message = ''
+}
+
+const finishTaskProgressState = (
+  type: TaskProgressType,
+  status: Extract<TaskProgressStatus, 'success' | 'failed'>,
+  messageText: string,
+  progress: number
+) => {
+  setTaskProgressState(type, status, progress, messageText)
+  taskProgressHideTimer = setTimeout(() => {
+    resetTaskProgressState()
+  }, status === 'success' ? 1400 : 2400)
+}
 
 // === Visual Editor State ===
 const visualEditor = ref<visualEditorUtil | null>(null)
@@ -604,6 +705,7 @@ const getElementTypeLabel = (tagName: string): string => ELEMENT_TYPE_MAP[tagNam
 const chatMessagesRef = ref<InstanceType<typeof ChatMessages>>()
 const appPreviewRef = ref<InstanceType<typeof AppPreview>>()
 const appDetailVisible = ref(false)
+const activeGenerationEventSource = ref<EventSource | null>(null)
 
 // === Social State ===
 const hotStat = ref<API.AppHotStatVO | null>(null)
@@ -1070,6 +1172,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
     if (streamCompleted) return
     streamCompleted = true
     eventSource?.close()
+    if (activeGenerationEventSource.value === eventSource) {
+      activeGenerationEventSource.value = null
+    }
     markGeneratingEnd()
     if (timer.value) {
       clearInterval(timer.value)
@@ -1117,6 +1222,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       }
       const url = `${baseURL}/generator/app/gen/code/stream?${params}`
       eventSource = new EventSource(url, { withCredentials: true })
+      activeGenerationEventSource.value = eventSource
 
       eventSource.onmessage = function(event) {
         if (streamCompleted) return
@@ -1146,6 +1252,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       eventSource.addEventListener('error', () => {
         if (streamCompleted || !isGenerating.value) return
         eventSource?.close()
+        if (activeGenerationEventSource.value === eventSource) {
+          activeGenerationEventSource.value = null
+        }
         if (reconnectAttempts.value < maxReconnectAttempts) {
           reconnectAttempts.value++
           reconnectMode = true
@@ -1282,7 +1391,7 @@ const deployApp = async () => {
       const res = await deployAppAsyncApi({ appId: appId.value as unknown as number })
       if (res.data.code === 0 && res.data.data) {
         deployUrl.value = res.data.data
-        message.loading({ content: '任务已提交，正在构建部署...', key: 'deploy-progress', duration: 0 })
+        setTaskProgressState('deploy', 'running', 5, '任务已提交，正在构建部署...')
         await subscribeDeployProgress()
       } else {
         message.error('部署失败：' + (res.data.message || ''))
@@ -1302,6 +1411,9 @@ const deployApp = async () => {
       deploying.value = false
     }
   } catch (error) {
+    if (isVueProject) {
+      finishTaskProgressState('deploy', 'failed', '部署失败，请重试', taskProgressPercent.value)
+    }
     message.error('部署失败，请重试')
     deploying.value = false
   }
@@ -1313,24 +1425,28 @@ const subscribeDeployProgress = async () => {
   try {
     await taskProgressService.subscribeTaskProgress(appId.value, (progress: any) => {
       if (progress.status === 'RUNNING') {
-        message.loading({ content: progress.message || '构建中...', key: 'deploy-progress', duration: 0 })
+        setTaskProgressState('deploy', 'running', progress.progress ?? 10, progress.message || '构建中...')
       } else if (progress.status === 'SUCCESS') {
-        message.success({ content: '部署成功', key: 'deploy-progress' })
+        finishTaskProgressState('deploy', 'success', progress.message || '部署成功', progress.progress ?? 100)
+        message.success('部署成功')
         deploying.value = false
         if (progress.result) deployUrl.value = progress.result
         deployModalVisible.value = true
         refreshAppInfoOnly()
         taskProgressService.unsubscribeTaskProgress(appId.value!)
       } else if (progress.status === 'FAILED') {
-        message.error({ content: '部署失败: ' + (progress.message || '未知错误'), key: 'deploy-progress' })
+        finishTaskProgressState('deploy', 'failed', progress.message || '部署失败', progress.progress ?? 0)
+        message.error('部署失败: ' + (progress.message || '未知错误'))
         deploying.value = false
         taskProgressService.unsubscribeTaskProgress(appId.value!)
       } else if (progress.status === 'RETRYING') {
-        message.loading({ content: '构建失败，正在重试...', key: 'deploy-progress', duration: 0 })
+        setTaskProgressState('deploy', 'retrying', progress.progress ?? 0, progress.message || '构建失败，正在重试...')
       }
     })
   } catch (err) {
     console.error('WebSocket订阅失败，部署已在后台执行', err)
+    finishTaskProgressState('deploy', 'failed', '进度订阅失败，请稍后手动查看部署结果', taskProgressPercent.value)
+    deploying.value = false
   }
 }
 
@@ -1356,7 +1472,7 @@ const confirmReDeploy = async () => {
           const res = await deployAppAsyncApi({ appId: appId.value as unknown as number })
           if (res.data.code === 0 && res.data.data) {
             deployUrl.value = res.data.data
-            message.loading({ content: '任务已提交，正在构建部署...', key: 'deploy-progress', duration: 0 })
+            setTaskProgressState('deploy', 'running', 5, '任务已提交，正在构建部署...')
             await subscribeDeployProgress()
           } else {
             message.error('重新部署失败：' + (res.data.message || ''))
@@ -1375,6 +1491,9 @@ const confirmReDeploy = async () => {
           deploying.value = false
         }
       } catch (error) {
+        if (isVueProject) {
+          finishTaskProgressState('deploy', 'failed', '重新部署失败，请重试', taskProgressPercent.value)
+        }
         message.error('重新部署失败，请重试')
         deploying.value = false
       }
@@ -1756,11 +1875,15 @@ watch(
 
 onUnmounted(() => {
   window.removeEventListener('message', handleIframeMessage)
-  visualEditor.value?.disableEditMode()
+  if (activeGenerationEventSource.value) {
+    activeGenerationEventSource.value.close()
+    activeGenerationEventSource.value = null
+  }
   if (refreshDebounceTimer) {
     clearTimeout(refreshDebounceTimer)
     refreshDebounceTimer = null
   }
+  clearTaskProgressHideTimer()
   if (timer.value) clearInterval(timer.value)
   // 清理WebSocket订阅
   if (appId.value) {
@@ -2130,6 +2253,15 @@ const handleIframeMessage = (event: MessageEvent) => {
     grid-template-columns: 1fr;
   }
 
+  .app-task-progress {
+    margin: 10px 12px 0;
+    padding: 12px 14px;
+  }
+
+  .app-task-progress-main {
+    align-items: center;
+  }
+
   .home-meta {
     padding-top: 10px;
   }
@@ -2153,6 +2285,93 @@ const handleIframeMessage = (event: MessageEvent) => {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
+}
+
+.app-task-progress {
+  margin: 12px 16px 0;
+  padding: 14px 16px;
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+  flex-shrink: 0;
+}
+
+.app-task-progress.is-success {
+  border-color: #d9e7d8;
+  background: #fcfdfc;
+}
+
+.app-task-progress.is-failed {
+  border-color: #f1d9d9;
+  background: #fffdfd;
+}
+
+.app-task-progress-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.app-task-progress-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.app-task-progress-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.app-task-progress-desc {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.app-task-progress-percent {
+  flex-shrink: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: -0.2px;
+}
+
+.app-task-progress-track {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: #f1f1f1;
+  overflow: hidden;
+}
+
+.app-task-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #1a1a1a 0%, #444 100%);
+  transition: width 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-task-progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: translateX(-100%);
+  animation: taskProgressShimmer 1.4s linear infinite;
+}
+
+@keyframes taskProgressShimmer {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .workspace-body {

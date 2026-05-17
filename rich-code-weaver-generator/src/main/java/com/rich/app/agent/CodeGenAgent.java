@@ -6,6 +6,7 @@ import com.rich.app.factory.AiCodeGenAgentServiceFactory;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.app.utils.ConvertTokenStreamToFluxUtils.ConvertAgentTokenStreamToFluxUtils;
 import com.rich.app.utils.streamHandle.JsonStreamHandler;
+import com.rich.ai.aiTools.userProfile.UserProfileGetTool;
 import com.rich.common.constant.AiServiceConstant;
 import dev.langchain4j.service.TokenStream;
 import jakarta.annotation.Resource;
@@ -61,6 +62,10 @@ public class CodeGenAgent {
             Long userId) {
 
         log.info("[CodeGenAgent] 启动代码生成，appId={}, userId={}", appId, userId);
+
+        // 0. 填充 appId→userId 映射缓存（userId 为发起对话的调用方，非 App 归属者）
+        //    供 UserProfileGetTool / UserProfileUpdateTool 通过 @ToolMemoryId(appId) 反查 userId
+        UserProfileGetTool.APP_USER_MAPPING.put(appId, userId);
 
         // 1. 获取 Agent 服务实例（含系统提示词、工具、对话记忆）
         AiCodeGenAgentService agentService = agentServiceFactory.getAgentService(appId);
