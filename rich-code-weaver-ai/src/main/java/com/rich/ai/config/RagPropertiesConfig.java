@@ -1,7 +1,10 @@
-package com.rich.ai.rag;
+package com.rich.ai.config;
 
+import com.rich.common.constant.RagAiConstant;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+
+import java.util.Locale;
 
 /**
  * RAG（检索增强生成）知识库配置属性类
@@ -15,7 +18,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  **/
 @Data
 @ConfigurationProperties(prefix = RagAiConstant.RAG_CONFIG_PREFIX)
-public class RagProperties {
+public class RagPropertiesConfig {
 
     /**
      * RAG 功能总开关，设为 false 时不初始化任何 RAG 相关 Bean
@@ -37,15 +40,27 @@ public class RagProperties {
      **/
     private String docsPath;
 
+    private String storeType = "pgvector";
+
     /**
      * PGVector 向量数据库连接配置
      **/
     private PgVectorProperties pgvector = new PgVectorProperties();
 
+    private MilvusProperties milvus = new MilvusProperties();
+
     /**
      * Embedding 向量模型配置（使用 OpenAI 兼容接口）
      **/
     private EmbeddingModelProperties embeddingModel = new EmbeddingModelProperties();
+
+    public boolean useMilvus() {
+        return "milvus".equalsIgnoreCase(storeType == null ? "pgvector" : storeType.trim().toLowerCase(Locale.ROOT));
+    }
+
+    public int resolveActiveDimension() {
+        return useMilvus() ? milvus.getDimension() : pgvector.getDimension();
+    }
 
     /**
      * PGVector 向量数据库连接参数
@@ -100,6 +115,45 @@ public class RagProperties {
          * 一般设为 sqrt(数据量)，小数据集可保持默认值
          **/
         private int indexListSize = 100;
+    }
+
+    @Data
+    public static class MilvusProperties {
+        private String host = "localhost";
+
+        private int port = 19530;
+
+        private String uri;
+
+        private String token;
+
+        private String username;
+
+        private String password;
+
+        private String databaseName;
+
+        private String collectionName = "rag_embeddings";
+
+        private int dimension = 1536;
+
+        private String indexType = "FLAT";
+
+        private String metricType = "COSINE";
+
+        private String consistencyLevel = "EVENTUALLY";
+
+        private boolean retrieveEmbeddingsOnSearch = false;
+
+        private boolean autoFlushOnInsert = true;
+
+        private String idFieldName = "id";
+
+        private String textFieldName = "text";
+
+        private String metadataFieldName = "metadata";
+
+        private String vectorFieldName = "vector";
     }
 
     /**

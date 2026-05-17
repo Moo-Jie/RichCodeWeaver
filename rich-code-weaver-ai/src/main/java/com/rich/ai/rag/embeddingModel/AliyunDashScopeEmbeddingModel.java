@@ -1,10 +1,10 @@
-package com.rich.ai.rag;
+package com.rich.ai.rag.embeddingModel;
 
 import com.alibaba.dashscope.embeddings.MultiModalEmbedding;
 import com.alibaba.dashscope.embeddings.MultiModalEmbeddingItemText;
 import com.alibaba.dashscope.embeddings.MultiModalEmbeddingParam;
 import com.alibaba.dashscope.embeddings.MultiModalEmbeddingResult;
-import com.rich.ai.config.RagConfig;
+import com.rich.ai.config.RagEmbeddingConfig;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -22,7 +22,7 @@ import java.util.List;
  *
  * @author DuRuiChi
  * @create 2026/3/27
- * @see RagConfig RAG 核心配置（创建本适配器实例）
+ * @see RagEmbeddingConfig RAG 核心配置（创建本适配器实例）
  * @see MultiModalEmbedding DashScope 原生多模态向量 API
  **/
 @Slf4j

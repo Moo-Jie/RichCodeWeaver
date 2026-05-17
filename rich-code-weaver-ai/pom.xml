@@ -60,6 +60,18 @@
             <artifactId>langchain4j-pgvector</artifactId>
             <version>1.1.0-beta7</version>
         </dependency>
+        <!-- LangChain4j milvus 向量数据库集成（RAG 知识库向量存储） -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-milvus</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
+        <!-- Milvus 官方底层SDK -->
+        <dependency>
+            <groupId>io.milvus</groupId>
+            <artifactId>milvus-sdk-java</artifactId>
+            <version>2.5.9</version>
+        </dependency>
         <!-- 阿里云百炼 AI  SDK -->
         <dependency>
             <groupId>com.alibaba</groupId>

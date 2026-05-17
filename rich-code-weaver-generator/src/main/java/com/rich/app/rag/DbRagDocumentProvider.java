@@ -1,6 +1,6 @@
 package com.rich.app.rag;
 
-import com.rich.ai.rag.RagDocumentProvider;
+import com.rich.ai.rag.documentIndex.RagDocumentProvider;
 import com.rich.app.service.RagDocumentService;
 import com.rich.common.constant.RagConstant;
 import com.rich.model.entity.RagDocument;

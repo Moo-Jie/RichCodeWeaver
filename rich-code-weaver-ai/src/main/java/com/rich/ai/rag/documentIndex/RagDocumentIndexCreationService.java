@@ -1,6 +1,10 @@
-package com.rich.ai.rag;
+package com.rich.ai.rag.documentIndex;
 
-import com.rich.ai.config.RagConfig;
+import com.rich.ai.config.RagEmbeddingConfig;
+import com.rich.common.constant.RagAiConstant;
+import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
+import com.rich.ai.rag.RagParamProvider;
+import com.rich.ai.config.RagPropertiesConfig;
 import com.rich.common.constant.RagConstant;
 import com.rich.model.enums.RagDocumentBizTypeEnum;
 import dev.langchain4j.data.document.Document;
@@ -35,7 +39,7 @@ import java.util.Map;
  *
  * @author DuRuiChi
  * @create 2026/3/26
- * @see RagConfig RAG 核心配置
+ * @see RagEmbeddingConfig RAG 核心配置
  * @see RagContentRetrieverAugmentorFactory 检索增强工厂（检索阶段）
  **/
 @Slf4j
@@ -124,7 +128,7 @@ public class RagDocumentIndexCreationService {
      * RAG 配置属性
      **/
     @Resource
-    private RagProperties ragProperties;
+    private RagPropertiesConfig ragPropertiesConfig;
 
     /**
      * 文档来源提供者
@@ -149,7 +153,7 @@ public class RagDocumentIndexCreationService {
     @EventListener(ApplicationReadyEvent.class)
     public void onApplicationReady() {
         // 检查是否开启了启动时自动摄入
-        if (!ragProperties.isAutoIngestOnStartup()) {
+        if (!ragPropertiesConfig.isAutoIngestOnStartup()) {
             log.info("【{}】自动摄入已关闭（rag.auto-ingest-on-startup=false），跳过", INGEST_LOG_TAG);
             return;
         }
@@ -202,7 +206,7 @@ public class RagDocumentIndexCreationService {
 
         // 统计摄入结果
         int totalSegments = countTotalSegments(enrichedDocuments, splitter);
-        log.info("【{}】摄入完成！共处理 {} 个文档，预计生成约 {} 个文本片段，已全部存入 PGVector",
+        log.info("【{}】摄入完成！共处理 {} 个文档，预计生成约 {} 个文本片段，已全部写入当前向量库",
                 INGEST_LOG_TAG, enrichedDocuments.size(), totalSegments);
     }
 
@@ -266,7 +270,7 @@ public class RagDocumentIndexCreationService {
      * @return 带元数据的文档列表，若路径未配置或无文件则返回 null
      **/
     private List<Document> loadFromFileSystem() {
-        String docsPath = ragProperties.getDocsPath();
+        String docsPath = ragPropertiesConfig.getDocsPath();
         if (docsPath == null || docsPath.isBlank()) {
             log.warn("【{}】未配置数据库文档来源，也未配置文件路径（rag.docs-path），跳过摄入", INGEST_LOG_TAG);
             return null;

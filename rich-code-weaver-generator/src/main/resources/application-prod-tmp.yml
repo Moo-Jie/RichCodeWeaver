@@ -149,6 +149,7 @@ rag:
   auto-ingest-on-startup: true
   # 知识库文档目录路径（绝对路径，存放 .md 格式的开发规范文档）
   docs-path: E:/AAA_idea_java/RichCodeWeaver/docs/ragDocs
+  store-type: pgvector
   # PGVector 向量数据库连接配置
   pgvector:
     host: xxxxxx
@@ -159,6 +160,19 @@ rag:
     table: rag_embeddings
     dimension: 1536
     use-index: true
+  milvus:
+    host: xxxxxx
+    port: 19530
+    collection-name: rag_embeddings
+    dimension: 1536
+    index-type: FLAT
+    metric-type: COSINE
+    consistency-level: EVENTUALLY
+    auto-flush-on-insert: true
+    id-field-name: id
+    text-field-name: text
+    metadata-field-name: metadata
+    vector-field-name: vector
   # Embedding 向量模型配置
   embedding-model:
     api-key: xxxxxx

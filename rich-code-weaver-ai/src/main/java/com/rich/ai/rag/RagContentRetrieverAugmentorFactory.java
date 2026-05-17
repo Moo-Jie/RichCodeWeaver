@@ -1,6 +1,8 @@
 package com.rich.ai.rag;
 
-import com.rich.ai.config.RagConfig;
+import com.rich.ai.config.RagEmbeddingConfig;
+import com.rich.ai.rag.documentIndex.RagDocumentIndexCreationService;
+import com.rich.common.constant.RagAiConstant;
 import com.rich.common.constant.RagConstant;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -31,7 +33,7 @@ import static dev.langchain4j.store.embedding.filter.MetadataFilterBuilder.metad
  *
  * @author DuRuiChi
  * @create 2026/3/26
- * @see RagConfig RAG 核心配置（提供 EmbeddingModel 和 EmbeddingStore）
+ * @see RagEmbeddingConfig RAG 核心配置（提供 EmbeddingModel 和 EmbeddingStore）
  * @see RagDocumentIndexCreationService 文档摄入服务（索引阶段）
  **/
 @Slf4j

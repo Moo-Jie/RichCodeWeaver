@@ -143,6 +143,12 @@
             <artifactId>langchain4j-pgvector</artifactId>
             <version>1.1.0-beta7</version>
         </dependency>
+        <!-- Milvus 向量数据库（显式声明，确保运行时 classpath 包含） -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-milvus</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-mcp</artifactId>

@@ -1,10 +1,10 @@
-package com.rich.ai.rag;
+package com.rich.ai.rag.embeddingModel;
 
 import com.alibaba.dashscope.embeddings.TextEmbedding;
 import com.alibaba.dashscope.embeddings.TextEmbeddingParam;
 import com.alibaba.dashscope.embeddings.TextEmbeddingResult;
 import com.alibaba.dashscope.embeddings.TextEmbeddingResultItem;
-import com.rich.ai.config.RagConfig;
+import com.rich.ai.config.RagEmbeddingConfig;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -18,20 +18,13 @@ import java.util.stream.Collectors;
 
 /**
  * 阿里云 DashScope 文本向量模型适配器
- * 将 DashScope 原生 SDK 的 {@link TextEmbedding} 包装为 langchain4j 的 {@link EmbeddingModel} 接口，
+ * 将 DashScope 原生 SDK 的 TextEmbedding 包装为 langchain4j 的 EmbeddingModel 接口，
  * 使得 text-embedding-v4 等不支持 OpenAI 兼容模式的文本向量模型可以无缝集成到 langchain4j 的 RAG 管道中。
  *
- * text-embedding-v4 是通义实验室基于 Qwen3 训练的多语言文本统一向量模型，
- * 相较 V3 版本在文本检索、聚类、分类性能大幅提升（MTEB 评测提升 15%~40%），
- * 支持 64~2048 维用户自定义向量维度。
- *
- * 核心优势：使用 DashScope 原生 {@link TextEmbedding#call(TextEmbeddingParam)} 接口，
- * 通过 {@link TextEmbeddingParam#builder()}.texts() 方法原生支持批量文本向量化，
- * 单次请求最多处理 {@value #MAX_BATCH_SIZE} 条文本，大幅减少网络往返次数。
  *
  * @author DuRuiChi
  * @create 2026/3/27
- * @see RagConfig RAG 核心配置（创建本适配器实例）
+ * @see RagEmbeddingConfig RAG 核心配置（创建本适配器实例）
  * @see TextEmbedding DashScope 原生文本向量 API
  **/
 @Slf4j

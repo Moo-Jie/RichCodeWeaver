@@ -2,7 +2,7 @@ package com.rich.app.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
-import com.rich.ai.rag.RagDocumentIndexCreationService;
+import com.rich.ai.rag.documentIndex.RagDocumentIndexCreationService;
 import com.rich.app.service.RagDocumentService;
 import com.rich.common.constant.RagConstant;
 import com.rich.common.constant.UserConstant;

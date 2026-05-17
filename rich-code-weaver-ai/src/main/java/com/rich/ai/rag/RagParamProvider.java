@@ -1,5 +1,7 @@
 package com.rich.ai.rag;
 
+import com.rich.ai.rag.documentIndex.RagDocumentIndexCreationService;
+
 /**
  * RAG 参数来源接口
  * 解耦参数来源（数据库 / 配置文件 / 默认值），由具体实现决定从哪里加载参数

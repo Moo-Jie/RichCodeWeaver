@@ -1,4 +1,4 @@
-package com.rich.ai.rag;
+package com.rich.common.constant;
 
 /**
  * AI 模块下 RAG 相关常量

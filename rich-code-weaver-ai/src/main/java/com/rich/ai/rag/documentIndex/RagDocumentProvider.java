@@ -1,4 +1,4 @@
-package com.rich.ai.rag;
+package com.rich.ai.rag.documentIndex;
 
 import dev.langchain4j.data.document.Document;
 
