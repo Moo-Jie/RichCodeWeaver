@@ -36,7 +36,6 @@ public class RagPropertiesConfig {
     /**
      * RAG 知识库文档所在的文件系统路径（绝对路径）
      * 目录下的 .md 文件将被读取、切分、向量化后存入 PGVector
-     * 示例：E:/AAA_idea_java/RichCodeWeaver/docs/ragDocs
      **/
     private String docsPath;
 
@@ -58,6 +57,11 @@ public class RagPropertiesConfig {
      * Rerank 重排序模型配置
      **/
     private RerankModelProperties rerank = new RerankModelProperties();
+
+    /**
+     * Elasticsearch 配置（BM25 关键词检索）
+     **/
+    private ElasticsearchProperties elasticsearch = new ElasticsearchProperties();
 
     public boolean useMilvus() {
         return "milvus".equalsIgnoreCase(storeType == null ? "pgvector" : storeType.trim().toLowerCase(Locale.ROOT));
@@ -206,5 +210,36 @@ public class RagPropertiesConfig {
          * 建议设为 3~5，过多则 Rerank 意义降低
          **/
         private int topN = 3;
+    }
+
+    /**
+     * Elasticsearch 配置（BM25 关键词检索，混合检索用）
+     **/
+    @Data
+    public static class ElasticsearchProperties {
+        /**
+         * ES 功能开关，设为 false 时不初始化 ES 客户端，退化为纯向量检索
+         **/
+        private boolean enabled = false;
+
+        /**
+         * ES 连接地址（含协议和端口）
+         **/
+        private String uris = "http://localhost:9200";
+
+        /**
+         * ES 用户名（无认证时留空）
+         **/
+        private String username;
+
+        /**
+         * ES 密码（无认证时留空）
+         **/
+        private String password;
+
+        /**
+         * RAG 文档片段索引名称
+         **/
+        private String indexName = "rag_documents";
     }
 }

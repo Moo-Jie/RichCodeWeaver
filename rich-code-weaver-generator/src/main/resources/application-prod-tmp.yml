@@ -173,6 +173,13 @@ rag:
     text-field-name: text
     metadata-field-name: metadata
     vector-field-name: vector
+  # Elasticsearch 配置（BM25 关键词检索，混合检索用）
+  elasticsearch:
+    enabled: false
+    uris: http://localhost:9200
+    # username:
+    # password:
+    index-name: rag_documents
   # Rerank 重排序模型配置
   rerank:
     enabled: true

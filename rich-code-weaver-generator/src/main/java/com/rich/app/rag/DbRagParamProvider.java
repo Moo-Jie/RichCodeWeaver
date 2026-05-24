@@ -79,4 +79,24 @@ public class DbRagParamProvider implements RagParamProvider {
     public String getInjectionPromptTemplate() {
         return ragParamService.getParamValue(RagConstant.PARAM_INJECTION_PROMPT_TEMPLATE, DEFAULT_INJECTION_TEMPLATE);
     }
+
+    /**
+     * 获取混合检索中向量检索的权重
+     *
+     * @return 向量检索权重（默认 0.7）
+     */
+    @Override
+    public double getVectorWeight() {
+        return ragParamService.getDoubleParam(RagConstant.PARAM_VECTOR_WEIGHT, RagConstant.DEFAULT_VECTOR_WEIGHT);
+    }
+
+    /**
+     * 获取混合检索中关键词检索的权重
+     *
+     * @return 关键词检索权重（默认 0.3）
+     */
+    @Override
+    public double getKeywordWeight() {
+        return ragParamService.getDoubleParam(RagConstant.PARAM_KEYWORD_WEIGHT, RagConstant.DEFAULT_KEYWORD_WEIGHT);
+    }
 }

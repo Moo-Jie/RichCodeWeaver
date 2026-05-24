@@ -1,15 +1,25 @@
 package com.rich.ai.config;
 
 import cn.hutool.core.util.StrUtil;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import co.elastic.clients.transport.rest_client.RestClientTransport;
 import com.rich.ai.rag.embeddingModel.DashScopeTextEmbeddingModel;
 import com.rich.ai.config.chatModel.DashScopeTextRerankModel;
 import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
 import com.rich.ai.rag.documentIndex.RagDocumentIndexCreationService;
+import com.rich.ai.service.RagElasticsearchService;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpHost;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.RestClientBuilder;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -117,6 +127,66 @@ public class RagEmbeddingConfig {
 
         log.info("【RAG】Rerank 重排序模型初始化完成");
         return model;
+    }
+
+    /**
+     * 创建 Elasticsearch BM25 检索服务 Bean
+     * 用于混合检索中的关键词召回通道
+     * 仅在 rag.elasticsearch.enabled=true 时创建
+     *
+     * @param ragPropertiesConfig RAG 配置属性，包含 ES 连接参数
+     * @return RagElasticsearchService 实例，未启用或连接失败时返回 null
+     * @author DuRuiChi
+     * @create 2026/5/19
+     **/
+    @Bean("ragElasticsearchService")
+    public RagElasticsearchService ragElasticsearchService(RagPropertiesConfig ragPropertiesConfig) {
+        RagPropertiesConfig.ElasticsearchProperties esProps = ragPropertiesConfig.getElasticsearch();
+        if (!esProps.isEnabled()) {
+            log.info("【RAG】Elasticsearch BM25 关键词检索未启用（rag.elasticsearch.enabled=false），使用纯向量检索");
+            return null;
+        }
+
+        log.info("【RAG】初始化 Elasticsearch 客户端，地址: {}，索引: {}",
+                esProps.getUris(), esProps.getIndexName());
+
+        try {
+            ElasticsearchClient esClient = createElasticsearchClient(esProps);
+            RagElasticsearchService service = new RagElasticsearchService(esClient, esProps.getIndexName());
+
+            if (service.isAvailable()) {
+                service.InitializeIndex();
+                log.info("【RAG】Elasticsearch BM25 检索服务初始化完成，混合检索已就绪");
+            } else {
+                log.warn("【RAG】Elasticsearch 连接失败，混合检索将降级为纯向量检索");
+                return null;
+            }
+            return service;
+        } catch (Exception e) {
+            log.error("【RAG】Elasticsearch 客户端创建失败，降级为纯向量检索: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 创建 Elasticsearch 客户端实例
+     */
+    private ElasticsearchClient createElasticsearchClient(RagPropertiesConfig.ElasticsearchProperties esProps) {
+        RestClientBuilder restClientBuilder = RestClient.builder(
+                HttpHost.create(esProps.getUris()));
+
+        // 如果配置了用户名密码，添加认证
+        if (StrUtil.isNotBlank(esProps.getUsername()) && StrUtil.isNotBlank(esProps.getPassword())) {
+            BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(AuthScope.ANY,
+                    new UsernamePasswordCredentials(esProps.getUsername(), esProps.getPassword()));
+            restClientBuilder.setHttpClientConfigCallback(httpClientBuilder ->
+                    httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider));
+        }
+
+        RestClient restClient = restClientBuilder.build();
+        RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+        return new ElasticsearchClient(transport);
     }
 
     private EmbeddingStore<TextSegment> buildPgVectorEmbeddingStore(RagPropertiesConfig.PgVectorProperties pgProps) {

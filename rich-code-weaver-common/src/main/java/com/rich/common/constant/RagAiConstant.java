@@ -38,6 +38,11 @@ public final class RagAiConstant {
      */
     public static final String RAG_RERANK_MODEL_BEAN = "ragRerankModel";
 
+    /**
+     * RAG Elasticsearch Service Bean 名称
+     */
+    public static final String RAG_ES_SERVICE_BEAN = "ragElasticsearchService";
+
     private RagAiConstant() {
     }
 }

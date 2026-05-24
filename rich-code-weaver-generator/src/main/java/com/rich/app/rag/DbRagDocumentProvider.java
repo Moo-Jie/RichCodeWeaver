@@ -54,8 +54,10 @@ public class DbRagDocumentProvider implements RagDocumentProvider {
             String title = getDocumentTitleOrDefault(dbDoc);
             String bizType = getBizTypeOrDefault(dbDoc);
 
+            // 构建文档元信息
             Metadata metadata = buildMetadata(title, bizType, codeGenType);
 
+            // 构建 document 列表 （文档内容 与 元信息映射表）
             documents.add(Document.from(dbDoc.getDocContent(), metadata));
 
             log.info("【DbRagDocumentProvider】加载文档: [{}] → codeGenType={}, 内容长度: {} 字符",

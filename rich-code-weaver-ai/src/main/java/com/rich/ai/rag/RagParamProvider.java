@@ -43,4 +43,16 @@ public interface RagParamProvider {
      * 对应 DB key: injection_prompt_template
      */
     String getInjectionPromptTemplate();
+
+    /**
+     * 混合检索中向量检索的权重（默认 0.7）
+     * 对应 DB key: vector_weight
+     */
+    double getVectorWeight();
+
+    /**
+     * 混合检索中关键词检索的权重（默认 0.3）
+     * 对应 DB key: keyword_weight
+     */
+    double getKeywordWeight();
 }

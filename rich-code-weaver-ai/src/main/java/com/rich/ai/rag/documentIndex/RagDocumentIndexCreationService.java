@@ -5,6 +5,7 @@ import com.rich.common.constant.RagAiConstant;
 import com.rich.ai.rag.RagContentRetrieverAugmentorFactory;
 import com.rich.ai.rag.RagParamProvider;
 import com.rich.ai.config.RagPropertiesConfig;
+import com.rich.ai.service.RagElasticsearchService;
 import com.rich.common.constant.RagConstant;
 import com.rich.model.enums.RagDocumentBizTypeEnum;
 import dev.langchain4j.data.document.Document;
@@ -143,6 +144,13 @@ public class RagDocumentIndexCreationService {
     private RagParamProvider ragParamProvider;
 
     /**
+     * Elasticsearch BM25 检索服务（混合检索用，可选注入）
+     * 为 null 时表示 ES 未启用，文档仅写入向量库
+     **/
+    @Autowired(required = false)
+    private RagElasticsearchService esService;
+
+    /**
      * 应用启动完成后自动执行文档摄入检查
      * 使用 {@link ApplicationReadyEvent} 而非 {@code @PostConstruct}，
      * 确保所有 Bean 和外部资源（数据库连接等）都已就绪
@@ -185,26 +193,29 @@ public class RagDocumentIndexCreationService {
      * @create 2026/3/26
      **/
     public void ingestDocuments() {
+        // 1.文档收集
         List<Document> enrichedDocuments = loadDocumentsForIngestion();
         if (enrichedDocuments == null) {
             return;
         }
 
-        // 构建文档切分器
-        // 使用递归分割器，按照 Markdown 文档结构进行智能切分
-        // 切分优先级：段落（\n\n）→ 行（\n）→ 空格 → 字符
-        // 这样能最大程度保持文档的语义完整性
+        // 2.初始化文档切割器
+        // 构建文档切分器，使用递归分割器，按照 Markdown 文档结构进行智能切分（切分优先级：段落（\n\n）→ 行（\n）→ 空格 → 字符）
         DocumentSplitter splitter = buildDocumentSplitter();
 
-        // 使用 EmbeddingStoreIngestor 执行摄入管道
-        // EmbeddingStoreIngestor 是 langchain4j 提供的标准摄入工具，封装了：
-        //   文档切分（DocumentSplitter）→ 向量化（EmbeddingModel）→ 存储（EmbeddingStore）
+        // 3.初始化文档摄入器
+        // 使用 EmbeddingStoreIngestor
+        // EmbeddingStoreIngestor 执行摄入管道， 是 langchain4j 提供的标准摄入工具，封装了：
+        // 文档切割（DocumentSplitter）→ 向量转化（EmbeddingModel）→ 存储（EmbeddingStore）
         EmbeddingStoreIngestor ingestor = buildEmbeddingStoreIngestor(splitter);
 
-        // 执行摄入：遍历所有文档，切分为片段，向量化后批量存入 PGVector
+        // 4.执行管道摄入：遍历所有文档，切分为片段，向量化后批量存入 Milvus/PGVector
         ingestor.ingest(enrichedDocuments);
 
-        // 统计摄入结果
+        // 5.执行 Elasticsearch 分词存储
+        syncToElasticsearch(enrichedDocuments, splitter);
+
+        // 6.摄入结果
         int totalSegments = countTotalSegments(enrichedDocuments, splitter);
         log.info("【{}】摄入完成！共处理 {} 个文档，预计生成约 {} 个文本片段，已全部写入当前向量库",
                 INGEST_LOG_TAG, enrichedDocuments.size(), totalSegments);
@@ -224,9 +235,45 @@ public class RagDocumentIndexCreationService {
         embeddingStore.removeAll();
         log.info("【{}】已清空向量存储", REINDEX_LOG_TAG);
 
+        // 同时清空 ES 索引
+        if (esService != null && esService.isAvailable()) {
+            esService.deleteAll();
+            log.info("【{}】已清空 Elasticsearch 索引", REINDEX_LOG_TAG);
+        }
+
         // 重新执行文档摄入
         ingestDocuments();
         log.info("【{}】重新索引完成", REINDEX_LOG_TAG);
+    }
+
+    /**
+     * 将文档片段同步存储到 Elasticsearch
+     * ES 不可用时静默跳过，不影响向量检索的正常使用
+     *
+     * @param documents 原始文档列表
+     * @param splitter  文档切分器
+     * @author DuRuiChi
+     * @create 2026/5/19
+     **/
+    private void syncToElasticsearch(List<Document> documents, DocumentSplitter splitter) {
+        if (esService == null || !esService.isAvailable()) {
+            log.info("【{}】Elasticsearch 未启用或不可用，跳过 ES 索引同步", INGEST_LOG_TAG);
+            return;
+        }
+        try {
+            // 切分后的文档切片
+            List<TextSegment> allSegments = new ArrayList<>();
+            // 转为 TextSegment 格式
+            for (Document doc : documents) {
+                allSegments.addAll(splitter.split(doc));
+            }
+            // 批量索引文档片段到 ES
+            esService.indexSegments(allSegments);
+            log.info("【{}】已同步 {} 个文档片段到 Elasticsearch（BM25 关键词索引）",
+                    INGEST_LOG_TAG, allSegments.size());
+        } catch (Exception e) {
+            log.error("【{}】ES 索引同步失败（不影响向量检索）: {}", INGEST_LOG_TAG, e.getMessage());
+        }
     }
 
     /**
@@ -301,6 +348,7 @@ public class RagDocumentIndexCreationService {
     private List<Document> loadDocumentsForIngestion() {
         if (ragDocumentProvider != null) {
             log.info("【{}】使用数据库文档来源（RagDocumentProvider）加载文档...", INGEST_LOG_TAG);
+            // 文档收集
             List<Document> enrichedDocuments = ragDocumentProvider.loadDocuments();
             if (enrichedDocuments.isEmpty()) {
                 log.warn("【{}】数据库中无已启用的 RAG 文档（isEnabled=1），跳过摄入", INGEST_LOG_TAG);

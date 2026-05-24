@@ -119,6 +119,37 @@ public final class RagConstant {
     public static final double DEFAULT_MIN_SCORE = 0.6D;
 
     /**
+     * 向量检索权重参数 key
+     */
+    public static final String PARAM_VECTOR_WEIGHT = "vector_weight";
+
+    /**
+     * 关键词检索权重参数 key
+     */
+    public static final String PARAM_KEYWORD_WEIGHT = "keyword_weight";
+
+    /**
+     * 默认向量检索权重（0.7 = 70%）
+     */
+    public static final double DEFAULT_VECTOR_WEIGHT = 0.7D;
+
+    /**
+     * 默认关键词检索权重（0.3 = 30%）
+     */
+    public static final double DEFAULT_KEYWORD_WEIGHT = 0.3D;
+
+    /**
+     * RRF（Reciprocal Rank Fusion）常数 K，影响融合平滑度
+     * 标准值为 60，较大的 K 值使排名差异的影响更平滑
+     */
+    public static final int RRF_CONSTANT_K = 60;
+
+    /**
+     * 日志中每个文档片段摘要的最大字符数
+     */
+    public static final int LOG_SEGMENT_BRIEF_LENGTH = 10;
+
+    /**
      * 最低分数下界
      */
     public static final double MIN_SCORE_LOWER_BOUND = 0D;
