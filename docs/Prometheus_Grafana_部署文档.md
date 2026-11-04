@@ -2,11 +2,11 @@
 
 ### 1. 启动应用服务
 
-确保 `rich-code-weaver-generator` 服务已启动（默认端口 8101）。
+确保 `rich-code-weaver-monolith` 单体应用已启动（默认端口 8101）。
 
 ### 2. 启动 Prometheus
 
-使用项目根目录的配置文件启动 Prometheus：
+使用项目 `monitoring/prometheus.yml` 启动 Prometheus：
 
 ```bash
 # Windows
@@ -43,7 +43,7 @@ grafana-server.exe
 ./grafana-server
 ```
 
-访问 Grafana Web UI：http://localhost:3000（默认账号密码：admin/admin）
+访问 Grafana Web UI：http://localhost:3000（按首次启动配置登录）
 
 ## 四、配置 Grafana 看板
 

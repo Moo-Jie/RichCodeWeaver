@@ -8,7 +8,7 @@
 
       <MicroserviceHealthPanel
         class="top-health-panel"
-        title="微服务模块状态监测"
+        title="应用模块状态监测"
         :show-refresh="true"
       />
 

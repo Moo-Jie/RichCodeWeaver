@@ -71,7 +71,7 @@ export const useChatStore = defineStore('chat', () => {
 
   /**
    * 建立WebSocket连接
-   * 使用当前页面域名和用户模块端口(8102)
+   * 使用当前页面域名和单体应用 WebSocket 入口
    */
   function connectWebSocket() {
     if (ws.value && ws.value.readyState === WebSocket.OPEN) {

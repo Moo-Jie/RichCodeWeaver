@@ -1,0 +1,41 @@
+package com.rich.file.service.impl;
+
+import com.rich.file.api.InnerFileService;
+import com.rich.file.service.FileService;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
+
+/**
+ * 文件上传服务内部接口
+ * （用于系统内部调用的客户端）
+ *
+ * @author DuRuiChi
+ * @create 2025/10/17
+ **/
+@Service
+public class InnerFileServiceImpl implements InnerFileService {
+    /**
+     * 调用模块内部的实现类
+     */
+    @Resource
+    private FileService fileService;
+
+    @Override
+    public String upload(MultipartFile file) {
+        return fileService.upload(file);
+    }
+
+    @Override
+    public String uploadBytes(byte[] fileBytes, String fileName) {
+        // 将字节数组转换为MultipartFile
+        MultipartFile multipartFile = new MockMultipartFile(
+                "file",
+                fileName,
+                "image/png",
+                fileBytes
+        );
+        return fileService.upload(multipartFile);
+    }
+}

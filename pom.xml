@@ -10,35 +10,18 @@
     <version>2.0</version>
     <packaging>pom</packaging>
 
-    <!-- 多模块定义 -->
+    <!-- 单体应用模块 -->
     <modules>
-        <!-- 通用模块 -->
-        <module>rich-code-weaver-common</module>
-        <!-- 数据模型模块 -->
-        <module>rich-code-weaver-model</module>
-        <!-- 内部接口模块 -->
-        <module>rich-code-weaver-client</module>
-        <!-- 用户模块 -->
-        <module>rich-code-weaver-user</module>
-        <!-- 产物模块 -->
-        <module>rich-code-weaver-generator</module>
-        <!-- AI模块 -->
-        <module>rich-code-weaver-ai</module>
-        <!-- 文件模块 -->
-        <module>rich-code-weaver-file</module>
-        <module>rich-code-weaver-prompt</module>
-        <module>rich-code-weaver-social</module>
+        <module>rich-code-weaver-monolith</module>
     </modules>
 
     <!-- 全局属性配置 -->
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-boot.version>3.3.4</spring-boot.version>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.1.2</spring-cloud-alibaba.version>
-        <dubbo.version>3.3.0</dubbo.version>
     </properties>
 
     <!-- 基础依赖 -->
@@ -103,13 +86,6 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>org.apache.dubbo</groupId>
-                <artifactId>dubbo-bom</artifactId>
-                <version>${dubbo.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>dashscope-sdk-java</artifactId>
                 <version>2.21.1</version>
@@ -121,18 +97,17 @@
     <build>
         <pluginManagement>
             <plugins>
-                <!-- Spring Boot 打包插件 -->
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
                 </plugin>
-                <!-- 编译器参数配置（开启参数反射） -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.11.0</version>
                     <configuration>
+                        <release>${maven.compiler.release}</release>
                         <parameters>true</parameters>
                     </configuration>
                 </plugin>

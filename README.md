@@ -78,18 +78,18 @@ RichCodeWeaver（织码睿奇）是一款面向全社会的 AI 驱动智能开�
 
 ### 架构设计理念
 
-本项目采用**平台化多模块架构**，将用户、生成、社交、提示词、文件等核心业务拆解为**边界清晰的独立模块**，同时通过统一模型、公共常量与内部服务接口**保持整体一致性**。这种设计使系统既能支撑**生成数字产物**这种高复杂度的主要业务，又能不断扩展**协作、社区、客服、知识库**等外围能力。
+本项目采用**按业务分包的单体架构**，在同一个 Spring Boot 进程中保留用户、生成、社交、提示词、文件与 AI 的清晰包边界。服务间调用由本地 Spring Bean 完成，Nacos 负责配置与可选服务发现，Higress 负责外部入口，Prometheus 负责指标采集。
 
 ### 后端技术栈
 
 | 技术                   | 版本         | 说明                    |
 |----------------------|------------|------------------------|
 | Java                 | 21         | 核心开发语言，支持虚拟线程        |
-| Spring Boot          | 3.5.3      | 应用框架                  |
-| Spring Cloud         | 2023.0.1   | 微服务框架                 |
-| Spring Cloud Alibaba | 2023.0.1.0 | 阿里云微服务组件              |
-| Dubbo                | 3.3.0      | RPC 框架                |
-| Nacos                | 2.x        | 服务注册与配置中心             |
+| Spring Boot          | 3.3.4      | 应用框架                  |
+| Spring Cloud         | 2023.0.3   | Spring Cloud 集成         |
+| Spring Cloud Alibaba | 2023.0.1.2 | 阿里云组件版本对齐             |
+| Higress              | -          | AI 网关与外部入口             |
+| Nacos                | 2.x        | 配置中心与可选服务发现           |
 | Sentinel             | 1.8+       | 流量控制与熔断降级             |
 | MyBatis Flex         | 1.11.1     | ORM 框架                |
 | MySQL                | 8.0.33     | 关系型数据库                |
@@ -132,88 +132,84 @@ RichCodeWeaver（织码睿奇）是一款面向全社会的 AI 驱动智能开�
 
 ## 模块说明
 
-### 后端模块架构
+### 后端模块结构
 
 ```
 rich-code-weaver-parent/
-├── rich-code-weaver-common          # 通用模块 - 公共工具类、常量、异常处理
-├── rich-code-weaver-model           # 数据模型模块 - 实体类、VO、DTO 定义
-├── rich-code-weaver-client          # 内部接口模块 - Dubbo 服务接口定义
-├── rich-code-weaver-user            # 用户模块 - 用户管理、认证授权（端口：8102）
-├── rich-code-weaver-generator       # 产物生成模块 - 核心代码生成引擎（端口：8101）
-├── rich-code-weaver-ai              # AI 模块 - AI 服务封装、提示词管理
-├── rich-code-weaver-file            # 文件模块 - 文件上传、存储管理（端口：8103）
-├── rich-code-weaver-prompt          # 提示词模板模块 - 模板管理与匹配（端口：8105）
-├── rich-code-weaver-social          # 社交模块 - 点赞、收藏、评论、分享（端口：8104）
-└── rich-code-weaver-server-admin    # 管理后台 - Spring Boot Admin（端口：9001）
+├── rich-code-weaver-monolith/       # 单体应用，唯一可执行后端
+│   └── src/main/java/com/rich/
+│       ├── RichCodeWeaverApplication.java
+│       ├── common/                  # 公共工具、常量、异常
+│       ├── model/                   # 实体、VO、DTO
+│       ├── app/                     # 产物生成、应用管理、MQ 任务
+│       ├── user/                    # 用户、认证、协作关系
+│       ├── ai/                      # AI 服务、RAG、模型监控
+│       ├── file/                    # 文件上传、OSS、截图
+│       ├── prompt/                  # 提示词模板
+│       └── social/                  # 点赞、收藏、评论、社区
+├── rich-code-weaver-server-admin/   # 独立运维组件（端口：9001）
+├── rich-code-weaver-web/            # Vue 前端
+└── monitoring/                      # Prometheus 部署配置
 ```
 
-#### 核心模块详解
+#### 核心包说明
 
-**1. rich-code-weaver-generator（产物生成模块）** - 端口：8101
+**1. com.rich.app（产物生成）**
 
-核心 AI 生成引擎，系统最复杂的模块：
+核心 AI 生成引擎：
 - **双模式生成**：工作流模式（LangGraph4j）+ Agent 模式
 - **工作流编排**：资源收集 → 提示优化 → 类型决策 → 代码生成 → 质量审查 → 项目构建
-- **Agent 自主规划**：自主拆解任务、工具协同、连续推进
-- **流式交互**：SSE 流式响应，支持断线续接和事件缓存
+- **流式交互**：SSE 与 WebSocket 推送，支持断线续接
 - **产物构建**：支持单页、多文件、Vue 工程三种形态
-- **历史管理**：Redis 存储对话记忆，支持连续迭代
+- **异步任务**：RabbitMQ 承载项目构建与截图任务
 - **监控采集**：Prometheus 指标暴露，监控 Token 消耗和响应时长
 
-**2. rich-code-weaver-user（用户模块）** - 端口：8102
+**2. com.rich.user（用户）**
 
-用户身份与权限管理：
 - 用户注册、登录、登出
-- 用户信息管理（支持身份、行业属性）
-- Session 管理（基于 Redis）
-- 权限控制（用户/管理员）
-- 好友关系管理
+- 用户信息与好友关系管理
+- Redis Session 管理
+- 用户与管理员权限控制
 
-**3. rich-code-weaver-ai（AI 模块）**
+**3. com.rich.ai（AI）**
 
-AI 服务封装与增强：
 - LangChain4j 集成
 - 多 AI 模型支持（阿里云百炼）
-- 提示词优化服务
-- RAG 知识库检索（pgvector）
+- RAG 知识库检索（pgvector / Milvus / Elasticsearch）
 - 对话历史管理（Redis 存储）
 - AI 服务实例缓存（Caffeine）
 
-**4. rich-code-weaver-prompt（提示词模板模块）** - 端口：8105
+**4. com.rich.prompt（提示词）**
 
-智能模板匹配系统：
 - 提示词模板 CRUD
-- 智能匹配算法（精确匹配 → 行业匹配 → 通用模板）
-- 模板字段动态渲染（select、text、switch 类型）
-- 16+ 预置行业模板
-- 模板评分排序
+- 模板匹配与字段渲染
+- 内置行业模板维护
 
-**5. rich-code-weaver-social（社交模块）** - 端口：8104
+**5. com.rich.social（社交）**
 
-社交传播与社区运营：
-- 点赞/取消点赞（Redis 分布式锁）
-- 收藏/取消收藏
-- 评论管理（支持评论点赞）
-- 分享统计
-- 热门排行榜（综合评分算法）
-- 协作邀请与多人编辑
+- 点赞、收藏、评论、分享
+- 社区帖子和回复
+- 热门排行榜
+- Redis 分布式锁与幂等控制
 
-**6. rich-code-weaver-file（文件模块）** - 端口：8103
+**6. com.rich.file（文件）**
 
-文件存储与管理：
-- 文件上传（支持图片、文档等）
-- OSS 云存储集成
+- 文件上传与 OSS 云存储
 - 文件访问控制
-- 素材管理（图片、文本、视频、音频、链接）
+- 素材管理
+- Playwright 网页截图
 
-**7. rich-code-weaver-server-admin（管理后台）** - 端口：9001
+**7. com.rich.common / com.rich.model**
 
-Spring Boot Admin 监控：
-- 微服务健康检查
+- 公共常量、异常、工具与会话辅助
+- 实体、DTO、VO、枚举与注解
+
+**8. rich-code-weaver-server-admin（管理后台）**
+
+独立 Spring Boot Admin 运维组件：
+- 单体应用健康检查
 - 应用状态监控
 - 日志查看
-
 ### 前端模块结构
 
 ```
@@ -292,7 +288,7 @@ rich-code-weaver-web/
 | MySQL            | 8.0+   | 业务数据持久化             |
 | PostgreSQL + pgvector | -      | 向量数据库，支持 RAG 知识库（可选）   |
 | Redis            | 6.0+   | 缓存、分布式锁、对话记忆        |
-| Nacos            | 2.x    | 服务注册与配置中心           |
+| Nacos            | 2.x    | 配置中心与可选服务发现         |
 | Sentinel         | 1.8+   | 流量控制与熔断降级（可选）       |
 | Nginx            | -      | 前端静态资源与反向代理（生产环境）   |
 | Prometheus       | 3.11+  | 监控指标采集（可选）          |
@@ -334,7 +330,7 @@ start-redis.bat
 # Linux
 redis-server
 
-# 启动 Nacos（注册中心）
+# 启动 Nacos（配置中心与可选注册）
 cd bat
 run_nacos.bat  # Windows
 # 或
@@ -350,7 +346,7 @@ cd bat
 start-prometheus.bat  # Windows
 # 或
 cd middleware/prometheus-3.11.2.linux-amd64
-nohup ./prometheus --config.file=prometheus.yml > logs/prometheus.log 2>&1 &  # Linux
+nohup ./prometheus --config.file=/opt/RichCodeWeaver/monitoring/prometheus.yml > logs/prometheus.log 2>&1 &  # Linux
 
 # （可选）启动 Grafana（可视化监控）
 cd bat
@@ -360,61 +356,34 @@ cd middleware/grafana-12.1.0
 nohup ./bin/grafana-server web > logs/grafana.log 2>&1 &  # Linux
 ```
 
-4. **配置应用**
+4. **配置 Nacos**
 
-修改各模块的 `application-local.yml` 配置文件，重点配置以下内容：
-
-- **数据库连接信息**（MySQL）
-- **Redis 连接信息**
-- **Nacos 地址**
-- **AI 模型 API Key**（阿里云百炼 DashScope）
-- **OSS 云存储配置**（阿里云 OSS）
-- **邮箱配置**（用于注册验证）
-- **RAG 配置**（PostgreSQL + pgvector，可选）
-
-5. **启动微服务**
-
-推荐按以下顺序启动各模块：
+后端只保留 `application.yml` 的基础配置，数据库、Redis、RabbitMQ、OSS、邮件、AI Key、RAG、MCP 等业务配置统一写入 Nacos。启动前通过环境变量提供 Nacos 地址与配置坐标：
 
 ```bash
-# 方式一：使用批处理脚本一键启动（Windows）
-cd bat
-run_all.bat
+export NACOS_SERVER_ADDR=<nacos-address>
+export NACOS_NAMESPACE=<namespace>
+export NACOS_CONFIG_GROUP=DEFAULT_GROUP
+export NACOS_CONFIG_DATA_ID=rich-code-weaver.yaml
+```
 
-# 方式二：手动启动各模块
-# 1. 产物生成模块（核心）
-cd rich-code-weaver-generator
-mvn spring-boot:run
+完整配置键见 `docs/单体化改造说明.md`。仓库内不保存真实连接信息和密钥。
 
-# 2. 用户模块
-cd rich-code-weaver-user
-mvn spring-boot:run
+5. **启动单体应用**
 
-# 3. 文件模块
-cd rich-code-weaver-file
-mvn spring-boot:run
+```bash
+# 后端
+./mvnw -pl rich-code-weaver-monolith spring-boot:run
 
-# 4. 社交模块
-cd rich-code-weaver-social
-mvn spring-boot:run
-
-# 5. 提示词模块
-cd rich-code-weaver-prompt
-mvn spring-boot:run
-
-# 6. 管理后台（可选）
+# 可选：管理后台
 cd rich-code-weaver-server-admin
-mvn spring-boot:run
+./mvnw spring-boot:run
 ```
 
 **服务端口说明：**
-- 8101：产物生成模块（generator）
-- 8102：用户模块（user）
-- 8103：文件模块（file）
-- 8104：社交模块（social）
-- 8105：提示词模块（prompt）
-- 9001：管理后台（admin）
-
+- 8101：RichCodeWeaver 单体应用，上下文路径 `/api`
+- 9001：独立管理后台（可选）
+- Higress 将原 `/api/user/**`、`/api/generator/**`、`/api/file/**`、`/api/social/**`、`/api/prompt/**` 全部转发到 8101，Controller 路径不变
 ### 前端启动
 
 1. **安装依赖**
@@ -435,23 +404,17 @@ npm run dev
 打开浏览器访问：`http://localhost:5174`
 
 **测试账号：**
-- 账号：`rcwadmin@outlook.com`
-- 密码：`richCodeWeaverAdmin`
+- 由数据库初始化数据或 Nacos 配置提供，不在仓库中保存明文账号密码。
 
 ### 生产环境部署
 
 #### 后端打包
 
 ```bash
-# 打包所有模块
-mvn clean package -DskipTests
-
-# 打包后的 JAR 文件位于各模块的 target 目录
-# rich-code-weaver-generator/target/rich-code-weaver-generator-1.0.jar
-# rich-code-weaver-user/target/rich-code-weaver-user-1.0.jar
-# ...
+./mvnw clean package -DskipTests
 ```
 
+单体可执行 JAR：`rich-code-weaver-monolith/target/rich-code-weaver-monolith-2.0.jar`。管理后台需要时单独打包 `rich-code-weaver-server-admin`。
 #### 前端打包
 
 ```bash
@@ -470,7 +433,7 @@ npm run build
 mkdir -p /opt/RichCodeWeaver/{server,web,middleware,logs}
 ```
 
-- `server/`：存放 6 个后端 JAR
+- `server/`：存放单体 JAR，管理后台可选
 - `web/`：存放前端解压后的静态文件
 - `middleware/`：存放 Nacos、Prometheus、Grafana 等中间件
 - `logs/`：存放运行日志
@@ -629,13 +592,7 @@ mkdir -p /opt/RichCodeWeaver/{server,web,middleware,logs}
 
 ### API 文档
 
-访问 Knife4j API 文档：
-
-- 产物生成模块：`http://localhost:8101/doc.html`
-- 用户模块：`http://localhost:8102/doc.html`
-- 文件模块：`http://localhost:8103/doc.html`
-- 社交模块：`http://localhost:8104/doc.html`
-- 提示词模块：`http://localhost:8105/doc.html`
+访问 Knife4j API 文档：`http://localhost:8101/api/doc.html`
 
 ### 前端 API 自动生成
 
@@ -669,7 +626,7 @@ npm run openapi2ts
 访问：`http://localhost:9001`
 
 功能：
-- 微服务健康检查
+- 单体应用健康检查
 - 应用状态监控
 - 日志查看
 

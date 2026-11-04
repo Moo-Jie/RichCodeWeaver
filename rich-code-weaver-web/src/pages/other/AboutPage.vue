@@ -10,7 +10,7 @@
         <h2 class="section-title">项目简介</h2>
         <p class="section-text">
           RichCodeWeaver（织码睿奇）是一个基于AI技术的智能代码生成平台，旨在通过自然语言理解和大语言模型技术，帮助用户快速将创意想法转化为可运行的数字产物。
-          平台采用微服务架构，支持多种AI模型集成，提供从需求描述到代码生成、可视化编辑、部署分享的全流程解决方案。
+          平台采用单体架构，支持多种AI模型集成，提供从需求描述到代码生成、可视化编辑、部署分享的全流程解决方案。
         </p>
       </section>
 
@@ -60,9 +60,9 @@
             <h3 class="tech-category-title">后端技术栈</h3>
             <div class="tech-tags">
               <span class="tech-tag">Java 21</span>
-              <span class="tech-tag">Spring Boot 3.5.3</span>
-              <span class="tech-tag">Spring Cloud 2023.0.1</span>
-              <span class="tech-tag">Dubbo 3.3.0</span>
+              <span class="tech-tag">Spring Boot 3.3.4</span>
+              <span class="tech-tag">Spring Cloud 2023.0.3</span>
+              <span class="tech-tag">单体应用</span><span class="tech-tag">Higress</span>
               <span class="tech-tag">Nacos</span>
               <span class="tech-tag">Sentinel</span>
               <span class="tech-tag">MyBatis Flex</span>
@@ -89,8 +89,8 @@
       </section>
 
       <MicroserviceHealthPanel
-        title="微服务模块"
-        description="实时检测平台核心微服务在线情况，帮助你快速了解当前系统运行状态。"
+        title="应用模块"
+        description="实时检测平台核心模块在线情况，帮助你快速了解当前系统运行状态。"
       />
 
       <section class="section">

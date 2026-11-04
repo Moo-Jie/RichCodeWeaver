@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: rich-code-weaver
+  profiles:
+    active: local
+  config:
+    import:
+      - optional:nacos:${NACOS_CONFIG_DATA_ID:rich-code-weaver.yaml}?group=${NACOS_CONFIG_GROUP:DEFAULT_GROUP}&refreshEnabled=true
+  cloud:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:}
+      username: ${NACOS_USERNAME:}
+      password: ${NACOS_PASSWORD:}
+      config:
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+      discovery:
+        enabled: ${NACOS_DISCOVERY_ENABLED:false}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+  session:
+    timeout: 2592000
+  main:
+    allow-bean-definition-overriding: false
+
+server:
+  port: 8101
+  servlet:
+    context-path: /api
+    session:
+      cookie:
+        max-age: 2592000
+
+# springdoc-openapi
+springdoc:
+  group-configs:
+    - group: 'default'
+      packages-to-scan:
+        - com.rich.app.controller
+        - com.rich.user.controller
+        - com.rich.file.controller
+        - com.rich.prompt.controller
+        - com.rich.social.controller
+
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+# Spring Boot Admin Client
+spring.boot.admin.client.enabled: false
+
+# actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: info
+    com.rich: info

@@ -46,7 +46,7 @@ Playwright 需要下载浏览器二进制文件。**首次部署时必须执行�
 mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install chromium"
 
 # 方式2：直接使用 Playwright CLI
-java -cp "target/rich-code-weaver-file-1.0-SNAPSHOT.jar;%USERPROFILE%\.m2\repository\com\microsoft\playwright\playwright\1.48.0\playwright-1.48.0.jar" com.microsoft.playwright.CLI install chromium
+java -cp "rich-code-weaver-monolith/target/rich-code-weaver-monolith-2.0.jar;%USERPROFILE%\.m2\repository\com\microsoft\playwright\playwright\1.48.0\playwright-1.48.0.jar" com.microsoft.playwright.CLI install chromium
 ```
 
 #### Linux 生产环境

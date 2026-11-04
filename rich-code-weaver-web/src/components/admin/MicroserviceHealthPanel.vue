@@ -35,7 +35,7 @@ const props = withDefaults(defineProps<{
   description?: string
   showRefresh?: boolean
 }>(), {
-  title: '微服务模块',
+  title: '应用模块',
   description: '',
   showRefresh: false
 })
