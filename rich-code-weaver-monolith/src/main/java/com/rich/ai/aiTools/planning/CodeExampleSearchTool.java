@@ -11,9 +11,9 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -35,11 +35,11 @@ import java.util.List;
 public class CodeExampleSearchTool extends BaseTool {
 
     @Autowired(required = false)
-    @Resource(name = "ragEmbeddingModel")
+    @Qualifier("ragEmbeddingModel")
     private EmbeddingModel embeddingModel;
 
     @Autowired(required = false)
-    @Resource(name = "ragEmbeddingStore")
+    @Qualifier("ragEmbeddingStore")
     private EmbeddingStore<TextSegment> embeddingStore;
 
     @Override

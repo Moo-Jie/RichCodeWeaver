@@ -117,7 +117,7 @@ public class AiCodeGenWorkflowServiceFactory {
      * 当 rag.enabled=true 时由 Spring 自动注入，否则为 null
      * 为 null 时 AI 服务正常工作，只是不会从知识库检索参考内容
      **/
-    @Autowired
+    @Autowired(required = false)
     private RagContentRetrieverAugmentorFactory ragContentRetrieverAugmentorFactory;
 
     /**

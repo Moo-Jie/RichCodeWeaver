@@ -135,11 +135,12 @@ public class RagEmbeddingConfig {
      * 仅在 rag.elasticsearch.enabled=true 时创建
      *
      * @param ragPropertiesConfig RAG 配置属性，包含 ES 连接参数
-     * @return RagElasticsearchService 实例，未启用或连接失败时返回 null
+     * @return RagElasticsearchService 实例，连接失败时返回 null；未启用时不挂载 Bean
      * @author DuRuiChi
      * @create 2026/5/19
      **/
     @Bean("ragElasticsearchService")
+    @ConditionalOnProperty(prefix = "rag.elasticsearch", name = "enabled", havingValue = "true")
     public RagElasticsearchService ragElasticsearchService(RagPropertiesConfig ragPropertiesConfig) {
         RagPropertiesConfig.ElasticsearchProperties esProps = ragPropertiesConfig.getElasticsearch();
         if (!esProps.isEnabled()) {

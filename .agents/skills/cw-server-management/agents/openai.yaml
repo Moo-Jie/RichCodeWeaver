@@ -1,0 +1,4 @@
+interface:
+  display_name: "CW Server Management"
+  short_description: "Operate the CW test server and automate Baota panel login"
+  default_prompt: "Use $cw-server-management to access the CW test server or automate Baota panel login."

@@ -11,9 +11,9 @@ Use this skill when developing or running Rich Code Weaver locally and you need 
 
 The local workstation is only for source code development, Maven build/test, and running the Spring Boot application locally.
 
-Do not start MySQL, Redis, RabbitMQ, Nacos, Higress, Prometheus, or Grafana on the local workstation. Those services run on the CW test server at `192.144.141.149`.
+Do not start MySQL, Redis, RabbitMQ, Nacos, PostgreSQL with pgvector, Higress, Prometheus, or Grafana on the local workstation. Those services run on the CW test server at `192.144.141.149`.
 
-Keep the server ports open. The current test environment depends on remote access to MySQL `3306`, Redis `6379`, RabbitMQ `5672` and `15672`, and Nacos `8848`.
+Keep the server ports open. The current test environment depends on remote access to MySQL `3306`, Redis `6379`, RabbitMQ `5672` and `15672`, Nacos `8848`, and PostgreSQL with pgvector `5432`.
 
 ## Server access
 
