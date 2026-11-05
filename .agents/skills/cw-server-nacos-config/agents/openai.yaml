@@ -1,0 +1,4 @@
+interface:
+  display_name: "CW Server and Nacos Config"
+  short_description: "Access the CW test server and manage Nacos configuration"
+  default_prompt: "Use $cw-server-nacos-config to inspect the CW test server details or manage its Nacos configuration."
