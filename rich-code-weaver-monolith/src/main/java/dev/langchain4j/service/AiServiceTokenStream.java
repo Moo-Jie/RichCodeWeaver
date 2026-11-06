@@ -6,6 +6,7 @@ import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.guardrail.ChatExecutor;
 import dev.langchain4j.guardrail.GuardrailRequestParams;
+import dev.langchain4j.invocation.InvocationContext;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -35,6 +36,7 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
     private final Object memoryId;
     private final GuardrailRequestParams commonGuardrailParams;
     private final Object methodKey;
+    private final InvocationContext invocationContext;
 
     private Consumer<String> partialResponseHandler;
     private Consumer<List<Content>> contentsHandler;
@@ -64,7 +66,8 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
         this.retrievedContents = copy(parameters.retrievedContents());
         this.context = ensureNotNull(parameters.context(), "context");
         ensureNotNull(this.context.streamingChatModel, "streamingChatModel");
-        this.memoryId = ensureNotNull(parameters.invocationContext().chatMemoryId(), "memoryId");
+        this.invocationContext = ensureNotNull(parameters.invocationContext(), "invocationContext");
+        this.memoryId = ensureNotNull(this.invocationContext.chatMemoryId(), "memoryId");
         this.commonGuardrailParams = parameters.commonGuardrailParams();
         this.methodKey = parameters.methodKey();
     }
@@ -135,6 +138,7 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
         ChatExecutor chatExecutor = ChatExecutor.builder(context.streamingChatModel)
                 .errorHandler(errorHandler)
                 .chatRequest(chatRequest)
+                .invocationContext(invocationContext)
                 .build();
 
         var handler = new AiServiceStreamingResponseHandler(
@@ -147,6 +151,7 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
                 toolExecutionHandler,
                 completeResponseHandler,
                 errorHandler,
+                invocationContext,
                 initTemporaryMemory(context, messages),
                 new TokenUsage(),
                 toolSpecifications,
