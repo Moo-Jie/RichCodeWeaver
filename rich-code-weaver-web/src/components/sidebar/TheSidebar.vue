@@ -288,6 +288,18 @@ const handleNewChat = () => {
   router.push('/')
 }
 
+let autoCollapsedSidebar = false
+const syncSidebarForViewport = () => {
+  const shouldCollapse = window.innerWidth <= 960
+  if (shouldCollapse && !appStore.sidebarCollapsed) {
+    appStore.sidebarCollapsed = true
+    autoCollapsedSidebar = true
+  } else if (!shouldCollapse && autoCollapsedSidebar) {
+    appStore.sidebarCollapsed = false
+    autoCollapsedSidebar = false
+  }
+}
+
 // Load apps and init chat when sidebar mounts and user is logged in
 onMounted(() => {
   if (loginUserStore.loginUser?.id) {
@@ -295,10 +307,13 @@ onMounted(() => {
     chatStore.initChat()
   }
   syncExpandedSectionWithRoute()
+  syncSidebarForViewport()
+  window.addEventListener('resize', syncSidebarForViewport, { passive: true })
 })
 
 // Cleanup WebSocket on unmount
 onUnmounted(() => {
+  window.removeEventListener('resize', syncSidebarForViewport)
   chatStore.disconnectWebSocket()
 })
 

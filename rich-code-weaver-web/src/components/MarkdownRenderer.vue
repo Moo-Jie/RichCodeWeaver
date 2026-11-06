@@ -34,6 +34,7 @@ interface Props {
   streaming?: boolean
   collapseLongCode?: boolean
   collapseLongCodeThreshold?: number
+  collapseWorkflowSections?: boolean
 }
 
 interface CodeBlockInfo {
@@ -52,7 +53,8 @@ interface MarkdownRenderEnv {
 const props = withDefaults(defineProps<Props>(), {
   streaming: false,
   collapseLongCode: false,
-  collapseLongCodeThreshold: 1200
+  collapseLongCodeThreshold: 1200,
+  collapseWorkflowSections: true
 })
 
 const codeViewerOpen = ref(false)
@@ -158,6 +160,68 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
   return self.renderToken(tokens, idx, options)
 }
 
+const WORKFLOW_FOLD_HINTS = [
+  '工作流初始化',
+  '提示词增强',
+  'AI 代码生成',
+  '代码审查',
+  '代码生成任务完成',
+  '任务执行完成',
+  '项目已完成',
+  '项目构建',
+  '交付检查'
+]
+
+const stripHeadingHtml = (value: string) => {
+  return value
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0F]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const shouldFoldWorkflowSection = (title: string) => {
+  return WORKFLOW_FOLD_HINTS.some(hint => title.includes(hint))
+}
+
+// 将工作流模块转换为原生 details，最终输出默认收起，流式时只展开最后一个活动模块。
+const foldWorkflowSections = (html: string, streaming: boolean) => {
+  if (!props.collapseWorkflowSections) return html
+
+  const headings = [...html.matchAll(/<h([1-3])([^>]*)>([\s\S]*?)<\/h\1>/gi)]
+  if (headings.length === 0) return html
+
+  const foldableIndexes = headings
+    .map((heading, index) => shouldFoldWorkflowSection(stripHeadingHtml(heading[3])) ? index : -1)
+    .filter(index => index >= 0)
+  if (foldableIndexes.length === 0) return html
+
+  const lastFoldableIndex = foldableIndexes[foldableIndexes.length - 1]
+  let cursor = 0
+  let output = ''
+
+  for (let index = 0; index < headings.length; index++) {
+    if (!foldableIndexes.includes(index)) continue
+
+    const heading = headings[index]
+    const start = heading.index ?? 0
+    if (start < cursor) continue
+
+    const end = headings[index + 1]?.index ?? html.length
+    const title = stripHeadingHtml(heading[3])
+    const body = html.slice(start + heading[0].length, end)
+    const isActiveSection = streaming && index === lastFoldableIndex
+    output += html.slice(cursor, start)
+    output += `<details class="cw-workflow-fold"${isActiveSection ? ' open' : ''}>`
+    output += `<summary class="cw-workflow-fold-summary"><span>${md.utils.escapeHtml(title)}</span><span class="cw-workflow-fold-mark" aria-hidden="true"></span></summary>`
+    output += `<div class="cw-workflow-fold-body">${body}</div></details>`
+    cursor = end
+  }
+
+  output += html.slice(cursor)
+  return output
+}
+
 // 预处理Markdown内容，识别并包裹工具调用信息和工作流标记
 const preprocessMarkdown = (content: string): string => {
   if (!content) return ''
@@ -179,7 +243,8 @@ const renderedMarkdown = computed(() => {
   const codeBlocks = new Map<string, CodeBlockInfo>()
   renderedCodeBlocks = codeBlocks
   nextCodeBlockIndex = 0
-  return md.render(processedContent, { codeBlocks })
+  const rendered = md.render(processedContent, { codeBlocks })
+  return foldWorkflowSections(rendered, props.streaming)
 })
 
 const codeViewerTitle = computed(() => {
@@ -219,6 +284,9 @@ const handleContentClick = (event: MouseEvent) => {
   line-height: 1.6;
   color: #333;
   word-wrap: break-word;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 /* 全局样式 */
@@ -1156,5 +1224,194 @@ const handleContentClick = (event: MouseEvent) => {
 /* 任务列表滚动目标标记 */
 .markdown-content :deep(.task-scroll-target) {
   scroll-margin-top: 8px;
+}
+
+/* Workflow sections: native details, monochrome and compact */
+.markdown-content :deep(.cw-workflow-fold) {
+  margin: 10px 0;
+  overflow: hidden;
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.markdown-content :deep(.cw-workflow-fold-summary) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+}
+
+.markdown-content :deep(.cw-workflow-fold-summary::-webkit-details-marker) {
+  display: none;
+}
+
+.markdown-content :deep(.cw-workflow-fold-mark) {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid #777;
+  border-bottom: 1.5px solid #777;
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+.markdown-content :deep(.cw-workflow-fold[open] .cw-workflow-fold-mark) {
+  transform: rotate(225deg);
+}
+
+.markdown-content :deep(.cw-workflow-fold-body) {
+  padding: 0 12px 12px;
+  border-top: 1px solid #ececec;
+  background: #fff;
+}
+
+.markdown-content :deep(.cw-workflow-fold-body h1),
+.markdown-content :deep(.cw-workflow-fold-body h2),
+.markdown-content :deep(.cw-workflow-fold-body h3) {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.markdown-content :deep(.workflow-meta),
+.markdown-content :deep(.workflow-steps),
+.markdown-content :deep(.node-result),
+.markdown-content :deep(.workflow-summary),
+.markdown-content :deep(.workflow-error),
+.markdown-content :deep(.tool-call-item),
+.markdown-content :deep(.task-list-wrapper),
+.markdown-content :deep(.think-content-wrapper) {
+  background: #fafafa;
+  border-color: #ececec;
+  box-shadow: none;
+}
+
+.markdown-content :deep(.workflow-meta),
+.markdown-content :deep(.node-result),
+.markdown-content :deep(.workflow-summary),
+.markdown-content :deep(.workflow-error) {
+  border-radius: 8px;
+}
+
+.markdown-content :deep(.node-result:hover) {
+  border-color: #e5e5e5;
+  box-shadow: none;
+}
+
+.markdown-content :deep(.workflow-steps) {
+  border-left-color: #d9d9d9;
+}
+
+.markdown-content :deep(.workflow-steps li::before),
+.markdown-content :deep(.workflow-summary) li::before {
+  background: #999;
+  color: #777;
+}
+
+.markdown-content :deep(.node-result) strong,
+.markdown-content :deep(.workflow-summary) strong,
+.markdown-content :deep(.workflow-meta) strong,
+.markdown-content :deep(.workflow-error) strong {
+  color: #1a1a1a;
+  font-size: 13px;
+}
+
+.markdown-content :deep(.node-result) li,
+.markdown-content :deep(.workflow-summary) li,
+.markdown-content :deep(.workflow-error) li {
+  color: #666;
+  font-size: 12px;
+}
+
+.markdown-content :deep(.workflow-meta table) {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.markdown-content :deep(.workflow-meta td:last-child),
+.markdown-content :deep(.workflow-meta th:last-child) {
+  overflow-wrap: anywhere;
+}
+
+.markdown-content :deep(.tool-call-done),
+.markdown-content :deep(.task-completed) {
+  background: #fafafa;
+}
+
+.markdown-content :deep(.tool-call-done .tci-label),
+.markdown-content :deep(.task-completed .task-label) {
+  color: #666;
+  background: #f0f0f0;
+}
+
+.markdown-content :deep(.task-in-progress) {
+  background: #f5f5f5;
+}
+
+.markdown-content :deep(.task-in-progress .task-step) {
+  color: #333;
+}
+
+.markdown-content :deep(.task-in-progress .task-label) {
+  color: #666;
+  background: #e8e8e8;
+}
+
+.markdown-content :deep(.task-pending .task-label) {
+  color: #999;
+  background: #f5f5f5;
+}
+
+.markdown-content :deep(blockquote) {
+  border-left-color: #d9d9d9;
+  background: #fafafa;
+  color: #666;
+}
+
+.markdown-content :deep(.tool-call-item) {
+  flex-wrap: wrap;
+}
+
+.markdown-content :deep(.tci-text) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+@media (max-width: 768px) {
+  .markdown-content :deep(.task-list-wrapper),
+  .markdown-content :deep(.think-content-wrapper) {
+    margin-left: 0;
+  }
+
+  .markdown-content :deep(.workflow-meta),
+  .markdown-content :deep(.node-result),
+  .markdown-content :deep(.workflow-summary),
+  .markdown-content :deep(.workflow-error) {
+    padding: 12px;
+  }
+
+  .markdown-content :deep(.workflow-meta table),
+  .markdown-content :deep(table) {
+    font-size: 12px;
+  }
+
+  .markdown-content :deep(table) {
+    table-layout: fixed;
+  }
+
+  .markdown-content :deep(td),
+  .markdown-content :deep(th) {
+    overflow-wrap: anywhere;
+  }
 }
 </style>

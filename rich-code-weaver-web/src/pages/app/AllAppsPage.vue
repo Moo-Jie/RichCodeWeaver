@@ -1,149 +1,107 @@
 <template>
-  <div class="all-apps-page">
-    <div class="page-header">
-      <div class="header-left">
-        <h2 class="page-title">热门产物</h2>
-        <p class="page-desc">探索社区中最受欢迎的数字产物</p>
+  <div class="library-page all-apps-page">
+    <header class="library-header">
+      <div class="library-heading">
+        <h2>热门产物</h2>
+        <p>探索社区中持续被使用的数字产物，按热度和推荐顺序浏览。</p>
       </div>
-      <div class="header-right">
+      <div class="library-toolbar">
         <a-input-search
           v-model:value="searchKeyword"
-          placeholder="搜索产物名称..."
-          style="width: 260px"
+          allow-clear
+          class="library-search"
+          placeholder="搜索已加载的产物..."
           @search="handleSearch"
         />
       </div>
+    </header>
+
+    <div class="library-filter-row">
+      <div class="library-tabs" role="tablist" aria-label="产物分类">
+        <button
+          type="button"
+          class="library-tab"
+          :class="{ 'is-active': activeTab === 'hot' }"
+          role="tab"
+          :aria-selected="activeTab === 'hot'"
+          @click="activeTab = 'hot'"
+        >
+          社区热门
+        </button>
+        <button
+          type="button"
+          class="library-tab"
+          :class="{ 'is-active': activeTab === 'star' }"
+          role="tab"
+          :aria-selected="activeTab === 'star'"
+          @click="activeTab = 'star'"
+        >
+          精选推荐
+        </button>
+      </div>
+      <span class="library-count">
+        {{ activeTab === 'hot' ? filteredHotApps.length : filteredStarApps.length }} 个产物
+      </span>
     </div>
 
-    <!-- Tab 切换 -->
-    <div class="tabs">
-      <div
-        :class="{ active: activeTab === 'hot' }"
-        class="tab-item"
-        @click="activeTab = 'hot'"
-      >
-        <FireOutlined />
-        社区热门
+    <section v-show="activeTab === 'hot'" class="library-section">
+      <div v-if="hotLoading && hotApps.length === 0" class="library-skeleton-grid">
+        <div v-for="i in 6" :key="'skeleton-' + i" class="library-skeleton"></div>
       </div>
-      <div
-        :class="{ active: activeTab === 'star' }"
-        class="tab-item"
-        @click="activeTab = 'star'"
-      >
-        <CrownOutlined />
-        精选推荐
-      </div>
-    </div>
-
-    <!-- 热门产物（社区模块） -->
-    <div v-show="activeTab === 'hot'" class="section">
-      <!-- Skeleton loading -->
-      <div v-if="hotLoading && hotApps.length === 0" class="apps-masonry">
-        <div v-for="i in 6" :key="'skeleton-' + i" class="skeleton-card">
-          <a-skeleton-image class="skeleton-image" />
-          <div class="skeleton-content">
-            <a-skeleton :paragraph="{ rows: 2 }" active />
-          </div>
-        </div>
-      </div>
-      <div v-else-if="filteredHotApps.length === 0" class="empty-wrap">
-        <p class="empty-text">{{ searchKeyword ? '未找到匹配的产物' : '暂无社区热门产物' }}</p>
+      <div v-else-if="filteredHotApps.length === 0" class="library-empty">
+        <h3>{{ searchKeyword ? '没有匹配的产物' : '暂无社区热门产物' }}</h3>
+        <p>搜索只作用于当前已加载的内容。</p>
       </div>
       <template v-else>
-        <div class="apps-masonry">
-          <div
-            v-for="item in filteredHotApps"
-            :key="'hot-' + item.appId"
-            class="app-card"
-            @click="goToApp(item.appVO)"
-          >
-            <div class="card-cover">
-              <img v-if="item.appVO?.cover" :alt="item.appVO?.appName" :src="item.appVO?.cover" />
-              <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
-              <div class="cover-overlay">
-                <span class="view-btn">查看详情</span>
-              </div>
-            </div>
-            <div class="card-body">
-              <span :title="item.appVO?.appName"
-                    class="card-name">{{ item.appVO?.appName || '未命名数字产物'
-                }}</span>
-              <div class="card-stats-row">
-                <div class="stat-item">
-                  <LikeOutlined />
-                  <span>{{ formatNumber(item.stat.likeCount || 0) }}</span>
-                </div>
-                <div class="stat-item">
-                  <StarOutlined />
-                  <span>{{ formatNumber(item.stat.favoriteCount || 0) }}</span>
-                </div>
-                <div class="stat-item">
-                  <CommentOutlined />
-                  <span>{{ formatNumber(item.stat.commentCount || 0) }}</span>
-                </div>
-              </div>
-              <div class="card-footer">
-                <span class="card-user">{{ item.appVO?.user?.userName || '--' }}</span>
-                <span v-if="item.appVO?.deployKey" class="deploy-tag">已部署</span>
-              </div>
-            </div>
-          </div>
+        <div class="library-app-grid">
+          <template v-for="(item, index) in filteredHotApps" :key="'hot-' + item.appId">
+            <AppLibraryCard
+              v-if="item.appVO"
+              :app="item.appVO"
+              :variant="index === 0 ? 'hero' : 'grid'"
+              :rank="index + 1"
+              :status="item.appVO.deployKey ? '已部署' : '草稿'"
+              :meta="[item.appVO.user?.userName || '社区作者', formatTime(item.appVO.createTime)]"
+              :stats="hotStats(item)"
+              @open="goToApp"
+            />
+          </template>
         </div>
-        <div v-if="hotHasMore" class="load-more-wrap">
-          <button :disabled="hotLoadingMore" class="load-more-btn" @click="loadMoreHot">
+        <div v-if="hotHasMore" class="library-load-more-wrap">
+          <button :disabled="hotLoadingMore" class="library-load-more" @click="loadMoreHot">
             {{ hotLoadingMore ? '加载中...' : '加载更多' }}
           </button>
         </div>
       </template>
-    </div>
+    </section>
 
-    <!-- 精选推荐（生成器星选推荐） -->
-    <div v-show="activeTab === 'star'" class="section">
-      <!-- Skeleton loading -->
-      <div v-if="starLoading && starApps.length === 0" class="apps-masonry">
-        <div v-for="i in 6" :key="'skeleton-' + i" class="skeleton-card">
-          <a-skeleton-image class="skeleton-image" />
-          <div class="skeleton-content">
-            <a-skeleton :paragraph="{ rows: 2 }" active />
-          </div>
-        </div>
+    <section v-show="activeTab === 'star'" class="library-section">
+      <div v-if="starLoading && starApps.length === 0" class="library-skeleton-grid">
+        <div v-for="i in 6" :key="'skeleton-' + i" class="library-skeleton"></div>
       </div>
-      <div v-else-if="filteredStarApps.length === 0" class="empty-wrap">
-        <p class="empty-text">{{ searchKeyword ? '未找到匹配的产物' : '暂无精选推荐产物' }}</p>
+      <div v-else-if="filteredStarApps.length === 0" class="library-empty">
+        <h3>{{ searchKeyword ? '没有匹配的产物' : '暂无精选推荐' }}</h3>
+        <p>精选内容会优先展示社区中质量较高的数字产物。</p>
       </div>
       <template v-else>
-        <div class="apps-masonry">
-          <div
-            v-for="app in filteredStarApps"
+        <div class="library-app-grid">
+          <AppLibraryCard
+            v-for="(app, index) in filteredStarApps"
             :key="'star-' + app.id"
-            class="app-card"
-            @click="goToApp(app)"
-          >
-            <div class="card-cover">
-              <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
-              <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
-              <div class="cover-overlay">
-                <span class="view-btn">查看详情</span>
-              </div>
-            </div>
-            <div class="card-body">
-              <span :title="app.appName" class="card-name">{{ app.appName || '未命名数字产物'
-                }}</span>
-              <div class="card-desc">{{ formatTime(app.createTime) }}</div>
-              <div class="card-footer">
-                <span class="card-user">{{ app.user?.userName || '--' }}</span>
-                <span v-if="app.deployKey" class="deploy-tag">已部署</span>
-              </div>
-            </div>
-          </div>
+            :app="app"
+            :variant="index === 0 ? 'hero' : 'grid'"
+            :status="app.deployKey ? '已部署' : '草稿'"
+            :meta="[app.user?.userName || '社区作者', formatTime(app.createTime)]"
+            @open="goToApp"
+          />
         </div>
-        <div v-if="starHasMore" class="load-more-wrap">
-          <button :disabled="starLoadingMore" class="load-more-btn" @click="loadMoreStar">
+        <div v-if="starHasMore" class="library-load-more-wrap">
+          <button :disabled="starLoadingMore" class="library-load-more" @click="loadMoreStar">
             {{ starLoadingMore ? '加载中...' : '加载更多' }}
           </button>
         </div>
       </template>
-    </div>
+    </section>
   </div>
 </template>
 
@@ -153,6 +111,7 @@ import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/appStore'
 import { getAppVoById, listStarAppVoByPage } from '@/api/appController'
 import { listHotApps } from '@/api/socialController'
+import AppLibraryCard from '@/components/library/AppLibraryCard.vue'
 import {
   CommentOutlined,
   CrownOutlined,
@@ -206,6 +165,12 @@ const formatNumber = (num: number) => {
   if (num >= 1000) return (num / 1000).toFixed(1) + 'k'
   return num.toString()
 }
+
+const hotStats = (item: HotAppItem) => [
+  { label: '赞', value: formatNumber(item.stat.likeCount || 0) },
+  { label: '藏', value: formatNumber(item.stat.favoriteCount || 0) },
+  { label: '评', value: formatNumber(item.stat.commentCount || 0) }
+]
 
 const handleSearch = () => {
   // 搜索逻辑已通过 computed 实现
@@ -591,5 +556,12 @@ onMounted(() => {
 .load-more-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+</style>
+
+<style scoped>
+.library-page.all-apps-page {
+  max-width: 1480px;
+  padding: clamp(18px, 3vw, 32px);
 }
 </style>

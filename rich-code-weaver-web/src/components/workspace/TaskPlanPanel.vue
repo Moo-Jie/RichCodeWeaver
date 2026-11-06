@@ -121,12 +121,12 @@ const getStatusIcon = (status: string) => {
 }
 
 .task-item--in_progress {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: #f5f5f5;
+  color: #333;
 }
 
 .task-item--completed {
-  color: #52c41a;
+  color: #777;
 }
 
 .task-icon {
@@ -159,7 +159,7 @@ const getStatusIcon = (status: string) => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #52c41a, #73d13d);
+  background: #1a1a1a;
   border-radius: 2px;
   transition: width 0.3s ease;
 }

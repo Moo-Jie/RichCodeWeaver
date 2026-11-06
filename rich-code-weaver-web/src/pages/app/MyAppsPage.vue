@@ -1,86 +1,88 @@
 <template>
-  <div class="my-apps-page">
-    <div class="page-header">
-      <div class="header-left">
-        <h2 class="page-title">我的产物</h2>
-        <p class="page-desc">管理您创建的所有数字产物</p>
+  <div class="library-page my-apps-page">
+    <header class="library-header">
+      <div class="library-heading">
+        <h2>我的产物</h2>
+        <p>管理自己创建和参与协作的数字产物，查看状态、继续编辑或进入对话。</p>
       </div>
-      <div class="header-right">
+      <div class="library-toolbar">
         <a-input-search
           v-model:value="searchKeyword"
-          placeholder="搜索我的产物..."
-          style="width: 240px; margin-right: 12px"
+          allow-clear
+          class="library-search"
+          placeholder="搜索已加载的产物..."
         />
-        <a-select v-model:value="sortBy" style="width: 140px; margin-right: 12px">
+        <a-select v-model:value="sortBy" class="library-select">
           <a-select-option value="time">按创建时间</a-select-option>
           <a-select-option value="name">按名称排序</a-select-option>
         </a-select>
-        <button class="create-btn" @click="router.push('/')">
+        <button class="library-primary-btn" @click="router.push('/')">
           <PlusOutlined />
           新建
         </button>
       </div>
-    </div>
+    </header>
 
-    <!-- Skeleton loading -->
-    <div v-if="loading && appStore.myApps.length === 0" class="apps-masonry">
-      <div v-for="i in 6" :key="'skeleton-' + i" class="skeleton-card">
-        <a-skeleton-image class="skeleton-image" />
-        <div class="skeleton-content">
-          <a-skeleton :paragraph="{ rows: 2 }" active />
-        </div>
+    <div class="library-filter-row">
+      <div class="library-tabs" role="tablist" aria-label="产物归属">
+        <button type="button" class="library-tab" :class="{ 'is-active': ownershipFilter === 'all' }" @click="ownershipFilter = 'all'">全部</button>
+        <button type="button" class="library-tab" :class="{ 'is-active': ownershipFilter === 'owned' }" @click="ownershipFilter = 'owned'">我创建的</button>
+        <button type="button" class="library-tab" :class="{ 'is-active': ownershipFilter === 'collab' }" @click="ownershipFilter = 'collab'">协作参与</button>
       </div>
+      <span class="library-count">{{ filteredApps.length }} 个产物</span>
     </div>
 
-    <div v-else-if="filteredApps.length === 0" class="empty-wrap">
-      <p class="empty-text">{{ searchKeyword ? '未找到匹配的产物' : '暂无数字产物，快去创建一个吧'
-        }}</p>
-      <button v-if="!searchKeyword" class="create-btn-large" @click="router.push('/')">
+    <div v-if="loading && appStore.myApps.length === 0" class="library-skeleton-grid">
+      <div v-for="i in 6" :key="'skeleton-' + i" class="library-skeleton"></div>
+    </div>
+
+    <div v-else-if="filteredApps.length === 0" class="library-empty">
+      <h3>{{ searchKeyword ? '没有匹配的产物' : '还没有数字产物' }}</h3>
+      <p>{{ searchKeyword ? '搜索只作用于当前已加载内容。' : '从一个清晰的想法开始，创建第一个数字产物。' }}</p>
+      <button v-if="!searchKeyword" class="library-primary-btn" @click="router.push('/')">
         <PlusOutlined />
         新建数字产物
       </button>
     </div>
 
     <template v-else>
-      <div class="apps-masonry">
-        <div
-          v-for="app in filteredApps"
+      <div class="library-app-grid">
+        <AppLibraryCard
+          v-for="(app, index) in filteredApps"
           :key="app.id"
-          class="app-card"
+          :app="app"
+          :variant="index === 0 ? 'hero' : 'grid'"
+          :status="app.deployKey ? '已部署' : '未部署'"
+          :meta="[app.ownershipType === 'collaborator' ? '协作参与' : '我创建的', formatTime(app.createTime)]"
+          @open="goToApp"
         >
-          <div class="card-cover" @click="goToApp(app)">
-            <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
-            <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
-            <div class="cover-overlay">
-              <span class="view-btn">查看详情</span>
-            </div>
-          </div>
-          <div class="card-body" @click="goToApp(app)">
-            <div class="card-meta-row">
-              <a-tag :color="app.ownershipType === 'collaborator' ? 'default' : 'blue'" class="ownership-tag">
-                {{ app.ownershipType === 'collaborator' ? '协作' : '我的' }}
-              </a-tag>
-              <span class="card-time">{{ formatTime(app.createTime) }}</span>
-            </div>
-            <span :title="app.appName" class="card-name">{{ app.appName || '未命名数字产物'
-              }}</span>
-          </div>
-          <div class="card-actions">
-            <button v-if="app.ownershipType !== 'collaborator'" class="action-btn" title="编辑" @click.stop="handleEdit(app)">
+          <template #actions>
+            <button
+              v-if="app.ownershipType !== 'collaborator'"
+              type="button"
+              class="app-action-btn"
+              title="编辑产物"
+              aria-label="编辑产物"
+              @click="handleEdit(app)"
+            >
               <EditOutlined />
             </button>
-            <button v-if="app.ownershipType !== 'collaborator'" class="action-btn" title="删除" @click.stop="handleDelete(app)">
-              <DeleteOutlined style="color: #ff4d4f" />
+            <button
+              v-if="app.ownershipType !== 'collaborator'"
+              type="button"
+              class="app-action-btn"
+              title="删除产物"
+              aria-label="删除产物"
+              @click="handleDelete(app)"
+            >
+              <DeleteOutlined />
             </button>
-            <span v-if="app.ownershipType === 'collaborator'" class="collab-tip">协作参与</span>
-            <span v-if="app.deployKey" class="deploy-tag">已部署</span>
-            <span v-else class="status-tag">未部署</span>
-          </div>
-        </div>
+          </template>
+        </AppLibraryCard>
       </div>
 
-      <div v-if="hasMore" class="load-more-wrap">
-        <button :disabled="loadingMore" class="load-more-btn" @click="loadMore">
+      <div v-if="hasMore" class="library-load-more-wrap">
+        <button :disabled="loadingMore" class="library-load-more" @click="loadMore">
           {{ loadingMore ? '加载中...' : '加载更多' }}
         </button>
       </div>
@@ -95,12 +97,14 @@ import { message, Modal } from 'ant-design-vue'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { useAppStore } from '@/stores/appStore'
 import { deleteApp, listMyAppVoByPage } from '@/api/appController'
+import AppLibraryCard from '@/components/library/AppLibraryCard.vue'
 
 const router = useRouter()
 const appStore = useAppStore()
 
 const searchKeyword = ref('')
 const sortBy = ref<'time' | 'name'>('time')
+const ownershipFilter = ref<'all' | 'owned' | 'collab'>('all')
 const loading = ref(false)
 const loadingMore = ref(false)
 const page = ref(1)
@@ -126,6 +130,12 @@ const filteredApps = computed(() => {
   if (searchKeyword.value.trim()) {
     const keyword = searchKeyword.value.toLowerCase()
     result = result.filter(app => app.appName?.toLowerCase().includes(keyword))
+  }
+
+  if (ownershipFilter.value === 'owned') {
+    result = result.filter(app => app.ownershipType !== 'collaborator')
+  } else if (ownershipFilter.value === 'collab') {
+    result = result.filter(app => app.ownershipType === 'collaborator')
   }
 
   // 排序
@@ -526,5 +536,32 @@ onMounted(() => {
 .load-more-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+</style>
+<style scoped>
+.app-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #666;
+  background: transparent;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.app-action-btn:hover {
+  border-color: #e5e5e5;
+  color: #1a1a1a;
+  background: #fafafa;
+}
+
+.library-page.my-apps-page {
+  max-width: 1480px;
+  padding: clamp(18px, 3vw, 32px);
 }
 </style>

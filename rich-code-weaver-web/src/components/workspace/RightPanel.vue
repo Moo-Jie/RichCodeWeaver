@@ -436,4 +436,16 @@ const collaboratorSummary = computed(() => {
     width: 256px;
   }
 }
+
+@media (max-width: 1200px) {
+  .right-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    width: min(300px, 88vw);
+    box-shadow: -18px 0 40px rgba(0, 0, 0, 0.1);
+  }
+}
 </style>

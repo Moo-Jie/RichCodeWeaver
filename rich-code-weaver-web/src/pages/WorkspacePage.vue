@@ -2454,6 +2454,7 @@ const handleIframeMessage = (event: MessageEvent) => {
   flex-direction: row;
   overflow: hidden;
   min-height: 0;
+  position: relative;
 }
 
 .pane-full {

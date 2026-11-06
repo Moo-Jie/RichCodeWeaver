@@ -1,72 +1,69 @@
 <template>
-  <div class="my-favorites-page">
-    <div class="page-header">
-      <div class="header-left">
-        <h2 class="page-title">我的收藏</h2>
-        <p class="page-desc">您收藏的所有数字产物</p>
+  <div class="library-page favorite-page">
+    <header class="library-header">
+      <div class="library-heading">
+        <h2>我的收藏</h2>
+        <p>保存下来反复查看的数字产物，集中在一个安静的工作区里。</p>
       </div>
-      <div class="header-right">
+      <div class="library-toolbar">
         <a-input-search
           v-model:value="searchKeyword"
-          placeholder="搜索收藏的产物..."
-          style="width: 240px; margin-right: 12px"
+          allow-clear
+          class="library-search"
+          placeholder="搜索已加载的收藏..."
         />
-        <a-select v-model:value="sortBy" style="width: 140px">
+        <a-select v-model:value="sortBy" class="library-select">
           <a-select-option value="time">按收藏时间</a-select-option>
           <a-select-option value="name">按名称排序</a-select-option>
         </a-select>
       </div>
+    </header>
+
+    <div class="library-filter-row">
+      <span class="library-count">{{ filteredApps.length }} 个收藏</span>
+      <span class="library-count">排序只作用于当前已加载内容</span>
     </div>
 
-    <!-- Skeleton loading -->
-    <div v-if="loading && apps.length === 0" class="apps-masonry">
-      <div v-for="i in 6" :key="'skeleton-' + i" class="skeleton-card">
-        <a-skeleton-image class="skeleton-image" />
-        <div class="skeleton-content">
-          <a-skeleton :paragraph="{ rows: 2 }" active />
-        </div>
-      </div>
+    <div v-if="loading && apps.length === 0" class="library-skeleton-grid">
+      <div v-for="i in 6" :key="'skeleton-' + i" class="library-skeleton"></div>
     </div>
 
-    <div v-else-if="filteredApps.length === 0" class="empty-wrap">
-      <p class="empty-text">{{ searchKeyword ? '未找到匹配的收藏' : '暂无收藏，去发现更多优秀产物吧'
-        }}</p>
-      <button class="explore-btn" @click="router.push('/all/apps')">
+    <div v-else-if="filteredApps.length === 0" class="library-empty">
+      <h3>{{ searchKeyword ? '没有匹配的收藏' : '收藏夹还是空的' }}</h3>
+      <p>{{ searchKeyword ? '试试更短的关键词。' : '去热门产物里发现值得反复查看的作品。' }}</p>
+      <button v-if="!searchKeyword" class="library-primary-btn" @click="router.push('/all/apps')">
         <GlobalOutlined />
-        浏览全部产物
+        浏览热门产物
       </button>
     </div>
 
     <template v-else>
-      <div class="apps-masonry">
-        <div
-          v-for="app in filteredApps"
+      <div class="library-app-grid">
+        <AppLibraryCard
+          v-for="(app, index) in filteredApps"
           :key="app.id"
-          class="app-card"
+          :app="app"
+          :variant="index === 0 ? 'hero' : 'grid'"
+          :status="app.deployKey ? '已部署' : '草稿'"
+          :meta="[app.user?.userName || '社区作者', `收藏于 ${formatTime(app._favoriteTime)}`]"
+          @open="goToApp"
         >
-          <div class="card-cover" @click="goToApp(app)">
-            <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
-            <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
-            <div class="cover-overlay">
-              <span class="view-btn">查看详情</span>
-            </div>
-          </div>
-          <div class="card-body" @click="goToApp(app)">
-            <span :title="app.appName" class="card-name">{{ app.appName || '未命名数字产物'
-              }}</span>
-            <span class="card-time">收藏于 {{ formatTime(app._favoriteTime) }}</span>
-          </div>
-          <div class="card-actions">
-            <button class="action-btn" title="取消收藏" @click.stop="handleUnfavorite(app)">
-              <HeartFilled style="color: #ff4d4f" />
+          <template #actions>
+            <button
+              type="button"
+              class="favorite-remove-btn"
+              title="取消收藏"
+              aria-label="取消收藏"
+              @click="handleUnfavorite(app)"
+            >
+              <HeartFilled />
             </button>
-            <span v-if="app.deployKey" class="deploy-tag">已部署</span>
-          </div>
-        </div>
+          </template>
+        </AppLibraryCard>
       </div>
 
-      <div v-if="hasMore" class="load-more-wrap">
-        <button :disabled="loadingMore" class="load-more-btn" @click="loadMore">
+      <div v-if="hasMore" class="library-load-more-wrap">
+        <button :disabled="loadingMore" class="library-load-more" @click="loadMore">
           {{ loadingMore ? '加载中...' : '加载更多' }}
         </button>
       </div>
@@ -80,6 +77,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { GlobalOutlined, HeartFilled } from '@ant-design/icons-vue'
 import { useAppStore } from '@/stores/appStore'
+import AppLibraryCard from '@/components/library/AppLibraryCard.vue'
 import { getAppVoById } from '@/api/appController'
 import { listMyFavorites, toggleAppFavorite } from '@/api/socialController'
 
@@ -456,5 +454,27 @@ onMounted(() => {
 .load-more-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+</style>
+<style scoped>
+.favorite-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #666;
+  background: transparent;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.favorite-remove-btn:hover {
+  border-color: #e5e5e5;
+  color: #1a1a1a;
+  background: #fafafa;
 }
 </style>

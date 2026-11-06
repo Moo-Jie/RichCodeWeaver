@@ -253,8 +253,8 @@ defineExpose({
   justify-content: space-between;
   padding: 12px 16px;
   margin-bottom: 12px;
-  background: #f0f9ff;
-  border: 1px solid #bae7ff;
+  background: #fafafa;
+  border: 1px solid #ececec;
   border-radius: 10px;
   font-size: 13px;
   gap: 12px;
@@ -281,7 +281,7 @@ defineExpose({
   justify-content: center;
   width: 16px;
   height: 16px;
-  background: #52c41a;
+  background: #1a1a1a;
   color: #fff;
   border-radius: 50%;
   font-size: 10px;
@@ -336,6 +336,7 @@ defineExpose({
 }
 
 .input-area {
+  width: 100%;
   max-width: 720px;
   margin: 0 auto;
 }
@@ -345,6 +346,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 10px;
 }
@@ -638,7 +640,7 @@ defineExpose({
 }
 
 .clear-materials:hover {
-  color: #ff4d4f;
+  color: #1a1a1a;
 }
 
 .material-text-btn {
@@ -657,9 +659,9 @@ defineExpose({
 }
 
 .material-text-btn:hover {
-  border-color: #1890ff;
-  color: #1890ff;
-  background: #f0f9ff;
+  border-color: #d0d0d0;
+  color: #1a1a1a;
+  background: #fafafa;
 }
 
 .material-count {
@@ -669,9 +671,27 @@ defineExpose({
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
-  background: #1890ff;
+  background: #1a1a1a;
   color: #fff;
   font-size: 10px;
   border-radius: 8px;
+}
+
+@media (max-width: 720px) {
+  .chat-input-wrap {
+    padding: 10px 12px 12px;
+  }
+
+  .mode-and-tour {
+    gap: 8px;
+  }
+
+  .capsule-switch {
+    max-width: 100%;
+  }
+
+  .selected-hint {
+    padding: 10px 12px;
+  }
 }
 </style>

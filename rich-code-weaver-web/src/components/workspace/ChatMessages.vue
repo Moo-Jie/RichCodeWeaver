@@ -259,6 +259,8 @@ defineExpose({ scrollToBottom })
   justify-content: flex-start;
   align-items: flex-start;
   gap: 10px;
+  width: 100%;
+  min-width: 0;
 }
 
 .msg-avatar {
@@ -332,10 +334,32 @@ defineExpose({ scrollToBottom })
 }
 
 .msg-bubble--ai {
+  flex: 1;
+  min-width: 0;
+  max-width: 900px;
   background: #f7f7f8;
   color: #1a1a1a;
   border-bottom-left-radius: 4px;
   border: 1px solid #f0f0f0;
+}
+
+@media (max-width: 720px) {
+  .messages-scroll {
+    padding: 14px 12px;
+  }
+
+  .msg-content-wrap {
+    max-width: calc(100% - 42px);
+  }
+
+  .msg-bubble {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .msg-bubble--ai {
+    max-width: 100%;
+  }
 }
 
 .msg-loading {

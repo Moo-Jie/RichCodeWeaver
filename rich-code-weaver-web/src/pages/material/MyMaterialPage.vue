@@ -1,120 +1,94 @@
 <template>
-  <div class="my-material-page">
-    <div class="page-header">
-      <div class="header-left">
-        <h2 class="page-title">我的素材</h2>
-        <p class="page-desc">管理您上传和创建的所有素材资源</p>
+  <div class="library-page material-page">
+    <header class="library-header">
+      <div class="library-heading">
+        <h2>我的素材</h2>
+        <p>图片、视频、音频、链接和文本分区管理，按内容形态使用不同的预览方式。</p>
       </div>
-      <div class="header-right">
+      <div class="library-toolbar">
         <a-input-search
           v-model:value="searchText"
-          placeholder="搜索素材名称、描述、标签"
-          style="width: 280px; margin-right: 12px"
-          @search="handleSearch"
           allow-clear
+          class="library-search"
+          placeholder="搜索名称、描述或标签..."
+          @search="handleSearch"
         />
         <a-select
           v-model:value="filterCategoryId"
-          placeholder="选择分类"
-          style="width: 150px; margin-right: 12px"
           allow-clear
+          class="library-select"
+          placeholder="全部分类"
           @change="handleSearch"
         >
           <a-select-option v-for="cat in categories" :key="cat.id" :value="cat.id">
             {{ cat.categoryName }}
           </a-select-option>
         </a-select>
-        <a-button class="create-btn" @click="showAddModal">
-          <template #icon><PlusOutlined /></template>
+        <button class="library-primary-btn" @click="showAddModal">
+          <PlusOutlined />
           添加素材
-        </a-button>
+        </button>
       </div>
+    </header>
+
+    <div class="library-filter-row">
+      <div class="material-type-tabs" role="tablist" aria-label="素材类型">
+        <button
+          v-for="item in materialTypeFilters"
+          :key="item.label"
+          type="button"
+          class="library-tab material-type-tab"
+          :class="{ 'is-active': filterType === item.value }"
+          @click="setFilterType(item.value)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+      <span class="library-count">共 {{ total }} 个素材</span>
     </div>
 
-    <div class="filter-bar">
-      <a-select
-        v-model:value="filterType"
-        placeholder="素材类型"
-        style="width: 120px"
-        allow-clear
-        @change="handleSearch"
-      >
-        <a-select-option value="image">图片</a-select-option>
-        <a-select-option value="text">文本</a-select-option>
-        <a-select-option value="video">视频</a-select-option>
-        <a-select-option value="audio">音频</a-select-option>
-        <a-select-option value="link">链接</a-select-option>
-      </a-select>
+    <div v-if="loading && materials.length === 0" class="material-skeleton-grid">
+      <div v-for="i in 8" :key="'skeleton-' + i" class="library-skeleton"></div>
     </div>
 
-    <!-- 素材列表 -->
-    <div class="material-grid" v-if="materials.length > 0">
-      <div
-        v-for="item in materials"
-        :key="item.id"
-        class="material-card"
-        @click="showDetailModal(item)"
-      >
-        <!-- 缩略图/预览 -->
-        <div class="material-preview">
-          <template v-if="item.materialType === 'image'">
-            <img :src="item.content || item.thumbnailUrl" :alt="item.materialName" class="preview-image" />
-          </template>
-          <template v-else-if="item.materialType === 'video'">
-            <div class="preview-icon video">
-              <VideoCameraOutlined />
-            </div>
-          </template>
-          <template v-else-if="item.materialType === 'audio'">
-            <div class="preview-icon audio">
-              <SoundOutlined />
-            </div>
-          </template>
-          <template v-else-if="item.materialType === 'text'">
-            <div class="preview-text">{{ item.content?.substring(0, 100) }}...</div>
-          </template>
-          <template v-else>
-            <div class="preview-icon link">
-              <LinkOutlined />
-            </div>
-          </template>
-        </div>
-        <!-- 信息 -->
-        <div class="material-info">
-          <div class="material-name">{{ item.materialName }}</div>
-          <div class="material-meta">
-            <span class="category">{{ item.categoryName }}</span>
-            <span class="use-count">使用 {{ item.useCount }} 次</span>
+    <div v-else-if="materials.length === 0" class="library-empty">
+      <h3>{{ searchText || filterType || filterCategoryId ? '没有匹配的素材' : '素材库还是空的' }}</h3>
+      <p>{{ searchText ? '尝试换一个关键词。' : '添加图片、视频、音频、链接或文本素材。' }}</p>
+      <button class="library-primary-btn" @click="showAddModal">
+        <PlusOutlined />
+        添加素材
+      </button>
+    </div>
+
+    <div v-else class="material-sections">
+      <section v-for="group in groupedMaterials" :key="group.type" class="material-section">
+        <div class="material-section-heading">
+          <div>
+            <h3>{{ group.label }}</h3>
+            <p>{{ group.description }}</p>
           </div>
+          <span>{{ group.items.length }}</span>
         </div>
-        <!-- 操作按钮 -->
-        <div class="material-actions" @click.stop>
-          <a-button size="small" type="text" @click="showEditModal(item)">
-            <EditOutlined />
-          </a-button>
-          <a-popconfirm
-            title="确定删除此素材吗？"
-            @confirm="handleDelete(item.id)"
-          >
-            <a-button size="small" type="text" danger>
-              <DeleteOutlined />
-            </a-button>
-          </a-popconfirm>
+
+        <div class="material-group-grid" :class="`group-${group.type}`">
+          <MaterialAssetItem
+            v-for="(item, index) in group.items"
+            :key="item.id"
+            :item="item"
+            :featured="index === 0"
+            @open="showDetailModal"
+            @edit="showEditModal"
+            @delete="handleDeleteMaterial"
+          />
         </div>
-      </div>
+      </section>
     </div>
 
-    <!-- 空状态 -->
-    <a-empty v-else description="暂无素材" style="margin-top: 80px">
-      <a-button type="primary" @click="showAddModal">添加素材</a-button>
-    </a-empty>
-
-    <!-- 加载更多 -->
-    <div class="load-more" v-if="hasMore">
-      <a-button :loading="loading" @click="loadMore">加载更多</a-button>
-    </div>
-
-    <!-- 添加/编辑弹窗（非文本类型） -->
+    <div v-if="hasMore" class="library-load-more-wrap">
+      <button :disabled="loading" class="library-load-more" @click="loadMore">
+        {{ loading ? '加载中...' : '加载更多' }}
+      </button>
+    </div>    <!-- 添加/编辑弹窗（非文本类型） -->
     <a-modal
       v-model:open="modalVisible"
       :title="isEdit ? '编辑素材' : '添加素材'"
@@ -277,11 +251,8 @@ import {
   CheckOutlined,
   DeleteOutlined,
   EditOutlined,
-  LinkOutlined,
   PlusOutlined,
-  SoundOutlined,
-  UploadOutlined,
-  VideoCameraOutlined
+  UploadOutlined
 } from '@ant-design/icons-vue'
 import {
   addMaterial,
@@ -291,6 +262,7 @@ import {
   updateMaterial
 } from '@/api/materialController'
 import { uploadFile } from '@/api/fileController'
+import MaterialAssetItem from '@/components/material/MaterialAssetItem.vue'
 
 // 分类列表
 const categories = ref<API.MaterialCategoryVO[]>([])
@@ -303,10 +275,40 @@ const pageSize = ref(20)
 const total = ref(0)
 const hasMore = computed(() => materials.value.length < total.value)
 
+const materialTypeFilters: { label: string; value?: string }[] = [
+  { label: '全部' },
+  { label: '图片', value: 'image' },
+  { label: '视频', value: 'video' },
+  { label: '音频', value: 'audio' },
+  { label: '链接', value: 'link' },
+  { label: '文本', value: 'text' }
+]
+
+const materialGroups = [
+  { type: 'image', label: '图片', description: '视觉素材与封面资源' },
+  { type: 'video', label: '视频', description: '可直接预览与播放的视频' },
+  { type: 'audio', label: '音频', description: '用于对话、氛围或产品的音频' },
+  { type: 'link', label: '链接', description: '参考网页与外部资源' },
+  { type: 'text', label: '文本与数据', description: '可复用的文字、表格与数据内容' }
+]
+
+const groupedMaterials = computed(() => {
+  return materialGroups
+    .map(group => ({
+      ...group,
+      items: materials.value.filter(item => (item.materialType || 'text') === group.type)
+    }))
+    .filter(group => group.items.length > 0)
+})
+
 // 筛选条件
 const searchText = ref('')
 const filterCategoryId = ref<number>()
 const filterType = ref<string>()
+const setFilterType = (value?: string) => {
+  filterType.value = value
+  handleSearch()
+}
 
 // 弹窗状态
 const modalVisible = ref(false)
@@ -398,6 +400,7 @@ const loadMaterials = async (reset = false) => {
 
 // 搜索
 const handleSearch = () => {
+  pageNum.value = 1
   loadMaterials(true)
 }
 
@@ -556,6 +559,10 @@ const handleDelete = async (id?: number) => {
   } catch (e) {
     message.error('删除失败')
   }
+}
+
+const handleDeleteMaterial = (item: API.MaterialVO) => {
+  handleDelete(item.id)
 }
 
 onMounted(() => {
@@ -828,5 +835,147 @@ onMounted(() => {
 .text-hint.warning,
 .char-count.warning {
   color: #faad14;
+}
+</style>
+<style scoped>
+.material-type-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.material-type-tab {
+  min-height: 30px;
+  border: 1px solid transparent;
+}
+
+.material-type-tab.is-active {
+  border-color: #e5e5e5;
+}
+
+.material-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.material-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+.material-section {
+  min-width: 0;
+}
+
+.material-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.material-section-heading h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.material-section-heading p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #999;
+}
+
+.material-section-heading > span {
+  font-size: 12px;
+  color: #999;
+}
+
+.material-group-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.material-group-grid.group-image > :deep(.material-asset),
+.material-group-grid.group-video > :deep(.material-asset) {
+  grid-column: span 3;
+}
+
+.material-group-grid.group-image > :deep(.material-asset.is-featured),
+.material-group-grid.group-video > :deep(.material-asset.is-featured) {
+  grid-column: span 6;
+}
+
+.material-group-grid.group-audio,
+.material-group-grid.group-link {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.material-group-grid.group-text {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.material-group-grid.group-text > :deep(.material-asset) {
+  grid-column: span 1;
+}
+
+.material-group-grid.group-audio > :deep(.material-asset),
+.material-group-grid.group-link > :deep(.material-asset) {
+  grid-column: auto;
+}
+
+@media (max-width: 1080px) {
+  .material-group-grid.group-image > :deep(.material-asset),
+  .material-group-grid.group-video > :deep(.material-asset) {
+    grid-column: span 4;
+  }
+
+  .material-group-grid.group-image > :deep(.material-asset.is-featured),
+  .material-group-grid.group-video > :deep(.material-asset.is-featured) {
+    grid-column: span 8;
+  }
+
+  .material-group-grid.group-text {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .material-skeleton-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .material-group-grid,
+  .material-group-grid.group-image,
+  .material-group-grid.group-video,
+  .material-group-grid.group-audio,
+  .material-group-grid.group-link,
+  .material-group-grid.group-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .material-group-grid > :deep(.material-asset),
+  .material-group-grid.group-image > :deep(.material-asset),
+  .material-group-grid.group-video > :deep(.material-asset),
+  .material-group-grid.group-image > :deep(.material-asset.is-featured),
+  .material-group-grid.group-video > :deep(.material-asset.is-featured) {
+    width: 100%;
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .material-skeleton-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
