@@ -62,7 +62,7 @@ public final class AiServiceConstant {
      * 对话记忆 Token 滑动窗口最大 Token 数
      * 窗口根据实际 Token 消耗动态淘汰最旧消息，比固定条数窗口更精确
      */
-    public static final int CHAT_MEMORY_MAX_TOKENS = 32000;
+    public static final int CHAT_MEMORY_MAX_TOKENS = 128000;
 
     /**
      * 工具消息折叠：保留最近 N 组工具调用不折叠
@@ -83,12 +83,12 @@ public final class AiServiceConstant {
     /**
      * 工作流/Agent 历史加载条数
      */
-    public static final int DEFAULT_HISTORY_LOAD_LIMIT = 10;
+    public static final int DEFAULT_HISTORY_LOAD_LIMIT = 50;
 
     /**
      * 客服历史加载条数
      */
-    public static final int CUSTOMER_SERVICE_HISTORY_LOAD_LIMIT = 20;
+    public static final int CUSTOMER_SERVICE_HISTORY_LOAD_LIMIT = 100;
 
     /**
      * AI 服务缓存最大数量
@@ -134,7 +134,7 @@ public final class AiServiceConstant {
      * 对话记忆超大消息兜底截断长度
      * 当单条消息拆分后仍然过大时，再对正文做截断
      */
-    public static final int CHAT_MEMORY_MAX_MESSAGE_CHARS = 65536;
+    public static final int CHAT_MEMORY_MAX_MESSAGE_CHARS = 131072;
 
     /**
      * 消息截断后缀标记，提示 AI 内容已被裁剪
