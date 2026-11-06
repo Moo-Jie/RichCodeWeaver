@@ -76,40 +76,42 @@ public class AiCodeGeneratorTypeStrategyNode {
             log.info("\n 正在执行节点: 代码生成类型策略节点。\n");
             ThrowUtils.throwIf(generationType == null, ErrorCode.PARAMS_ERROR, "代码生成类型不能为空");
             // 设置代码生成类型
+            CodeGeneratorTypeEnum explicitType = detectExplicitTypeFromPrompt(context.getOriginalPrompt());
             CodeGeneratorTypeEnum finalType = generationType;
             try {
-                if (CodeGeneratorTypeEnum.AI_STRATEGY.equals(generationType)) {
-                    // 获取 AI 代码生成类型策略服务
-                    AiCodeGeneratorTypeStrategyService aiCodeGeneratorTypeStrategyService = SpringContextUtil.getBean(AiCodeGeneratorTypeStrategyService.class);
-                    // 让 AI 根据增强后的提示词选择代码生成方案（增强后包含网络资源、图片等）
-                    String promptForStrategy = context.getEnhancedPrompt() != null ? context.getEnhancedPrompt() : context.getOriginalPrompt();
-                    finalType = aiCodeGeneratorTypeStrategyService.getCodeGenStrategy(promptForStrategy);
+                if (CodeGeneratorTypeEnum.AI_STRATEGY.equals(generationType) && explicitType != null) {
+                    finalType = explicitType;
+                    log.info("检测到用户明确指定代码生成方案，跳过策略模型: {}", finalType.getValue());
+                    context.updateAppCodeGenType(finalType);
+                } else if (CodeGeneratorTypeEnum.AI_STRATEGY.equals(generationType)) {
+                    AiCodeGeneratorTypeStrategyService strategyService =
+                            SpringContextUtil.getBean(AiCodeGeneratorTypeStrategyService.class);
+                    String promptForStrategy = context.getEnhancedPrompt() != null
+                            ? context.getEnhancedPrompt()
+                            : context.getOriginalPrompt();
+                    finalType = strategyService.getCodeGenStrategy(promptForStrategy);
+                    if (finalType == null) {
+                        throw new IllegalStateException("代码生成策略模型返回空类型");
+                    }
                     log.info("AI 智能选择代码生成方案: {} ({})", finalType.getValue(), finalType.getText());
-
-                    // 更新数据库中的 codeGenType 为 AI 判断后的实际类型
+                    context.updateAppCodeGenType(finalType);
+                } else if (explicitType != null && !explicitType.equals(generationType)) {
+                    // 用户提示词明确指定类型时，覆盖创建产物时的初始类型
+                    log.info("检测到用户提示词中明确指定了 {} 模式，覆盖原配置的 {} 模式",
+                            explicitType.getValue(), generationType.getValue());
+                    finalType = explicitType;
                     context.updateAppCodeGenType(finalType);
                 } else {
-                    // 即使用户在创建产物时选择了固定类型，也要检查提示词中是否明确指定了不同的类型
-                    // 例如：产物创建时选了 single_html，但提示词写了 "VUE项目模式"
-                    CodeGeneratorTypeEnum promptExplicitType = detectExplicitTypeFromPrompt(context.getOriginalPrompt());
-                    if (promptExplicitType != null && !promptExplicitType.equals(generationType)) {
-                        log.info("检测到用户提示词中明确指定了 {} 模式，覆盖原配置的 {} 模式",
-                                promptExplicitType.getValue(), generationType.getValue());
-                        finalType = promptExplicitType;
-                        // 更新数据库中的 codeGenType
-                        context.updateAppCodeGenType(finalType);
-                    } else {
-                        log.info("直接使用用户指定的代码生成方案: {}", generationType.getValue());
-                    }
+                    log.info("直接使用用户指定的代码生成方案: {}", generationType.getValue());
                 }
             } catch (Exception e) {
-                log.error("AI 智能路由失败，使用默认 HTML 类型: {}", e.getMessage());
-                finalType = CodeGeneratorTypeEnum.HTML;
-                // 更新数据库中的 codeGenType 为默认类型
+                // 策略模型失败不能无条件降级为 HTML，优先保留用户明确类型，否则使用多文件模式
+                finalType = explicitType != null ? explicitType : CodeGeneratorTypeEnum.MULTI_FILE;
+                log.error("AI 智能路由失败，降级为 {} 类型: {}", finalType.getValue(), e.getMessage(), e);
                 context.updateAppCodeGenType(finalType);
             }
 
-            // 状态更新
+
             context.setCurrentStep("代码生成类型策略已完成");
             context.setGenerationType(finalType);
             log.info("\n 代码生成类型策略节点运行完成。\n");

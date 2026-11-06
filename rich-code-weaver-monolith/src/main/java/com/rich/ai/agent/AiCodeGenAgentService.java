@@ -7,7 +7,7 @@ import dev.langchain4j.service.V;
 
 /**
  * AI 代码生成 Agent 服务接口
- * 基于 Langchain4j AiServices 实现，支持工具调用循环（ReAct 模式）
+ * 基于 Langchain4j AiServices 实现，运行时采用 Plan → Act → Observe → Verify 闭环
  * 系统提示词通过工厂类 AiCodeGenAgentServiceFactory 编程式指定（从数据库查询）
  *
  * @author DuRuiChi

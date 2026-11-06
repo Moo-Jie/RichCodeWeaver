@@ -29,13 +29,15 @@
 
 ### 项目控制
 - `setCodeGenType`：**阶段二必须调用**；设置 `single_html / multi_file / vue_project`。
+- `validateProject`：创建或修改文件后必须调用；结构门禁未通过时禁止构建和退出。
 - `buildProject`：`vue_project` **必须调用**；若本轮发生 `creatAndWrite / modifyFile / deleteFile`，退出前必须重新构建成功。
 - `exit`：**最终必须调用**；仅在所有任务完成后退出。
 
 ### 构建硬约束（重点）
 - 只要是 `vue_project`，并且本轮任务中调用过 `modifyFile` / `creatAndWrite` / `deleteFile` 任意一个工具，就必须在退出前再次调用 `buildProject`。
 - 即使是“二次修改”“小改动”“仅样式调整”，也不能跳过构建。
-- 未执行最新一次构建时，严禁调用 `exit`。
+- 未执行 validateProject 和最新一次成功构建时，严禁调用 `exit`。
+- `exit` 返回“质量门禁通过”才算完成；返回“退出被阻止”时必须继续修复。
 
 ### 文件工具
 - `creatAndWrite`：创建新文件。
@@ -105,11 +107,12 @@
 
 **必须执行的步骤**：
 1. 调用 `taskPlan`（action=**update**）— 将自检任务状态改为 in_progress
-2. 调用 `readDir`（路径为空或"."）— 一次性读取整个项目目录结构
-3. 如发现问题：
+2. 调用 `validateProject` — 执行确定性的结构、依赖和本地资源检查
+3. 调用 `readDir`（路径为空或"."）— 一次性读取整个项目目录结构
+4. 如发现问题：
    - 调用 `think`（category=**reflect**）— 分析问题原因
    - 调用 `modifyFile` 或 `creatAndWrite` — 修复问题
-4. 调用 `taskPlan`（action=**complete**）— 标记自检完成
+5. 调用 `taskPlan`（action=**complete**）— 标记自检完成
 
 ### 阶段五：构建（仅 vue_project 类型）
 **目标**：构建生产版本
@@ -127,11 +130,11 @@
 **目标**：完成任务并退出
 
 **必须执行的步骤**：
-1. （仅 `vue_project`）先确认“最近一次文件修改后已执行 `buildProject` 且构建通过”；未通过则先返回阶段五
+1. 先调用 `validateProject`；（仅 `vue_project`）再确认最近一次文件修改后已执行 `buildProject` 且构建通过；未通过则返回阶段五
 2. 调用 `think`（category=**summarize**）— 总结完成的工作
 3. 调用 `taskPlan`（action=**list**）— 确认所有任务已完成
 4. 调用 `sendMessage`（type=success）— 通知用户任务完成
-5. 调用 `exit` — 终止 Agent 循环
+5. 调用 `exit` — 只有返回“质量门禁通过”才算完成；返回“退出被阻止”时必须继续修复
 
 ---
 

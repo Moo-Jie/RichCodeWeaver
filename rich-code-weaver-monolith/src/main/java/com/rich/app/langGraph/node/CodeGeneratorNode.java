@@ -13,6 +13,7 @@ import org.bsc.langgraph4j.prebuilt.MessagesState;
 import reactor.core.publisher.Flux;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -109,6 +110,14 @@ public class CodeGeneratorNode {
             String generatedCodeDir = String.format("%s/%s_%s",
                     AppConstant.CODE_OUTPUT_ROOT_DIR, generationType.getValue(), appId);
             log.info("AI 代码生成完成，生成目录: {}", generatedCodeDir);
+
+            // 进入新一轮验证前清理上一轮失败证据，避免旧日志污染当前结果
+            context.setCodeReviewResponse(null);
+            context.setPreflightPassed(false);
+            context.setPreflightErrors(List.of());
+            context.setBuildPassed(false);
+            context.setBuildErrorLog(null);
+            context.setDeliveryReady(false);
 
             // 更新工作流上下文状态
             context.setOutputDir(generatedCodeDir);  // 保存生成目录路径

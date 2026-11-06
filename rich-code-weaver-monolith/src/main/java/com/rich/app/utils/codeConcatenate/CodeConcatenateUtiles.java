@@ -7,10 +7,12 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * 代码拼接工具类
- * 拼接代码目录下的所有代码文件,用于交给 AI 进行审查
+ * 拼接代码目录下的源码文件用于 AI 审查，并统一排除依赖、构建产物和超大锁文件
  *
  * @author DuRuiChi
  * @create 2026/1/18
@@ -21,22 +23,39 @@ public class CodeConcatenateUtiles {
      * 需要检查的文件扩展名
      */
     private static final List<String> CODE_EXTENSIONS = Arrays.asList(
-            ".html", ".htm", ".css", ".js", ".json", ".vue", ".ts", ".jsx", ".tsx"
+            ".html", ".htm", ".css", ".js", ".mjs", ".cjs", ".json", ".vue", ".ts", ".jsx", ".tsx"
     );
 
     /**
-     * 读取并拼接代码目录下的所有代码文件
+     * 不参与 AI 审查的目录
+     */
+    private static final Set<String> IGNORED_DIRECTORIES = Set.of(
+            "node_modules", "dist", "build", "output", "target", ".git", ".idea", ".vscode", "coverage"
+    );
+
+    /**
+     * 不参与 AI 审查的锁文件和构建元数据
+     */
+    private static final Set<String> IGNORED_FILE_NAMES = Set.of(
+            "package-lock.json", "yarn.lock", "pnpm-lock.yaml", ".env", ".ds_store"
+    );
+
+    /**
+     * 单次 AI 审查允许拼接的最大字符数
+     */
+    private static final int MAX_TOTAL_CHARACTERS = 500_000;
+
+    /**
+     * 读取并拼接代码目录下的所有源码文件
      *
      * @param codeDir 需要扫描的代码目录路径
-     * @return 拼接后的完整代码内容（Markdown格式）
+     * @return 拼接后的完整代码内容（Markdown 格式）
      */
     public static String readAndConcatenateCodeFiles(String codeDir) {
-        // 检查空目录路径
         if (StrUtil.isBlank(codeDir)) {
             return "";
         }
 
-        // 创建目录对象并验证有效性
         File directory = new File(codeDir);
         if (!directory.exists() || !directory.isDirectory()) {
             log.error("代码目录不存在或不是目录: {}", codeDir);
@@ -46,59 +65,68 @@ public class CodeConcatenateUtiles {
         StringBuilder codeContent = new StringBuilder();
         codeContent.append("# 项目文件结构和代码内容\n\n");
 
-        // 使用 Hutool 文件遍历方法处理每个文件
         FileUtil.walkFiles(directory, file -> {
-            // 跳过隐藏文件、依赖目录和非代码文件
-            if (skipFile(file, directory)) {
+            if (codeContent.length() >= MAX_TOTAL_CHARACTERS || skipFile(file, directory)) {
+                return;
+            }
+            if (!isCodeFile(file)) {
                 return;
             }
 
-            // 确认是代码文件后处理内容
-            if (isCodeFile(file)) {
-                // 获取相对路径用于展示
-                String relativePath = FileUtil.subPath(directory.getAbsolutePath(), file.getAbsolutePath());
-                codeContent.append("## 文件: ").append(relativePath).append("\n\n");
-
-                // 读取文件内容并追加到结果
-                String fileContent = FileUtil.readUtf8String(file);
-                codeContent.append(fileContent).append("\n\n");
-            }
+            String relativePath = normalizeRelativePath(FileUtil.subPath(
+                    directory.getAbsolutePath(), file.getAbsolutePath()));
+            codeContent.append("## 文件: ").append(relativePath).append("\n\n");
+            String fileContent = FileUtil.readUtf8String(file);
+            codeContent.append(fileContent).append("\n\n");
         });
 
+        if (codeContent.length() >= MAX_TOTAL_CHARACTERS) {
+            codeContent.append("\n> [系统提示] 审查输入已达到 ")
+                    .append(MAX_TOTAL_CHARACTERS)
+                    .append(" 字符上限，后续文件未拼接；最终仍以 npm run build 结果作为构建门禁。\n");
+        }
         return codeContent.toString();
     }
-
 
     /**
      * 文件过滤逻辑
      *
      * @param file    当前检查的文件对象
      * @param rootDir 项目根目录
-     * @return true表示需要跳过该文件
+     * @return true 表示需要跳过该文件
      */
     private static boolean skipFile(File file, File rootDir) {
-        // 获取相对于根目录的路径
-        String relativePath = FileUtil.subPath(rootDir.getAbsolutePath(), file.getAbsolutePath());
-
-        // 跳过隐藏文件（以.开头的文件/目录）
-        if (file.getName().startsWith(".")) {
+        String normalizedName = file.getName().toLowerCase(Locale.ROOT);
+        if (file.getName().startsWith(".") || IGNORED_FILE_NAMES.contains(normalizedName)) {
             return true;
         }
 
-        // 跳过常见依赖目录
-        return relativePath.contains("node_modules" + File.separator)
-                || relativePath.contains("dist" + File.separator)
-                || relativePath.contains("target" + File.separator)
-                || relativePath.contains(".git" + File.separator);
+        // Hutool 在 Windows 上返回正斜杠，必须统一分隔符后再判断目录
+        String relativePath = normalizeRelativePath(FileUtil.subPath(
+                rootDir.getAbsolutePath(), file.getAbsolutePath()));
+        return IGNORED_DIRECTORIES.stream()
+                .anyMatch(directoryName -> relativePath.equals(directoryName)
+                        || relativePath.startsWith(directoryName + "/"));
     }
 
-
     /**
-     * 判断是否是需要检查的代码文件
+     * 判断是否为需要审查的代码文件
+     *
+     * @param file 文件
+     * @return true 表示源码文件
      */
     private static boolean isCodeFile(File file) {
-        String fileName = file.getName().toLowerCase();
+        String fileName = file.getName().toLowerCase(Locale.ROOT);
         return CODE_EXTENSIONS.stream().anyMatch(fileName::endsWith);
     }
 
+    /**
+     * 统一相对路径分隔符
+     *
+     * @param path 相对路径
+     * @return 正斜杠路径
+     */
+    private static String normalizeRelativePath(String path) {
+        return path == null ? "" : path.replace('\\', '/');
+    }
 }

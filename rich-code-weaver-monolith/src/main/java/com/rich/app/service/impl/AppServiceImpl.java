@@ -611,7 +611,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 复制文件：从生成目录到部署目录
         try {
             // 构建代码输出文件夹路径
-            File outputDir = getOutputDir(app);
+            File outputDir = prepareDeploySourceDir(app);
 
             // 校验代码输出文件夹是否存在
             validateDeploySourceDir(outputDir, appId);
@@ -842,10 +842,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      */
     private String deployVueProjectAsync(App app, User loginUser, String deployKey) {
         Long appId = app.getId();
-        
+
         // 获取项目路径
         String codeGenType = app.getCodeGenType();
-        String projectPath = CODE_OUTPUT_ROOT_DIR + File.separator 
+        String projectPath = CODE_OUTPUT_ROOT_DIR + File.separator
                 + codeGenType + "_" + appId;
 
         File projectDir = new File(projectPath);
@@ -860,12 +860,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (!sent) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "构建任务提交失败，请稍后重试");
         }
-
-        // 更新产物信息（记录部署密钥，但不记录部署时间，等构建完成后再更新）
-        App updateApp = new App();
-        updateApp.setId(appId);
-        updateApp.setDeployKey(deployKey);
-        this.updateById(updateApp);
 
         // 返回临时URL（构建完成后通过WebSocket通知前端）
         String appUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
@@ -925,7 +919,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private void generateScreenshotAsync(Long appId, String appUrl) {
         // 发送截图生成任务到消息队列
         boolean sent = screenshotProducer.sendScreenshotTask(appId, appUrl, "COVER");
-        
+
         if (sent) {
             log.info("截图生成任务已提交: appId={}, appUrl={}", appId, appUrl);
         } else {
@@ -968,7 +962,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
 
         // 获取项目路径
-        String projectPath = CODE_OUTPUT_ROOT_DIR + File.separator 
+        String projectPath = CODE_OUTPUT_ROOT_DIR + File.separator
                 + app.getCodeGenType() + "_" + appId;
 
         // 发送构建任务到消息队列
@@ -1066,6 +1060,30 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     /**
+     * 准备同步部署源目录，Vue 项目必须先执行真实构建
+     *
+     * @param app 产物
+     * @return 可部署目录
+     */
+    private File prepareDeploySourceDir(App app) {
+        if (!CodeGeneratorTypeEnum.VUE_PROJECT.getValue().equals(app.getCodeGenType())) {
+            return getOutputDir(app);
+        }
+        File projectRootDir = getBuildSourceDir(app);
+        BuildWebProjectExecutor.BuildResult buildResult =
+                buildWebProjectExecutor.buildProjectWithLog(projectRootDir.getAbsolutePath());
+        if (!buildResult.success()) {
+            String buildLog = StrUtil.blankToDefault(buildResult.log(), "无构建日志输出");
+            log.warn("同步部署前构建失败: appId={}, phase={}, buildLog=\n{}",
+                    app.getId(), buildResult.phase(), buildLog);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                    "构建失败（" + buildResult.phase() + "）\n【构建日志】\n"
+                            + extractBuildLogSnippet(buildLog));
+        }
+        return getOutputDir(app);
+    }
+
+    /**
      * 校验部署源码目录是否可用
      *
      * @param outputDir 源码目录
@@ -1079,6 +1097,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (!outputDir.isDirectory()) {
             log.error("部署产物失败：源码路径不是目录 - appId={}, outputDir={}", appId, outputDir.getAbsolutePath());
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "源码路径异常，无法部署");
+        }
+        File entryFile = new File(outputDir, "index.html");
+        if (!entryFile.isFile() || entryFile.length() == 0) {
+            log.error("部署产物失败：缺少非空 index.html - appId={}, outputDir={}", appId, outputDir.getAbsolutePath());
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "缺少非空 index.html，产物不可部署");
         }
     }
 

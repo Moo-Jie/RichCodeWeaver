@@ -61,10 +61,10 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
         this.messages = copy(ensureNotEmpty(parameters.messages(), "messages"));
         this.toolSpecifications = copy(parameters.toolSpecifications());
         this.toolExecutors = copy(parameters.toolExecutors());
-        this.retrievedContents = copy(parameters.gretrievedContents());
+        this.retrievedContents = copy(parameters.retrievedContents());
         this.context = ensureNotNull(parameters.context(), "context");
         ensureNotNull(this.context.streamingChatModel, "streamingChatModel");
-        this.memoryId = ensureNotNull(parameters.memoryId(), "memoryId");
+        this.memoryId = ensureNotNull(parameters.invocationContext().chatMemoryId(), "memoryId");
         this.commonGuardrailParams = parameters.commonGuardrailParams();
         this.methodKey = parameters.methodKey();
     }
@@ -152,7 +152,8 @@ public class AiServiceTokenStream implements dev.langchain4j.service.TokenStream
                 toolSpecifications,
                 toolExecutors,
                 commonGuardrailParams,
-                methodKey);
+                methodKey,
+                0);
 
         if (contentsHandler != null && retrievedContents != null) {
             contentsHandler.accept(retrievedContents);

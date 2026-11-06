@@ -1,5 +1,7 @@
 package com.rich.common.utils.deployWebProjectUtils;
 
+import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -8,12 +10,14 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static com.rich.common.utils.deployWebProjectUtils.ExecuteSysCommandUtil.executeNpmCommand;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * 打包构建 web 工程项目执行器
+ * 统一负责依赖安装、Vite 构建、dist 校验和并发互斥，避免工作流、Agent 与消息队列重复构建
  *
  * @author DuRuiChi
  * @create 2025/12/29
@@ -21,44 +25,50 @@ import static com.rich.common.utils.deployWebProjectUtils.ExecuteSysCommandUtil.
 @Component
 @Slf4j
 public class BuildWebProjectExecutor {
+
     /**
      * 默认的 dist 目录名称
      */
     private static final String DIST_DIR_NAME = "dist";
 
     /**
-     * 最大重试次数
+     * 默认依赖安装超时时间（秒）
      */
-    private static final int MAX_RETRIES = 3;
+    private static final int INSTALL_TIMEOUT_SECONDS = 600;
 
     /**
-     * 异步打包构建项目（Npm 包管理器下的前端 Web 工程项目）
+     * 默认构建超时时间（秒）
+     */
+    private static final int BUILD_TIMEOUT_SECONDS = 300;
+
+    /**
+     * 同一项目构建锁，key 为项目绝对路径
+     */
+    private static final ConcurrentHashMap<String, ReentrantLock> PROJECT_BUILD_LOCKS = new ConcurrentHashMap<>();
+
+    /**
+     * 异步构建项目并返回可等待的真实结果
      *
      * @param projectPath 项目路径
+     * @return 异步构建结果
      */
-    public boolean buildProjectAsync(String projectPath) {
-        // 使用原子布尔保证线程安全的状态判断
-        AtomicBoolean isBuild = new AtomicBoolean(true);
-
-        // 开启 JDK-21 的虚拟线程，异步执行构建任务，避免阻塞主流程
+    public CompletableFuture<BuildResult> buildProjectAsync(String projectPath) {
+        CompletableFuture<BuildResult> future = new CompletableFuture<>();
         Thread.ofVirtual()
-                .name("vue-builder-" + System.currentTimeMillis())  // 设置线程名称
+                .name("vue-builder-" + System.currentTimeMillis())
                 .start(() -> {
                     try {
-                        // 执行项目构建并设置结果
-                        isBuild.set(buildProject(projectPath));
+                        future.complete(buildProjectWithLog(projectPath));
                     } catch (Exception e) {
-                        // 捕获异常，设置构建失败状态
-                        isBuild.set(false);
+                        future.complete(new BuildResult(false, "异步构建", e.getMessage()));
                         log.error("异步打包构建项目失败，错误: {}", e.getMessage(), e);
                     }
                 });
-        // 返回初始状态（注：由于是异步执行，此时可能还未完成）
-        return isBuild.get();
+        return future;
     }
 
     /**
-     * 同步构建项目并返回详细结果日志（供 Agent 工具使用，将构建结果反馈给 AI）
+     * 同步构建项目并返回详细结果日志（供工作流、Agent 和消息队列使用）
      *
      * @param projectPath 项目路径
      * @return BuildResult 包含是否成功、阶段信息和详细日志
@@ -66,155 +76,151 @@ public class BuildWebProjectExecutor {
     public BuildResult buildProjectWithLog(String projectPath) {
         File projectDir = validateProject(projectPath);
         if (projectDir == null) {
-            return new BuildResult(false, "install", "项目目录不存在或缺少 package.json: " + projectPath);
+            return new BuildResult(false, "validate", "项目目录不存在或缺少 package.json: " + projectPath);
         }
 
-        log.info("开始带日志的构建，项目路径: {}", projectPath);
+        ReentrantLock buildLock = PROJECT_BUILD_LOCKS.computeIfAbsent(
+                projectDir.getAbsolutePath(), key -> new ReentrantLock());
+        boolean locked = false;
+        try {
+            locked = buildLock.tryLock(10, TimeUnit.MINUTES);
+            if (!locked) {
+                return new BuildResult(false, "build-lock", "同一项目已有构建任务执行超过等待时间");
+            }
+            return doBuildProjectWithLog(projectDir);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new BuildResult(false, "build-lock", "等待项目构建锁时被中断");
+        } finally {
+            if (locked) {
+                buildLock.unlock();
+            }
+            if (!buildLock.hasQueuedThreads()) {
+                PROJECT_BUILD_LOCKS.remove(projectDir.getAbsolutePath(), buildLock);
+            }
+        }
+    }
+
+    /**
+     * 执行实际构建流程
+     *
+     * @param projectDir 项目目录
+     * @return 构建结果
+     */
+    private BuildResult doBuildProjectWithLog(File projectDir) {
+        log.info("开始带日志的构建，项目路径: {}", projectDir.getAbsolutePath());
         ensureEsmConfig(projectDir);
 
-        String npmCmd = System.getProperty("os.name").toLowerCase().contains("win") ? "npm.cmd install" : "npm install";
+        File distDir = new File(projectDir, DIST_DIR_NAME);
+        if (distDir.exists() && !FileUtil.del(distDir)) {
+            return new BuildResult(false, "clean-dist", "无法清理旧 dist 目录: " + distDir.getAbsolutePath());
+        }
+
+        String npmCommand = getNpmCommand();
+        File packageJson = new File(projectDir, "package.json");
+        File packageLock = new File(projectDir, "package-lock.json");
+        boolean lockFileFresh = packageLock.isFile()
+                && packageLock.lastModified() >= packageJson.lastModified();
+        String installCommand = lockFileFresh
+                ? npmCommand + " ci --no-audit --no-fund"
+                : npmCommand + " install --no-audit --no-fund";
         ExecuteSysCommandUtil.CommandResult installResult =
-                ExecuteSysCommandUtil.executeCommandWithLog(projectDir, npmCmd, 300);
+                ExecuteSysCommandUtil.executeCommandWithLog(projectDir, installCommand, INSTALL_TIMEOUT_SECONDS);
         if (!installResult.success()) {
             return new BuildResult(false, "npm install", installResult.log());
         }
 
-        String buildCmd = System.getProperty("os.name").toLowerCase().contains("win") ? "npm.cmd run build" : "npm run build";
+        String buildCommand = npmCommand + " run build";
         ExecuteSysCommandUtil.CommandResult buildResult =
-                ExecuteSysCommandUtil.executeCommandWithLog(projectDir, buildCmd, 300);
+                ExecuteSysCommandUtil.executeCommandWithLog(projectDir, buildCommand, BUILD_TIMEOUT_SECONDS);
         if (!buildResult.success()) {
             return new BuildResult(false, "npm run build", buildResult.log());
         }
 
-        boolean distExists = verifyDistDirectory(projectDir);
-        if (!distExists) {
-            return new BuildResult(false, "dist验证", "构建命令执行成功但未找到 dist 目录，请检查 vite.config.js 的 outDir 配置");
+        File indexHtml = new File(distDir, "index.html");
+        if (!indexHtml.isFile() || indexHtml.length() == 0) {
+            return new BuildResult(false, "dist验证",
+                    "构建命令执行成功但未找到非空 dist/index.html，请检查 vite.config 的 outDir 配置");
         }
-
-        return new BuildResult(true, "完成", "构建成功！dist 目录已生成：" + projectPath + "/dist");
+        return new BuildResult(true, "完成", "构建成功，dist/index.html 已生成: " + indexHtml.getAbsolutePath());
     }
 
     /**
      * 构建结果封装
+     *
+     * @param success 是否成功
+     * @param phase   失败阶段
+     * @param log     构建日志
      */
-    public record BuildResult(boolean success, String phase, String log) {}
+    public record BuildResult(boolean success, String phase, String log) {
+    }
 
     /**
-     * 打包构建项目 （Npm 包管理器下的前端 Web 工程项目）
+     * 打包构建项目
      *
      * @param projectPath 项目路径
-     * @return boolean
+     * @return 是否成功
      **/
     public boolean buildProject(String projectPath) {
-        // 步骤1：验证项目路径和基本文件结构
-        File projectDir = validateProject(projectPath);
-        if (projectDir == null) {
-            return false;  // 验证失败，直接返回
-        }
-
-        log.info("开始打包构建 Vue 项目: {}", projectPath);
-
-        // 步骤2：确保 package.json 中配置了 ESM 模块类型
-        ensureEsmConfig(projectDir);
-
-        // 步骤3：执行 npm install 安装依赖（最多重试 3 次）
-        if (!executeNpmCommand(projectDir, "install", MAX_RETRIES)) {
-            log.error("依赖安装失败，已重试 {} 次", MAX_RETRIES);
-            return false;
-        }
-
-        // 步骤4：执行 npm run build 构建项目（最多重试 3 次）
-        if (!executeNpmCommand(projectDir, "run build", MAX_RETRIES)) {
-            log.error("项目打包构建失败，已重试 {} 次", MAX_RETRIES);
-            return false;
-        }
-
-        // 步骤5：验证构建输出目录是否生成
-        return verifyDistDirectory(projectDir);
+        return buildProjectWithLog(projectPath).success();
     }
 
     /**
      * 校验打包构建前项目文件的合法性
      *
      * @param projectPath 项目路径
-     * @return java.io.File
+     * @return 项目目录，非法时返回 null
      **/
     private File validateProject(String projectPath) {
-        // 校验项目路径是否为空
-        if (projectPath == null || projectPath.trim().isEmpty()) {
+        if (StrUtil.isBlank(projectPath)) {
             log.error("项目路径不能为空");
             return null;
         }
 
-        // 校验项目目录是否存在
         File projectDir = new File(projectPath);
         if (!projectDir.exists() || !projectDir.isDirectory()) {
             log.error("项目目录不存在: {}", projectPath);
             return null;
         }
 
-        // 校验 package.json 文件是否存在（必须文件）
         File packageJson = new File(projectDir, "package.json");
-        if (!packageJson.exists()) {
+        if (!packageJson.isFile()) {
             log.error("package.json 文件不存在: {}", packageJson.getAbsolutePath());
             return null;
         }
-
         return projectDir;
     }
 
     /**
-     * 校验打包构建后项目文件的合法性
+     * 确保 package.json 使用 ESM 模块类型
      *
-     * @param projectDir 项目路径
-     * @return boolean
-     **/
-    private boolean verifyDistDirectory(File projectDir) {
-        // 检查默认的 dist 目录是否生成
-        File distDir = new File(projectDir, DIST_DIR_NAME);
-        if (distDir.exists()) {
-            log.info("项目打包构建成功，dist 目录: {}", distDir.getAbsolutePath());
-            return true;
-        }
-
-        // 如果 dist 目录不存在，尝试查找其他常见的构建输出目录
-        String[] possibleDirs = {"build", "output", "public"};
-        for (String dir : possibleDirs) {
-            if (new File(projectDir, dir).exists()) {
-                log.warn("打包构建目录存在但名称不是 'dist'，实际目录: {}", dir);
-                return true;
-            }
-        }
-
-        // 所有可能的构建目录都不存在
-        log.error("打包构建目录未生成，请检查构建配置和输出设置");
-        return false;
-    }
-
+     * @param projectDir 项目目录
+     */
     private void ensureEsmConfig(File projectDir) {
         try {
-            // 读取 package.json 文件
-            File pkg = new File(projectDir, "package.json");
-            if (!pkg.exists()) {
-                return;  // 文件不存在，直接返回
+            File packageJson = new File(projectDir, "package.json");
+            if (!packageJson.isFile()) {
+                return;
             }
-
-            // 读取文件内容并解析为 JSON
-            String text = Files.readString(pkg.toPath(), StandardCharsets.UTF_8);
-            JSONObject obj = JSONUtil.parseObj(text);
-
-            // 检查 type 字段是否为 "module"
-            String type = obj.getStr("type");
-            if (type == null || !"module".equalsIgnoreCase(type)) {
-                // 如果不是 "module"，设置为 "module"（启用 ESM 模块系统）
-                obj.set("type", "module");
-                String updated = obj.toStringPretty();
-                Files.writeString(pkg.toPath(), updated, StandardCharsets.UTF_8);
+            String text = Files.readString(packageJson.toPath(), StandardCharsets.UTF_8);
+            JSONObject packageObject = JSONUtil.parseObj(text);
+            String type = packageObject.getStr("type");
+            if (!"module".equalsIgnoreCase(type)) {
+                packageObject.set("type", "module");
+                Files.writeString(packageJson.toPath(), packageObject.toStringPretty(), StandardCharsets.UTF_8);
                 log.info("已设置 package.json 的 type 为 module（启用 ESM 模块）");
             }
         } catch (Exception e) {
-            // ESM 配置失败不影响构建流程，只记录警告
             log.warn("ESM 配置处理失败: {}", e.getMessage());
         }
+    }
+
+    /**
+     * 根据平台系统拼装合法的 npm 命令
+     *
+     * @return npm 命令
+     **/
+    private String getNpmCommand() {
+        return System.getProperty("os.name").toLowerCase().contains("win") ? "npm.cmd" : "npm";
     }
 }

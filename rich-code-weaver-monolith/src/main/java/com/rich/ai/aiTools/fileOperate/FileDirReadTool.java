@@ -3,7 +3,6 @@ package com.rich.ai.aiTools.fileOperate;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.json.JSONObject;
 import com.rich.ai.aiTools.BaseTool;
-import com.rich.common.constant.AppConstant;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 
@@ -78,16 +76,8 @@ public class FileDirReadTool extends BaseTool {
                     ? ""
                     : relativeDirPath.trim();
 
-            // 解析目录路径
-            Path targetPath = Paths.get(normalizedPath);
-
-            // 如果不是绝对路径，则拼接项目根目录
-            if (!targetPath.isAbsolute()) {
-                String codeGenType = CreatAndWriteAiTool.APP_CODE_GEN_TYPE_CACHE.getOrDefault(appId, "vue_project");
-                String projectDirName = codeGenType + "_" + appId;
-                Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
-                targetPath = projectRoot.resolve(normalizedPath);
-            }
+            // 统一通过路径解析器限制在当前产物目录内
+            Path targetPath = ProjectPathResolver.resolve(appId, normalizedPath);
 
             // 转换为File对象进行操作
             File targetDir = targetPath.toFile();

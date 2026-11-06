@@ -46,6 +46,21 @@ public class AiCodeGenAgentServiceFactory {
     private static final String RAG_DISABLED_LOG_TEMPLATE = "RAG 未启用，appId: {} 的 Agent 服务不使用 RAG 检索增强";
 
     /**
+     * 代码级运行时质量契约，独立于数据库提示词，防止后台旧提示词绕过交付门禁
+     */
+    private static final String AGENT_RUNTIME_QUALITY_CONTRACT = """
+
+## 运行时质量契约（代码强制执行，优先级最高）
+
+1. 不能仅凭“文件已创建”或“看起来正确”宣告完成。完成必须同时具备 validateProject 通过、Vue 项目 buildProject 成功、exit 返回“质量门禁通过”三项证据。
+2. 每次调用 creatAndWrite、modifyFile、deleteFile 后，之前构建结果立即失效；必须重新执行 validateProject，再执行 buildProject。
+3. buildProject 失败时，必须读取返回日志中的文件名、行号和 Vite/Rollup 错误，做局部修复后重新构建。禁止跳过构建、删除构建步骤或直接调用 exit。
+4. exit 如果返回“退出被阻止”，它不是成功信号。必须继续修复并重新验证，不得在最终回复中宣称任务完成。
+5. 所有文件工具只接受项目内相对路径。禁止使用绝对路径、.. 路径穿越或访问当前产物目录之外的文件。
+6. 连续修复达到 3 次仍失败时，优先简化实现、减少依赖和文件数量，再重新执行质量门禁。
+""";
+
+    /**
      * Caffeine 缓存，用于存储 Agent 服务实例（相同 appId 复用，避免重复加载历史）
      */
     private final Cache<Long, AiCodeGenAgentService> caffeineCache = Caffeine.newBuilder()
@@ -211,7 +226,10 @@ public class AiCodeGenAgentServiceFactory {
                 // Agent 全程使用推理流式模型，确保 Think -> Act -> Observe 链路稳定运行
                 .streamingChatModel(reasoningStreamingChatModel)
                 // 系统提示词
-                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPrompt, memoryId, AiServiceConstant.SUMMARY_TYPE_AGENT))
+                .systemMessageProvider(memoryId -> appendSummaryToPrompt(
+                        systemPrompt + AGENT_RUNTIME_QUALITY_CONTRACT,
+                        memoryId,
+                        AiServiceConstant.SUMMARY_TYPE_AGENT))
                 // 原有本地工具全部保留，例如 taskPlan / think / 文件工具 等
                 .tools(toolsManager.getAllTools())
                 // 限制连续工具调用次数，避免模型异常循环调用工具

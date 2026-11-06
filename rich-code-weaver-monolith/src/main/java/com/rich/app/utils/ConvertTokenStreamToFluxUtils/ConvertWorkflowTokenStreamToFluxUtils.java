@@ -5,21 +5,15 @@ import cn.hutool.json.JSONUtil;
 import com.rich.ai.model.msgResponse.StreamAiChatMsgResponse;
 import com.rich.ai.model.msgResponse.StreamToolExecutedMsgResponse;
 import com.rich.ai.model.msgResponse.StreamToolInvocMsgResponse;
-import com.rich.common.constant.AppConstant;
-import com.rich.common.exception.ThrowUtils;
-import com.rich.common.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 import java.util.HashSet;
 import java.util.Set;
-
-import static com.rich.common.exception.ErrorCode.OPERATION_ERROR;
 
 /**
  * Workflow 模式 TokenStream → Flux<String> 转换器
@@ -30,12 +24,6 @@ import static com.rich.common.exception.ErrorCode.OPERATION_ERROR;
 @Slf4j
 @Component
 public class ConvertWorkflowTokenStreamToFluxUtils {
-    /**
-     * 构建 Web 项目的执行器
-     */
-    @Resource
-    private BuildWebProjectExecutor buildWebProjectExecutor;
-
     /**
      * TokenStream (LangChain4j) 转换为 Flux<String> (Reactor )
      *
@@ -94,38 +82,13 @@ public class ConvertWorkflowTokenStreamToFluxUtils {
                     })
                     // 处理完成事件
                     .onCompleteResponse((ChatResponse response) -> {
-                        // 代码生成完毕后，异步通过 npm 构建 Vue 项目
-                        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-                        // 执行异步构建（前端应访问 /dist 目录）
-                        boolean isBuild = buildWebProjectExecutor.buildProjectAsync(projectPath);
-                        ThrowUtils.throwIf(!isBuild, OPERATION_ERROR, "构建 Vue 项目失败");
-                        log.info("TokenStream 输出完成，项目构建已启动。");
-                        // 完成流的发射
+                        log.info("TokenStream 输出完成，appId={}", appId);
                         sink.complete();
                     })
-                    // 处理错误事件
+                    // 处理错误事件，流截断和网络异常都必须失败关闭
                     .onError((Throwable error) -> {
-                        // 特殊处理：JsonEOFException 表示 AI 响应流被截断
-                        // 但工具调用（文件写入等）可能已成功执行，代码已生成完毕
-                        // 只是最终的 JSON 响应聚合失败，可以优雅地完成流
-                        String errorMsg = error.getMessage() != null ? error.getMessage() : "";
-                        if (errorMsg.contains("JsonEOFException") || errorMsg.contains("Unexpected end-of-input")) {
-                            log.warn("TokenStream JSON 解析异常（AI 响应可能被截断），尝试正常完成流: {}", errorMsg);
-                            try {
-                                // 尝试构建项目，即使流被截断
-                                String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + "/vue_project_" + appId;
-                                buildWebProjectExecutor.buildProjectAsync(projectPath);
-                                log.info("尽管流异常截断，项目构建已启动。");
-                            } catch (Exception buildError) {
-                                log.warn("流截断后尝试构建项目失败: {}", buildError.getMessage());
-                            }
-                            // 优雅地完成流，不抛出错误
-                            sink.complete();
-                        } else {
-                            // 其他错误：记录日志并抛出异常
-                            log.error("TokenStream 转换为 Flux 流时发生错误", error);
-                            sink.error(error);
-                        }
+                        log.error("TokenStream 转换为 Flux 流时发生错误, appId={}", appId, error);
+                        sink.error(error);
                     })
                     // 启动 TokenStream 处理
                     .start();

@@ -23,6 +23,19 @@ import org.springframework.context.annotation.Configuration;
 public class AiCodeReviewServiceFactory {
 
     /**
+     * 代码级审查契约，覆盖后台历史提示词中的宽松判断规则
+     */
+    private static final String CODE_REVIEW_RUNTIME_CONTRACT = """
+
+## 运行时审查契约（优先级最高）
+
+- 当前版本必须失败关闭：不能确认代码可运行时，isPass 必须为 false，禁止“不确定时倾向通过”。
+- 重点检查模板语法、import 路径、组件注册、路由、未定义变量、依赖声明和静态资源引用。
+- errorList 必须给出可定位的文件、代码片段或问题类型；不要只写“建议优化”。
+- 结构检查和 npm run build 由独立门禁执行，但你不能因此放宽代码语义审查。
+""";
+
+    /**
      * 多例模式下的代码审查 AI 服务模型
      **/
     @Resource(name = "codeReviewChatModel")
@@ -50,7 +63,7 @@ public class AiCodeReviewServiceFactory {
         }
         return AiServices.builder(AiCodeReviewService.class)
                 .chatModel(codeReviewChatModel)
-                .systemMessageProvider(memoryId -> systemPromptContent)
+                .systemMessageProvider(memoryId -> systemPromptContent + CODE_REVIEW_RUNTIME_CONTRACT)
                 // TODO 配置提示词护轨规则，目前规则不够完善，容易导致误判
 //                .inputGuardrails(new PromptSafetyInputGuardrail())
                 .build();

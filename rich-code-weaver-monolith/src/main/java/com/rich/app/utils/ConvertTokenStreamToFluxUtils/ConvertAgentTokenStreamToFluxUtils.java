@@ -5,6 +5,10 @@ import cn.hutool.json.JSONUtil;
 import com.rich.ai.model.msgResponse.StreamAiChatMsgResponse;
 import com.rich.ai.model.msgResponse.StreamToolExecutedMsgResponse;
 import com.rich.ai.model.msgResponse.StreamToolInvocMsgResponse;
+import com.rich.ai.aiTools.ExitTool;
+import com.rich.common.exception.BusinessException;
+import com.rich.common.exception.ErrorCode;
+import com.rich.common.utils.SpringContextUtil;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +41,7 @@ public class ConvertAgentTokenStreamToFluxUtils {
      * 提高阈值，因为连续创建多个文件是正常行为
      */
     private static final int STUCK_DUPLICATE_THRESHOLD = 8;
-    
+
     /**
      * 不参与循环检测的工具列表（这些工具连续调用是正常行为）
      */
@@ -121,26 +125,29 @@ public class ConvertAgentTokenStreamToFluxUtils {
                         String toolName = toolExecution.request().name();
                         checkAndHandleStuckState(appId, toolName, sink);
                     })
-                    // Agent 完成（AI 自主决定停止，调用 exit 工具或达到 maxSequentialToolsInvocations）
-                    // 注意：不触发构建，AI 已通过 buildProject 工具完成构建
+                    // Agent 完成时强制执行最终质量门禁，防止模型跳过 exit 或构建失败
                     .onCompleteResponse((response) -> {
-                        log.info("Agent TokenStream 输出完成，appId={}", appId);
-                        recentToolCallsMap.remove(appId);
-                        sink.complete();
-                    })
-                    // 错误处理
-                    .onError((Throwable error) -> {
-                        String errorMsg = error.getMessage() != null ? error.getMessage() : "";
-                        // JsonEOFException：AI 响应被截断，但工具调用（文件写入）可能已成功
-                        if (errorMsg.contains("JsonEOFException") || errorMsg.contains("Unexpected end-of-input")) {
-                            log.warn("Agent TokenStream JSON 截断异常，优雅完成: {}", errorMsg);
+                        try {
+                            ExitTool exitTool = SpringContextUtil.getBean(ExitTool.class);
+                            String gateResult = exitTool.exit(appId);
+                            if (!gateResult.startsWith("质量门禁通过")) {
+                                log.warn("Agent 完成门禁未通过: appId={}, result={}", appId, gateResult);
+                                sink.error(new BusinessException(ErrorCode.OPERATION_ERROR, gateResult));
+                                return;
+                            }
+                            log.info("Agent TokenStream 输出完成且质量门禁通过，appId={}", appId);
                             recentToolCallsMap.remove(appId);
                             sink.complete();
-                        } else {
-                            log.error("Agent TokenStream 错误, appId={}", appId, error);
-                            recentToolCallsMap.remove(appId);
-                            sink.error(error);
+                        } catch (Exception e) {
+                            log.error("Agent 完成门禁执行失败: appId={}", appId, e);
+                            sink.error(e);
                         }
+                    })
+                    // 错误处理：流截断、网络异常和工具循环异常都必须失败关闭
+                    .onError((Throwable error) -> {
+                        log.error("Agent TokenStream 错误, appId={}", appId, error);
+                        recentToolCallsMap.remove(appId);
+                        sink.error(error);
                     })
                     .start();
         });
@@ -149,7 +156,7 @@ public class ConvertAgentTokenStreamToFluxUtils {
     /**
      * 循环检测与处理
      * 若同一工具名在滑动窗口内重复次数 >= 阈值，则向流中注入警告，提示 AI 更换策略
-     * 
+     *
      * 优化：排除正常连续调用的工具（如文件创建、任务更新等），避免误报
      *
      * @param appId    产物 ID
@@ -162,7 +169,7 @@ public class ConvertAgentTokenStreamToFluxUtils {
         if (EXCLUDED_TOOLS.contains(toolName)) {
             return;
         }
-        
+
         Deque<String> window = recentToolCallsMap.computeIfAbsent(appId, k -> new ArrayDeque<>());
 
         // 维护固定大小滑动窗口
@@ -177,7 +184,7 @@ public class ConvertAgentTokenStreamToFluxUtils {
         if (duplicateCount >= STUCK_DUPLICATE_THRESHOLD) {
             String stuckWarning = "\n\n> **[系统检测]** 检测到工具 `" + toolName + "` 在最近 " + STUCK_WINDOW_SIZE
                     + " 次调用中重复出现 " + duplicateCount + " 次，可能陷入循环。\n"
-                    + "> 请重新评估当前策略：考虑简化实现、跳过失败步骤，或调用 `exit` 说明原因。\n\n";
+                    + "> 请重新评估当前策略：简化实现或修正错误；构建未通过时禁止直接调用 `exit`，必须先通过质量门禁。\n\n";
 
             StreamAiChatMsgResponse warning = new StreamAiChatMsgResponse(stuckWarning);
             sink.next(JSONUtil.toJsonStr(warning));

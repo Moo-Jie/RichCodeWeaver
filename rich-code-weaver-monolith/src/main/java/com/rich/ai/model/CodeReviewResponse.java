@@ -43,5 +43,6 @@ public class CodeReviewResponse implements Serializable {
     /**
      * 审查批次
      */
+    @Builder.Default
     private Long reviewCount = 0L;
 }

@@ -44,9 +44,9 @@ import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
 @Component
 public class CodeGenWorkflowApp {
     /**
-     * 代码审查最大重试次数
+     * 质量门禁最大修复轮次
      */
-    private static final int MAX_CODE_REVIEW_ATTEMPTS = 2;
+    private static final int MAX_REPAIR_ATTEMPTS = 3;
     // 流式输出每个字符的延迟（毫秒），模拟 AI 打字效果
     private static final int STREAM_CHAR_DELAY_MS = 15;
     /**
@@ -54,13 +54,17 @@ public class CodeGenWorkflowApp {
      * key: 路由条件判断结果
      * value: 目标节点或结束标识
      **/
-    private final Map<String, String> ROUTE_RESULTS = Map.of(
-            // 代码审查通过，需要构建的情况，指向项目构建节点
-            "code_review_succeeded_and_build", "project_builder",
-            // 代码审查通过，跳过构建直接结束工作流
-            "code_review_succeeded_and_skip_build", END,
-            // 代码审查未通过，返回到提示词增强节点
-            "code_review_failed", "prompt_enhancer"
+    private final Map<String, String> ROUTE_RESULTS = Map.ofEntries(
+            Map.entry("preflight_pass", "ai_code_reviewer"),
+            Map.entry("preflight_retry", "prompt_enhancer"),
+            Map.entry("preflight_failed", "delivery_gate"),
+            Map.entry("review_pass_and_build", "project_builder"),
+            Map.entry("review_pass_and_deliver", "delivery_gate"),
+            Map.entry("review_retry", "prompt_enhancer"),
+            Map.entry("review_failed", "delivery_gate"),
+            Map.entry("build_pass", "delivery_gate"),
+            Map.entry("build_retry", "prompt_enhancer"),
+            Map.entry("build_failed", "delivery_gate")
     );
     @Resource
     private CommonStreamHandler commonStreamHandler;
@@ -70,7 +74,8 @@ public class CodeGenWorkflowApp {
 
     /**
      * 创建完整的工作流
-     * 工作流包含以下步骤：资源收集(并行) → 提示词增强 → 代码类型策略 → 代码生成 → AI代码审查 → 项目构建(条件性)
+     * 工作流包含以下步骤：资源收集(并行) → 提示词增强 → 代码类型策略 → 代码生成
+     * → 结构预检 → AI 审查 → 项目构建(条件性) → 交付门禁
      *
      * @return CompiledGraph<MessagesState < String>> 编译后的工作流实例
      * @throws BusinessException 当工作流创建失败时抛出
@@ -89,25 +94,35 @@ public class CodeGenWorkflowApp {
                     .addNode("ai_code_generator_type_strategy", AiCodeGeneratorTypeStrategyNode.create())
                     // 代码生成节点：根据增强后的提示词生成代码
                     .addNode("code_generator", CodeGeneratorNode.create())
+                    // 项目结构预检节点：执行确定性的文件和资源检查
+                    .addNode("project_preflight", ProjectPreflightNode.create())
                     // 代码审查节点：评估生成的代码质量
                     .addNode("ai_code_reviewer", AICodeReviewNode.create())
                     // 项目构建节点：构建生成的项目（条件性执行）
                     .addNode("project_builder", ProjectBuilderNode.create())
+                    // 交付门禁节点：只有全部验证通过才允许结束为成功
+                    .addNode("delivery_gate", DeliveryGateNode.create())
 
                     // 添加边，连接节点形成工作流
                     .addEdge(START, "resource_collector")  // 起始节点到资源收集（并行）
                     .addEdge("resource_collector", "prompt_enhancer")  // 资源收集到提示词增强
                     .addEdge("prompt_enhancer", "ai_code_generator_type_strategy")  // 提示词增强到类型策略
                     .addEdge("ai_code_generator_type_strategy", "code_generator")  // 类型策略到代码生成
-                    .addEdge("code_generator", "ai_code_reviewer")  // 代码生成到代码审查
+                    .addEdge("code_generator", "project_preflight")  // 代码生成到结构预检
 
-                    // 条件边：根据代码生成类型决定是否执行项目构建
-                    .addConditionalEdges("ai_code_reviewer",
-                            // 异步执行路由判断逻辑
-                            edge_async(this::nodeRouter),
-                            // 根据路由结果查询映射，确定下一个节点
+                    // 条件边：结构预检失败时进入定向修复，耗尽修复轮次后进入失败终态
+                    .addConditionalEdges("project_preflight",
+                            edge_async(this::preflightRouter),
                             ROUTE_RESULTS)
-                    .addEdge("project_builder", END)  // 项目构建到结束
+                    // 条件边：根据 AI 审查结果决定构建、修复或失败
+                    .addConditionalEdges("ai_code_reviewer",
+                            edge_async(this::reviewRouter),
+                            ROUTE_RESULTS)
+                    // 条件边：只有真实构建成功才进入交付门禁
+                    .addConditionalEdges("project_builder",
+                            edge_async(this::buildRouter),
+                            ROUTE_RESULTS)
+                    .addEdge("delivery_gate", END)
                     // 编译工作流
                     .compile();
         } catch (GraphStateException e) {
@@ -118,22 +133,32 @@ public class CodeGenWorkflowApp {
 
     /**
      * 创建二次修改专用的简化工作流
-     * 跳过资源收集和类型策略节点，直接进入：提示词增强 → 代码生成 → 代码审查 → 项目构建(条件性)
+     * 跳过资源收集和类型策略节点，直接进入：提示词增强 → 代码生成 → 结构预检 → 审查 → 构建 → 交付门禁
+     *
+     * @return 编译后的修改工作流
      */
     public CompiledGraph<MessagesState<String>> createModificationWorkflow() {
         try {
             return new MessagesStateGraph<String>()
                     .addNode("prompt_enhancer", PromptEnhancerNode.create())
                     .addNode("code_generator", CodeGeneratorNode.create())
+                    .addNode("project_preflight", ProjectPreflightNode.create())
                     .addNode("ai_code_reviewer", AICodeReviewNode.create())
                     .addNode("project_builder", ProjectBuilderNode.create())
+                    .addNode("delivery_gate", DeliveryGateNode.create())
                     .addEdge(START, "prompt_enhancer")
                     .addEdge("prompt_enhancer", "code_generator")
-                    .addEdge("code_generator", "ai_code_reviewer")
-                    .addConditionalEdges("ai_code_reviewer",
-                            edge_async(this::nodeRouter),
+                    .addEdge("code_generator", "project_preflight")
+                    .addConditionalEdges("project_preflight",
+                            edge_async(this::preflightRouter),
                             ROUTE_RESULTS)
-                    .addEdge("project_builder", END)
+                    .addConditionalEdges("ai_code_reviewer",
+                            edge_async(this::reviewRouter),
+                            ROUTE_RESULTS)
+                    .addConditionalEdges("project_builder",
+                            edge_async(this::buildRouter),
+                            ROUTE_RESULTS)
+                    .addEdge("delivery_gate", END)
                     .compile();
         } catch (GraphStateException e) {
             log.error("修改工作流创建失败: {}", e.getMessage(), e);
@@ -239,12 +264,14 @@ public class CodeGenWorkflowApp {
                     GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);
                     log.info("\n工作流图:\n{}", graph.content());
 
+                    WorkflowContext finalContext = null;
                     for (NodeOutput<MessagesState<String>> step : workflow.stream(
                             Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {
 
                         // 获取当前步骤的上下文
                         WorkflowContext currentContext = WorkflowContext.getContext(step.state());
                         if (currentContext != null) {
+                            finalContext = currentContext;
                             StringBuilder stepInfo = new StringBuilder();
                             String nodeName = step.node();
                             String stepTitle = currentContext.getCurrentStep();
@@ -303,10 +330,23 @@ public class CodeGenWorkflowApp {
                                     stepInfo.append("\n> 🔍 正在启动代码审查流程...\n");
                                     break;
 
+                                case "project_preflight":
+                                    stepInfo.append("**🧩 项目结构预检节点**\n\n");
+                                    if (currentContext.isPreflightPassed()) {
+                                        stepInfo.append("- ✅ **预检通过**：关键文件和本地资源引用完整\n");
+                                    } else {
+                                        stepInfo.append("- ⚠️ **预检未通过**：已生成定向修复任务\n");
+                                        if (currentContext.getPreflightErrors() != null) {
+                                            currentContext.getPreflightErrors().forEach(error ->
+                                                    stepInfo.append("- ").append(error).append("\n"));
+                                        }
+                                    }
+                                    break;
+
                                 case "ai_code_reviewer":
                                     stepInfo.append("**🔍 代码审查节点**\n\n");
                                     if (currentContext.getCodeReviewResponse() != null) {
-                                        boolean passed = currentContext.getCodeReviewResponse().getIsPass();
+                                        boolean passed = Boolean.TRUE.equals(currentContext.getCodeReviewResponse().getIsPass());
                                         if (passed) {
                                             stepInfo.append("- ✅ **审查通过**：代码质量符合标准\n");
                                             stepInfo.append("- ✓ 代码规范：符合最佳实践\n");
@@ -321,10 +361,26 @@ public class CodeGenWorkflowApp {
 
                                 case "project_builder":
                                     stepInfo.append("**🏗️ 项目构建节点**\n\n");
-                                    if (StrUtil.isNotBlank(currentContext.getDeployDir())) {
-                                        stepInfo.append("- ✓ 构建完成：项目已成功编译\n");
+                                    if (currentContext.isBuildPassed()) {
+                                        stepInfo.append("- ✅ 构建通过：npm run build 返回成功且 dist/index.html 已生成\n");
                                         stepInfo.append(String.format("- ✓ 部署目录：`%s`\n", currentContext.getDeployDir()));
-                                        stepInfo.append("- ✓ 状态：可预览和部署\n");
+                                    } else {
+                                        stepInfo.append("- ❌ 构建失败：已保留真实构建日志，进入有限修复流程\n");
+                                        if (StrUtil.isNotBlank(currentContext.getBuildErrorLog())) {
+                                            stepInfo.append("\n```text\n").append(currentContext.getBuildErrorLog()).append("\n```\n");
+                                        }
+                                    }
+                                    break;
+
+                                case "delivery_gate":
+                                    stepInfo.append("**🚦 交付质量门禁节点**\n\n");
+                                    if (currentContext.isDeliveryReady()) {
+                                        stepInfo.append("- ✅ **允许交付**：结构、审查和构建证据均通过\n");
+                                    } else {
+                                        stepInfo.append("- ⛔ **阻止交付**：产物未达到可部署标准\n");
+                                        if (StrUtil.isNotBlank(currentContext.getErrorMessage())) {
+                                            stepInfo.append("\n```text\n").append(currentContext.getErrorMessage()).append("\n```\n");
+                                        }
                                     }
                                     break;
 
@@ -352,12 +408,34 @@ public class CodeGenWorkflowApp {
                             emitStreamBlock(sink, aiResponseBuilder, stepInfo.toString());
                             log.info("当前步骤: {} - {}", nodeName, currentContext.getCurrentStep());
 
-                            // 如果是项目构建节点，说明是最后一步，主动结束循环，防止流迭代器阻塞
-                            if ("project_builder".equals(nodeName)) {
-                                log.info("项目构建完成，主动结束工作流循环");
+                            // 交付门禁是最后一步，到达后主动结束循环，防止流迭代器阻塞
+                            if ("delivery_gate".equals(nodeName)) {
+                                log.info("交付门禁执行完成，主动结束工作流循环");
                                 break;
                             }
                         }
+                    }
+
+                    // 只有通过交付门禁才允许发送成功标记，失败时明确进入会话错误状态
+                    if (finalContext == null || !finalContext.isDeliveryReady()) {
+                        String failureMessage = finalContext != null && StrUtil.isNotBlank(finalContext.getErrorMessage())
+                                ? finalContext.getErrorMessage()
+                                : "工作流未产生可交付产物";
+                        String errorInfo = "\n\n<!-- WORKFLOW_ERROR -->\n\n" +
+                                "---\n\n" +
+                                "# 🛑 产物未通过交付质量门禁\n\n" +
+                                "<div class='workflow-error'>\n\n" +
+                                "**阻断原因：**\n\n" +
+                                "```text\n" + failureMessage + "\n```\n\n" +
+                                "**系统处理：**\n\n" +
+                                "- 已阻止发送“生成完成”状态\n" +
+                                "- 已阻止进入部署推荐\n" +
+                                "- 构建日志和门禁错误已保留用于下一轮修复\n\n" +
+                                "</div>\n\n";
+                        emitStreamBlock(sink, aiResponseBuilder, errorInfo);
+                        log.warn("工作流被交付门禁阻断，产物ID: {}，原因: {}", appId, failureMessage);
+                        sink.error(new BusinessException(ErrorCode.OPERATION_ERROR, "产物未通过交付质量门禁"));
+                        return;
                     }
 
                     // 发送工作流完成事件 - 使用结构化完成标记
@@ -365,14 +443,16 @@ public class CodeGenWorkflowApp {
                             "---\n\n" +
                             "# 🎉 代码生成任务完成\n\n" +
                             "<div class='workflow-summary'>\n\n" +
-                            "**✅ 所有工作流节点执行完毕**\n\n" +
+                            "**✅ 所有质量门禁通过**\n\n" +
                             "- 🌐 网络资源已整理\n" +
                             "- 🖼️ 图片资源已收集\n" +
                             "- ✨ 提示词已增强\n" +
                             "- 🎯 代码类型已确定\n" +
                             "- 💻 代码已生成\n" +
+                            "- 🧩 项目结构已预检\n" +
                             "- 🔍 质量已审查\n" +
-                            "- 🏗️ 项目已构建\n\n" +
+                            "- 🏗️ 构建结果已验证（Vue 项目）\n" +
+                            "- 🚦 交付门禁已通过\n\n" +
                             "**下一步操作：**\n\n" +
                             "- 📱 切换到「产物模式」查看预览\n" +
                             "- 🚀 点击「部署」发布到线上\n" +
@@ -451,45 +531,72 @@ public class CodeGenWorkflowApp {
     }
 
     /**
-     * 条件边的路由逻辑
+     * 项目结构预检路由
      *
-     * @param state 消息状态，包含工作流上下文信息
-     * @return String 自定义的路由结果参数
-     * @author DuRuiChi
-     * @create 2026/1/14
-     **/
-    private String nodeRouter(MessagesState<String> state) {
-        // 获取工作流上下文
+     * @param state 工作流状态
+     * @return 路由结果
+     */
+    private String preflightRouter(MessagesState<String> state) {
         WorkflowContext context = WorkflowContext.getContext(state);
-        CodeReviewResponse codeReviewResponse = context.getCodeReviewResponse();
-        CodeGeneratorTypeEnum generationType = context.getGenerationType();
-
-        // 1. 代码审查结果为空，返回失败（异常情况）
-        if (codeReviewResponse == null) {
-            log.warn("代码审查结果为空，返回失败路由");
-            return "code_review_failed";
+        if (context == null) {
+            log.warn("项目结构预检上下文为空，进入失败终态");
+            return "preflight_failed";
         }
-
-        Long reviewCount = codeReviewResponse.getReviewCount();
-        Boolean isPass = codeReviewResponse.getIsPass();
-
-        log.info("代码审查路由判断 - 审查次数: {}, 是否通过: {}", reviewCount, isPass);
-
-        // 2. 代码审查未通过且审查次数小于最大重试次数，继续重试
-        if (!isPass && (reviewCount == null || reviewCount < MAX_CODE_REVIEW_ATTEMPTS)) {
-            log.info("代码审查未通过，继续重试 - 当前次数: {}", reviewCount);
-            return "code_review_failed";
+        if (context.isPreflightPassed()) {
+            log.info("项目结构预检通过，进入 AI 代码审查");
+            return "preflight_pass";
         }
-
-        // 3. 代码审查通过或已达到最大重试次数，判断是否需要构建项目
-        // HTML 和 MULTI_FILE 类型不需要构建
-        if (generationType == CodeGeneratorTypeEnum.HTML || generationType == CodeGeneratorTypeEnum.MULTI_FILE) {
-            log.info("代码类型 {} 无需构建，直接结束", generationType.getValue());
-            return "code_review_succeeded_and_skip_build";
+        if (context.getRepairAttemptCount() < MAX_REPAIR_ATTEMPTS) {
+            log.info("项目结构预检未通过，进入第 {} 轮修复", context.getRepairAttemptCount());
+            return "preflight_retry";
         }
+        log.warn("项目结构预检达到最大修复轮次，阻断交付");
+        return "preflight_failed";
+    }
 
-        // 4. 项目工程模式需要构建
-        log.info("代码类型 {} 需要构建", generationType.getValue());
-        return "code_review_succeeded_and_build";
+    /**
+     * AI 代码审查路由
+     *
+     * @param state 工作流状态
+     * @return 路由结果
+     */
+    private String reviewRouter(MessagesState<String> state) {
+        WorkflowContext context = WorkflowContext.getContext(state);
+        CodeReviewResponse codeReviewResponse = context == null ? null : context.getCodeReviewResponse();
+        boolean reviewPassed = codeReviewResponse != null && Boolean.TRUE.equals(codeReviewResponse.getIsPass());
+        if (reviewPassed) {
+            if (CodeGeneratorTypeEnum.VUE_PROJECT.equals(context.getGenerationType())) {
+                log.info("AI 代码审查通过，进入 Vue 项目真实构建");
+                return "review_pass_and_build";
+            }
+            log.info("AI 代码审查通过，静态页面进入交付门禁");
+            return "review_pass_and_deliver";
+        }
+        if (context != null && context.getRepairAttemptCount() < MAX_REPAIR_ATTEMPTS) {
+            log.info("AI 代码审查未通过，进入第 {} 轮修复", context.getRepairAttemptCount());
+            return "review_retry";
+        }
+        log.warn("AI 代码审查达到最大修复轮次，阻断交付");
+        return "review_failed";
+    }
+
+    /**
+     * 项目构建路由
+     *
+     * @param state 工作流状态
+     * @return 路由结果
+     */
+    private String buildRouter(MessagesState<String> state) {
+        WorkflowContext context = WorkflowContext.getContext(state);
+        if (context != null && context.isBuildPassed()) {
+            log.info("Vue 项目真实构建通过，进入交付门禁");
+            return "build_pass";
+        }
+        if (context != null && context.getRepairAttemptCount() < MAX_REPAIR_ATTEMPTS) {
+            log.info("Vue 项目构建未通过，进入第 {} 轮修复", context.getRepairAttemptCount());
+            return "build_retry";
+        }
+        log.warn("Vue 项目构建达到最大修复轮次，阻断交付");
+        return "build_failed";
     }
 }

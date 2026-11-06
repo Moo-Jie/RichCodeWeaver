@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 
 import java.io.Serial;
@@ -26,6 +27,7 @@ import java.util.Map;
  **/
 @Data
 @Builder
+@Slf4j
 @NoArgsConstructor
 @AllArgsConstructor
 public class WorkflowContext implements Serializable {
@@ -65,6 +67,30 @@ public class WorkflowContext implements Serializable {
      * 代码审查结果
      */
     private CodeReviewResponse codeReviewResponse;
+    /**
+     * 确定性结构检查是否通过
+     */
+    private boolean preflightPassed;
+    /**
+     * 确定性结构检查错误
+     */
+    private List<String> preflightErrors;
+    /**
+     * 当前修复轮次，由工作流状态维护，不能依赖模型返回的审查次数
+     */
+    private int repairAttemptCount;
+    /**
+     * 真实构建是否通过
+     */
+    private boolean buildPassed;
+    /**
+     * 构建失败日志，用于下一轮定向修复
+     */
+    private String buildErrorLog;
+    /**
+     * 是否满足最终交付门禁
+     */
+    private boolean deliveryReady;
     /**
      * 图片资源字符串
      */
@@ -143,7 +169,7 @@ public class WorkflowContext implements Serializable {
             appService.updateById(app);
         } catch (Exception e) {
             // 记录日志但不中断流程
-            System.err.println("更新 app codeGenType 失败: " + e.getMessage());
+            log.error("更新 app codeGenType 失败: appId={}, type={}", appId, finalType.getValue(), e);
         }
     }
 }

@@ -14,7 +14,6 @@ import com.rich.common.constant.AppConstant;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.utils.deployWebProjectUtils.BuildWebProjectExecutor;
-import com.rich.common.utils.deployWebProjectUtils.ExecuteSysCommandUtil;
 import com.rich.model.entity.App;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -79,7 +78,7 @@ public class VueProjectBuildConsumer {
         long startTime = taskMetrics.startTimer();
 
         try {
-            log.info("开始处理Vue构建任务: appId={}, messageId={}", 
+            log.info("开始处理Vue构建任务: appId={}, messageId={}",
                     message.getAppId(), message.getMessageId());
 
             // 1. 更新任务状态为执行中
@@ -97,50 +96,24 @@ public class VueProjectBuildConsumer {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "项目目录不存在: " + projectPath);
             }
 
-            // 3. 执行npm install
-            log.info("开始安装依赖: appId={}, projectPath={}", message.getAppId(), projectPath);
-            taskExecutionService.updateStatus(message.getAppId(), "RUNNING", 30);
-            webSocketNotifier.notifyProgress(message.getAppId(), "RUNNING", 30, "安装依赖中");
-
-            String npmInstallCmd = System.getProperty("os.name").toLowerCase().contains("win") 
-                    ? "npm.cmd install" : "npm install";
-            
-            ExecuteSysCommandUtil.CommandResult installResult = 
-                    ExecuteSysCommandUtil.executeCommandWithLog(projectDir, npmInstallCmd, 300);
-
-            if (!installResult.success()) {
-                String errorLog = StrUtil.sub(installResult.log(), 0, 500);
-                throw new BusinessException(ErrorCode.OPERATION_ERROR, 
-                        "依赖安装失败: " + errorLog);
-            }
-
-            log.info("依赖安装完成: appId={}", message.getAppId());
-
-            // 4. 执行npm run build
+            // 3. 统一通过构建执行器完成依赖安装、构建和 dist 校验
             log.info("开始构建项目: appId={}, projectPath={}", message.getAppId(), projectPath);
-            taskExecutionService.updateStatus(message.getAppId(), "RUNNING", 60);
-            webSocketNotifier.notifyProgress(message.getAppId(), "RUNNING", 60, "构建项目中");
+            taskExecutionService.updateStatus(message.getAppId(), "RUNNING", 30);
+            webSocketNotifier.notifyProgress(message.getAppId(), "RUNNING", 30, "安装依赖并构建中");
 
-            String npmBuildCmd = System.getProperty("os.name").toLowerCase().contains("win") 
-                    ? "npm.cmd run build" : "npm run build";
-            
-            ExecuteSysCommandUtil.CommandResult buildResult = 
-                    ExecuteSysCommandUtil.executeCommandWithLog(projectDir, npmBuildCmd, 300);
-
+            BuildWebProjectExecutor.BuildResult buildResult =
+                    buildExecutor.buildProjectWithLog(projectDir.getAbsolutePath());
             if (!buildResult.success()) {
-                String errorLog = StrUtil.sub(buildResult.log(), 0, 500);
-                throw new BusinessException(ErrorCode.OPERATION_ERROR, 
-                        "项目构建失败: " + errorLog);
+                throw new NonRetryableBuildException(
+                        "项目构建失败（阶段: " + buildResult.phase() + "）\n" + buildResult.log());
             }
 
+            taskExecutionService.updateStatus(message.getAppId(), "RUNNING", 60);
+            webSocketNotifier.notifyProgress(message.getAppId(), "RUNNING", 60, "构建完成，准备部署");
             log.info("项目构建完成: appId={}", message.getAppId());
 
-            // 5. 验证dist目录
+            // 4. 构建执行器已校验 dist/index.html，这里只解析部署来源
             File distDir = new File(projectDir, "dist");
-            if (!distDir.exists() || !distDir.isDirectory()) {
-                throw new BusinessException(ErrorCode.OPERATION_ERROR, 
-                        "dist目录未生成，请检查vite.config.js的outDir配置");
-            }
 
             // 6. 部署：复制dist到部署目录
             taskExecutionService.updateStatus(message.getAppId(), "RUNNING", 80);
@@ -156,6 +129,7 @@ public class VueProjectBuildConsumer {
                 // 7. 更新产物信息
                 App updateApp = new App();
                 updateApp.setId(message.getAppId());
+                updateApp.setDeployKey(deployKey);
                 updateApp.setDeployedTime(LocalDateTime.now());
                 appService.updateById(updateApp);
 
@@ -182,7 +156,7 @@ public class VueProjectBuildConsumer {
 
         } catch (Exception e) {
             log.error("Vue构建任务失败: appId={}, error={}", message.getAppId(), e.getMessage(), e);
-            
+
             // 失败处理
             handleBuildFailure(message, channel, deliveryTag, e, startTime);
         } finally {
@@ -194,16 +168,27 @@ public class VueProjectBuildConsumer {
     /**
      * 处理构建失败
      */
-    private void handleBuildFailure(TaskMessage message, Channel channel, 
+    private void handleBuildFailure(TaskMessage message, Channel channel,
                                      long deliveryTag, Exception e, long startTime) {
         try {
+            if (e instanceof NonRetryableBuildException) {
+                String errorMessage = e.getMessage() != null ? e.getMessage() : "构建失败";
+                taskExecutionService.updateStatus(message.getAppId(), "FAILED", 0);
+                taskExecutionService.updateResult(message.getAppId(), errorMessage);
+                webSocketNotifier.notifyFailure(message.getAppId(), errorMessage);
+                channel.basicAck(deliveryTag, false);
+                taskMetrics.recordTaskFailure(TASK_TYPE);
+                taskMetrics.stopTimer(TASK_TYPE, startTime);
+                return;
+            }
+
             int retryCount = message.getRetryCount();
             int maxRetries = message.getMaxRetries();
 
             if (retryCount < maxRetries) {
                 // 指数退避: 3s, 6s, 12s
                 long backoffMs = RETRY_INITIAL_INTERVAL_MS * (1L << retryCount);
-                log.warn("构建失败,准备重试: appId={}, retryCount={}/{}, backoff={}ms", 
+                log.warn("构建失败,准备重试: appId={}, retryCount={}/{}, backoff={}ms",
                         message.getAppId(), retryCount + 1, maxRetries, backoffMs);
 
                 message.setRetryCount(retryCount + 1);
@@ -246,6 +231,17 @@ public class VueProjectBuildConsumer {
             } catch (IOException nackEx) {
                 log.error("NACK失败: appId={}", message.getAppId(), nackEx);
             }
+        }
+    }
+
+    /**
+     * 确定性构建错误不需要重复执行同一份代码
+     */
+    private static class NonRetryableBuildException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        NonRetryableBuildException(String message) {
+            super(message);
         }
     }
 }

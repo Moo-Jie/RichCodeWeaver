@@ -56,8 +56,14 @@ public class SetCodeGenTypeTool extends BaseTool {
             String codeGenType,
             @ToolMemoryId Long appId) {
 
+        if (appId == null || appId <= 0) {
+            return "错误: 产物 ID 无效，无法设置代码生成类型";
+        }
+
         // 支持 'html' 作为 'single_html' 的别名（兼容 AI 可能使用的简化名称）
-        String normalizedType = "html".equalsIgnoreCase(codeGenType) ? "single_html" : codeGenType;
+        String normalizedType = codeGenType != null && "html".equalsIgnoreCase(codeGenType)
+                ? "single_html"
+                : codeGenType;
         CodeGeneratorTypeEnum typeEnum = CodeGeneratorTypeEnum.getEnumByValue(normalizedType);
         if (typeEnum == null) {
             String msg = "错误: 不支持的代码生成类型 '" + codeGenType
@@ -66,25 +72,23 @@ public class SetCodeGenTypeTool extends BaseTool {
             return msg;
         }
 
-        // 更新数据库中的代码生成类型（使用规范化后的值）
-        boolean updated = UpdateChain.of(App.class)
-                .set(App::getCodeGenType, normalizedType)
-                .eq(App::getId, appId)
-                .update();
-
-        if (!updated) {
-            String msg = "警告: 数据库更新失败，appId=" + appId + "，类型=" + normalizedType + "，请继续执行代码生成";
-            log.warn(msg);
-            return msg;
+        // 数据库写入失败不能阻断文件工具，否则后续文件会落到默认 Vue 目录
+        boolean updated = false;
+        try {
+            updated = UpdateChain.of(App.class)
+                    .set(App::getCodeGenType, normalizedType)
+                    .eq(App::getId, appId)
+                    .update();
+        } catch (Exception e) {
+            log.error("代码生成类型持久化失败: appId={}, codeGenType={}", appId, normalizedType, e);
         }
 
-        log.info("代码生成类型已设置: appId={}, codeGenType={}", appId, normalizedType);
-
-        // 更新 creatAndWrite 工具的类型缓存，确保后续文件写入正确的目录
+        // 缓存是文件工具定位目录的运行时事实来源，必须早于任何文件写入更新
         CreatAndWriteAiTool.APP_CODE_GEN_TYPE_CACHE.put(appId, normalizedType);
+        log.info("代码生成类型已设置: appId={}, codeGenType={}, persisted={}", appId, normalizedType, updated);
 
         // 根据类型给出后续文件创建指引（目录名 = codeGenType_appId）
-        return switch (typeEnum) {
+        String guidance = switch (typeEnum) {
             case HTML -> """
                     代码生成类型已设置为 single_html。
                     【后续操作指引】
@@ -111,5 +115,9 @@ public class SetCodeGenTypeTool extends BaseTool {
                     """.formatted(appId);
             default -> "代码生成类型已设置为 " + normalizedType;
         };
+        return updated
+                ? guidance
+                : "警告: 数据库更新失败，appId=" + appId + "，类型=" + normalizedType
+                        + "；文件工具仍会按该类型继续执行。\n" + guidance;
     }
 }

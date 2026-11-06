@@ -1,8 +1,6 @@
 package com.rich.app.langGraph.node;
 
 import com.rich.app.langGraph.state.WorkflowContext;
-import com.rich.common.exception.BusinessException;
-import com.rich.common.exception.ErrorCode;
 import com.rich.common.utils.SpringContextUtil;
 import com.rich.common.utils.deployWebProjectUtils.BuildWebProjectExecutor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,40 +13,43 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
 /**
  * 项目构建节点
+ * 使用真实 npm 构建结果驱动工作流路由，构建失败时保留日志用于下一轮修复
  *
  * @author DuRuiChi
  * @create 2026/1/11
  **/
 @Slf4j
 public class ProjectBuilderNode {
+
+    /**
+     * 创建项目构建节点
+     *
+     * @return 异步节点
+     */
     public static AsyncNodeAction<MessagesState<String>> create() {
         return node_async(state -> {
             WorkflowContext context = WorkflowContext.getContext(state);
             log.info("\n 正在执行节点: 项目构建。\n");
 
-            String outputDir = context.getOutputDir();
-            String buildResultDir;
-            try {
-                BuildWebProjectExecutor buildWebProjectExecutor = SpringContextUtil.getBean(BuildWebProjectExecutor.class);
-                // 构建代码
-                boolean buildSuccess = buildWebProjectExecutor.buildProject(outputDir);
-                if (buildSuccess) {
-                    // 返回 dist 目录的路径
-                    buildResultDir = outputDir + File.separator + "dist";
-                    log.info("项目构建成功，目录为: {}", buildResultDir);
-                } else {
-                    throw new BusinessException(ErrorCode.SYSTEM_ERROR, "工程项目构建失败");
-                }
-            } catch (Exception e) {
-                log.error("Vue 项目构建异常: {}", e.getMessage(), e);
-                // 返回原路径
-                buildResultDir = outputDir;
-            }
+            BuildWebProjectExecutor buildWebProjectExecutor =
+                    SpringContextUtil.getBean(BuildWebProjectExecutor.class);
+            BuildWebProjectExecutor.BuildResult buildResult =
+                    buildWebProjectExecutor.buildProjectWithLog(context.getOutputDir());
 
-            // 更新状态
-            context.setDeployDir(buildResultDir);
-            context.setCurrentStep("项目构建已完成");
-            log.info("\n 项目构建节点运行完成，最终目录: {} \n ", buildResultDir);
+            context.setBuildPassed(buildResult.success());
+            if (buildResult.success()) {
+                context.setBuildErrorLog(null);
+                context.setDeployDir(context.getOutputDir() + File.separator + "dist");
+                context.setCurrentStep("Vue 项目构建已通过");
+                log.info("Vue 项目构建成功: appId={}, dist={}", context.getAppId(), context.getDeployDir());
+            } else {
+                context.setDeployDir(null);
+                context.setBuildErrorLog(buildResult.log());
+                context.setRepairAttemptCount(context.getRepairAttemptCount() + 1);
+                context.setCurrentStep("Vue 项目构建未通过");
+                log.warn("Vue 项目构建失败: appId={}, phase={}, log={}",
+                        context.getAppId(), buildResult.phase(), buildResult.log());
+            }
             return WorkflowContext.saveContext(context);
         });
     }

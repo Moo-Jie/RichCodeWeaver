@@ -80,9 +80,13 @@ public class SystemPromptServiceImpl extends ServiceImpl<SystemPromptMapper, Sys
             log.warn("promptKey 为空，无法查询提示词内容");
             return null;
         }
+        // 同一 promptKey 可能因历史导入产生重复记录，固定取最新一条避免 TooManyResultsException
         QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq("promptKey", promptKey)
-                .eq("isDelete", 0);
+                .eq("isDelete", 0)
+                .orderBy("updateTime", false)
+                .orderBy("id", false)
+                .limit(1);
         SystemPrompt systemPrompt = this.getOne(queryWrapper);
         if (systemPrompt == null) {
             log.warn("未找到 promptKey={} 对应的系统提示词", promptKey);

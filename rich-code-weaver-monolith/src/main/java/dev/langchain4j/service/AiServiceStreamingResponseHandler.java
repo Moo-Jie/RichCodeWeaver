@@ -35,12 +35,15 @@ import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
 @Internal
 class AiServiceStreamingResponseHandler implements StreamingChatResponseHandler {
     private static final Logger LOG = LoggerFactory.getLogger(AiServiceStreamingResponseHandler.class);
+    private static final int MAX_TOTAL_TOOL_INVOCATIONS =
+            Integer.getInteger("cw.agent.max-total-tool-invocations", 120);
 
     private final ChatExecutor chatExecutor;
     private final AiServiceContext context;
     private final Object memoryId;
     private final GuardrailRequestParams commonGuardrailParams;
     private final Object methodKey;
+    private final int toolInvocationCount;
 
     private final Consumer<String> partialResponseHandler;
     private final BiConsumer<Integer, ToolExecutionRequest> partialToolExecutionRequestHandler;
@@ -73,11 +76,13 @@ class AiServiceStreamingResponseHandler implements StreamingChatResponseHandler 
             List<ToolSpecification> toolSpecifications,
             Map<String, ToolExecutor> toolExecutors,
             GuardrailRequestParams commonGuardrailParams,
-            Object methodKey) {
+            Object methodKey,
+            int toolInvocationCount) {
         this.chatExecutor = ensureNotNull(chatExecutor, "chatExecutor");
         this.context = ensureNotNull(context, "context");
         this.memoryId = ensureNotNull(memoryId, "memoryId");
         this.methodKey = methodKey;
+        this.toolInvocationCount = toolInvocationCount;
 
         this.partialResponseHandler = ensureNotNull(partialResponseHandler, "partialResponseHandler");
         this.partialToolExecutionRequestHandler = partialToolExecutionRequestHandler;
@@ -117,10 +122,24 @@ class AiServiceStreamingResponseHandler implements StreamingChatResponseHandler 
         addToMemory(aiMessage);
 
         if (aiMessage.hasToolExecutionRequests()) {
+            int nextToolInvocationCount = toolInvocationCount + aiMessage.toolExecutionRequests().size();
+            if (nextToolInvocationCount > MAX_TOTAL_TOOL_INVOCATIONS) {
+                onError(new IllegalStateException("工具调用总数超过安全上限: " + MAX_TOTAL_TOOL_INVOCATIONS));
+                return;
+            }
             for (ToolExecutionRequest toolExecutionRequest : aiMessage.toolExecutionRequests()) {
                 String toolName = toolExecutionRequest.name();
                 ToolExecutor toolExecutor = toolExecutors.get(toolName);
-                String toolExecutionResult = toolExecutor.execute(toolExecutionRequest, memoryId);
+                String toolExecutionResult;
+                if (toolExecutor == null) {
+                    toolExecutionResult = "工具不存在或当前阶段不可用: " + toolName + "。请改用已注册工具或调整方案。";
+                } else {
+                    try {
+                        toolExecutionResult = toolExecutor.execute(toolExecutionRequest, memoryId);
+                    } catch (Exception e) {
+                        toolExecutionResult = "工具执行失败: " + toolName + "，错误: " + e.getMessage();
+                    }
+                }
                 ToolExecutionResultMessage toolExecutionResultMessage =
                         ToolExecutionResultMessage.from(toolExecutionRequest, toolExecutionResult);
                 addToMemory(toolExecutionResultMessage);
@@ -154,7 +173,8 @@ class AiServiceStreamingResponseHandler implements StreamingChatResponseHandler 
                     toolSpecifications,
                     toolExecutors,
                     commonGuardrailParams,
-                    methodKey);
+                    methodKey,
+                    nextToolInvocationCount);
 
             context.streamingChatModel.chat(chatRequest, handler);
         } else {

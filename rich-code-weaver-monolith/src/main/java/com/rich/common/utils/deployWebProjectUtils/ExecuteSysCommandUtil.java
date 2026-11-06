@@ -88,13 +88,13 @@ public class ExecuteSysCommandUtil {
 
             if (!finished) {
                 log.error("命令执行超时（{}秒），强制终止进程", timeoutSeconds);
-                process.destroyForcibly();
+                destroyProcessTree(process);
                 return false;
             }
 
             // 获取命令输出
-            String output = outputFuture.get(1, TimeUnit.SECONDS);
-            String error = errorFuture.get(1, TimeUnit.SECONDS);
+            String output = outputFuture.get(5, TimeUnit.SECONDS);
+            String error = errorFuture.get(5, TimeUnit.SECONDS);
 
             int exitCode = process.exitValue();
             if (exitCode == 0) {
@@ -116,7 +116,7 @@ public class ExecuteSysCommandUtil {
             return false;
         } finally {
             if (process != null && process.isAlive()) {
-                process.destroyForcibly();
+                destroyProcessTree(process);
             }
         }
     }
@@ -189,15 +189,16 @@ public class ExecuteSysCommandUtil {
 
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
-                process.destroyForcibly();
+                destroyProcessTree(process);
                 return new CommandResult(false, "命令执行超时（" + timeoutSeconds + "秒），已强制终止");
             }
 
-            String output = outputFuture.get(1, TimeUnit.SECONDS);
-            String error = errorFuture.get(1, TimeUnit.SECONDS);
+            String output = outputFuture.get(5, TimeUnit.SECONDS);
+            String error = errorFuture.get(5, TimeUnit.SECONDS);
             int exitCode = process.exitValue();
 
             StringBuilder logSb = new StringBuilder();
+            logSb.append("[exitCode] ").append(exitCode).append("\n");
             if (StrUtil.isNotBlank(output)) {
                 logSb.append("[stdout]\n").append(truncateLongText(output)).append("\n");
             }
@@ -212,7 +213,7 @@ public class ExecuteSysCommandUtil {
             return new CommandResult(false, "执行异常: " + e.getMessage());
         } finally {
             if (process != null && process.isAlive()) {
-                process.destroyForcibly();
+                destroyProcessTree(process);
             }
         }
     }
@@ -226,11 +227,28 @@ public class ExecuteSysCommandUtil {
      * 截断过长的文本
      */
     private static String truncateLongText(String text) {
-        final int MAX_LENGTH = 2000;
-        if (text.length() > MAX_LENGTH) {
-            return text.substring(0, MAX_LENGTH) + "\n... [输出被截断，总长度: " + text.length() + " 字符]";
+        final int MAX_LENGTH = 6000;
+        final int HEAD_LENGTH = 1500;
+        if (text.length() <= MAX_LENGTH) {
+            return text;
         }
-        return text;
+        int tailLength = MAX_LENGTH - HEAD_LENGTH;
+        return text.substring(0, HEAD_LENGTH)
+                + "\n... [中间输出已省略，总长度: " + text.length() + " 字符] ...\n"
+                + text.substring(text.length() - tailLength);
+    }
+
+    /**
+     * 递归终止命令进程树，避免 npm 派生的 node、esbuild、rollup 子进程残留
+     *
+     * @param process 需要终止的进程
+     */
+    private static void destroyProcessTree(Process process) {
+        if (process == null) {
+            return;
+        }
+        process.descendants().forEach(ProcessHandle::destroyForcibly);
+        process.destroyForcibly();
     }
 
     /**

@@ -9,6 +9,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
 /**
@@ -36,9 +39,8 @@ public class PromptEnhancerNode {
      * 构建增强后的用户提示词
      */
     private static String buildEnhancedUserPrompt(WorkflowContext context) {
-        // 1.代码质检未通过：构建代码错误修复提示词
-        CodeReviewResponse codeReviewResponse = context.getCodeReviewResponse();
-        if (isQualityCheckFailed(codeReviewResponse)) {
+        // 1.结构预检、AI 审查或真实构建未通过：构建定向修复提示词
+        if (hasRepairEvidence(context)) {
             return buildErrorFixPrompt(context);
         }
 
@@ -99,13 +101,20 @@ public class PromptEnhancerNode {
     }
 
     /**
-     * 进行过代码质检，并且未通过
+     * 判断是否存在需要修复的质量门禁证据
+     *
+     * @param context 工作流上下文
+     * @return true 表示需要生成修复提示词
      */
-    private static boolean isQualityCheckFailed(CodeReviewResponse codeReviewResponse) {
-        return codeReviewResponse != null &&
-                !codeReviewResponse.getIsPass() &&
-                codeReviewResponse.getErrorList() != null &&
-                !codeReviewResponse.getErrorList().isEmpty();
+    private static boolean hasRepairEvidence(WorkflowContext context) {
+        if (StrUtil.isNotBlank(context.getBuildErrorLog())) {
+            return true;
+        }
+        if (context.getPreflightErrors() != null && !context.getPreflightErrors().isEmpty()) {
+            return true;
+        }
+        CodeReviewResponse codeReviewResponse = context.getCodeReviewResponse();
+        return codeReviewResponse != null && Boolean.FALSE.equals(codeReviewResponse.getIsPass());
     }
 
     /**

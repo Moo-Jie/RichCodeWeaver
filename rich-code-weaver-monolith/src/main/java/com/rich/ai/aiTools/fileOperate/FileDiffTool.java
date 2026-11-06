@@ -2,7 +2,6 @@ package com.rich.ai.aiTools.fileOperate;
 
 import cn.hutool.json.JSONObject;
 import com.rich.ai.aiTools.BaseTool;
-import com.rich.common.constant.AppConstant;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * 文件差异对比工具
@@ -111,7 +109,7 @@ public class FileDiffTool extends BaseTool {
         diff.append(String.format("统计: +%d 新增 | -%d 删除 | ~%d 修改\n", additions, deletions, modifications));
         diff.append("─".repeat(50));
 
-        log.info("[FileDiff] appId={}, additions={}, deletions={}, modifications={}", 
+        log.info("[FileDiff] appId={}, additions={}, deletions={}, modifications={}",
                 appId, additions, deletions, modifications);
 
         return diff.toString();
@@ -141,12 +139,8 @@ public class FileDiffTool extends BaseTool {
         }
 
         try {
-            String codeGenType = CreatAndWriteAiTool.APP_CODE_GEN_TYPE_CACHE.getOrDefault(appId, "vue_project");
-            String projectDirName = codeGenType + "_" + appId;
-            Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
-
-            Path path1 = projectRoot.resolve(filePath1);
-            Path path2 = projectRoot.resolve(filePath2);
+            Path path1 = ProjectPathResolver.resolve(appId, filePath1);
+            Path path2 = ProjectPathResolver.resolve(appId, filePath2);
 
             if (!Files.exists(path1)) {
                 return "错误：文件不存在 - " + filePath1;

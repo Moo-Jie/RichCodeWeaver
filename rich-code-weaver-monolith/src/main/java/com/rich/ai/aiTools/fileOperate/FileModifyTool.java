@@ -2,7 +2,6 @@ package com.rich.ai.aiTools.fileOperate;
 
 import cn.hutool.json.JSONObject;
 import com.rich.ai.aiTools.BaseTool;
-import com.rich.common.constant.AppConstant;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.agent.tool.ToolMemoryId;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 /**
@@ -84,16 +82,8 @@ public class FileModifyTool extends BaseTool {
         }
 
         try {
-            // 解析文件路径
-            Path targetPath = Paths.get(relativeFilePath);
-
-            // 如果不是绝对路径，则拼接项目根目录
-            if (!targetPath.isAbsolute()) {
-                String codeGenType = CreatAndWriteAiTool.APP_CODE_GEN_TYPE_CACHE.getOrDefault(appId, "vue_project");
-                String projectDirName = codeGenType + "_" + appId;
-                Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
-                targetPath = projectRoot.resolve(relativeFilePath);
-            }
+            // 统一通过路径解析器限制在当前产物目录内
+            Path targetPath = ProjectPathResolver.resolve(appId, relativeFilePath);
 
             // 检查文件是否存在
             if (!Files.exists(targetPath)) {

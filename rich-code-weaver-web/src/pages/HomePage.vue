@@ -136,7 +136,8 @@ const createApp = async () => {
   try {
     const res = await addApp({
       initPrompt: userPrompt.value.trim(),
-      generatorType: generatorType.value
+      generatorType: generatorType.value,
+      genMode: useAgentMode.value ? 'workflow' : 'agent'
     })
 
     if (res.data.code === 0 && res.data.data) {
