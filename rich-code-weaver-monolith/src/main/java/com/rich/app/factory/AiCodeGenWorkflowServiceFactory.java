@@ -249,7 +249,7 @@ public class AiCodeGenWorkflowServiceFactory {
                                                                           ChatMemory chatMemory) {
         return AiServices.builder(AiCodeGeneratorService.class)
                 .chatModel(chatModel)
-                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPromptContent, (Long) memoryId, AiServiceConstant.SUMMARY_TYPE_WORKFLOW))
+                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPromptContent, memoryId, AiServiceConstant.SUMMARY_TYPE_WORKFLOW))
                 .maxSequentialToolsInvocations(AiServiceConstant.WORKFLOW_MAX_TOOLS_INVOCATIONS)
                 .chatMemory(chatMemory);
     }
@@ -331,8 +331,16 @@ public class AiCodeGenWorkflowServiceFactory {
      * @param summaryType 摘要类型
      * @return 拼接摘要后的系统提示词
      */
-    private String appendSummaryToPrompt(String basePrompt, Long memoryId, String summaryType) {
-        String summary = aiChatSummaryService.getLatestSummaryContent(memoryId, summaryType);
+    private String appendSummaryToPrompt(String basePrompt, Object memoryId, String summaryType) {
+        Long resolvedMemoryId;
+        try {
+            resolvedMemoryId = memoryId instanceof Number number
+                    ? number.longValue()
+                    : Long.valueOf(String.valueOf(memoryId));
+        } catch (NumberFormatException e) {
+            return basePrompt;
+        }
+        String summary = aiChatSummaryService.getLatestSummaryContent(resolvedMemoryId, summaryType);
         if (summary == null || summary.isBlank()) {
             return basePrompt;
         }

@@ -31,11 +31,9 @@ public class ClearCacheFilesAtStartup implements CommandLineRunner {
     public void run(String... args) {
         File localFile = new File(APP_SCREENSHOT_DIR + File.separator);
         if (localFile.exists()) {
-            // 获取文件所在目录
-            File parentDir = localFile.getParentFile();
-            // 删除整个目录
-            FileUtil.del(parentDir);
-            log.info("项目启动时清空缓存文件：{}", parentDir.getAbsolutePath());
+            // 只清理截图目录，避免删除 sysCache 下其他运行时文件
+            FileUtil.del(localFile);
+            log.info("项目启动时清空缓存文件：{}", localFile.getAbsolutePath());
         }
     }
 }

@@ -34,6 +34,11 @@ public class CodeGeneratorNode {
     private static final ConcurrentHashMap<Long, Consumer<String>> STREAM_EMITTERS = new ConcurrentHashMap<>();
 
     /**
+     * 单次代码文件生成最长等待时间
+     */
+    private static final Duration CODE_GENERATION_TIMEOUT = Duration.ofMinutes(20);
+
+    /**
      * 注册流式输出发射器（由 CodeGenWorkflowApp 在工作流启动前调用）
      *
      * @param appId   产物ID
@@ -91,10 +96,10 @@ public class CodeGeneratorNode {
                 if (emitter != null) {
                     // 工作流模式：将每个流式文本块转发到前端，实现与普通流式输出相同的实时展示效果
                     // 使用 doOnNext 在每个元素发出时执行发射器，blockLast 等待流完成（最多10分钟）
-                    codeStream.doOnNext(emitter).blockLast(Duration.ofMinutes(10));
+                    codeStream.doOnNext(emitter).blockLast(CODE_GENERATION_TIMEOUT);
                 } else {
                     // 无发射器：静默等待流完成（非工作流模式或测试场景）
-                    codeStream.blockLast(Duration.ofMinutes(10));
+                    codeStream.blockLast(CODE_GENERATION_TIMEOUT);
                 }
             } finally {
                 MonitorContextHolder.clearContext();

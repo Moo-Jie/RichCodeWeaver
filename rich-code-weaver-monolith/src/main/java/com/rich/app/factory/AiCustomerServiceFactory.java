@@ -213,7 +213,7 @@ public class AiCustomerServiceFactory {
                 // 客服使用专用流式模型
                 .streamingChatModel(streamingChatModel)
                 // 系统提示词 + 增量摘要上下文拼接（systemMessageProvider 每次调用时动态获取最新摘要）
-                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPrompt, (Long) memoryId))
+                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPrompt, memoryId))
                 // 直接绑定当前 conversationId 对应的 chatMemory，保持多轮客服上下文连续
                 .chatMemory(chatMemory)
                 // 同时保留 chatMemoryProvider，兼容依赖 MemoryId 的调用方式
@@ -227,8 +227,16 @@ public class AiCustomerServiceFactory {
      * @param memoryId   记忆标识（conversationId）
      * @return 拼接摘要后的系统提示词
      */
-    private String appendSummaryToPrompt(String basePrompt, Long memoryId) {
-        String summary = aiChatSummaryService.getLatestSummaryContent(memoryId, AiServiceConstant.SUMMARY_TYPE_CUSTOMER_SERVICE);
+    private String appendSummaryToPrompt(String basePrompt, Object memoryId) {
+        Long resolvedMemoryId;
+        try {
+            resolvedMemoryId = memoryId instanceof Number number
+                    ? number.longValue()
+                    : Long.valueOf(String.valueOf(memoryId));
+        } catch (NumberFormatException e) {
+            return basePrompt;
+        }
+        String summary = aiChatSummaryService.getLatestSummaryContent(resolvedMemoryId, AiServiceConstant.SUMMARY_TYPE_CUSTOMER_SERVICE);
         if (summary == null || summary.isBlank()) {
             return basePrompt;
         }

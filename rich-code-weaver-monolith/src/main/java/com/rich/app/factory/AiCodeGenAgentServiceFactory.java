@@ -211,7 +211,7 @@ public class AiCodeGenAgentServiceFactory {
                 // Agent 全程使用推理流式模型，确保 Think -> Act -> Observe 链路稳定运行
                 .streamingChatModel(reasoningStreamingChatModel)
                 // 系统提示词
-                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPrompt, (Long) memoryId, AiServiceConstant.SUMMARY_TYPE_AGENT))
+                .systemMessageProvider(memoryId -> appendSummaryToPrompt(systemPrompt, memoryId, AiServiceConstant.SUMMARY_TYPE_AGENT))
                 // 原有本地工具全部保留，例如 taskPlan / think / 文件工具 等
                 .tools(toolsManager.getAllTools())
                 // 限制连续工具调用次数，避免模型异常循环调用工具
@@ -242,8 +242,16 @@ public class AiCodeGenAgentServiceFactory {
      * @param summaryType 摘要类型
      * @return 拼接摘要后的系统提示词
      */
-    private String appendSummaryToPrompt(String basePrompt, Long memoryId, String summaryType) {
-        String summary = aiChatSummaryService.getLatestSummaryContent(memoryId, summaryType);
+    private String appendSummaryToPrompt(String basePrompt, Object memoryId, String summaryType) {
+        Long resolvedMemoryId;
+        try {
+            resolvedMemoryId = memoryId instanceof Number number
+                    ? number.longValue()
+                    : Long.valueOf(String.valueOf(memoryId));
+        } catch (NumberFormatException e) {
+            return basePrompt;
+        }
+        String summary = aiChatSummaryService.getLatestSummaryContent(resolvedMemoryId, summaryType);
         if (summary == null || summary.isBlank()) {
             return basePrompt;
         }
