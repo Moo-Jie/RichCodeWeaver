@@ -134,8 +134,13 @@
 
 
         <!-- 消息区域 -->
-        <div ref="messagesContainer" class="messages-container">
-          <div v-for="(message, index) in messages" :key="index" class="message-item">
+        <div ref="messagesContainer" class="messages-container" @scroll.passive="handleMessagesScroll">
+          <div
+            v-for="(message, index) in messages"
+            :key="message.id"
+            v-memo="[message.content, message.loading, message.type, isGenerating, isSingleFileMode]"
+            class="message-item"
+          >
             <div v-if="message.type === 'user'" class="user-message">
               <div class="message-content creative-bubble">{{ message.content }}</div>
               <div class="message-avatar">
@@ -147,8 +152,13 @@
                 <a-avatar :src="aiAvatar" class="avatar-glow ai-avatar" />
               </div>
               <div class="message-content creative-bubble">
-                <MarkdownRenderer v-if="message.content" :content="message.content" />
-                <div v-if="message.loading" class="loading-indicator">
+                <MarkdownRenderer
+                  v-if="message.content"
+                  :content="message.content"
+                  :streaming="isGenerating && index === messages.length - 1"
+                  :collapse-long-code="isSingleFileMode"
+                />
+                <div v-if="message.loading && !message.content" class="loading-indicator">
                   <a-spin size="small" />
                   <span>AI 正在编织灵感...</span>
                 </div>
@@ -498,6 +508,10 @@ const getGeneratingInfo = (): { message: string; timestamp: number } | null => {
 // 数字产物信息
 const appInfo = ref<API.AppVO>()
 const appId = ref<number>()
+const isSingleFileMode = computed(() => {
+  const codeGenType = appInfo.value?.codeGenType
+  return codeGenType === 'single_html' || codeGenType === CodeGenTypeEnum.HTML
+})
 
 // 部署按钮点击处理
 const handleDeployClick = () => {
@@ -528,6 +542,7 @@ const getTypeColor = (type?: string) => {
 
 // 对话相关
 interface Message {
+  id: string
   type: 'user' | 'ai'
   content: string
   loading?: boolean
@@ -538,6 +553,15 @@ const messages = ref<Message[]>([])
 const userInput = ref('')
 const isGenerating = ref(false)
 const messagesContainer = ref<HTMLElement>()
+let localMessageSequence = 0
+let autoFollowMessages = true
+let scrollFrameId: number | null = null
+let pendingStreamRenderFrame: number | null = null
+let pendingStreamRenderTimer: number | null = null
+
+const createLocalMessageId = (type: Message['type']) => {
+  return `local-${type}-${Date.now()}-${++localMessageSequence}`
+}
 // 历史消息加载相关
 const loadingHistory = ref(false)
 const lastCreateTime = ref<string | null>(null)
@@ -664,6 +688,18 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('message', handleIframeMessage)
   visualEditor.value?.disableEditMode()
+  if (scrollFrameId !== null) {
+    cancelAnimationFrame(scrollFrameId)
+    scrollFrameId = null
+  }
+  if (pendingStreamRenderFrame !== null) {
+    cancelAnimationFrame(pendingStreamRenderFrame)
+    pendingStreamRenderFrame = null
+  }
+  if (pendingStreamRenderTimer !== null) {
+    window.clearTimeout(pendingStreamRenderTimer)
+    pendingStreamRenderTimer = null
+  }
 })
 
 // 处理来自 iframe 的消息
@@ -735,6 +771,9 @@ const downloadCode = async () => {
 const fetchChatHistory = async (loadMore = false) => {
   if (!appId.value || loadingHistory.value) return
 
+  const previousScrollHeight = messagesContainer.value?.scrollHeight || 0
+  const previousScrollTop = messagesContainer.value?.scrollTop || 0
+
   // Reset cursor for fresh load to avoid stale pagination
   if (!loadMore) {
     lastCreateTime.value = null
@@ -751,7 +790,8 @@ const fetchChatHistory = async (loadMore = false) => {
     const res = await listAppChatHistoryByPage(params)
     if (res.data.code === 0 && res.data.data) {
       const historyData = (res.data.data.records ?? []).slice().reverse()
-      const newMessages: Message[] = historyData.map(item => ({
+      const newMessages: Message[] = historyData.map((item, index) => ({
+        id: item.id ? `history-${item.id}` : `history-${item.createTime || 'legacy'}-${index}`,
         type: item.messageType === 'user' ? 'user' : 'ai',
         content: item.messageType === 'user' ? (item.message ?? '') : parseBatchContent(item.message ?? ''),
         createTime: item.createTime
@@ -775,7 +815,13 @@ const fetchChatHistory = async (loadMore = false) => {
       }
 
       await nextTick()
-      scrollToBottom()
+      if (loadMore && messagesContainer.value) {
+        const addedHeight = messagesContainer.value.scrollHeight - previousScrollHeight
+        messagesContainer.value.scrollTop = previousScrollTop + Math.max(addedHeight, 0)
+      } else {
+        autoFollowMessages = true
+        scrollToBottom(true)
+      }
       // 加载历史消息后更新预览
       updatePreview()
 
@@ -828,6 +874,7 @@ const checkAndResumeGeneration = () => {
     // 没有 AI 消息，添加占位符
     aiMessageIndex = messages.value.length
     messages.value.push({
+      id: createLocalMessageId('ai'),
       type: 'ai',
       content: '',
       loading: true
@@ -849,6 +896,7 @@ const loadMoreHistory = async () => {
 const sendInitialMessage = async (prompt: string) => {
   // 添加用户消息
   messages.value.push({
+    id: createLocalMessageId('user'),
     type: 'user',
     content: prompt
   })
@@ -856,13 +904,13 @@ const sendInitialMessage = async (prompt: string) => {
   // 添加AI消息占位符
   const aiMessageIndex = messages.value.length
   messages.value.push({
+    id: createLocalMessageId('ai'),
     type: 'ai',
     content: '',
     loading: true
   })
 
-  await nextTick()
-  scrollToBottom()
+  await forceScrollToBottom()
 
   // 开始生成
   isGenerating.value = true
@@ -891,6 +939,7 @@ const sendMessage = async () => {
 
   // 添加用户消息
   messages.value.push({
+    id: createLocalMessageId('user'),
     type: 'user',
     content: displayMsg
   })
@@ -898,13 +947,13 @@ const sendMessage = async () => {
   // 添加AI消息占位符
   const aiMessageIndex = messages.value.length
   messages.value.push({
+    id: createLocalMessageId('ai'),
     type: 'ai',
     content: '',
     loading: true
   })
 
-  await nextTick()
-  scrollToBottom()
+  await forceScrollToBottom()
 
   // 发送后清除选中并退出编辑模式
   if (selectedElement.value) {
@@ -922,6 +971,8 @@ const sendMessage = async () => {
 
 // 生成代码 - 使用 EventSource 处理流式响应（支持断线重连）
 const generateCode = async (userMessage: string, aiMessageIndex: number, isReconnect: boolean = false) => {
+  autoFollowMessages = true
+
   // 启动计时器
   generatingTime.value = 0
   timer.value = setInterval(() => {
@@ -940,6 +991,28 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   const existingContentLength = isReconnect ? (messages.value[aiMessageIndex]?.content?.length || 0) : 0
   // 创建流式 JSON 消息块解析上下文，用于解析 VUE_PROJECT 模式下的 ai_response / tool_request / tool_executed 类型
   const chunkParser = new StreamChunkParserContext()
+  const STREAM_RENDER_INTERVAL_MS = 32
+  let lastStreamRenderAt = 0
+
+  const commitStreamingContent = () => {
+    pendingStreamRenderFrame = null
+    if (streamCompleted || fullContent.length < existingContentLength) return
+    const aiMessage = messages.value[aiMessageIndex]
+    if (!aiMessage) return
+    lastStreamRenderAt = performance.now()
+    aiMessage.content = fullContent
+    scrollToBottom()
+  }
+
+  // 把高频 SSE chunk 合并到约 25fps，减少 Markdown 全量解析和 DOM 重建次数
+  const scheduleStreamingRender = () => {
+    if (pendingStreamRenderTimer !== null || pendingStreamRenderFrame !== null) return
+    const wait = Math.max(0, STREAM_RENDER_INTERVAL_MS - (performance.now() - lastStreamRenderAt))
+    pendingStreamRenderTimer = window.setTimeout(() => {
+      pendingStreamRenderTimer = null
+      pendingStreamRenderFrame = requestAnimationFrame(commitStreamingContent)
+    }, wait)
+  }
 
   // 仅新建生成时标记 localStorage（重连时已有标记）
   if (!isReconnect) {
@@ -950,6 +1023,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   const onStreamEnd = () => {
     if (streamCompleted) return
     streamCompleted = true
+    if (pendingStreamRenderTimer !== null) {
+      window.clearTimeout(pendingStreamRenderTimer)
+      pendingStreamRenderTimer = null
+    }
+    if (pendingStreamRenderFrame !== null) {
+      cancelAnimationFrame(pendingStreamRenderFrame)
+      pendingStreamRenderFrame = null
+    }
     eventSource?.close()
     markGeneratingEnd()
     if (timer.value) {
@@ -962,6 +1043,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       messages.value[aiMessageIndex].content = fullContent
     }
     messages.value[aiMessageIndex].loading = false
+    scrollToBottom()
     // 延迟后刷新数字产物信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
     setTimeout(async () => {
       await refreshAppInfoOnly()
@@ -1016,12 +1098,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
             const content = chunkParser.parseChunk(rawContent)
             if (content) {
               fullContent += content
-              // 重连时：只有当重建内容追上已有内容时才更新 UI（避免闪烁）
-              if (fullContent.length >= existingContentLength) {
-                messages.value[aiMessageIndex].content = fullContent
-                messages.value[aiMessageIndex].loading = false
-              }
-              scrollToBottom()
+              scheduleStreamingRender()
             }
           }
         } catch (error) {
@@ -1052,6 +1129,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
           // 达到最大重连次数
           markGeneratingEnd()
           streamCompleted = true
+          if (pendingStreamRenderTimer !== null) {
+            window.clearTimeout(pendingStreamRenderTimer)
+            pendingStreamRenderTimer = null
+          }
+          if (pendingStreamRenderFrame !== null) {
+            cancelAnimationFrame(pendingStreamRenderFrame)
+            pendingStreamRenderFrame = null
+          }
           isGenerating.value = false
           if (timer.value) {
             clearInterval(timer.value)
@@ -1124,10 +1209,33 @@ const updatePreview = () => {
 // 重点提示
 const showTips = ref(false)
 
-// 滚动到底部
-const scrollToBottom = () => {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+const handleMessagesScroll = () => {
+  const container = messagesContainer.value
+  if (!container) return
+  const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+  autoFollowMessages = distanceFromBottom < 72
+}
+
+// 流式输出期间最多每帧滚动一次，避免连续 smooth 动画造成气泡追尾和页面震动
+const scrollToBottom = (force = false) => {
+  const container = messagesContainer.value
+  if (!container || (!force && !autoFollowMessages)) return
+  if (scrollFrameId !== null) return
+
+  scrollFrameId = requestAnimationFrame(() => {
+    scrollFrameId = null
+    const currentContainer = messagesContainer.value
+    if (!currentContainer || (!force && !autoFollowMessages)) return
+    currentContainer.scrollTop = currentContainer.scrollHeight
+  })
+}
+
+const forceScrollToBottom = async () => {
+  autoFollowMessages = true
+  await nextTick()
+  const container = messagesContainer.value
+  if (container) {
+    container.scrollTop = container.scrollHeight
   }
 }
 
@@ -1410,12 +1518,11 @@ onUnmounted(() => {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   border: 2px solid #e8e8e8;
-  transition: all 0.3s ease;
+  transition: border-color 0.2s ease;
 }
 
 .chat-section:hover {
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-  transform: translateY(-3px);
+  border-color: #d9d9d9;
 }
 
 .section-header {
@@ -1445,25 +1552,39 @@ onUnmounted(() => {
 
 .messages-container {
   flex: 1;
-  padding: 0 25px;
+  padding: 0 25px 8px;
   overflow-y: auto;
-  scroll-behavior: smooth;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #d9d9d9 transparent;
+  will-change: scroll-position;
+}
+
+.messages-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #d9d9d9;
+  background-clip: padding-box;
+}
+
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
+  background-clip: padding-box;
 }
 
 .message-item {
-  margin-bottom: 30px;
-  animation: fadeIn 0.5s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  margin-bottom: 24px;
+  contain: layout style;
 }
 
 .user-message {
@@ -1481,12 +1602,12 @@ onUnmounted(() => {
 }
 
 .creative-bubble {
-  max-width: 75%;
-  padding: 18px 22px;
+  max-width: 82%;
+  min-height: 48px;
+  padding: 16px 20px;
   border-radius: 16px;
   line-height: 1.6;
   word-wrap: break-word;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   font-family: 'Nunito', sans-serif;
 }
@@ -1502,6 +1623,7 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #d8ffef 0%, #eac6ff 100%);
   color: #2c3e50;
   border-bottom-left-radius: 5px;
+  contain: layout style;
 }
 
 .message-content {

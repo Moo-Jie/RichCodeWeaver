@@ -9,8 +9,13 @@
     </div>
 
     <!-- Messages -->
-    <div ref="containerRef" class="messages-scroll">
-      <div v-for="(msg, index) in messages" :key="index" class="message-row">
+    <div ref="containerRef" class="messages-scroll" @scroll.passive="handleScroll">
+      <div
+        v-for="msg in messages"
+        :key="msg.id"
+        v-memo="[msg.id, msg.content, msg.loading, msg.type, msg.senderRoleLabel, collapseLongCode]"
+        class="message-row"
+      >
         <div v-if="msg.type === 'user' && msg.isSelf" class="msg-user msg-user--self">
           <div class="msg-content-wrap msg-content-wrap--self">
             <div class="msg-meta msg-meta--self">
@@ -38,8 +43,13 @@
         <div v-else class="msg-ai">
           <a-avatar :size="32" :src="aiAvatarSrc" class="msg-avatar msg-avatar--ai" />
           <div class="msg-bubble msg-bubble--ai">
-            <MarkdownRenderer v-if="msg.content" :content="msg.content" />
-            <div v-if="msg.loading" class="msg-loading">
+            <MarkdownRenderer
+              v-if="msg.content"
+              :content="msg.content"
+              :streaming="msg.loading"
+              :collapse-long-code="collapseLongCode"
+            />
+            <div v-if="msg.loading && !msg.content" class="msg-loading">
               <div class="loading-dots">
                 <span class="dot"></span>
                 <span class="dot"></span>
@@ -58,11 +68,12 @@
 </template>
 
 <script lang="ts" setup>
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onUnmounted, ref, watch } from 'vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import aiAvatarSrc from '@/assets/aiAvatar.png'
 
 interface Message {
+  id: string
   type: 'user' | 'ai'
   content: string
   loading?: boolean
@@ -78,6 +89,7 @@ interface Props {
   loadingHistory: boolean
   hasMore: boolean
   loginUser: API.LoginUserVO
+  collapseLongCode?: boolean
 }
 
 const props = defineProps<Props>()
@@ -87,6 +99,7 @@ const containerRef = ref<HTMLElement>()
 const userScrolledUp = ref(false)
 let lastScrollHeight = 0
 let scrollTimeout: number | null = null
+let scrollFrameId: number | null = null
 
 // 检测用户是否主动向上滚动
 const handleScroll = () => {
@@ -112,29 +125,19 @@ const handleScroll = () => {
 }
 
 const scrollToBottom = (force = false) => {
-  if (!containerRef.value) return
-  
   const container = containerRef.value
+  if (!container) return
   const { scrollTop, scrollHeight, clientHeight } = container
-  
-  // 强制滚动（新消息添加时）
-  if (force) {
-    // 使用 requestAnimationFrame 确保 DOM 更新后再滚动，防止抽搐
-    requestAnimationFrame(() => {
-      container.scrollTop = container.scrollHeight
-    })
-    return
-  }
-  
-  // 智能滚动：仅当用户未主动向上滚动时才自动置底
-  if (!userScrolledUp.value) {
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-    if (isNearBottom) {
-      requestAnimationFrame(() => {
-        container.scrollTop = container.scrollHeight
-      })
-    }
-  }
+  const isNearBottom = scrollHeight - scrollTop - clientHeight < 80
+  if (!force && (userScrolledUp.value || !isNearBottom)) return
+  if (scrollFrameId !== null) return
+
+  scrollFrameId = requestAnimationFrame(() => {
+    scrollFrameId = null
+    const currentContainer = containerRef.value
+    if (!currentContainer) return
+    currentContainer.scrollTop = currentContainer.scrollHeight
+  })
 }
 
 // 监听消息变化（新消息）
@@ -143,7 +146,7 @@ watch(() => props.messages.length, () => {
 })
 
 // 监听消息内容变化（流式更新）
-watch(() => props.messages.map(m => m.content).join(''), () => {
+watch(() => props.messages[props.messages.length - 1]?.content || '', () => {
   if (!containerRef.value) return
   
   const currentScrollHeight = containerRef.value.scrollHeight
@@ -159,24 +162,18 @@ watch(() => props.messages.map(m => m.content).join(''), () => {
   nextTick(() => {
     const taskScrollTarget = containerRef.value?.querySelector('.task-scroll-target')
     if (taskScrollTarget && !userScrolledUp.value) {
-      taskScrollTarget.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      taskScrollTarget.scrollIntoView({ behavior: 'auto', block: 'nearest' })
     }
   })
 })
 
-onMounted(() => {
-  if (containerRef.value) {
-    containerRef.value.addEventListener('scroll', handleScroll, { passive: true })
-    lastScrollHeight = containerRef.value.scrollHeight
-  }
-})
-
 onUnmounted(() => {
-  if (containerRef.value) {
-    containerRef.value.removeEventListener('scroll', handleScroll)
-  }
   if (scrollTimeout) {
     clearTimeout(scrollTimeout)
+  }
+  if (scrollFrameId !== null) {
+    cancelAnimationFrame(scrollFrameId)
+    scrollFrameId = null
   }
 })
 
@@ -220,10 +217,13 @@ defineExpose({ scrollToBottom })
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px 24px;
-  scroll-behavior: smooth;
-  /* 防止内容突然变化导致的抽搐 */
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #e0e0e0 transparent;
   will-change: scroll-position;
-  contain: layout style paint;
+  contain: layout style;
 }
 
 .messages-scroll::-webkit-scrollbar {
@@ -237,18 +237,7 @@ defineExpose({ scrollToBottom })
 
 .message-row {
   margin-bottom: 20px;
-  animation: msgFadeIn 0.3s ease;
-}
-
-@keyframes msgFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  contain: layout style;
 }
 
 .msg-user {

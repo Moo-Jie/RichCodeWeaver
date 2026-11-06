@@ -150,6 +150,7 @@
           />
           <ChatMessages
             ref="chatMessagesRef"
+            :collapse-long-code="isSingleFileMode"
             :has-more="hasMore"
             :loading-history="loadingHistory"
             :login-user="loginUserStore.loginUser"
@@ -578,6 +579,7 @@ const handleQuickSend = async (prompt: string) => {
 const appId = ref<string>(route.params.id as string || '')
 
 interface Message {
+  id: string
   type: 'user' | 'ai'
   content: string
   loading?: boolean
@@ -595,6 +597,13 @@ const isGenerating = ref(false)
 const loadingHistory = ref(false)
 const lastCreateTime = ref<string | null>(null)
 const hasMore = ref(true)
+let localMessageSequence = 0
+let pendingStreamRenderTimer: number | null = null
+let pendingStreamRenderFrame: number | null = null
+
+const createLocalMessageId = (type: Message['type']) => {
+  return `local-${type}-${Date.now()}-${++localMessageSequence}`
+}
 
 // === Preview State ===
 const previewUrl = ref('')
@@ -749,6 +758,11 @@ const isOwner = computed(() => {
   return appStore.selectedApp?.userId === loginUserStore.loginUser.id
 })
 
+const isSingleFileMode = computed(() => {
+  const codeGenType = appStore.selectedApp?.codeGenType
+  return codeGenType === 'single_html' || codeGenType === CodeGenTypeEnum.HTML
+})
+
 const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
 })
@@ -791,6 +805,7 @@ const getSenderMeta = (userId?: number) => {
 const createUserMessage = (content: string, overrides: Partial<Message> = {}): Message => {
   const senderMeta = getSenderMeta(loginUserStore.loginUser.id)
   return {
+    id: createLocalMessageId('user'),
     type: 'user',
     content,
     userId: loginUserStore.loginUser.id,
@@ -1001,10 +1016,11 @@ const fetchChatHistory = async (loadMore = false) => {
     const res = await listAppChatHistoryByPage(params)
     if (res.data.code === 0 && res.data.data) {
       const historyData = (res.data.data.records || []).slice().reverse()
-      const newMessages: Message[] = historyData.map((item: API.ChatHistory) => {
+      const newMessages: Message[] = historyData.map((item: API.ChatHistory, index) => {
         if (item.messageType === 'user') {
           const senderMeta = getSenderMeta(item.userId)
           return {
+            id: item.id ? `history-${item.id}` : `history-user-${item.createTime || 'legacy'}-${index}`,
             type: 'user',
             content: item.message || '',
             createTime: item.createTime,
@@ -1017,6 +1033,7 @@ const fetchChatHistory = async (loadMore = false) => {
         }
 
         return {
+          id: item.id ? `history-${item.id}` : `history-ai-${item.createTime || 'legacy'}-${index}`,
           type: 'ai',
           content: parseBatchContent(item.message || ''),
           createTime: item.createTime
@@ -1082,7 +1099,7 @@ const checkAndResumeGeneration = () => {
     messages.value[aiMessageIndex].loading = true
   } else {
     aiMessageIndex = messages.value.length
-    messages.value.push({ type: 'ai', content: '', loading: true })
+    messages.value.push({ id: createLocalMessageId('ai'), type: 'ai', content: '', loading: true })
   }
 
   isGenerating.value = true
@@ -1100,7 +1117,7 @@ const sendInitialMessage = async (prompt: string) => {
   if (!ensureEditPermission()) return
   messages.value.push(createUserMessage(prompt))
   const aiMessageIndex = messages.value.length
-  messages.value.push({ type: 'ai', content: '', loading: true })
+  messages.value.push({ id: createLocalMessageId('ai'), type: 'ai', content: '', loading: true })
   await nextTick()
   chatMessagesRef.value?.scrollToBottom(true)
   isGenerating.value = true
@@ -1126,7 +1143,7 @@ const sendMessage = async () => {
 
   messages.value.push(createUserMessage(displayMsg))
   const aiMessageIndex = messages.value.length
-  messages.value.push({ type: 'ai', content: '', loading: true })
+  messages.value.push({ id: createLocalMessageId('ai'), type: 'ai', content: '', loading: true })
   await nextTick()
   chatMessagesRef.value?.scrollToBottom(true)
 
@@ -1165,12 +1182,41 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   chunkParser.setTaskPlanCallback((data: TaskPlanData) => {
     taskPlanData.value = data
   })
+  const STREAM_RENDER_INTERVAL_MS = 32
+  let lastStreamRenderAt = 0
+
+  const commitStreamingContent = () => {
+    pendingStreamRenderFrame = null
+    if (streamCompleted || fullContent.length < existingContentLength) return
+    const aiMessage = messages.value[aiMessageIndex]
+    if (!aiMessage) return
+    lastStreamRenderAt = performance.now()
+    aiMessage.content = fullContent
+  }
+
+  // 合并高频 SSE chunk，避免每个事件都触发整段 Markdown 解析和滚动
+  const scheduleStreamingContent = () => {
+    if (pendingStreamRenderTimer !== null || pendingStreamRenderFrame !== null) return
+    const wait = Math.max(0, STREAM_RENDER_INTERVAL_MS - (performance.now() - lastStreamRenderAt))
+    pendingStreamRenderTimer = window.setTimeout(() => {
+      pendingStreamRenderTimer = null
+      pendingStreamRenderFrame = requestAnimationFrame(commitStreamingContent)
+    }, wait)
+  }
 
   if (!isReconnect) markGeneratingStart(userMessage)
 
   const onStreamEnd = () => {
     if (streamCompleted) return
     streamCompleted = true
+    if (pendingStreamRenderTimer !== null) {
+      window.clearTimeout(pendingStreamRenderTimer)
+      pendingStreamRenderTimer = null
+    }
+    if (pendingStreamRenderFrame !== null) {
+      cancelAnimationFrame(pendingStreamRenderFrame)
+      pendingStreamRenderFrame = null
+    }
     eventSource?.close()
     if (activeGenerationEventSource.value === eventSource) {
       activeGenerationEventSource.value = null
@@ -1235,11 +1281,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
             const content = chunkParser.parseChunk(rawContent)
             if (content) {
               fullContent += content
-              if (fullContent.length >= existingContentLength) {
-                messages.value[aiMessageIndex].content = fullContent
-                messages.value[aiMessageIndex].loading = false
-              }
-              chatMessagesRef.value?.scrollToBottom()
+              scheduleStreamingContent()
             }
           }
         } catch (error) {
@@ -1263,6 +1305,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
         } else {
           markGeneratingEnd()
           streamCompleted = true
+          if (pendingStreamRenderTimer !== null) {
+            window.clearTimeout(pendingStreamRenderTimer)
+            pendingStreamRenderTimer = null
+          }
+          if (pendingStreamRenderFrame !== null) {
+            cancelAnimationFrame(pendingStreamRenderFrame)
+            pendingStreamRenderFrame = null
+          }
           isGenerating.value = false
           if (timer.value) {
             clearInterval(timer.value)
@@ -1275,6 +1325,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       })
     } catch (error) {
       console.error('创建 EventSource 失败：', error)
+      if (pendingStreamRenderTimer !== null) {
+        window.clearTimeout(pendingStreamRenderTimer)
+        pendingStreamRenderTimer = null
+      }
+      if (pendingStreamRenderFrame !== null) {
+        cancelAnimationFrame(pendingStreamRenderFrame)
+        pendingStreamRenderFrame = null
+      }
       messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
       messages.value[aiMessageIndex].loading = false
       isGenerating.value = false
@@ -1831,6 +1889,14 @@ const resetChatState = () => {
     clearInterval(timer.value)
     timer.value = null
   }
+  if (pendingStreamRenderTimer !== null) {
+    window.clearTimeout(pendingStreamRenderTimer)
+    pendingStreamRenderTimer = null
+  }
+  if (pendingStreamRenderFrame !== null) {
+    cancelAnimationFrame(pendingStreamRenderFrame)
+    pendingStreamRenderFrame = null
+  }
 }
 
 // === Lifecycle ===
@@ -1885,6 +1951,14 @@ onUnmounted(() => {
   }
   clearTaskProgressHideTimer()
   if (timer.value) clearInterval(timer.value)
+  if (pendingStreamRenderTimer !== null) {
+    window.clearTimeout(pendingStreamRenderTimer)
+    pendingStreamRenderTimer = null
+  }
+  if (pendingStreamRenderFrame !== null) {
+    cancelAnimationFrame(pendingStreamRenderFrame)
+    pendingStreamRenderFrame = null
+  }
   // 清理WebSocket订阅
   if (appId.value) {
     taskProgressService.unsubscribeTaskProgress(appId.value)

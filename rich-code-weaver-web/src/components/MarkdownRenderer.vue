@@ -1,9 +1,28 @@
 <template>
-  <div class="markdown-content" @click="handleToolCardClick" v-html="renderedMarkdown"></div>
+  <div class="markdown-content" @click="handleContentClick" v-html="renderedMarkdown"></div>
+  <a-modal
+    v-if="collapseLongCode"
+    v-model:open="codeViewerOpen"
+    :footer="null"
+    :title="codeViewerTitle"
+    centered
+    destroy-on-close
+    width="min(1120px, 92vw)"
+    wrap-class-name="cw-code-viewer-modal"
+  >
+    <div v-if="codeViewer" class="cw-code-viewer">
+      <div class="cw-code-viewer-meta">
+        <span>{{ codeViewer.languageLabel }}</span>
+        <span>{{ codeViewer.lineCount }} 行</span>
+        <span>{{ codeViewer.charCount.toLocaleString('zh-CN') }} 字符</span>
+      </div>
+      <pre class="cw-code-viewer-pre"><code v-html="highlightedViewerCode"></code></pre>
+    </div>
+  </a-modal>
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, onMounted, watch } from 'vue'
+import { computed, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
@@ -12,20 +31,77 @@ import { fixCodeBlockFormat, processWorkflowMarkers } from '@/utils/workflowMark
 
 interface Props {
   content: string
+  streaming?: boolean
+  collapseLongCode?: boolean
+  collapseLongCodeThreshold?: number
 }
 
-const props = defineProps<Props>()
+interface CodeBlockInfo {
+  key: string
+  code: string
+  language: string
+  languageLabel: string
+  lineCount: number
+  charCount: number
+}
+
+interface MarkdownRenderEnv {
+  codeBlocks: Map<string, CodeBlockInfo>
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  streaming: false,
+  collapseLongCode: false,
+  collapseLongCodeThreshold: 1200
+})
+
+const codeViewerOpen = ref(false)
+const codeViewer = ref<CodeBlockInfo | null>(null)
+let renderedCodeBlocks = new Map<string, CodeBlockInfo>()
+let nextCodeBlockIndex = 0
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  html: 'HTML',
+  xml: 'HTML / XML',
+  css: 'CSS',
+  javascript: 'JavaScript',
+  js: 'JavaScript',
+  typescript: 'TypeScript',
+  ts: 'TypeScript',
+  vue: 'Vue',
+  json: 'JSON',
+  bash: 'Shell',
+  shell: 'Shell',
+  sh: 'Shell',
+  python: 'Python',
+  java: 'Java',
+  sql: 'SQL'
+}
+
+const normalizeLanguage = (lang: string) => {
+  const normalized = (lang || '').trim().toLowerCase()
+  if (normalized === 'js') return 'javascript'
+  if (normalized === 'ts') return 'typescript'
+  if (normalized === 'html' || normalized === 'vue') return 'xml'
+  return normalized
+}
+
+const getLanguageLabel = (lang: string) => {
+  const normalized = (lang || '').trim().toLowerCase()
+  return LANGUAGE_LABELS[normalized] || (normalized ? normalized.toUpperCase() : '代码')
+}
 
 const md: MarkdownIt = new MarkdownIt({
   html: true,
   linkify: true,
   typographer: true,
   highlight: function(str: string, lang: string): string {
-    if (lang && hljs.getLanguage(lang)) {
+    const normalizedLang = normalizeLanguage(lang)
+    if (!props.streaming && normalizedLang && hljs.getLanguage(normalizedLang)) {
       try {
         return (
           '<pre class="hljs"><code>' +
-          hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+          hljs.highlight(str, { language: normalizedLang, ignoreIllegals: true }).value +
           '</code></pre>'
         )
       } catch {
@@ -36,6 +112,51 @@ const md: MarkdownIt = new MarkdownIt({
     return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
   }
 })
+
+const defaultFenceRule = md.renderer.rules.fence
+
+md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+  const token = tokens[idx]
+  const code = token.content || ''
+  const language = (token.info || '').trim().split(/\s+/)[0] || 'text'
+  const lineCount = code ? code.replace(/\r?\n$/, '').split(/\r?\n/).length : 0
+  const isLongCode = code.length >= props.collapseLongCodeThreshold || lineCount >= 40
+
+  if (props.collapseLongCode && isLongCode && code.length > 0) {
+    const renderEnv = env as MarkdownRenderEnv
+    const key = `cw-code-${nextCodeBlockIndex++}`
+    const languageLabel = getLanguageLabel(language)
+    const codeBlock: CodeBlockInfo = {
+      key,
+      code,
+      language,
+      languageLabel,
+      lineCount,
+      charCount: code.length
+    }
+    renderEnv.codeBlocks.set(key, codeBlock)
+
+    return `
+      <div class="cw-code-collapsed">
+        <div class="cw-code-collapsed__bar">
+          <span class="cw-code-collapsed__icon">&lt;/&gt;</span>
+          <div class="cw-code-collapsed__copy">
+            <strong class="cw-code-collapsed__title">${md.utils.escapeHtml(languageLabel)} 代码块</strong>
+            <span class="cw-code-collapsed__meta">${lineCount} 行 · ${code.length.toLocaleString('zh-CN')} 字符 · 已自动折叠</span>
+          </div>
+          <button type="button" class="cw-code-open-btn" data-cw-code-key="${key}" aria-label="弹窗查看完整代码">
+            弹窗查看
+          </button>
+        </div>
+      </div>
+    `
+  }
+
+  if (defaultFenceRule) {
+    return defaultFenceRule(tokens, idx, options, env, self)
+  }
+  return self.renderToken(tokens, idx, options)
+}
 
 // 预处理Markdown内容，识别并包裹工具调用信息和工作流标记
 const preprocessMarkdown = (content: string): string => {
@@ -55,33 +176,41 @@ const preprocessMarkdown = (content: string): string => {
 
 const renderedMarkdown = computed(() => {
   const processedContent = preprocessMarkdown(props.content)
-  return md.render(processedContent)
+  const codeBlocks = new Map<string, CodeBlockInfo>()
+  renderedCodeBlocks = codeBlocks
+  nextCodeBlockIndex = 0
+  return md.render(processedContent, { codeBlocks })
 })
 
-onMounted(() => {
-  highlightCode()
+const codeViewerTitle = computed(() => {
+  return codeViewer.value ? `${codeViewer.value.languageLabel} 完整代码` : '完整代码'
 })
 
-watch(() => props.content, () => {
-  nextTick(() => {
-    highlightCode()
-  })
+const highlightedViewerCode = computed(() => {
+  const code = codeViewer.value?.code || ''
+  const language = normalizeLanguage(codeViewer.value?.language || '')
+  if (language && hljs.getLanguage(language)) {
+    try {
+      return hljs.highlight(code, { language, ignoreIllegals: true }).value
+    } catch {
+      return md.utils.escapeHtml(code)
+    }
+  }
+  return md.utils.escapeHtml(code)
 })
 
-// 处理工具卡片点击事件（用于展开/折叠）
-const handleToolCardClick = (event: MouseEvent) => {
-  const target = event.target as HTMLElement
-  // 事件委托已通过 onclick 处理，这里保留以防需要额外逻辑
-}
+const handleContentClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement | null
+  const trigger = target?.closest<HTMLElement>('[data-cw-code-key]')
+  if (!trigger) return
 
-const highlightCode = () => {
-  requestAnimationFrame(() => {
-    document.querySelectorAll('.markdown-content pre code').forEach((block) => {
-      if (!block.classList.contains('hljs')) {
-        hljs.highlightElement(block as HTMLElement)
-      }
-    })
-  })
+  const key = trigger.dataset.cwCodeKey
+  const codeBlock = key ? renderedCodeBlocks.get(key) : undefined
+  if (!codeBlock) return
+
+  event.preventDefault()
+  codeViewer.value = { ...codeBlock }
+  codeViewerOpen.value = true
 }
 </script>
 
@@ -155,8 +284,10 @@ const highlightCode = () => {
   border: 1px solid #e1e1e1;
   border-radius: 6px;
   padding: 1em;
-  overflow-x: auto;
+  max-height: 520px;
+  overflow: auto;
   margin: 1em 0;
+  contain: layout;
 }
 
 .markdown-content :deep(pre code) {
@@ -165,7 +296,9 @@ const highlightCode = () => {
   border-radius: 0;
   font-size: 0.9em;
   line-height: 1.4;
-  white-space: pre-wrap;
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .markdown-content :deep(table) {
@@ -627,9 +760,130 @@ const highlightCode = () => {
   border: 1px solid #dee2e6;
   border-radius: 8px;
   padding: 14px 16px;
-  overflow-x: auto;
+  max-height: 520px;
+  overflow: auto;
   margin: 12px 0;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+  contain: layout;
+}
+
+/* 单文件模式长代码块折叠 */
+.markdown-content :deep(.cw-code-collapsed) {
+  margin: 12px 0;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  background: #fafafa;
+  contain: layout style;
+}
+
+.markdown-content :deep(.cw-code-collapsed__bar) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.markdown-content :deep(.cw-code-collapsed__icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #595959;
+  background: #fff;
+}
+
+.markdown-content :deep(.cw-code-collapsed__copy) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.markdown-content :deep(.cw-code-collapsed__title) {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdown-content :deep(.cw-code-collapsed__meta) {
+  overflow: hidden;
+  font-size: 11px;
+  color: #999;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdown-content :deep(.cw-code-open-btn) {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 1px solid #1a1a1a;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #fff;
+  background: #1a1a1a;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.markdown-content :deep(.cw-code-open-btn:hover) {
+  border-color: #333;
+  background: #333;
+}
+
+.markdown-content :deep(.cw-code-open-btn:focus-visible) {
+  outline: 2px solid #4096ff;
+  outline-offset: 2px;
+}
+
+.cw-code-viewer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #999;
+  font-size: 12px;
+
+  span {
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #f5f5f5;
+  }
+}
+
+.cw-code-viewer-pre {
+  max-height: 70vh;
+  margin: 0;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  background: #f8f9fa;
+
+  code {
+    display: block;
+    min-width: max-content;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre;
+  }
 }
 
 /* ====== 任务列表折叠容器样式 ====== */
