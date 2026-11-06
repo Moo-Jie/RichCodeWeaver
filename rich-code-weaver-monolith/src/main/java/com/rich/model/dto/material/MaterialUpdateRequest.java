@@ -66,4 +66,9 @@ public class MaterialUpdateRequest implements Serializable {
      * 是否公开（0-私有，1-公开）
      */
     private Integer isPublic;
+
+    /**
+     * 使用次数（仅管理员可修改）
+     */
+    private Integer useCount;
 }

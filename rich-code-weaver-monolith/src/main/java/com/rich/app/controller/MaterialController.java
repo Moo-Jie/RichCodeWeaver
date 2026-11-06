@@ -109,7 +109,8 @@ public class MaterialController {
         ThrowUtils.throwIf(oldMaterial == null, ErrorCode.NOT_FOUND_ERROR, "素材不存在");
 
         // 权限校验：只能修改自己的素材（管理员可修改所有）
-        if (!oldMaterial.getUserId().equals(loginUser.getId()) && !InnerUserService.isAdmin(loginUser)) {
+        boolean isAdmin = InnerUserService.isAdmin(loginUser);
+        if (!oldMaterial.getUserId().equals(loginUser.getId()) && !isAdmin) {
             ThrowUtils.throwIf(true, ErrorCode.NO_AUTH_ERROR, "无权修改该素材");
         }
 
@@ -123,6 +124,11 @@ public class MaterialController {
         // 更新实体
         Material material = new Material();
         BeanUtil.copyProperties(updateRequest, material);
+        if (!isAdmin) {
+            material.setUseCount(null);
+        } else if (material.getUseCount() != null) {
+            ThrowUtils.throwIf(material.getUseCount() < 0, ErrorCode.PARAMS_ERROR, "使用次数不能小于0");
+        }
 
         boolean result = materialService.updateById(material);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR, "更新失败");
