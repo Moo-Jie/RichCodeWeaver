@@ -1,0 +1,4 @@
+interface:
+  display_name: "CW Web UI Convention"
+  short_description: "Build RichCodeWeaver frontend UI with the established visual system"
+  default_prompt: "Use $cw-web-ui-convention to build or review this RichCodeWeaver frontend page with the established colors, typography, and component patterns."

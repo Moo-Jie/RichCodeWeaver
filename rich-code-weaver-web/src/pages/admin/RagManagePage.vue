@@ -2,7 +2,7 @@
   <div id="ragManagePage">
     <div class="page-header">
       <h1>RAG 知识库管理</h1>
-      <p>管理 AI 代码生成时参考的知识库文档，支持 Markdown 格式编辑，修改后需刷新向量数据库</p>
+      <p>管理 AI 代码生成时参考的知识库文档，支持 Markdown 格式编辑，修改后需刷新混合检索索引</p>
     </div>
 
     <AdminBackToDashboardButton />
@@ -63,7 +63,7 @@
         <template #icon>
           <SyncOutlined />
         </template>
-        刷新向量数据库
+        刷新混合索引
       </a-button>
     </div>
 
@@ -103,7 +103,7 @@
           <a-space>
             <a @click="showEditModal(record)">编辑信息</a>
             <a @click="openEditor(record)">编辑内容</a>
-            <a-popconfirm title="确定删除该文档？删除后需重新刷新向量数据库才能生效。"
+            <a-popconfirm title="确定删除该文档？删除后需重新刷新混合索引才能生效。"
                           @confirm="handleDelete(record.id)">
               <a class="danger-link">删除</a>
             </a-popconfirm>
@@ -285,7 +285,7 @@
       </div>
     </a-modal>
 
-    <!-- 刷新向量数据库进度模态框 -->
+    <!-- 刷新混合检索索引进度模态框 -->
     <a-modal
       v-model:open="reindexModalVisible"
       :closable="reindexState !== 'progress'"
@@ -293,27 +293,134 @@
       :mask-closable="reindexState !== 'progress'"
       :title="reindexModalTitle"
       centered
-      width="480px"
+      width="660px"
     >
       <!-- 确认阶段 -->
       <div v-if="reindexState === 'confirm'" class="reindex-confirm">
-        <div class="reindex-confirm-icon">
-          <SyncOutlined />
+        <div class="hybrid-hero">
+          <div class="hybrid-hero-icon">
+            <ApartmentOutlined />
+          </div>
+          <div class="hybrid-hero-copy">
+            <h3>Milvus + Elasticsearch 混合检索</h3>
+            <p>向量召回与倒排召回并行，最终由 RRF 统一融合排序</p>
+          </div>
+          <span class="hybrid-badge">双路融合</span>
         </div>
-        <p class="reindex-confirm-text">
-          此操作将<strong>清空现有向量数据</strong>并重新从数据库读取所有已启用的知识库文档，向量化后写入
-          PGVector。
-        </p>
-        <p class="reindex-confirm-sub">向量化过程耗时约 3-10 秒，期间请勿关闭页面。</p>
+
+        <div class="hybrid-flow">
+          <div class="hybrid-sources">
+            <div class="engine-node engine-milvus">
+              <span class="engine-icon"><DatabaseOutlined /></span>
+              <div class="engine-copy">
+                <strong>Milvus</strong>
+                <span>向量召回</span>
+              </div>
+            </div>
+            <div class="engine-node engine-es">
+              <span class="engine-icon"><FileSearchOutlined /></span>
+              <div class="engine-copy">
+                <strong>Elasticsearch</strong>
+                <span>倒排召回</span>
+              </div>
+            </div>
+          </div>
+          <svg class="flow-connector" viewBox="0 0 66 138" aria-hidden="true">
+            <path d="M2 32H24C34 32 34 69 46 69" />
+            <path d="M2 106H24C34 106 34 69 46 69" />
+            <path d="M46 69H62" />
+            <path d="M57 64L63 69L57 74" />
+          </svg>
+          <div class="engine-node engine-rrf">
+            <span class="engine-icon"><MergeCellsOutlined /></span>
+            <div class="engine-copy">
+              <strong>RRF</strong>
+              <span>倒排融合排序</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="reindex-confirm-note">
+          <SyncOutlined />
+          <span>将触发索引重建任务；Milvus 与 Elasticsearch 的耗时当前为前端模拟，后端能力接入后以真实执行结果为准。</span>
+        </div>
+        <p class="reindex-confirm-sub">重建过程预计 3-10 秒，期间请勿关闭页面。</p>
         <div class="reindex-confirm-btns">
           <a-button @click="reindexModalVisible = false">取消</a-button>
-          <a-button class="confirm-primary-btn" type="primary" @click="startReindex">确认执行
+          <a-button class="confirm-primary-btn" type="primary" @click="startReindex">确认重建
           </a-button>
         </div>
       </div>
 
       <!-- 进度 / 完成 / 失败阶段 -->
       <div v-else class="reindex-progress">
+        <div class="progress-overview">
+          <div>
+            <span class="progress-eyebrow">索引重建进度</span>
+            <h3>{{ reindexProgressCaption }}</h3>
+          </div>
+          <strong class="progress-value">{{ reindexProgress }}%</strong>
+        </div>
+        <div
+          class="progress-track"
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-valuenow="reindexProgress"
+        >
+          <span class="progress-fill" :style="{ width: `${reindexProgress}%` }"></span>
+        </div>
+
+        <div class="hybrid-flow hybrid-flow-progress">
+          <div class="hybrid-sources">
+            <div class="engine-node engine-milvus" :class="getStepStatus('milvus')">
+              <span class="engine-icon"><DatabaseOutlined /></span>
+              <div class="engine-copy">
+                <strong>Milvus</strong>
+                <span class="engine-subtitle">
+                  <template v-if="getStepStatus('milvus') === 'loading'">
+                    向量召回 · {{ getStepProgress('milvus') }}%
+                  </template>
+                  <template v-else>向量召回</template>
+                </span>
+                <span v-if="getStepStatus('milvus') === 'loading'" class="engine-progress">
+                  <span :style="{ width: `${getStepProgress('milvus')}%` }"></span>
+                </span>
+              </div>
+              <span v-if="getStepStatus('milvus') === 'loading'" class="engine-parallel">并行</span>
+            </div>
+            <div class="engine-node engine-es" :class="getStepStatus('elasticsearch')">
+              <span class="engine-icon"><FileSearchOutlined /></span>
+              <div class="engine-copy">
+                <strong>Elasticsearch</strong>
+                <span class="engine-subtitle">
+                  <template v-if="getStepStatus('elasticsearch') === 'loading'">
+                    倒排召回 · {{ getStepProgress('elasticsearch') }}%
+                  </template>
+                  <template v-else>倒排召回</template>
+                </span>
+                <span v-if="getStepStatus('elasticsearch') === 'loading'" class="engine-progress">
+                  <span :style="{ width: `${getStepProgress('elasticsearch')}%` }"></span>
+                </span>
+              </div>
+              <span v-if="getStepStatus('elasticsearch') === 'loading'" class="engine-parallel">并行</span>
+            </div>
+          </div>
+          <svg class="flow-connector" viewBox="0 0 66 138" aria-hidden="true">
+            <path d="M2 32H24C34 32 34 69 46 69" />
+            <path d="M2 106H24C34 106 34 69 46 69" />
+            <path d="M46 69H62" />
+            <path d="M57 64L63 69L57 74" />
+          </svg>
+          <div class="engine-node engine-rrf" :class="getStepStatus('rrf')">
+            <span class="engine-icon"><MergeCellsOutlined /></span>
+            <div class="engine-copy">
+              <strong>RRF</strong>
+              <span>倒排融合排序</span>
+            </div>
+          </div>
+        </div>
+
         <div class="progress-steps">
           <div
             v-for="step in reindexSteps"
@@ -328,16 +435,20 @@
               <span v-else class="icon-pending" />
             </div>
             <div class="step-body">
-              <span class="step-label">{{ step.label }}</span>
-              <span v-if="step.duration" class="step-duration">{{ step.duration }}</span>
+              <div class="step-heading">
+                <span class="step-label">{{ step.label }}</span>
+                <span class="step-engine">{{ step.engine }}</span>
+              </div>
+              <span class="step-description">{{ step.description }}</span>
             </div>
+            <span class="step-status">
+              {{ getStepStatusLabel(step.status) }}
+              <template v-if="step.status === 'loading' && step.eta"> · 预计 {{ step.eta }}</template>
+              <template v-else-if="step.status === 'done' && step.duration"> · {{ step.duration }}</template>
+            </span>
           </div>
         </div>
 
-        <div v-if="reindexState === 'done'" class="reindex-result success">
-          <CheckCircleFilled class="result-icon" />
-          <span>重新索引完成，所有已启用文档已同步至向量库</span>
-        </div>
         <div v-if="reindexState === 'error'" class="reindex-result error">
           <CloseCircleFilled class="result-icon" />
           <span>{{ reindexErrorMsg }}</span>
@@ -357,9 +468,13 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import {
+  ApartmentOutlined,
   CheckCircleFilled,
   CloseCircleFilled,
+  DatabaseOutlined,
+  FileSearchOutlined,
   LoadingOutlined,
+  MergeCellsOutlined,
   PlusOutlined,
   SaveOutlined,
   SearchOutlined,
@@ -551,7 +666,7 @@ const handleMetaSubmit = async () => {
         isEnabled: metaForm.isEnabled
       })
       if (res.data.code === 0) {
-        message.success('信息更新成功，请点击"刷新向量数据库"使改动生效')
+        message.success('信息更新成功，请点击"刷新混合索引"使改动生效')
         metaModalVisible.value = false
         fetchData()
       } else {
@@ -568,7 +683,7 @@ const handleMetaSubmit = async () => {
         isEnabled: metaForm.isEnabled
       })
       if (res.data.code === 0) {
-        message.success('新增成功，请在"编辑内容"中补充文档内容后刷新向量数据库')
+        message.success('新增成功，请在"编辑内容"中补充文档内容后刷新混合索引')
         metaModalVisible.value = false
         fetchData()
       } else {
@@ -601,7 +716,7 @@ const handleSaveContent = async () => {
       docContent: editorContent.value
     })
     if (res.data.code === 0) {
-      message.success('内容保存成功，请点击"刷新向量数据库"使改动生效')
+      message.success('内容保存成功，请点击"刷新混合索引"使改动生效')
       editorModalVisible.value = false
       fetchData()
     } else {
@@ -614,7 +729,7 @@ const handleSaveContent = async () => {
   }
 }
 
-// ── 刷新向量数据库进度模态框 ──────────────────────────────
+// ── 刷新混合检索索引进度模态框 ────────────────────────────
 const reindexModalVisible = ref(false)
 const reindexState = ref<'confirm' | 'progress' | 'done' | 'error'>('confirm')
 const reindexErrorMsg = ref('')
@@ -622,70 +737,200 @@ const reindexErrorMsg = ref('')
 interface ReindexStep {
   id: string
   label: string
+  engine: string
+  description: string
   status: 'pending' | 'loading' | 'done' | 'error'
+  progress: number
   duration?: string
+  eta?: string
 }
 
 const reindexSteps = ref<ReindexStep[]>([
-  { id: 'clear', label: '清空现有向量数据', status: 'pending' },
-  { id: 'load', label: '从数据库读取已启用文档', status: 'pending' },
-  { id: 'vector', label: '向量化文档内容', status: 'pending' },
-  { id: 'write', label: '写入 PGVector 向量库', status: 'pending' }
+  {
+    id: 'prepare',
+    label: '文档清洗与向量化',
+    engine: 'EMBEDDING',
+    description: '读取启用文档并生成 text-embedding-v4 语义向量',
+    status: 'pending',
+    progress: 0
+  },
+  {
+    id: 'milvus',
+    label: '写入 Milvus 向量索引',
+    engine: 'MILVUS',
+    description: '建立 1536 维向量索引，支撑语义召回',
+    status: 'pending',
+    progress: 0
+  },
+  {
+    id: 'elasticsearch',
+    label: '构建 Elasticsearch 倒排索引',
+    engine: 'ES',
+    description: '写入 BM25 倒排索引，支撑关键词召回',
+    status: 'pending',
+    progress: 0
+  },
+  {
+    id: 'rrf',
+    label: '执行 RRF 融合排序',
+    engine: 'RRF',
+    description: '合并向量与倒排两路排名，生成最终知识片段顺序',
+    status: 'pending',
+    progress: 0
+  }
 ])
 
+const reindexProgress = computed(() => {
+  const totalProgress = reindexSteps.value.reduce((total, step) => total + step.progress, 0)
+  return Math.min(100, Math.round(totalProgress / reindexSteps.value.length))
+})
+
+const reindexActiveSteps = computed(() => reindexSteps.value.filter(step => step.status === 'loading'))
+
+const reindexProgressCaption = computed(() => {
+  if (reindexState.value === 'done') return '混合索引模拟完成'
+  if (reindexState.value === 'error') return '索引重建已中断'
+  const activeSteps = reindexActiveSteps.value
+  const parallelIndexing = activeSteps.filter(step => step.id === 'milvus' || step.id === 'elasticsearch')
+  if (parallelIndexing.length === 2) return 'Milvus 与 Elasticsearch 正在并行构建'
+  if (parallelIndexing.length === 1) {
+    const otherStep = reindexSteps.value.find(step =>
+      (step.id === 'milvus' || step.id === 'elasticsearch') && step.id !== parallelIndexing[0].id
+    )
+    return otherStep?.status === 'done'
+      ? `${parallelIndexing[0].label}正在收尾，另一路已完成`
+      : parallelIndexing[0].label
+  }
+  return activeSteps[0]?.label || '等待后端确认重建结果'
+})
+
+const reindexStatusLabels: Record<ReindexStep['status'], string> = {
+  pending: '等待中',
+  loading: '处理中',
+  done: '已完成',
+  error: '失败'
+}
+
+const getStepStatus = (id: string): ReindexStep['status'] => {
+  return reindexSteps.value.find(step => step.id === id)?.status || 'pending'
+}
+
+const getStepProgress = (id: string) => {
+  return Math.round(reindexSteps.value.find(step => step.id === id)?.progress || 0)
+}
+
+const getStepStatusLabel = (status: ReindexStep['status']) => reindexStatusLabels[status]
+
 const reindexModalTitle = computed(() => {
-  if (reindexState.value === 'confirm') return '刷新向量数据库'
-  if (reindexState.value === 'progress') return '正在重建索引…'
-  if (reindexState.value === 'done') return '重建索引完成'
-  return '重建索引失败'
+  if (reindexState.value === 'confirm') return '刷新混合检索索引'
+  if (reindexState.value === 'progress') return '正在重建混合索引…'
+  if (reindexState.value === 'done') return '混合索引模拟完成'
+  return '混合索引重建失败'
 })
 
 const openReindexModal = () => {
   reindexState.value = 'confirm'
   reindexSteps.value.forEach(s => {
     s.status = 'pending'
+    s.progress = 0
     s.duration = undefined
+    s.eta = undefined
   })
   reindexModalVisible.value = true
 }
 
 const startReindex = async () => {
+  if (reindexState.value === 'progress') return
+
   reindexState.value = 'progress'
   reindexErrorMsg.value = ''
 
   const steps = reindexSteps.value
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
-
-  const setStep = (idx: number, status: ReindexStep['status'], duration?: string) => {
-    steps[idx].status = status
-    if (duration) steps[idx].duration = duration
+  const getStep = (id: string) => {
+    const step = steps.find(item => item.id === id)
+    if (!step) throw new Error(`未找到索引阶段：${id}`)
+    return step
   }
 
-  const startTimes: number[] = []
+  const prepareStep = getStep('prepare')
+  const milvusStep = getStep('milvus')
+  const elasticsearchStep = getStep('elasticsearch')
+  const rrfStep = getStep('rrf')
+  const randomMs = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
 
-  for (let i = 0; i < steps.length; i++) {
-    startTimes[i] = Date.now()
-    setStep(i, 'loading')
-    if (i > 0) setStep(i - 1, 'done', `${((Date.now() - startTimes[i - 1]) / 1000).toFixed(1)}s`)
-    await delay(400)
+  // 后端真实混合索引能力接入前，先在前端模拟各阶段耗时；
+  // Milvus 与 Elasticsearch 独立计时并并发执行，RRF 等待两路完成后启动。
+  const simulateStep = (step: ReindexStep, durationMs: number, maxProgress = 100) => {
+    return new Promise<void>((resolve) => {
+      step.status = 'loading'
+      step.progress = 0
+      step.duration = undefined
+      step.eta = `${(durationMs / 1000).toFixed(1)}s`
+      const startedAt = performance.now()
+      let timer = 0
+
+      const tick = () => {
+        const elapsed = performance.now() - startedAt
+        step.progress = Math.min(maxProgress, Math.round((elapsed / durationMs) * maxProgress))
+        if (elapsed < durationMs) return
+
+        window.clearInterval(timer)
+        step.eta = undefined
+        step.duration = `${(elapsed / 1000).toFixed(1)}s`
+        if (maxProgress >= 100) {
+          step.progress = 100
+          step.status = 'done'
+        }
+        resolve()
+      }
+
+      timer = window.setInterval(tick, 100)
+      tick()
+    })
   }
+
+  const runSimulation = async () => {
+    await simulateStep(prepareStep, randomMs(900, 1400))
+    await Promise.all([
+      simulateStep(milvusStep, randomMs(4200, 7000)),
+      simulateStep(elasticsearchStep, randomMs(3600, 6200))
+    ])
+    await simulateStep(rrfStep, randomMs(1100, 1800), 95)
+  }
+
+  const apiRequest = reindexRagDocuments()
+    .then(res => ({
+      status: 'response' as const,
+      res
+    }))
+    .catch(error => ({
+      status: 'rejected' as const,
+      error
+    }))
 
   try {
-    const apiStart = Date.now()
-    const res = await reindexRagDocuments()
-    const elapsed = ((Date.now() - apiStart) / 1000).toFixed(1)
+    const [apiOutcome] = await Promise.all([apiRequest, runSimulation()])
 
-    if (res.data.code === 0) {
-      setStep(steps.length - 1, 'done', `${elapsed}s`)
+    if (apiOutcome.status === 'rejected') {
+      rrfStep.status = 'error'
+      reindexErrorMsg.value = '混合索引重建失败：' + getErrorMessage(apiOutcome.error)
+      reindexState.value = 'error'
+    } else if (apiOutcome.res.data.code === 0) {
+      rrfStep.status = 'done'
+      rrfStep.progress = 100
       reindexState.value = 'done'
     } else {
-      setStep(steps.length - 1, 'error')
-      reindexErrorMsg.value = '索引失败：' + (res.data.message || '未知错误')
+      rrfStep.status = 'error'
+      reindexErrorMsg.value = '混合索引重建失败：' +
+        (apiOutcome.res.data.message || '未知错误')
       reindexState.value = 'error'
     }
   } catch (e: unknown) {
-    setStep(steps.length - 1, 'error')
-    reindexErrorMsg.value = '索引失败：' + getErrorMessage(e)
+    steps.filter(step => step.status === 'loading').forEach(step => {
+      step.status = 'error'
+      step.eta = undefined
+    })
+    reindexErrorMsg.value = '混合索引重建失败：' + getErrorMessage(e)
     reindexState.value = 'error'
   }
 }
@@ -736,7 +981,7 @@ const handleDelete = async (id: number) => {
   try {
     const res = await deleteRagDocument({ id })
     if (res.data.code === 0) {
-      message.success('删除成功，请点击"刷新向量数据库"使改动生效')
+      message.success('删除成功，请点击"刷新混合索引"使改动生效')
       fetchData()
     } else {
       message.error('删除失败：' + res.data.message)
@@ -761,7 +1006,7 @@ const groupMeta: Record<string, { label: string; color: string; desc: string }> 
   etl: {
     label: 'ETL 切分',
     color: 'blue',
-    desc: '文档收集与切片阶段参数（修改后需重新刷新向量数据库才能生效）'
+    desc: '文档收集与切片阶段参数（修改后需重新刷新混合索引才能生效）'
   },
   retrieval: {
     label: '向量检索',
@@ -1028,77 +1273,324 @@ const handleSaveParam = async (param: API.RagParamVO) => {
   overflow: hidden;
 }
 
-// ── 刷新向量数据库进度模态框 ──────────────────────────────
+// ── 混合检索索引重建模态框 ────────────────────────────────
 .reindex-confirm {
-  padding: 8px 0 16px;
-  text-align: center;
+  padding: 2px 0 10px;
 }
 
-.reindex-confirm-icon {
-  font-size: 40px;
+.hybrid-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 18px;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.hybrid-hero-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  font-size: 19px;
   color: #1a1a1a;
-  margin-bottom: 16px;
+  background: #fff;
 }
 
-.reindex-confirm-text {
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 8px;
+.hybrid-hero-copy {
+  flex: 1;
+  min-width: 0;
+
+  h3 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+
+  p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #999;
+  }
+}
+
+.hybrid-badge {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #666;
+  background: #fff;
+}
+
+.hybrid-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 66px 178px;
+  align-items: center;
+  margin: 2px 0 16px;
+}
+
+.hybrid-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.engine-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  background: #fafafa;
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+
+  .engine-copy {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    gap: 2px;
+  }
 
   strong {
-    color: #ff4d4f;
+    overflow: hidden;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .engine-subtitle {
+    font-size: 11px;
+    line-height: 1.35;
+    color: #999;
+  }
+
+  &.loading {
+    border-color: #d9d9d9;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  &.done {
+    border-color: #b7eb8f;
+    background: #f6ffed;
+  }
+
+  &.error {
+    border-color: #ffa39e;
+    background: #fef2f2;
+  }
+}
+
+.engine-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  font-size: 16px;
+  color: #595959;
+  background: #f5f5f5;
+}
+
+.engine-progress {
+  display: block;
+  width: 100%;
+  height: 3px;
+  margin-top: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f0f0f0;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #595959;
+    transition: width 0.12s linear;
+  }
+}
+
+.engine-parallel {
+  flex-shrink: 0;
+  padding: 1px 5px;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 16px;
+  color: #999;
+  background: #fff;
+}
+
+.engine-milvus .engine-icon {
+  color: #595959;
+  background: #f5f5f5;
+}
+
+.engine-es .engine-icon {
+  color: #595959;
+  background: #f5f5f5;
+}
+
+.engine-rrf {
+  min-height: 72px;
+  border-color: #f0f0f0;
+  background: #fafafa;
+
+  .engine-icon {
+    color: #1a1a1a;
+    background: #f0f0f0;
+  }
+}
+
+.flow-connector {
+  width: 66px;
+  height: 138px;
+  overflow: visible;
+
+  path {
+    fill: none;
+    stroke: #d9d9d9;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+.reindex-confirm-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #92400e;
+  background: #fffbeb;
+
+  :deep(.anticon) {
+    margin-top: 2px;
+    color: #d97706;
   }
 }
 
 .reindex-confirm-sub {
+  margin: 10px 0 20px;
   font-size: 12px;
   color: #999;
-  margin-bottom: 24px;
 }
 
 .reindex-confirm-btns {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 12px;
 
   :deep(.ant-btn) {
+    min-width: 104px;
     border-radius: 8px;
-    min-width: 100px;
   }
 }
 
 .confirm-primary-btn {
-  background: #1a1a1a !important;
   border-color: #1a1a1a !important;
   color: #fff !important;
-  border-radius: 8px;
+  background: #1a1a1a !important;
 
   &:hover {
-    background: #333 !important;
     border-color: #333 !important;
+    background: #333 !important;
   }
 }
 
 .reindex-progress {
-  padding: 8px 0 16px;
+  padding: 2px 0 10px;
+}
+
+.progress-overview {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+
+  h3 {
+    margin: 4px 0 0;
+    overflow: hidden;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.progress-eyebrow {
+  font-size: 12px;
+  color: #999;
+}
+
+.progress-value {
+  flex-shrink: 0;
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #1a1a1a;
+}
+
+.progress-track {
+  height: 8px;
+  margin-bottom: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f5f5f5;
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #1a1a1a;
+  transition: width 0.35s ease;
+}
+
+.hybrid-flow-progress {
+  margin-bottom: 14px;
 }
 
 .progress-steps {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 16px;
 }
 
 .progress-step {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
+  padding: 11px 14px;
   border: 1px solid #f0f0f0;
+  border-radius: 8px;
   background: #fafafa;
-  transition: all 0.3s;
+  transition: border-color 0.25s ease, background 0.25s ease;
 
   &.loading {
     border-color: #d9d9d9;
@@ -1112,37 +1604,38 @@ const handleSaveParam = async (param: API.RagParamVO) => {
 
   &.error {
     border-color: #ffa39e;
-    background: #fff2f0;
+    background: #fef2f2;
   }
 }
 
 .step-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .icon-loading {
   color: #1a1a1a;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .icon-done {
   color: #52c41a;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .icon-error {
   color: #ff4d4f;
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .icon-pending {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #d9d9d9;
   display: block;
@@ -1150,19 +1643,63 @@ const handleSaveParam = async (param: API.RagParamVO) => {
 
 .step-body {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
   flex: 1;
+  min-width: 0;
+  gap: 3px;
+}
+
+.step-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .step-label {
   font-size: 13px;
+  font-weight: 600;
   color: #333;
 }
 
-.step-duration {
+.step-engine {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #999;
+  background: #f5f5f5;
+}
+
+.step-description {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #999;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.step-status {
+  flex-shrink: 0;
+  padding-top: 1px;
   font-size: 12px;
   color: #999;
+}
+
+.progress-step.loading .step-status {
+  color: #1a1a1a;
+}
+
+.progress-step.done .step-status {
+  color: #52c41a;
+}
+
+.progress-step.error .step-status {
+  color: #ff4d4f;
 }
 
 .reindex-result {
@@ -1170,7 +1707,7 @@ const handleSaveParam = async (param: API.RagParamVO) => {
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 13px;
   margin-bottom: 16px;
 
@@ -1193,10 +1730,44 @@ const handleSaveParam = async (param: API.RagParamVO) => {
 }
 
 .reindex-done-btn {
-  text-align: center;
+  text-align: right;
 
   :deep(.ant-btn) {
-    min-width: 100px;
+    min-width: 104px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hybrid-hero {
+    align-items: flex-start;
+  }
+
+  .hybrid-badge {
+    display: none;
+  }
+
+  .hybrid-flow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .flow-connector {
+    width: 36px;
+    height: 64px;
+    margin: -6px auto;
+    transform: rotate(90deg);
+  }
+
+  .engine-rrf {
+    min-height: 58px;
+  }
+
+  .step-description {
+    white-space: normal;
+  }
+
+  .step-status {
+    display: none;
   }
 }
 
