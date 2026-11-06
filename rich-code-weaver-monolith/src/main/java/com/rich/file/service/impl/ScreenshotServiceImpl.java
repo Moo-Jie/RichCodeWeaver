@@ -2,6 +2,7 @@ package com.rich.file.service.impl;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
+import com.rich.common.constant.AppConstant;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.file.service.FileService;
@@ -12,8 +13,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 import static com.rich.file.utils.MultipartFileUtils.getMultipartFile;
 
@@ -48,13 +51,78 @@ public class ScreenshotServiceImpl implements ScreenshotService {
         // 校验截图是否生成成功
         ThrowUtils.throwIf(StrUtil.isBlank(localScreenshotPath), ErrorCode.OPERATION_ERROR, "本地截图生成失败");
 
-        // 2. 上传截图到对象存储
-        String cosUrl = uploadScreenshotToOss(localScreenshotPath);
-        // 校验上传是否成功
-        ThrowUtils.throwIf(StrUtil.isBlank(cosUrl), ErrorCode.OPERATION_ERROR, "截图上传对象存储失败");
+        try {
+            // 2. 优先上传到对象存储
+            String screenshotUrl = uploadScreenshotToOssQuietly(localScreenshotPath);
 
-        log.info("网页截图生成并上传成功: {} -> {}", webUrl, cosUrl);
-        return cosUrl;
+            // 3. 对象存储不可用时降级保存到 Nginx 静态封面目录，保证本地环境仍可更新封面
+            if (StrUtil.isBlank(screenshotUrl)) {
+                screenshotUrl = saveScreenshotToLocal(localScreenshotPath, webUrl);
+            }
+
+            ThrowUtils.throwIf(StrUtil.isBlank(screenshotUrl), ErrorCode.OPERATION_ERROR, "截图保存失败");
+            log.info("网页截图生成并保存成功: {} -> {}", webUrl, screenshotUrl);
+            return screenshotUrl;
+        } finally {
+            cleanupLocalFile(localScreenshotPath);
+        }
+    }
+
+    /**
+     * 上传截图到对象存储，失败时返回空值以便上层执行本地降级
+     *
+     * @param localScreenshotPath 本地截图路径
+     * @return 对象存储访问 URL，失败时返回 null
+     */
+    private String uploadScreenshotToOssQuietly(String localScreenshotPath) {
+        try {
+            return uploadScreenshotToOss(localScreenshotPath);
+        } catch (Exception e) {
+            log.warn("截图上传对象存储失败，降级保存到本地封面目录: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 保存截图到本地静态封面目录
+     *
+     * @param localScreenshotPath 本地截图路径
+     * @param webUrl              网页 URL
+     * @return 本地封面访问 URL，失败时返回 null
+     */
+    private String saveScreenshotToLocal(String localScreenshotPath, String webUrl) {
+        File sourceFile = new File(localScreenshotPath);
+        if (!sourceFile.exists()) {
+            log.error("本地截图文件不存在: {}", localScreenshotPath);
+            return null;
+        }
+
+        String extension = FileUtil.extName(sourceFile);
+        String fileName = resolveCoverFileName(webUrl, extension);
+        File coverDir = FileUtil.mkdir(new File(AppConstant.CODE_DEPLOY_ROOT_DIR, "_covers"));
+        File targetFile = new File(coverDir, fileName);
+        FileUtil.copy(sourceFile, targetFile, true);
+        return AppConstant.CODE_DEPLOY_HOST + "/_covers/" + fileName;
+    }
+
+    /**
+     * 根据部署地址生成稳定的封面文件名
+     *
+     * @param webUrl    网页 URL
+     * @param extension 图片扩展名
+     * @return 封面文件名
+     */
+    private String resolveCoverFileName(String webUrl, String extension) {
+        try {
+            String path = URI.create(webUrl).getPath();
+            String deployKey = StrUtil.subBefore(StrUtil.removePrefix(path, "/"), "/", false);
+            if (StrUtil.isNotBlank(deployKey)) {
+                return deployKey + "-cover." + extension;
+            }
+        } catch (Exception e) {
+            log.warn("解析产物部署地址失败，使用随机封面文件名: {}", webUrl);
+        }
+        return UUID.randomUUID().toString().replace("-", "").substring(0, 8) + "-cover." + extension;
     }
 
     /**

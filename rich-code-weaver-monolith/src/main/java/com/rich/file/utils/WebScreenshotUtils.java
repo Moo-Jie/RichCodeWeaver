@@ -8,6 +8,7 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.ScreenshotType;
 import com.microsoft.playwright.options.WaitUntilState;
 import com.rich.common.constant.AppConstant;
@@ -69,19 +70,50 @@ public class WebScreenshotUtils {
                 if (browser == null || !browser.isConnected()) {
                     log.info("初始化 Chromium 浏览器...");
                     Playwright pw = getPlaywright();
-                    browser = pw.chromium().launch(new BrowserType.LaunchOptions()
-                            .setHeadless(true)  // 无头模式
-                            .setArgs(java.util.Arrays.asList(
-                                    "--no-sandbox",
-                                    "--disable-dev-shm-usage",
-                                    "--disable-gpu"
-                            ))
-                    );
+                    browser = launchBrowser(pw);
                     log.info("Chromium 浏览器初始化成功");
                 }
             }
         }
         return browser;
+    }
+
+    /**
+     * 启动截图浏览器
+     * 优先使用 Playwright 内置 Chromium；启动失败时降级使用系统 Chrome，
+     * 避免部分 Windows 环境因内置 Chromium 进程启动异常导致封面生成失败。
+     *
+     * @param playwright Playwright 实例
+     * @return Browser 实例
+     */
+    private static Browser launchBrowser(Playwright playwright) {
+        try {
+            return launchChromium(playwright, null);
+        } catch (PlaywrightException bundledException) {
+            log.warn("内置 Chromium 启动失败，降级使用系统 Chrome: {}", bundledException.getMessage());
+            return launchChromium(playwright, "chrome");
+        }
+    }
+
+    /**
+     * 使用指定浏览器通道启动 Chromium
+     *
+     * @param playwright Playwright 实例
+     * @param channel 浏览器通道，为空时使用 Playwright 内置 Chromium
+     * @return Browser 实例
+     */
+    private static Browser launchChromium(Playwright playwright, String channel) {
+        BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
+                .setHeadless(true)  // 无头模式
+                .setArgs(java.util.Arrays.asList(
+                        "--no-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-gpu"
+                ));
+        if (StrUtil.isNotBlank(channel)) {
+            options.setChannel(channel);
+        }
+        return playwright.chromium().launch(options);
     }
 
     /**
