@@ -1162,6 +1162,7 @@ declare namespace API {
     userAvatar?: string
     inviterId?: number
     inviterName?: string
+    inviterAvatar?: string
     /** 状态: 0=待确认, 1=已接受, 2=已拒绝, 3=已移除 */
     status?: number
     /** 协作角色: editor(编辑者), viewer(查看者) */

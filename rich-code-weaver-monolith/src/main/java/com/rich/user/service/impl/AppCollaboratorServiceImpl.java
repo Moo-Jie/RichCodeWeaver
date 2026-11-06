@@ -1,6 +1,7 @@
 package com.rich.user.service.impl;
 
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.update.UpdateChain;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.rich.common.constant.CollaboratorConstant;
 import com.rich.common.exception.BusinessException;
@@ -164,9 +165,16 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "无效的处理动作");
         }
 
-        boolean result = updateById(collaborator);
-        log.info("处理协作邀请: id={}, userId={}, action={}, result={}", id, userId, action, result);
-        return result;
+        boolean result = UpdateChain.of(AppCollaborator.class)
+                .set("status", collaborator.getStatus())
+                .where("id = ? AND userId = ? AND status = ?",
+                        id, userId, CollaboratorConstant.STATUS_PENDING)
+                .update();
+        if (!result) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "该邀请已被处理");
+        }
+        log.info("处理协作邀请: id={}, userId={}, action={}, result={}", id, userId, action, true);
+        return true;
     }
 
     /**
@@ -319,6 +327,7 @@ public class AppCollaboratorServiceImpl extends ServiceImpl<AppCollaboratorMappe
             User inviter = userMap.get(record.getInviterId());
             if (inviter != null) {
                 vo.setInviterName(inviter.getUserName());
+                vo.setInviterAvatar(inviter.getUserAvatar());
             }
 
             // 填充产物信息

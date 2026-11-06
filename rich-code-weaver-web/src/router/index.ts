@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import GlobalLayout from '@/layouts/GlobalLayout.vue'
 import WorkspacePage from '@/pages/WorkspacePage.vue'
+import MessageCenterPage from '@/pages/message/MessageCenterPage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
@@ -43,6 +44,11 @@ const router = createRouter({
           path: '',
           name: '主页',
           component: WorkspacePage
+        },
+        {
+          path: 'messages',
+          name: '消息中心',
+          component: MessageCenterPage
         },
         {
           path: 'app/chat/:id',

@@ -2,6 +2,7 @@ package com.rich.user.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.update.UpdateChain;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.rich.common.exception.BusinessException;
 import com.rich.common.exception.ErrorCode;
@@ -71,10 +72,12 @@ public class UserFriendshipServiceImpl extends ServiceImpl<UserFriendshipMapper,
         // 检查是否存在已拒绝/已删除的旧记录（避免唯一键冲突）
         QueryWrapper oldQuery = QueryWrapper.create()
                 .from(UserFriendship.class)
-                .where("userId = ? AND friendId = ? AND status IN (2, 3)", userId, friendId);
+                .where("((userId = ? AND friendId = ?) OR (userId = ? AND friendId = ?)) AND status IN (2, 3)", userId, friendId, friendId, userId);
         UserFriendship oldRecord = getOne(oldQuery);
         if (oldRecord != null) {
             // 重置为待处理状态
+            oldRecord.setUserId(userId);
+            oldRecord.setFriendId(friendId);
             oldRecord.setStatus(0);
             oldRecord.setRemark(remark);
             updateById(oldRecord);
@@ -120,9 +123,14 @@ public class UserFriendshipServiceImpl extends ServiceImpl<UserFriendshipMapper,
         if (friendship.getStatus() != 0) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "该申请已处理");
         }
-        // 更新状态
-        friendship.setStatus(action);
-        updateById(friendship);
+        // 条件更新保证同意/拒绝只能成功一次，避免多标签页并发覆盖状态。
+        boolean updated = UpdateChain.of(UserFriendship.class)
+                .set("status", action)
+                .where("id = ? AND status = 0", friendshipId)
+                .update();
+        if (!updated) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "该申请已被处理");
+        }
 
         // 如果同意，创建反向好友记录（形成双向关系）
         if (action == 1) {
@@ -162,8 +170,7 @@ public class UserFriendshipServiceImpl extends ServiceImpl<UserFriendshipMapper,
                 .from(UserFriendship.class)
                 .where("(userId = ? AND friendId = ?) OR (userId = ? AND friendId = ?)",
                         userId, friendId, friendId, userId);
-        remove(deleteQuery);
-        return true;
+        return remove(deleteQuery);
     }
 
     /**

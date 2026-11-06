@@ -101,7 +101,14 @@ public class CollaboratorController {
         // 通过 WebSocket 实时推送聊天消息
         chatWebSocketHandler.pushChatMessage(
                 loginUser.getId(), inviteRequest.getUserId(), messageVO);
-
+        cn.hutool.json.JSONObject inviteNotification = new cn.hutool.json.JSONObject();
+        inviteNotification.set("action", "invite");
+        inviteNotification.set("collabId", collabId);
+        inviteNotification.set("appId", inviteRequest.getAppId());
+        inviteNotification.set("appName", appName);
+        inviteNotification.set("inviterName", loginUser.getUserName());
+        inviteNotification.set("inviterAvatar", loginUser.getUserAvatar());
+        chatWebSocketHandler.pushCollabNotification(inviteRequest.getUserId(), inviteNotification);
         return ResultUtils.success(collabId);
     }
 
@@ -139,6 +146,16 @@ public class CollaboratorController {
                         loginUser.getId(), collab.getInviterId(), resultText, ChatConstant.MESSAGE_TYPE_TEXT);
                 chatWebSocketHandler.pushChatMessage(
                         loginUser.getId(), collab.getInviterId(), msgVO);
+                cn.hutool.json.JSONObject collabNotification = new cn.hutool.json.JSONObject();
+                collabNotification.set("action",
+                        handleRequest.getAction() == CollaboratorConstant.HANDLE_ACTION_ACCEPT
+                                ? "accepted" : "rejected");
+                collabNotification.set("collabId", collab.getId());
+                collabNotification.set("appId", collab.getAppId());
+                collabNotification.set("appName", appName);
+                collabNotification.set("actorName", loginUser.getUserName());
+                collabNotification.set("actorAvatar", loginUser.getUserAvatar());
+                chatWebSocketHandler.pushCollabNotification(collab.getInviterId(), collabNotification);
             }
         }
 

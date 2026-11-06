@@ -65,6 +65,11 @@ public class AppCollaboratorVO implements Serializable {
     private String inviterName;
 
     /**
+     * 邀请人头像
+     */
+    private String inviterAvatar;
+
+    /**
      * 状态: 0=待确认, 1=已接受, 2=已拒绝, 3=已移除
      */
     private Integer status;

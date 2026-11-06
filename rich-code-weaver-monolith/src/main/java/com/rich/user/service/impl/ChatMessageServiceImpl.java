@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,8 @@ import java.util.stream.Collectors;
 @Service
 public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatMessage>
         implements ChatMessageService {
+
+    private static final int MAX_MESSAGE_LENGTH = 5000;
 
     @Resource
     private ChatConversationService chatConversationService;
@@ -108,11 +111,11 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
     @Override
     public Page<ChatMessageVO> listMessages(Long conversationId, Long currentUserId, long pageNum, long pageSize) {
         validateConversationAccess(conversationId, currentUserId);
-        // 查询消息（按时间升序）
+        // 从最新消息开始倒序分页，保证首屏优先拿到最近一页。
         QueryWrapper query = QueryWrapper.create()
                 .from(ChatMessage.class)
                 .where("conversationId = ?", conversationId)
-                .orderBy("createTime", true);
+                .orderBy("createTime", false).orderBy("id", false);
         Page<ChatMessage> messagePage = page(Page.of(pageNum, pageSize), query);
 
         // 批量获取发送方用户信息
@@ -133,6 +136,8 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
         List<ChatMessageVO> voList = messagePage.getRecords().stream()
                 .map(m -> buildMessageVO(m, finalUserMap.get(m.getSenderId()), collaboratorMap))
                 .collect(Collectors.toList());
+        // 单页内恢复为时间正序，前端可直接从旧到新渲染。
+        Collections.reverse(voList);
         voPage.setRecords(voList);
         return voPage;
     }
@@ -145,11 +150,20 @@ public class ChatMessageServiceImpl extends ServiceImpl<ChatMessageMapper, ChatM
      * @param userId         当前用户id
      */
     @Override
-    public void markAsRead(Long conversationId, Long userId) {
+    public void markAsRead(Long conversationId, Long userId, Long lastReadMessageId) {
         validateConversationAccess(conversationId, userId);
+        String whereSql = "conversationId = ? AND receiverId = ? AND isRead = 0";
+        if (lastReadMessageId != null && lastReadMessageId > 0) {
+            whereSql += " AND id <= ?";
+            UpdateChain.of(ChatMessage.class)
+                    .set("isRead", 1)
+                    .where(whereSql, conversationId, userId, lastReadMessageId)
+                    .update();
+            return;
+        }
         UpdateChain.of(ChatMessage.class)
                 .set("isRead", 1)
-                .where("conversationId = ? AND receiverId = ? AND isRead = 0", conversationId, userId)
+                .where(whereSql, conversationId, userId)
                 .update();
     }
 

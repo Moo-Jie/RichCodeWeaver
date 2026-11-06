@@ -1,6 +1,7 @@
 package com.rich.user.controller;
 
 import com.mybatisflex.core.paginate.Page;
+import com.rich.common.constant.ChatConstant;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.common.model.BaseResponse;
@@ -12,7 +13,9 @@ import com.rich.model.vo.ChatConversationVO;
 import com.rich.model.vo.ChatMessageVO;
 import com.rich.user.service.ChatConversationService;
 import com.rich.user.service.ChatMessageService;
+import com.rich.user.service.UserFriendshipService;
 import com.rich.user.service.UserService;
+import com.rich.user.websocket.ChatWebSocketHandler;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +23,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 聊天控制器
- * 提供会话列表、消息查询、消息发送（HTTP方式备用）、已读标记等接口
- * 实时消息通过WebSocket推送，此控制器提供REST API作为补充
+ * 聊天控制器。
+ * 提供会话列表、消息查询、HTTP 降级发送、已读标记等能力。
  *
  * @author DuRuiChi
  * @since 2026-04-07
@@ -30,6 +32,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/user/chat")
 public class ChatController {
+
+    private static final int MAX_MESSAGE_LENGTH = 5000;
 
     @Resource
     private ChatConversationService chatConversationService;
@@ -40,82 +44,77 @@ public class ChatController {
     @Resource
     private UserService userService;
 
-    /**
-     * 获取当前用户的会话列表
-     *
-     * @param request HTTP请求对象
-     * @return 会话列表VO（含对方用户信息、最后消息预览、未读数）
-     */
+    @Resource
+    private UserFriendshipService userFriendshipService;
+
+    @Resource
+    private ChatWebSocketHandler chatWebSocketHandler;
+
     @GetMapping("/conversations")
     public BaseResponse<List<ChatConversationVO>> listConversations(HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
-        List<ChatConversationVO> conversations = chatConversationService.listConversations(loginUser.getId());
-        return ResultUtils.success(conversations);
+        return ResultUtils.success(chatConversationService.listConversations(loginUser.getId()));
     }
 
-    /**
-     * 分页查询会话消息
-     *
-     * @param queryRequest 分页查询请求 { conversationId, pageNum, pageSize }
-     * @param request      HTTP请求对象
-     * @return 消息分页数据
-     */
     @PostMapping("/messages")
     public BaseResponse<Page<ChatMessageVO>> listMessages(@RequestBody ChatMessageQueryRequest queryRequest,
                                                           HttpServletRequest request) {
         ThrowUtils.throwIf(queryRequest == null, ErrorCode.PARAMS_ERROR);
-        ThrowUtils.throwIf(queryRequest.getConversationId() == null, ErrorCode.PARAMS_ERROR, "会话id不能为空");
-        // 验证用户已登录
+        ThrowUtils.throwIf(queryRequest.getConversationId() == null || queryRequest.getConversationId() <= 0,
+                ErrorCode.PARAMS_ERROR, "会话id无效");
+        ThrowUtils.throwIf(queryRequest.getPageNum() < 1 || queryRequest.getPageNum() > 10000,
+                ErrorCode.PARAMS_ERROR, "页码超出允许范围");
+        ThrowUtils.throwIf(queryRequest.getPageSize() < 1 || queryRequest.getPageSize() > 100,
+                ErrorCode.PARAMS_ERROR, "每页消息数必须在 1-100 之间");
         User loginUser = userService.getLoginUser(request);
         Page<ChatMessageVO> messages = chatMessageService.listMessages(
-                queryRequest.getConversationId(), loginUser.getId(), queryRequest.getPageNum(), queryRequest.getPageSize());
+                queryRequest.getConversationId(), loginUser.getId(),
+                queryRequest.getPageNum(), queryRequest.getPageSize());
         return ResultUtils.success(messages);
     }
 
-    /**
-     * 通过HTTP发送消息（WebSocket不可用时的备用方案）
-     *
-     * @param sendRequest 发送消息请求 { receiverId, content, messageType }
-     * @param request     HTTP请求对象
-     * @return 发送的消息VO
-     */
     @PostMapping("/send")
     public BaseResponse<ChatMessageVO> sendMessage(@RequestBody ChatMessageSendRequest sendRequest,
                                                    HttpServletRequest request) {
         ThrowUtils.throwIf(sendRequest == null, ErrorCode.PARAMS_ERROR);
-        ThrowUtils.throwIf(sendRequest.getReceiverId() == null, ErrorCode.PARAMS_ERROR, "接收方用户id不能为空");
+        ThrowUtils.throwIf(sendRequest.getReceiverId() == null || sendRequest.getReceiverId() <= 0,
+                ErrorCode.PARAMS_ERROR, "接收方用户id不能为空");
+        String content = sendRequest.getContent();
+        ThrowUtils.throwIf(content == null || content.trim().isEmpty(),
+                ErrorCode.PARAMS_ERROR, "消息内容不能为空");
+        ThrowUtils.throwIf(content.trim().length() > MAX_MESSAGE_LENGTH,
+                ErrorCode.PARAMS_ERROR, "消息内容不能超过 5000 个字符");
+        String messageType = sendRequest.getMessageType();
+        if (messageType == null || messageType.isBlank()) {
+            messageType = ChatConstant.MESSAGE_TYPE_TEXT;
+        }
+        ThrowUtils.throwIf(!ChatConstant.MESSAGE_TYPE_TEXT.equals(messageType),
+                ErrorCode.PARAMS_ERROR, "普通聊天仅支持文本消息");
+
         User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(!userFriendshipService.isFriend(loginUser.getId(), sendRequest.getReceiverId()),
+                ErrorCode.NO_AUTH_ERROR, "对方不是您的好友，无法发送消息");
         ChatMessageVO messageVO = chatMessageService.sendMessage(
-                loginUser.getId(), sendRequest.getReceiverId(),
-                sendRequest.getContent(), sendRequest.getMessageType());
+                loginUser.getId(), sendRequest.getReceiverId(), content, messageType);
+        // HTTP 是 WebSocket 的降级通道，成功后仍需要补齐实时推送与多端同步。
+        chatWebSocketHandler.pushChatMessage(loginUser.getId(), sendRequest.getReceiverId(), messageVO);
         return ResultUtils.success(messageVO);
     }
 
-    /**
-     * 标记会话消息为已读
-     *
-     * @param conversationId 会话id
-     * @param request        HTTP请求对象
-     * @return 操作是否成功
-     */
     @PostMapping("/read")
-    public BaseResponse<Boolean> markAsRead(@RequestParam Long conversationId, HttpServletRequest request) {
+    public BaseResponse<Boolean> markAsRead(@RequestParam Long conversationId,
+                                            @RequestParam(required = false) Long lastReadMessageId,
+                                            HttpServletRequest request) {
         ThrowUtils.throwIf(conversationId == null || conversationId <= 0, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
-        chatMessageService.markAsRead(conversationId, loginUser.getId());
+        chatMessageService.markAsRead(conversationId, loginUser.getId(), lastReadMessageId);
+        chatWebSocketHandler.pushUnreadCount(loginUser.getId());
         return ResultUtils.success(true);
     }
 
-    /**
-     * 获取当前用户的总未读消息数
-     *
-     * @param request HTTP请求对象
-     * @return 未读消息总数
-     */
     @GetMapping("/unread/count")
     public BaseResponse<Integer> getUnreadCount(HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
-        int count = chatMessageService.getUnreadCount(loginUser.getId());
-        return ResultUtils.success(count);
+        return ResultUtils.success(chatMessageService.getUnreadCount(loginUser.getId()));
     }
 }

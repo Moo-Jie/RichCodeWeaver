@@ -1,55 +1,51 @@
 import request from '@/request'
 
+type RequestOptions = Record<string, unknown>
+
 /** 获取会话列表 GET /user/chat/conversations */
-export async function listConversations(options?: { [key: string]: any }) {
+export async function listConversations(options?: RequestOptions) {
   return request<API.BaseResponseListChatConversationVO>('/user/chat/conversations', {
     method: 'GET',
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
 /** 分页查询会话消息 POST /user/chat/messages */
-export async function listMessages(
-  body: API.ChatMessageQueryRequest,
-  options?: { [key: string]: any }
-) {
+export async function listMessages(body: API.ChatMessageQueryRequest, options?: RequestOptions) {
   return request<API.BaseResponsePageChatMessageVO>('/user/chat/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
 /** 通过HTTP发送消息（WebSocket备用） POST /user/chat/send */
-export async function sendMessage(
-  body: API.ChatMessageSendRequest,
-  options?: { [key: string]: any }
-) {
+export async function sendMessage(body: API.ChatMessageSendRequest, options?: RequestOptions) {
   return request<API.BaseResponseChatMessageVO>('/user/chat/send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
 /** 标记会话消息为已读 POST /user/chat/read */
 export async function markAsRead(
-  params: { conversationId: number },
-  options?: { [key: string]: any }
+  params: { conversationId: number; lastReadMessageId?: number },
+  options?: RequestOptions,
 ) {
   return request<API.BaseResponseBoolean>('/user/chat/read', {
     method: 'POST',
     params: { ...params },
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
 /** 获取未读消息总数 GET /user/chat/unread/count */
-export async function getUnreadCount(options?: { [key: string]: any }) {
+export async function getUnreadCount(options?: RequestOptions) {
   return request<API.BaseResponseInteger>('/user/chat/unread/count', {
     method: 'GET',
-    ...(options || {})
+    ...(options || {}),
   })
 }

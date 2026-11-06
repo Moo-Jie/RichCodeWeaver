@@ -14,17 +14,16 @@ import com.rich.user.service.ChatConversationService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 聊天会话 服务实现
- * 实现会话的创建、查询等核心业务逻辑
- * userIdSmall < userIdLarge 规则保证每对用户唯一一条会话记录
+ * 聊天会话服务实现。
+ * userIdSmall < userIdLarge 规则保证每对用户唯一一条会话记录。
  *
  * @author DuRuiChi
  * @since 2026-04-07
@@ -39,65 +38,51 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
     @Resource
     private ChatMessageMapper chatMessageMapper;
 
-    /**
-     * 获取或创建两个用户之间的会话
-     * 使用 userIdSmall < userIdLarge 规则确保唯一性
-     *
-     * @param userId1 用户1的id
-     * @param userId2 用户2的id
-     * @return 会话实体
-     */
     @Override
     public ChatConversation getOrCreateConversation(Long userId1, Long userId2) {
         Long small = Math.min(userId1, userId2);
         Long large = Math.max(userId1, userId2);
-
-        // 查找已有会话
         QueryWrapper query = QueryWrapper.create()
                 .from(ChatConversation.class)
                 .where("userIdSmall = ? AND userIdLarge = ?", small, large);
         ChatConversation conversation = getOne(query);
-
         if (conversation == null) {
-            // 创建新会话
             conversation = ChatConversation.builder()
                     .userIdSmall(small)
                     .userIdLarge(large)
                     .build();
-            save(conversation);
+            try {
+                save(conversation);
+            } catch (RuntimeException e) {
+                // 并发创建首条消息时，唯一键冲突方回查已创建会话。
+                conversation = getOne(query);
+                if (conversation == null) {
+                    throw e;
+                }
+            }
         }
         return conversation;
     }
 
-    /**
-     * 获取用户的所有会话列表（按最后消息时间倒序）
-     * 附带对方用户信息、最后消息内容预览、未读消息数
-     *
-     * @param userId 当前用户id
-     * @return 会话列表VO
-     */
     @Override
     public List<ChatConversationVO> listConversations(Long userId) {
-        // 查询该用户参与的所有会话
         QueryWrapper query = QueryWrapper.create()
                 .from(ChatConversation.class)
                 .where("userIdSmall = ? OR userIdLarge = ?", userId, userId)
-                .orderBy("lastMessageTime", false);
+                .orderBy("lastMessageTime", false)
+                .orderBy("lastMessageId", false);
         List<ChatConversation> conversations = list(query);
         if (conversations.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // 收集对方用户id
         Set<Long> targetUserIds = conversations.stream()
                 .map(c -> c.getUserIdSmall().equals(userId) ? c.getUserIdLarge() : c.getUserIdSmall())
                 .collect(Collectors.toSet());
-        // 批量查询用户信息
         List<User> users = userMapper.selectListByIds(new ArrayList<>(targetUserIds));
         Map<Long, User> userMap = users.stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
 
-        // 收集最后消息id
         Set<Long> messageIds = conversations.stream()
                 .filter(c -> c.getLastMessageId() != null)
                 .map(ChatConversation::getLastMessageId)
@@ -109,7 +94,20 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
                     .collect(Collectors.toMap(ChatMessage::getId, m -> m));
         }
 
-        // 组装VO
+        // 一次查询并聚合所有会话未读数，避免按会话执行 COUNT 的 N+1。
+        List<Long> conversationIds = conversations.stream()
+                .map(ChatConversation::getId)
+                .collect(Collectors.toList());
+        List<ChatMessage> unreadMessages = chatMessageMapper.selectListByQuery(
+                QueryWrapper.create()
+                        .from(ChatMessage.class)
+                        .where("receiverId = ? AND isRead = 0", userId)
+                        .in("conversationId", conversationIds));
+        Map<Long, Long> unreadMap = new HashMap<>();
+        for (ChatMessage unreadMessage : unreadMessages) {
+            unreadMap.merge(unreadMessage.getConversationId(), 1L, Long::sum);
+        }
+
         Map<Long, ChatMessage> finalMessageMap = messageMap;
         return conversations.stream().map(c -> {
             ChatConversationVO vo = new ChatConversationVO();
@@ -117,7 +115,6 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
             vo.setCreateTime(c.getCreateTime());
             vo.setLastMessageTime(c.getLastMessageTime());
 
-            // 对方用户信息
             Long targetId = c.getUserIdSmall().equals(userId) ? c.getUserIdLarge() : c.getUserIdSmall();
             vo.setTargetUserId(targetId);
             User targetUser = userMap.get(targetId);
@@ -126,12 +123,10 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
                 vo.setTargetUserAvatar(targetUser.getUserAvatar());
             }
 
-            // 最后消息预览
             if (c.getLastMessageId() != null) {
                 ChatMessage lastMsg = finalMessageMap.get(c.getLastMessageId());
                 if (lastMsg != null) {
                     vo.setLastMessageType(lastMsg.getMessageType());
-                    // 特殊消息类型使用友好的预览文本
                     if (ChatConstant.MESSAGE_TYPE_COLLAB_INVITE.equals(lastMsg.getMessageType())) {
                         vo.setLastMessageContent(ChatConstant.CONVERSATION_PREVIEW_COLLAB_INVITE);
                     } else if (ChatConstant.MESSAGE_TYPE_APP_FORWARD.equals(lastMsg.getMessageType())) {
@@ -141,32 +136,26 @@ public class ChatConversationServiceImpl extends ServiceImpl<ChatConversationMap
                         vo.setLastMessageContent(content != null && content.length() > 50
                                 ? content.substring(0, 50) + "..." : content);
                     }
+                    if (lastMsg.getCreateTime() != null) {
+                        vo.setLastMessageTime(lastMsg.getCreateTime());
+                    }
                 }
             }
 
-            // 未读消息数
-            QueryWrapper unreadQuery = QueryWrapper.create()
-                    .from(ChatMessage.class)
-                    .where("conversationId = ? AND receiverId = ? AND isRead = 0", c.getId(), userId);
-            long unread = chatMessageMapper.selectCountByQuery(unreadQuery);
-            vo.setUnreadCount((int) unread);
-
+            vo.setUnreadCount(unreadMap.getOrDefault(c.getId(), 0L).intValue());
             return vo;
         }).collect(Collectors.toList());
     }
 
-    /**
-     * 更新会话的最后消息信息
-     *
-     * @param conversationId 会话id
-     * @param messageId      消息id
-     */
     @Override
     public void updateLastMessage(Long conversationId, Long messageId) {
         ChatConversation conversation = getById(conversationId);
-        if (conversation != null) {
+        ChatMessage message = chatMessageMapper.selectOneById(messageId);
+        if (conversation != null && message != null
+                && (conversation.getLastMessageId() == null || messageId > conversation.getLastMessageId())) {
+            // 使用消息实际创建时间，避免排序时间与最后消息内容错位。
             conversation.setLastMessageId(messageId);
-            conversation.setLastMessageTime(LocalDateTime.now());
+            conversation.setLastMessageTime(message.getCreateTime());
             updateById(conversation);
         }
     }

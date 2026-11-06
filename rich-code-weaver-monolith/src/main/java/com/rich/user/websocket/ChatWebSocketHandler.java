@@ -12,15 +12,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.ConcurrentWebSocketSessionDecorator;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 聊天 WebSocket 处理器
- * 管理用户WebSocket连接，处理实时消息的发送与接收
- * 维护在线用户会话映射，支持消息的实时推送
+ * 聊天 WebSocket 处理器。
+ * 同一用户支持多个在线标签页，并通过客户端消息 ID 关联发送确认与错误。
  *
  * @author DuRuiChi
  * @since 2026-04-07
@@ -29,10 +30,28 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
+    private static final int SEND_TIME_LIMIT_MS = 10_000;
+    private static final int SEND_BUFFER_LIMIT_BYTES = 512 * 1024;
+    private static final int CLIENT_MESSAGE_CACHE_LIMIT = 4096;
+
     /**
-     * 在线用户会话映射: userId -> WebSocketSession
+     * 在线用户会话映射: userId -> sessions。
      */
-    private static final ConcurrentHashMap<Long, WebSocketSession> ONLINE_USERS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Long, Set<WebSocketSession>> ONLINE_USERS =
+            new ConcurrentHashMap<>();
+
+    /**
+     * 原始 sessionId -> 串行发送装饰器，关闭连接时据此精确移除。
+     */
+    private static final ConcurrentHashMap<String, WebSocketSession> SAFE_SESSIONS =
+            new ConcurrentHashMap<>();
+
+    /**
+     * 进程内短期幂等缓存。数据库尚未增加 clientMessageId 唯一键时，
+     * 可避免同一在线进程内的超时重试产生重复消息。
+     */
+    private static final ConcurrentHashMap<String, ChatMessageVO> CLIENT_MESSAGE_CACHE =
+            new ConcurrentHashMap<>();
 
     @Resource
     private ChatMessageService chatMessageService;
@@ -40,250 +59,235 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Resource
     private UserFriendshipService userFriendshipService;
 
-    /**
-     * WebSocket连接建立后，将用户加入在线用户的映射表中
-     *
-     * @param session WebSocket会话
-     */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         Long userId = getUserId(session);
-        if (userId != null) {
-            ONLINE_USERS.put(userId, session);
-            log.info("[WebSocket] 用户上线: userId={}", userId);
-            // 发送未读消息数
-            sendUnreadCount(userId, session);
+        if (userId == null) {
+            return;
         }
+        WebSocketSession safeSession = new ConcurrentWebSocketSessionDecorator(
+                session, SEND_TIME_LIMIT_MS, SEND_BUFFER_LIMIT_BYTES);
+        SAFE_SESSIONS.put(session.getId(), safeSession);
+        ONLINE_USERS.computeIfAbsent(userId, key -> ConcurrentHashMap.newKeySet()).add(safeSession);
+        log.info("[WebSocket] 用户上线: userId={}, sessionId={}", userId, session.getId());
+        sendUnreadCount(userId);
     }
 
-    /**
-     * 处理收到的文本消息
-     * 消息格式（JSON）:
-     * - type: "chat" 发送聊天消息
-     *   payload: { receiverId, content, messageType }
-     * - type: "read" 标记消息已读
-     *   payload: { conversationId }
-     *
-     * @param session WebSocket会话
-     * @param message 文本消息
-     */
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) {
         Long senderId = getUserId(session);
         if (senderId == null) {
             return;
         }
+        String clientMessageId = null;
         try {
             JSONObject json = JSONUtil.parseObj(message.getPayload());
             String type = json.getStr("type");
             JSONObject payload = json.getJSONObject("payload");
-
+            if (payload != null) {
+                clientMessageId = payload.getStr("clientMessageId");
+            }
             switch (type) {
-                case "chat" -> handleChatMessage(senderId, payload);
-                case "read" -> handleReadMessage(senderId, payload);
-                default -> log.warn("[WebSocket] 未知消息类型: type={}", type);
+                case "chat" -> handleChatMessage(session, senderId, payload, clientMessageId);
+                case "read" -> handleReadMessage(session, senderId, payload, clientMessageId);
+                default -> sendError(session, "未知消息类型", clientMessageId);
             }
         } catch (Exception e) {
-            log.error("[WebSocket] 消息处理异常: userId={}", senderId, e);
-            sendError(session, "消息处理失败: " + e.getMessage());
+            log.error("[WebSocket] 消息处理异常: userId={}, clientMessageId={}",
+                    senderId, clientMessageId, e);
+            sendError(session, "消息处理失败: " + e.getMessage(), clientMessageId);
         }
     }
 
-    /**
-     * WebSocket连接关闭后，将用户从在线映射中移除
-     *
-     * @param session WebSocket会话
-     * @param status  关闭状态
-     */
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        Long userId = getUserId(session);
-        if (userId != null) {
-            ONLINE_USERS.remove(userId);
-            log.info("[WebSocket] 用户下线: userId={}, status={}", userId, status);
+        removeSession(session);
+        log.info("[WebSocket] 连接关闭: sessionId={}, status={}", session.getId(), status);
+    }
+
+    @Override
+    public void handleTransportError(WebSocketSession session, Throwable exception) {
+        log.error("[WebSocket] 传输错误: sessionId={}", session.getId(), exception);
+        removeSession(session);
+    }
+
+    private void removeSession(WebSocketSession rawSession) {
+        WebSocketSession safeSession = SAFE_SESSIONS.remove(rawSession.getId());
+        if (safeSession == null) {
+            return;
+        }
+        Long userId = getUserId(rawSession);
+        if (userId == null) {
+            return;
+        }
+        Set<WebSocketSession> sessions = ONLINE_USERS.get(userId);
+        if (sessions == null) {
+            return;
+        }
+        sessions.remove(safeSession);
+        if (sessions.isEmpty()) {
+            ONLINE_USERS.remove(userId, sessions);
+            log.info("[WebSocket] 用户离线: userId={}", userId);
         }
     }
 
-    /**
-     * WebSocket传输出错时的处理
-     *
-     * @param session   WebSocket会话
-     * @param exception 异常信息
-     */
-    @Override
-    public void handleTransportError(WebSocketSession session, Throwable exception) {
-        Long userId = getUserId(session);
-        log.error("[WebSocket] 传输错误: userId={}", userId, exception);
-        ONLINE_USERS.remove(userId);
-    }
-
-    // ===== 消息处理方法 =====
-
-    /**
-     * 处理聊天消息：校验好友关系、保存消息、推送给接收方
-     *
-     * @param senderId 发送方用户id
-     * @param payload  消息载荷 { receiverId, content, messageType }
-     */
-    private void handleChatMessage(Long senderId, JSONObject payload) {
+    private void handleChatMessage(WebSocketSession session, Long senderId, JSONObject payload,
+                                   String clientMessageId) {
+        if (payload == null) {
+            sendError(session, "消息载荷不能为空", clientMessageId);
+            return;
+        }
         Long receiverId = payload.getLong("receiverId");
         String content = payload.getStr("content");
         String messageType = payload.getStr("messageType", ChatConstant.MESSAGE_TYPE_TEXT);
 
-        // 校验好友关系
+        if (receiverId == null || receiverId <= 0) {
+            sendError(session, "接收方用户id无效", clientMessageId);
+            return;
+        }
+        if (!ChatConstant.MESSAGE_TYPE_TEXT.equals(messageType)) {
+            sendError(session, "普通聊天仅支持文本消息", clientMessageId);
+            return;
+        }
+        if (content == null || content.trim().isEmpty() || content.trim().length() > 5000) {
+            sendError(session, "消息内容长度必须在 1-5000 个字符之间", clientMessageId);
+            return;
+        }
         if (!userFriendshipService.isFriend(senderId, receiverId)) {
-            WebSocketSession senderSession = ONLINE_USERS.get(senderId);
-            if (senderSession != null) {
-                sendError(senderSession, "对方不是您的好友，无法发送消息");
-            }
+            sendError(session, "对方不是您的好友，无法发送消息", clientMessageId);
             return;
         }
 
-        // 保存消息到数据库
-        ChatMessageVO messageVO = chatMessageService.sendMessage(senderId, receiverId, content, messageType);
-
-        // 推送给接收方（如果在线）
-        WebSocketSession receiverSession = ONLINE_USERS.get(receiverId);
-        if (receiverSession != null && receiverSession.isOpen()) {
-            JSONObject pushData = new JSONObject();
-            pushData.set("type", "newMessage");
-            pushData.set("data", messageVO);
-            sendMessage(receiverSession, pushData.toString());
+        String dedupKey = clientMessageId == null ? null : senderId + ":" + clientMessageId;
+        ChatMessageVO cached = dedupKey == null ? null : CLIENT_MESSAGE_CACHE.get(dedupKey);
+        if (cached != null) {
+            sendConfirmation(session, cached, clientMessageId);
+            return;
         }
 
-        // 回复发送方确认
-        WebSocketSession senderSession = ONLINE_USERS.get(senderId);
-        if (senderSession != null && senderSession.isOpen()) {
-            JSONObject confirmData = new JSONObject();
-            confirmData.set("type", "messageSent");
-            confirmData.set("data", messageVO);
-            sendMessage(senderSession, confirmData.toString());
+        ChatMessageVO messageVO = chatMessageService.sendMessage(
+                senderId, receiverId, content, ChatConstant.MESSAGE_TYPE_TEXT);
+        if (dedupKey != null) {
+            if (CLIENT_MESSAGE_CACHE.size() >= CLIENT_MESSAGE_CACHE_LIMIT) {
+                CLIENT_MESSAGE_CACHE.clear();
+            }
+            CLIENT_MESSAGE_CACHE.put(dedupKey, messageVO);
         }
+
+        broadcastToUser(receiverId, "newMessage", messageVO);
+        sendConfirmation(session, messageVO, clientMessageId);
+        sendUnreadCount(receiverId);
     }
 
-    /**
-     * 处理已读标记：标记会话中的消息为已读
-     *
-     * @param userId  当前用户id
-     * @param payload 载荷 { conversationId }
-     */
-    private void handleReadMessage(Long userId, JSONObject payload) {
+    private void handleReadMessage(WebSocketSession session, Long userId, JSONObject payload, String clientMessageId) {
+        if (payload == null) {
+            sendError(session, "已读载荷不能为空", clientMessageId);
+            return;
+        }
         Long conversationId = payload.getLong("conversationId");
-        if (conversationId != null) {
-            chatMessageService.markAsRead(conversationId, userId);
+        Long lastReadMessageId = payload.getLong("lastReadMessageId");
+        if (conversationId == null || conversationId <= 0) {
+            return;
         }
+        chatMessageService.markAsRead(conversationId, userId, lastReadMessageId);
+        sendUnreadCount(userId);
     }
 
     /**
-     * 向接收方推送聊天消息（newMessage），同时向发送方推送确认（messageSent）
-     * 用于非WebSocket发起的消息（如协作邀请等系统消息），走HTTP保存后通过此方法实时推送
-     *
-     * @param senderId  发送方用户id
-     * @param receiverId 接收方用户id
-     * @param messageVO 消息视图对象
+     * 供 HTTP 降级发送或内部系统消息复用：落库后补齐实时推送。
      */
     public void pushChatMessage(Long senderId, Long receiverId, ChatMessageVO messageVO) {
-        // 推送给接收方
-        WebSocketSession receiverSession = ONLINE_USERS.get(receiverId);
-        if (receiverSession != null && receiverSession.isOpen()) {
-            JSONObject pushData = new JSONObject();
-            pushData.set("type", "newMessage");
-            pushData.set("data", messageVO);
-            sendMessage(receiverSession, pushData.toString());
-        }
-        // 推送给发送方
-        WebSocketSession senderSession = ONLINE_USERS.get(senderId);
-        if (senderSession != null && senderSession.isOpen()) {
-            JSONObject confirmData = new JSONObject();
-            confirmData.set("type", "messageSent");
-            confirmData.set("data", messageVO);
-            sendMessage(senderSession, confirmData.toString());
-        }
+        broadcastToUser(receiverId, "newMessage", messageVO);
+        broadcastToUser(senderId, "messageSent", messageVO);
+        sendUnreadCount(receiverId);
     }
 
-    /**
-     * 向指定用户推送好友申请通知
-     *
-     * @param userId 目标用户id
-     * @param data   通知数据
-     */
     public void pushFriendNotification(Long userId, Object data) {
-        WebSocketSession session = ONLINE_USERS.get(userId);
-        if (session != null && session.isOpen()) {
-            JSONObject pushData = new JSONObject();
-            pushData.set("type", "friendNotification");
-            pushData.set("data", data);
-            sendMessage(session, pushData.toString());
-        }
+        broadcastToUser(userId, "friendNotification", data);
     }
 
-    /**
-     * 向指定用户推送协作邀请通知
-     * 通知类型: collabNotification
-     * data.action: invite(收到邀请) / accepted(对方接受) / rejected(对方拒绝)
-     *
-     * @param userId 目标用户id
-     * @param data   通知数据
-     */
     public void pushCollabNotification(Long userId, Object data) {
-        WebSocketSession session = ONLINE_USERS.get(userId);
-        if (session != null && session.isOpen()) {
-            JSONObject pushData = new JSONObject();
-            pushData.set("type", "collabNotification");
-            pushData.set("data", data);
-            sendMessage(session, pushData.toString());
-        }
+        broadcastToUser(userId, "collabNotification", data);
     }
 
-    /**
-     * 发送未读消息数给用户
-     *
-     * @param userId  用户id
-     * @param session WebSocket会话
-     */
-    private void sendUnreadCount(Long userId, WebSocketSession session) {
+    public void pushUnreadCount(Long userId) {
+        sendUnreadCount(userId);
+    }
+
+    private void sendUnreadCount(Long userId) {
+        Set<WebSocketSession> sessions = ONLINE_USERS.get(userId);
+        if (sessions == null || sessions.isEmpty()) {
+            return;
+        }
         int unread = chatMessageService.getUnreadCount(userId);
         JSONObject data = new JSONObject();
         data.set("type", "unreadCount");
         data.set("data", unread);
-        sendMessage(session, data.toString());
+        broadcast(userId, data.toString());
     }
 
-    /**
-     * 发送错误消息给客户端
-     *
-     * @param session WebSocket会话
-     * @param error   错误信息
-     */
-    private void sendError(WebSocketSession session, String error) {
+    private void sendConfirmation(WebSocketSession session, ChatMessageVO messageVO, String clientMessageId) {
+        JSONObject confirmData = new JSONObject();
+        confirmData.set("type", "messageSent");
+        confirmData.set("data", messageVO);
+        if (clientMessageId != null && !clientMessageId.isBlank()) {
+            confirmData.set("clientMessageId", clientMessageId);
+        }
+        sendMessage(session, confirmData.toString());
+    }
+
+    private void broadcastToUser(Long userId, String type, Object data) {
+        JSONObject envelope = new JSONObject();
+        envelope.set("type", type);
+        envelope.set("data", data);
+        broadcast(userId, envelope.toString());
+    }
+
+    private void broadcast(Long userId, String text) {
+        Set<WebSocketSession> sessions = ONLINE_USERS.get(userId);
+        if (sessions == null || sessions.isEmpty()) {
+            return;
+        }
+        for (WebSocketSession session : sessions) {
+            sendMessage(session, text);
+        }
+    }
+
+    private void sendError(WebSocketSession session, String error, String clientMessageId) {
+        if (session == null) {
+            log.warn("[WebSocket] 无法发送错误消息，session 为空: {}", error);
+            return;
+        }
         JSONObject data = new JSONObject();
         data.set("type", "error");
         data.set("message", error);
+        if (clientMessageId != null && !clientMessageId.isBlank()) {
+            data.set("clientMessageId", clientMessageId);
+        }
         sendMessage(session, data.toString());
     }
 
-    /**
-     * 安全发送WebSocket消息，捕获IO异常
-     *
-     * @param session WebSocket会话
-     * @param text    消息文本
-     */
+    private WebSocketSession safeSession(WebSocketSession rawSession) {
+        if (rawSession == null) {
+            return null;
+        }
+        return SAFE_SESSIONS.getOrDefault(rawSession.getId(), rawSession);
+    }
+
     private void sendMessage(WebSocketSession session, String text) {
+        WebSocketSession safeSession = safeSession(session);
+        if (safeSession == null) {
+            return;
+        }
         try {
-            if (session.isOpen()) {
-                session.sendMessage(new TextMessage(text));
+            if (safeSession.isOpen()) {
+                safeSession.sendMessage(new TextMessage(text));
             }
-        } catch (IOException e) {
+        } catch (IOException | IllegalStateException e) {
             log.error("[WebSocket] 消息发送失败", e);
         }
     }
 
-    /**
-     * 从WebSocket会话属性中获取用户id
-     *
-     * @param session WebSocket会话
-     * @return 用户id，未找到返回null
-     */
     private Long getUserId(WebSocketSession session) {
         Object userId = session.getAttributes().get(ChatConstant.WS_SESSION_USER_ID);
         return userId instanceof Long ? (Long) userId : null;

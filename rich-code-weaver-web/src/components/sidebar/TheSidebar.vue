@@ -92,27 +92,39 @@
       </transition>
     </div>
 
-    <!-- Friend & Chat Icons -->
+    <!-- Communication Entrances -->
     <div class="sidebar-social">
       <a-tooltip placement="right" :title="appStore.sidebarCollapsed ? '好友' : ''">
-        <div class="social-icon-btn" @click="chatStore.toggleFriendDrawer()">
-          <a-badge :count="chatStore.pendingCount" :offset="[-2, 2]" size="small">
+        <button
+          type="button"
+          class="social-icon-btn"
+          :class="{ active: route.path === '/messages' && route.query.tab === 'friends' }"
+          aria-label="打开好友中心"
+          @click="navigateTo('/messages?tab=friends')"
+        >
+          <a-badge :count="communicationStore.pendingCount" :offset="[-2, 2]" size="small">
             <TeamOutlined class="social-icon" />
           </a-badge>
           <transition name="fade-text">
             <span v-show="!appStore.sidebarCollapsed" class="social-label">好友</span>
           </transition>
-        </div>
+        </button>
       </a-tooltip>
       <a-tooltip placement="right" :title="appStore.sidebarCollapsed ? '消息' : ''">
-        <div class="social-icon-btn" @click="chatStore.toggleChatDrawer()">
-          <a-badge :count="chatStore.totalUnreadCount" :offset="[-2, 2]" size="small">
+        <button
+          type="button"
+          class="social-icon-btn"
+          :class="{ active: route.path === '/messages' && route.query.tab !== 'friends' }"
+          aria-label="打开消息中心"
+          @click="navigateTo('/messages')"
+        >
+          <a-badge :count="communicationStore.totalUnreadCount" :offset="[-2, 2]" size="small">
             <MessageOutlined class="social-icon" />
           </a-badge>
           <transition name="fade-text">
             <span v-show="!appStore.sidebarCollapsed" class="social-label">消息</span>
           </transition>
-        </div>
+        </button>
       </a-tooltip>
     </div>
 
@@ -165,7 +177,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAppStore } from '@/stores/appStore'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { useChatStore } from '@/stores/chatStore'
+import { useCommunicationStore } from '@/stores/communicationStore'
 import { userLogout } from '@/api/userController'
 import { SYSTEM_MANAGE_PATH } from '@/constants/adminNavItems'
 import SidebarAppList from './SidebarAppList.vue'
@@ -194,7 +206,7 @@ import {
 
 const appStore = useAppStore()
 const loginUserStore = useLoginUserStore()
-const chatStore = useChatStore()
+const communicationStore = useCommunicationStore()
 const router = useRouter()
 const route = useRoute()
 const aboutMenuExpanded = ref(false)
@@ -300,32 +312,27 @@ const syncSidebarForViewport = () => {
   }
 }
 
-// Load apps and init chat when sidebar mounts and user is logged in
+// 初始化侧边栏布局；通信数据由登录状态监听统一初始化。
 onMounted(() => {
-  if (loginUserStore.loginUser?.id) {
-    appStore.loadMyApps()
-    chatStore.initChat()
-  }
   syncExpandedSectionWithRoute()
   syncSidebarForViewport()
   window.addEventListener('resize', syncSidebarForViewport, { passive: true })
 })
 
-// Cleanup WebSocket on unmount
+// 清理视口监听；WebSocket 生命周期由登录状态管理。
 onUnmounted(() => {
   window.removeEventListener('resize', syncSidebarForViewport)
-  chatStore.disconnectWebSocket()
 })
 
-// Reload apps and init chat when login state changes
+// 登录身份变化时重置并重新初始化通信状态。
 watch(
   () => loginUserStore.loginUser,
   (newUser) => {
     if (newUser?.id) {
       appStore.loadMyApps()
-      chatStore.initChat()
+      communicationStore.initCommunication()
     } else {
-      chatStore.disconnectWebSocket()
+      communicationStore.resetCommunication()
     }
   },
   { deep: true, immediate: true }
@@ -357,6 +364,7 @@ const doLogout = async () => {
     const res = await userLogout()
     if (res.data.code === 0) {
       loginUserStore.setLoginUser({ userName: '未登录' })
+      communicationStore.resetCommunication()
       message.success('退出登录成功')
       appStore.clearSelectedApp()
       await router.push('/user/login')
@@ -555,6 +563,8 @@ const doLogout = async () => {
   justify-content: center;
   gap: 6px;
   padding: 6px 8px;
+  border: 0;
+  background: transparent;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -562,9 +572,15 @@ const doLogout = async () => {
   font-size: 13px;
 }
 
-.social-icon-btn:hover {
+.social-icon-btn:hover,
+.social-icon-btn.active {
   background: #f5f5f5;
   color: #333;
+}
+
+.social-icon-btn:focus-visible {
+  outline: 2px solid #4096ff;
+  outline-offset: 1px;
 }
 
 .social-icon {

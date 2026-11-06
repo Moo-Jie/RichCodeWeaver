@@ -42,7 +42,7 @@ public interface ChatMessageService extends IService<ChatMessage> {
      * @param conversationId 会话id
      * @param userId         当前用户id（标记自己收到的消息为已读）
      */
-    void markAsRead(Long conversationId, Long userId);
+    void markAsRead(Long conversationId, Long userId, Long lastReadMessageId);
 
     /**
      * 获取用户总未读消息数
