@@ -56,6 +56,16 @@ public class CommonChatModelConfig {
     private Integer timeout;
 
     /**
+     * 通用对话模型，供非流式工作流服务按名称注入
+     *
+     * @return 通用聊天模型
+     */
+    @Bean(name = "openAiChatModel")
+    public ChatModel openAiChatModel() {
+        return buildChatModel();
+    }
+
+    /**
      * 代码审查模型（支持多例模式）
      * 用于AI代码审查服务，分析代码质量、发现潜在问题
      * 使用原型模式，每次调用都创建一个新的实例，避免多线程并发问题

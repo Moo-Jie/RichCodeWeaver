@@ -114,8 +114,13 @@
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
-            <version>1.23.0-beta33</version>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>1.23.0</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-http-client-jdk</artifactId>
+            <version>1.23.0</version>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
