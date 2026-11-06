@@ -1,5 +1,13 @@
 <template>
-  <div class="markdown-content" @click="handleContentClick" v-html="renderedMarkdown"></div>
+  <div class="markdown-content" @click="handleContentClick">
+    <div
+      v-for="section in renderedSections"
+      :key="section.key"
+      v-memo="[section.html]"
+      class="cw-markdown-segment"
+      v-html="section.html"
+    ></div>
+  </div>
   <a-modal
     v-if="collapseLongCode"
     v-model:open="codeViewerOpen"
@@ -35,6 +43,7 @@ interface Props {
   collapseLongCode?: boolean
   collapseLongCodeThreshold?: number
   collapseWorkflowSections?: boolean
+  autoCollapseSections?: boolean
 }
 
 interface CodeBlockInfo {
@@ -48,19 +57,36 @@ interface CodeBlockInfo {
 
 interface MarkdownRenderEnv {
   codeBlocks: Map<string, CodeBlockInfo>
+  sectionKey: string
+  nextCodeBlockIndex: number
+}
+
+interface MarkdownSourceSection {
+  key: string
+  source: string
+  level: number
+  title: string
+}
+
+interface RenderedMarkdownSection {
+  source: string
+  renderKey: string
+  html: string
+  codeBlocks: Map<string, CodeBlockInfo>
 }
 
 const props = withDefaults(defineProps<Props>(), {
   streaming: false,
   collapseLongCode: false,
   collapseLongCodeThreshold: 1200,
-  collapseWorkflowSections: true
+  collapseWorkflowSections: true,
+  autoCollapseSections: false
 })
 
 const codeViewerOpen = ref(false)
 const codeViewer = ref<CodeBlockInfo | null>(null)
 let renderedCodeBlocks = new Map<string, CodeBlockInfo>()
-let nextCodeBlockIndex = 0
+let sectionRenderCache = new Map<number, RenderedMarkdownSection>()
 
 const LANGUAGE_LABELS: Record<string, string> = {
   html: 'HTML',
@@ -126,7 +152,7 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
 
   if (props.collapseLongCode && isLongCode && code.length > 0) {
     const renderEnv = env as MarkdownRenderEnv
-    const key = `cw-code-${nextCodeBlockIndex++}`
+    const key = `cw-code-${renderEnv.sectionKey}-${renderEnv.nextCodeBlockIndex++}`
     const languageLabel = getLanguageLabel(language)
     const codeBlock: CodeBlockInfo = {
       key,
@@ -172,6 +198,8 @@ const WORKFLOW_FOLD_HINTS = [
   '交付检查'
 ]
 
+const AUTO_FOLD_HEADING_PATTERN = /^(#{1,3})[ \t]+(.+?)[ \t]*#*[ \t]*$/
+
 const stripHeadingHtml = (value: string) => {
   return value
     .replace(/<[^>]+>/g, ' ')
@@ -212,14 +240,91 @@ const foldWorkflowSections = (html: string, streaming: boolean) => {
     const body = html.slice(start + heading[0].length, end)
     const isActiveSection = streaming && index === lastFoldableIndex
     output += html.slice(cursor, start)
-    output += `<details class="cw-workflow-fold"${isActiveSection ? ' open' : ''}>`
-    output += `<summary class="cw-workflow-fold-summary"><span>${md.utils.escapeHtml(title)}</span><span class="cw-workflow-fold-mark" aria-hidden="true"></span></summary>`
+    output += `<details class="cw-workflow-fold cw-workflow-fold--h${heading[1]}"${isActiveSection ? ' open' : ''}>`
+    output += `<summary class="cw-workflow-fold-summary"><span class="cw-workflow-fold-title"><span class="cw-workflow-fold-level">H${heading[1]}</span><span>${md.utils.escapeHtml(title)}</span></span><span class="cw-workflow-fold-mark" aria-hidden="true"></span></summary>`
     output += `<div class="cw-workflow-fold-body">${body}</div></details>`
     cursor = end
   }
 
   output += html.slice(cursor)
   return output
+}
+
+// 将连续 Markdown 按 h1-h3 切成稳定片段。代码围栏内的 # 不参与切分。
+const splitMarkdownSections = (markdown: string): MarkdownSourceSection[] => {
+  if (!markdown) return []
+
+  const sections: MarkdownSourceSection[] = []
+  const lines = markdown.match(/[^\n]*(?:\n|$)/g) ?? []
+  let activeFence = ''
+  let sectionIndex = 0
+  let current: MarkdownSourceSection = {
+    key: `section-${sectionIndex++}`,
+    source: '',
+    level: 0,
+    title: ''
+  }
+
+  const flush = () => {
+    if (current.source.trim()) sections.push(current)
+  }
+
+  for (const line of lines) {
+    if (!line) continue
+    const lineContent = line.endsWith('\n') ? line.slice(0, -1) : line
+
+    const fenceMatch = lineContent.match(/^\s*(`{3,}|~{3,})/)
+    if (fenceMatch) {
+      const marker = fenceMatch[1]
+      if (!activeFence) {
+        activeFence = marker
+      } else if (marker[0] === activeFence[0] && marker.length >= activeFence.length) {
+        activeFence = ''
+      }
+      current.source += line
+      continue
+    }
+
+    const headingMatch = !activeFence ? lineContent.match(AUTO_FOLD_HEADING_PATTERN) : null
+    if (headingMatch) {
+      flush()
+      current = {
+        key: `section-${sectionIndex++}`,
+        source: '',
+        level: headingMatch[1].length,
+        title: stripHeadingHtml(md.renderInline(headingMatch[2].trim()))
+      }
+    }
+
+    current.source += line
+  }
+
+  flush()
+  return sections
+}
+
+const wrapMarkdownSection = (
+  section: MarkdownSourceSection,
+  renderedHtml: string,
+  index: number,
+  lastIndex: number
+) => {
+  if (!section.level) return renderedHtml
+
+  const headingPattern = new RegExp(
+    `^\\s*<h${section.level}[^>]*>([\\s\\S]*?)<\\/h${section.level}>\\s*`,
+    'i'
+  )
+  const headingMatch = renderedHtml.match(headingPattern)
+  const body = headingMatch ? renderedHtml.slice(headingMatch[0].length) : renderedHtml
+  const isActiveSection = props.streaming && index === lastIndex
+  const placeholder = isActiveSection && !body.trim()
+    ? '<p class="cw-workflow-fold-placeholder">正在生成...</p>'
+    : ''
+
+  return `<details class="cw-workflow-fold cw-workflow-fold--h${section.level}"${isActiveSection ? ' open' : ''}>`
+    + `<summary class="cw-workflow-fold-summary"><span class="cw-workflow-fold-title"><span class="cw-workflow-fold-level">H${section.level}</span><span>${md.utils.escapeHtml(section.title)}</span></span><span class="cw-workflow-fold-mark" aria-hidden="true"></span></summary>`
+    + `<div class="cw-workflow-fold-body">${body}${placeholder}</div></details>`
 }
 
 // 预处理Markdown内容，识别并包裹工具调用信息和工作流标记
@@ -238,13 +343,54 @@ const preprocessMarkdown = (content: string): string => {
   return content
 }
 
-const renderedMarkdown = computed(() => {
+const renderedSections = computed(() => {
   const processedContent = preprocessMarkdown(props.content)
-  const codeBlocks = new Map<string, CodeBlockInfo>()
-  renderedCodeBlocks = codeBlocks
-  nextCodeBlockIndex = 0
-  const rendered = md.render(processedContent, { codeBlocks })
-  return foldWorkflowSections(rendered, props.streaming)
+  if (!processedContent) return []
+
+  const sourceSections: MarkdownSourceSection[] = props.autoCollapseSections
+    ? splitMarkdownSections(processedContent)
+    : [{ key: 'document', source: processedContent, level: 0, title: '' }]
+  const nextCache = new Map<number, RenderedMarkdownSection>()
+  const allCodeBlocks = new Map<string, CodeBlockInfo>()
+  const renderKey = `${props.streaming}|${props.collapseLongCode}|${props.collapseLongCodeThreshold}`
+  const lastSectionIndex = sourceSections.length - 1
+
+  const sections = sourceSections.map((section, index) => {
+    let renderedSection = sectionRenderCache.get(index)
+    if (!renderedSection || renderedSection.source !== section.source || renderedSection.renderKey !== renderKey) {
+      const codeBlocks = new Map<string, CodeBlockInfo>()
+      const renderEnv: MarkdownRenderEnv = {
+        codeBlocks,
+        sectionKey: section.key,
+        nextCodeBlockIndex: 0
+      }
+      renderedSection = {
+        source: section.source,
+        renderKey,
+        html: md.render(section.source, renderEnv),
+        codeBlocks
+      }
+    }
+
+    nextCache.set(index, renderedSection)
+    renderedSection.codeBlocks.forEach((block, key) => allCodeBlocks.set(key, block))
+
+    let html = renderedSection.html
+    if (props.autoCollapseSections) {
+      html = wrapMarkdownSection(section, html, index, lastSectionIndex)
+    } else {
+      html = foldWorkflowSections(html, props.streaming)
+    }
+
+    return {
+      key: section.key,
+      html
+    }
+  })
+
+  sectionRenderCache = nextCache
+  renderedCodeBlocks = allCodeBlocks
+  return sections
 })
 
 const codeViewerTitle = computed(() => {
@@ -280,6 +426,10 @@ const handleContentClick = (event: MouseEvent) => {
 </script>
 
 <style scoped>
+.cw-markdown-segment {
+  display: contents;
+}
+
 .markdown-content {
   line-height: 1.6;
   color: #333;
@@ -1240,14 +1390,45 @@ const handleContentClick = (event: MouseEvent) => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 9px 12px;
   list-style: none;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
   line-height: 1.45;
-  color: #333;
+  color: #444;
   cursor: pointer;
   user-select: none;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.markdown-content :deep(.cw-workflow-fold-summary:hover) {
+  color: #1a1a1a;
+  background: #f5f5f5;
+}
+
+.markdown-content :deep(.cw-workflow-fold-title) {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+
+.markdown-content :deep(.cw-workflow-fold-level) {
+  flex-shrink: 0;
+  width: 17px;
+  color: #aaa;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.markdown-content :deep(.cw-workflow-fold--h2 .cw-workflow-fold-summary) {
+  padding-left: 20px;
+}
+
+.markdown-content :deep(.cw-workflow-fold--h3 .cw-workflow-fold-summary) {
+  padding-left: 28px;
 }
 
 .markdown-content :deep(.cw-workflow-fold-summary::-webkit-details-marker) {
@@ -1272,6 +1453,13 @@ const handleContentClick = (event: MouseEvent) => {
   padding: 0 12px 12px;
   border-top: 1px solid #ececec;
   background: #fff;
+}
+
+.markdown-content :deep(.cw-workflow-fold-placeholder) {
+  margin: 10px 0 0;
+  color: #999;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .markdown-content :deep(.cw-workflow-fold-body h1),

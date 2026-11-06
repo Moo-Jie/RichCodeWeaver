@@ -310,6 +310,7 @@ import {
   type TaskPlanData
 } from '@/utils/streamChunkParser'
 import request from '@/request'
+import { createSmoothTextStream, type SmoothTextStream } from '@/utils/smoothTextStream'
 import { checkCollaborator, listCollaborators } from '@/api/collaboratorController'
 import ChatInput from '@/components/workspace/ChatInput.vue'
 import CustomerServicePanel from '@/components/workspace/CustomerServicePanel.vue'
@@ -598,8 +599,7 @@ const loadingHistory = ref(false)
 const lastCreateTime = ref<string | null>(null)
 const hasMore = ref(true)
 let localMessageSequence = 0
-let pendingStreamRenderTimer: number | null = null
-let pendingStreamRenderFrame: number | null = null
+let activeSmoothStream: SmoothTextStream | null = null
 
 const createLocalMessageId = (type: Message['type']) => {
   return `local-${type}-${Date.now()}-${++localMessageSequence}`
@@ -1167,6 +1167,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
     isGenerating.value = false
     return
   }
+
   generatingTime.value = 0
   timer.value = setInterval(() => generatingTime.value++, 1000)
   reconnectAttempts.value = 0
@@ -1174,34 +1175,129 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
 
   let eventSource: EventSource | null = null
   let streamCompleted = false
-  let fullContent = ''
-  const existingContentLength = isReconnect ? (messages.value[aiMessageIndex]?.content?.length || 0) : 0
-  // 创建流式 JSON 消息块解析上下文，用于解析 VUE_PROJECT 模式下的 ai_response / tool_request / tool_executed 类型
+  let streamFinalized = false
+  const existingContent = messages.value[aiMessageIndex]?.content || ''
+  let reconnectReplayState: 'unknown' | 'replaying' | 'incremental' = isReconnect ? 'unknown' : 'incremental'
+  let reconnectReplayRemaining = ''
   const chunkParser = new StreamChunkParserContext()
-  // 设置任务计划更新回调，用于实时渲染任务列表
   chunkParser.setTaskPlanCallback((data: TaskPlanData) => {
     taskPlanData.value = data
   })
-  const STREAM_RENDER_INTERVAL_MS = 32
-  let lastStreamRenderAt = 0
 
-  const commitStreamingContent = () => {
-    pendingStreamRenderFrame = null
-    if (streamCompleted || fullContent.length < existingContentLength) return
-    const aiMessage = messages.value[aiMessageIndex]
-    if (!aiMessage) return
-    lastStreamRenderAt = performance.now()
-    aiMessage.content = fullContent
+  const clearGenerationTimer = () => {
+    if (timer.value) {
+      clearInterval(timer.value)
+      timer.value = null
+    }
   }
 
-  // 合并高频 SSE chunk，避免每个事件都触发整段 Markdown 解析和滚动
-  const scheduleStreamingContent = () => {
-    if (pendingStreamRenderTimer !== null || pendingStreamRenderFrame !== null) return
-    const wait = Math.max(0, STREAM_RENDER_INTERVAL_MS - (performance.now() - lastStreamRenderAt))
-    pendingStreamRenderTimer = window.setTimeout(() => {
-      pendingStreamRenderTimer = null
-      pendingStreamRenderFrame = requestAnimationFrame(commitStreamingContent)
-    }, wait)
+  const clearActiveSource = () => {
+    eventSource?.close()
+    if (activeGenerationEventSource.value === eventSource) {
+      activeGenerationEventSource.value = null
+    }
+  }
+
+  const appendStreamContent = (content: string) => {
+    if (!content) return
+    if (reconnectReplayState === 'incremental') {
+      smoothStream.push(content)
+      return
+    }
+
+    if (reconnectReplayState === 'unknown') {
+      if (existingContent.startsWith(content)) {
+        reconnectReplayState = 'replaying'
+        reconnectReplayRemaining = existingContent.slice(content.length)
+        if (!reconnectReplayRemaining) reconnectReplayState = 'incremental'
+        return
+      }
+      if (content.startsWith(existingContent)) {
+        reconnectReplayState = 'incremental'
+        const freshContent = content.slice(existingContent.length)
+        if (freshContent) smoothStream.push(freshContent)
+        return
+      }
+      reconnectReplayState = 'incremental'
+      smoothStream.push(content)
+      return
+    }
+
+    if (reconnectReplayRemaining.startsWith(content)) {
+      reconnectReplayRemaining = reconnectReplayRemaining.slice(content.length)
+      if (!reconnectReplayRemaining) reconnectReplayState = 'incremental'
+      return
+    }
+    if (content.startsWith(reconnectReplayRemaining)) {
+      const freshContent = content.slice(reconnectReplayRemaining.length)
+      reconnectReplayRemaining = ''
+      reconnectReplayState = 'incremental'
+      if (freshContent) smoothStream.push(freshContent)
+      return
+    }
+
+    reconnectReplayRemaining = ''
+    reconnectReplayState = 'incremental'
+    smoothStream.push(content)
+  }
+
+  const smoothStream = createSmoothTextStream({
+    initialText: existingContent,
+    onUpdate(content, done) {
+      const aiMessage = messages.value[aiMessageIndex]
+      if (!aiMessage) return
+      aiMessage.content = content
+      if (done) finalizeStream()
+    }
+  })
+  activeSmoothStream = smoothStream
+
+  const finalizeStream = () => {
+    if (streamFinalized) return
+    streamFinalized = true
+    streamCompleted = true
+    clearActiveSource()
+    markGeneratingEnd()
+    clearGenerationTimer()
+    isGenerating.value = false
+    taskPlanData.value = null
+
+    const aiMessage = messages.value[aiMessageIndex]
+    if (aiMessage) {
+      aiMessage.content = smoothStream.getSource()
+      aiMessage.loading = false
+    }
+    if (activeSmoothStream === smoothStream) {
+      activeSmoothStream = null
+    }
+
+    setTimeout(async () => {
+      await refreshAppInfoOnly()
+      appPreviewRef.value?.refresh()
+      await fetchChatHistory()
+    }, 3000)
+  }
+
+  const stopWithError = (errorText: string, notify = true) => {
+    if (streamFinalized) return
+    streamFinalized = true
+    streamCompleted = true
+    smoothStream.stop()
+    if (activeSmoothStream === smoothStream) {
+      activeSmoothStream = null
+    }
+    clearActiveSource()
+    markGeneratingEnd()
+    clearGenerationTimer()
+    isGenerating.value = false
+    taskPlanData.value = null
+
+    const aiMessage = messages.value[aiMessageIndex]
+    if (aiMessage) {
+      aiMessage.content = errorText
+      aiMessage.loading = false
+    }
+    if (notify) message.error(errorText)
   }
 
   if (!isReconnect) markGeneratingStart(userMessage)
@@ -1209,42 +1305,12 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   const onStreamEnd = () => {
     if (streamCompleted) return
     streamCompleted = true
-    if (pendingStreamRenderTimer !== null) {
-      window.clearTimeout(pendingStreamRenderTimer)
-      pendingStreamRenderTimer = null
-    }
-    if (pendingStreamRenderFrame !== null) {
-      cancelAnimationFrame(pendingStreamRenderFrame)
-      pendingStreamRenderFrame = null
-    }
-    eventSource?.close()
-    if (activeGenerationEventSource.value === eventSource) {
-      activeGenerationEventSource.value = null
-    }
-    markGeneratingEnd()
-    if (timer.value) {
-      clearInterval(timer.value)
-      timer.value = null
-    }
-    isGenerating.value = false
-    // 清理任务计划状态（生成结束后不再显示任务面板）
-    taskPlanData.value = null
-    if (fullContent) {
-      messages.value[aiMessageIndex].content = fullContent
-    }
-    messages.value[aiMessageIndex].loading = false
-    // 延迟后刷新数字产物信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
-    setTimeout(async () => {
-      await refreshAppInfoOnly()
-      appPreviewRef.value?.refresh()
-      // 重新加载对话历史，用 DB 持久化数据替换内存中的流式数据，保证数据一致性
-      await fetchChatHistory()
-    }, 3000)
+    clearActiveSource()
+    smoothStream.finish()
   }
 
   // Agent mode from route query
   const useAgent = route.query.useAgent !== 'false'
-  // 获取当前选中的素材ID列表（优先使用当前UI选择，回退到路由query）
   const currentMaterialIds = selectedMaterials.value.map(m => m.id).filter(Boolean).join(',')
   const materialIdsFromQuery = route.query.materialIds as string || ''
   const materialIdsToSend = currentMaterialIds || materialIdsFromQuery
@@ -1262,7 +1328,6 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       if (lastEventId.value) {
         params.set('lastEventId', lastEventId.value)
       }
-      // 添加素材ID参数（首次发送或有选中素材时使用，重连时不需要）
       if (materialIdsToSend && !reconnectMode) {
         params.set('materialIds', materialIdsToSend)
       }
@@ -1277,69 +1342,31 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
           const parsed = JSON.parse(event.data)
           const rawContent = parsed.b
           if (rawContent !== undefined && rawContent !== null) {
-            // 解析 JSON 消息块（ai_response / tool_request / tool_executed），提取有效展示内容
             const content = chunkParser.parseChunk(rawContent)
-            if (content) {
-              fullContent += content
-              scheduleStreamingContent()
-            }
+            if (content) appendStreamContent(content)
           }
         } catch (error) {
           console.error('解析消息失败:', error)
         }
       }
 
-      eventSource.addEventListener('end', () => onStreamEnd())
+      eventSource.addEventListener('end', onStreamEnd)
 
       eventSource.addEventListener('error', () => {
         if (streamCompleted || !isGenerating.value) return
-        eventSource?.close()
-        if (activeGenerationEventSource.value === eventSource) {
-          activeGenerationEventSource.value = null
-        }
+        clearActiveSource()
         if (reconnectAttempts.value < maxReconnectAttempts) {
           reconnectAttempts.value++
           reconnectMode = true
           message.info(`连接中断，正在重连... (${reconnectAttempts.value}/${maxReconnectAttempts})`)
           setTimeout(connectSSE, 1000 * reconnectAttempts.value)
         } else {
-          markGeneratingEnd()
-          streamCompleted = true
-          if (pendingStreamRenderTimer !== null) {
-            window.clearTimeout(pendingStreamRenderTimer)
-            pendingStreamRenderTimer = null
-          }
-          if (pendingStreamRenderFrame !== null) {
-            cancelAnimationFrame(pendingStreamRenderFrame)
-            pendingStreamRenderFrame = null
-          }
-          isGenerating.value = false
-          if (timer.value) {
-            clearInterval(timer.value)
-            timer.value = null
-          }
-          message.error('连接失败次数过多，请刷新页面重试')
-          messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
-          messages.value[aiMessageIndex].loading = false
+          stopWithError('连接失败次数过多，请刷新页面重试')
         }
       })
     } catch (error) {
       console.error('创建 EventSource 失败：', error)
-      if (pendingStreamRenderTimer !== null) {
-        window.clearTimeout(pendingStreamRenderTimer)
-        pendingStreamRenderTimer = null
-      }
-      if (pendingStreamRenderFrame !== null) {
-        cancelAnimationFrame(pendingStreamRenderFrame)
-        pendingStreamRenderFrame = null
-      }
-      messages.value[aiMessageIndex].content = '抱歉，生成过程中出现了错误，请重试。'
-      messages.value[aiMessageIndex].loading = false
-      isGenerating.value = false
-      if (timer.value) {
-        clearInterval(timer.value)
-        timer.value = null
-      }
+      stopWithError('抱歉，生成过程中出现了错误，请重试。')
     }
   }
 
@@ -1889,14 +1916,8 @@ const resetChatState = () => {
     clearInterval(timer.value)
     timer.value = null
   }
-  if (pendingStreamRenderTimer !== null) {
-    window.clearTimeout(pendingStreamRenderTimer)
-    pendingStreamRenderTimer = null
-  }
-  if (pendingStreamRenderFrame !== null) {
-    cancelAnimationFrame(pendingStreamRenderFrame)
-    pendingStreamRenderFrame = null
-  }
+  activeSmoothStream?.stop()
+  activeSmoothStream = null
 }
 
 // === Lifecycle ===
@@ -1951,14 +1972,8 @@ onUnmounted(() => {
   }
   clearTaskProgressHideTimer()
   if (timer.value) clearInterval(timer.value)
-  if (pendingStreamRenderTimer !== null) {
-    window.clearTimeout(pendingStreamRenderTimer)
-    pendingStreamRenderTimer = null
-  }
-  if (pendingStreamRenderFrame !== null) {
-    cancelAnimationFrame(pendingStreamRenderFrame)
-    pendingStreamRenderFrame = null
-  }
+  activeSmoothStream?.stop()
+  activeSmoothStream = null
   // 清理WebSocket订阅
   if (appId.value) {
     taskProgressService.unsubscribeTaskProgress(appId.value)

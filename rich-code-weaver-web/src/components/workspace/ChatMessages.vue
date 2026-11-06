@@ -48,6 +48,7 @@
               :content="msg.content"
               :streaming="msg.loading"
               :collapse-long-code="collapseLongCode"
+              :auto-collapse-sections="true"
             />
             <div v-if="msg.loading && !msg.content" class="msg-loading">
               <div class="loading-dots">

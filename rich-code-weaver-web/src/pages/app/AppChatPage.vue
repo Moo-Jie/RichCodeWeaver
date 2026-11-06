@@ -157,6 +157,7 @@
                   :content="message.content"
                   :streaming="isGenerating && index === messages.length - 1"
                   :collapse-long-code="isSingleFileMode"
+                  :auto-collapse-sections="true"
                 />
                 <div v-if="message.loading && !message.content" class="loading-indicator">
                   <a-spin size="small" />
@@ -411,6 +412,7 @@ import {
 } from '@ant-design/icons-vue'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { parseBatchContent, StreamChunkParserContext } from '@/utils/streamChunkParser'
+import { createSmoothTextStream, type SmoothTextStream } from '@/utils/smoothTextStream'
 
 const route = useRoute()
 const router = useRouter()
@@ -556,8 +558,7 @@ const messagesContainer = ref<HTMLElement>()
 let localMessageSequence = 0
 let autoFollowMessages = true
 let scrollFrameId: number | null = null
-let pendingStreamRenderFrame: number | null = null
-let pendingStreamRenderTimer: number | null = null
+let activeSmoothStream: SmoothTextStream | null = null
 
 const createLocalMessageId = (type: Message['type']) => {
   return `local-${type}-${Date.now()}-${++localMessageSequence}`
@@ -692,14 +693,8 @@ onUnmounted(() => {
     cancelAnimationFrame(scrollFrameId)
     scrollFrameId = null
   }
-  if (pendingStreamRenderFrame !== null) {
-    cancelAnimationFrame(pendingStreamRenderFrame)
-    pendingStreamRenderFrame = null
-  }
-  if (pendingStreamRenderTimer !== null) {
-    window.clearTimeout(pendingStreamRenderTimer)
-    pendingStreamRenderTimer = null
-  }
+  activeSmoothStream?.stop()
+  activeSmoothStream = null
 })
 
 // 处理来自 iframe 的消息
@@ -972,119 +967,136 @@ const sendMessage = async () => {
 // 生成代码 - 使用 EventSource 处理流式响应（支持断线重连）
 const generateCode = async (userMessage: string, aiMessageIndex: number, isReconnect: boolean = false) => {
   autoFollowMessages = true
-
-  // 启动计时器
   generatingTime.value = 0
   timer.value = setInterval(() => {
     generatingTime.value++
   }, 1000)
 
-  // 重置重连计数
   reconnectAttempts.value = 0
   lastEventId.value = null
 
   let eventSource: EventSource | null = null
   let streamCompleted = false
-  // 重连时从头重建内容（后端会重放所有缓存事件），新建时从空开始
-  let fullContent = ''
-  // 保存已有内容长度，用于重连时避免 UI 闪烁
-  const existingContentLength = isReconnect ? (messages.value[aiMessageIndex]?.content?.length || 0) : 0
-  // 创建流式 JSON 消息块解析上下文，用于解析 VUE_PROJECT 模式下的 ai_response / tool_request / tool_executed 类型
+  let streamFinalized = false
+  const existingContent = messages.value[aiMessageIndex]?.content || ''
+  let reconnectReplayState: 'unknown' | 'replaying' | 'incremental' = isReconnect ? 'unknown' : 'incremental'
+  let reconnectReplayRemaining = ''
   const chunkParser = new StreamChunkParserContext()
-  const STREAM_RENDER_INTERVAL_MS = 32
-  let lastStreamRenderAt = 0
 
-  const commitStreamingContent = () => {
-    pendingStreamRenderFrame = null
-    if (streamCompleted || fullContent.length < existingContentLength) return
-    const aiMessage = messages.value[aiMessageIndex]
-    if (!aiMessage) return
-    lastStreamRenderAt = performance.now()
-    aiMessage.content = fullContent
-    scrollToBottom()
-  }
-
-  // 把高频 SSE chunk 合并到约 25fps，减少 Markdown 全量解析和 DOM 重建次数
-  const scheduleStreamingRender = () => {
-    if (pendingStreamRenderTimer !== null || pendingStreamRenderFrame !== null) return
-    const wait = Math.max(0, STREAM_RENDER_INTERVAL_MS - (performance.now() - lastStreamRenderAt))
-    pendingStreamRenderTimer = window.setTimeout(() => {
-      pendingStreamRenderTimer = null
-      pendingStreamRenderFrame = requestAnimationFrame(commitStreamingContent)
-    }, wait)
-  }
-
-  // 仅新建生成时标记 localStorage（重连时已有标记）
-  if (!isReconnect) {
-    markGeneratingStart(userMessage)
-  }
-
-  // 生成结束的统一清理函数
-  const onStreamEnd = () => {
-    if (streamCompleted) return
-    streamCompleted = true
-    if (pendingStreamRenderTimer !== null) {
-      window.clearTimeout(pendingStreamRenderTimer)
-      pendingStreamRenderTimer = null
-    }
-    if (pendingStreamRenderFrame !== null) {
-      cancelAnimationFrame(pendingStreamRenderFrame)
-      pendingStreamRenderFrame = null
-    }
-    eventSource?.close()
-    markGeneratingEnd()
+  const clearGenerationTimer = () => {
     if (timer.value) {
       clearInterval(timer.value)
       timer.value = null
     }
-    isGenerating.value = false
-    // 确保最终内容已更新
-    if (fullContent) {
-      messages.value[aiMessageIndex].content = fullContent
+  }
+
+  const appendStreamContent = (content: string) => {
+    if (!content) return
+    if (reconnectReplayState === 'incremental') {
+      smoothStream.push(content)
+      return
     }
-    messages.value[aiMessageIndex].loading = false
+
+    if (reconnectReplayState === 'unknown') {
+      if (existingContent.startsWith(content)) {
+        reconnectReplayState = 'replaying'
+        reconnectReplayRemaining = existingContent.slice(content.length)
+        if (!reconnectReplayRemaining) reconnectReplayState = 'incremental'
+        return
+      }
+      if (content.startsWith(existingContent)) {
+        reconnectReplayState = 'incremental'
+        const freshContent = content.slice(existingContent.length)
+        if (freshContent) smoothStream.push(freshContent)
+        return
+      }
+      reconnectReplayState = 'incremental'
+      smoothStream.push(content)
+      return
+    }
+
+    if (reconnectReplayRemaining.startsWith(content)) {
+      reconnectReplayRemaining = reconnectReplayRemaining.slice(content.length)
+      if (!reconnectReplayRemaining) reconnectReplayState = 'incremental'
+      return
+    }
+    if (content.startsWith(reconnectReplayRemaining)) {
+      const freshContent = content.slice(reconnectReplayRemaining.length)
+      reconnectReplayRemaining = ''
+      reconnectReplayState = 'incremental'
+      if (freshContent) smoothStream.push(freshContent)
+      return
+    }
+
+    reconnectReplayRemaining = ''
+    reconnectReplayState = 'incremental'
+    smoothStream.push(content)
+  }
+
+  const smoothStream = createSmoothTextStream({
+    initialText: existingContent,
+    onUpdate(content, done) {
+      const aiMessage = messages.value[aiMessageIndex]
+      if (!aiMessage) return
+      aiMessage.content = content
+      scrollToBottom()
+      if (done) finalizeStream()
+    }
+  })
+  activeSmoothStream = smoothStream
+
+  const finalizeStream = () => {
+    if (streamFinalized) return
+    streamFinalized = true
+    streamCompleted = true
+    eventSource?.close()
+    markGeneratingEnd()
+    clearGenerationTimer()
+    isGenerating.value = false
+
+    const aiMessage = messages.value[aiMessageIndex]
+    if (aiMessage) {
+      aiMessage.content = smoothStream.getSource()
+      aiMessage.loading = false
+    }
+    if (activeSmoothStream === smoothStream) {
+      activeSmoothStream = null
+    }
     scrollToBottom()
-    // 延迟后刷新数字产物信息 + 从数据库重新加载对话历史，确保 SSE 流内容与 DB 持久化内容平滑过渡
+
     setTimeout(async () => {
       await refreshAppInfoOnly()
       if (previewIframe.value) {
         previewIframe.value.src = previewIframe.value.src
       }
-      // 重新加载对话历史，用 DB 持久化数据替换内存中的流式数据，保证数据一致性
       await fetchChatHistory()
     }, 3000)
   }
+
+  if (!isReconnect) markGeneratingStart(userMessage)
 
   let reconnectMode = isReconnect
 
   const connectSSE = () => {
     try {
       const baseURL = request.defaults.baseURL || API_BASE_URL
-
-      // 构建URL参数（reconnect 和 lastEventId 作为查询参数）
       const params = new URLSearchParams({
         appId: String(appId.value ?? ''),
         message: userMessage,
         isWorkflow: String(useAgentMode.value),
         reconnect: String(reconnectMode)
       })
-      // 如果有 lastEventId，传递给后端
       if (lastEventId.value) {
         params.set('lastEventId', lastEventId.value)
       }
 
       const url = `${baseURL}/generator/app/gen/code/stream?${params}`
-
-      // 创建 EventSource 连接
       eventSource = new EventSource(url, {
         withCredentials: true
       })
 
-      // 处理接收到的消息
       eventSource.onmessage = function(event) {
         if (streamCompleted) return
-
-        // 保存最后的事件ID
         if (event.lastEventId) {
           lastEventId.value = event.lastEventId
         }
@@ -1092,56 +1104,32 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
         try {
           const parsed = JSON.parse(event.data)
           const rawContent = parsed.b
-
           if (rawContent !== undefined && rawContent !== null) {
-            // 解析 JSON 消息块（ai_response / tool_request / tool_executed），提取有效展示内容
             const content = chunkParser.parseChunk(rawContent)
-            if (content) {
-              fullContent += content
-              scheduleStreamingRender()
-            }
+            if (content) appendStreamContent(content)
           }
         } catch (error) {
           console.error('解析消息失败:', error)
         }
       }
 
-      // 处理 end 事件
       eventSource.addEventListener('end', function() {
-        onStreamEnd()
+        if (streamCompleted) return
+        streamCompleted = true
+        eventSource?.close()
+        smoothStream.finish()
       })
 
-      // 处理错误事件
       eventSource.addEventListener('error', function() {
         if (streamCompleted || !isGenerating.value) return
 
-        console.log('SSE 连接错误，readyState:', eventSource?.readyState)
         eventSource?.close()
-
-        // 尝试重连（切换为重连模式）
         if (reconnectAttempts.value < maxReconnectAttempts) {
           reconnectAttempts.value++
-          reconnectMode = true // 后续重试都用重连模式
-          console.log(`尝试重连 (${reconnectAttempts.value}/${maxReconnectAttempts})...`)
+          reconnectMode = true
           message.info(`连接中断，正在重连... (${reconnectAttempts.value}/${maxReconnectAttempts})`)
           setTimeout(connectSSE, 1000 * reconnectAttempts.value)
         } else {
-          // 达到最大重连次数
-          markGeneratingEnd()
-          streamCompleted = true
-          if (pendingStreamRenderTimer !== null) {
-            window.clearTimeout(pendingStreamRenderTimer)
-            pendingStreamRenderTimer = null
-          }
-          if (pendingStreamRenderFrame !== null) {
-            cancelAnimationFrame(pendingStreamRenderFrame)
-            pendingStreamRenderFrame = null
-          }
-          isGenerating.value = false
-          if (timer.value) {
-            clearInterval(timer.value)
-            timer.value = null
-          }
           message.error('连接失败次数过多，请刷新页面重试')
           handleError(new Error('连接失败次数过多'), aiMessageIndex)
         }
@@ -1152,12 +1140,13 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
     }
   }
 
-  // 开始连接
   connectSSE()
 }
 
 // 错误处理函数
 const handleError = (error: unknown, aiMessageIndex: number) => {
+  activeSmoothStream?.stop()
+  activeSmoothStream = null
   // 清除计时器
   if (timer.value) {
     clearInterval(timer.value)
@@ -1370,6 +1359,8 @@ onMounted(() => {
 
 // 清理资源,EventSource 会在组件卸载时自动清理
 onUnmounted(() => {
+  activeSmoothStream?.stop()
+  activeSmoothStream = null
   if (timer.value) {
     clearInterval(timer.value)
   }

@@ -24,10 +24,11 @@
         <video
           :src="item.content"
           :poster="item.thumbnailUrl || undefined"
+          :preload="featured ? 'auto' : 'metadata'"
           controls
           muted
           playsinline
-          preload="metadata"
+          @loadedmetadata="prepareVideoPreview"
           @click.stop
         ></video>
         <MaterialActions :item="item" @edit="emit('edit', item)" @delete="emit('delete', item)" />
@@ -118,6 +119,22 @@ const linkHost = computed(() => {
     return value.replace(/^https?:\/\//, '').split('/')[0] || '外部链接'
   }
 })
+const prepareVideoPreview = (event: Event) => {
+  const video = event.currentTarget as HTMLVideoElement | null
+  if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return
+  if (video.currentTime > 0.01) return
+
+  // 无 poster 时，浏览器通常停在黑帧；seek 到靠前画面生成可见预览。
+  const previewTime = Math.min(video.duration - 0.05, Math.max(0.12, Math.min(0.8, video.duration * 0.02)))
+  if (previewTime > 0) {
+    try {
+      video.currentTime = previewTime
+    } catch {
+      // 部分流媒体格式暂不支持 seek，保留浏览器默认首帧。
+    }
+  }
+}
+
 const assetMeta = computed(() => {
   const parts = [props.item.categoryName, formatFileSize(props.item.fileSize), `使用 ${props.item.useCount || 0} 次`]
   return parts.filter(Boolean).join(' · ')
@@ -274,7 +291,7 @@ const handleOpen = () => {
   align-items: center;
   gap: 10px;
   min-width: 0;
-  padding-right: 34px;
+  padding-right: 76px;
   color: inherit;
   text-decoration: none;
 }
@@ -294,7 +311,7 @@ const handleOpen = () => {
 }
 
 .material-text-head {
-  padding-right: 34px;
+  padding-right: 76px;
 }
 
 .material-text-preview {
@@ -329,7 +346,7 @@ const handleOpen = () => {
 
 .material-asset.is-video :deep(.material-actions button),
 .material-asset.is-image :deep(.material-actions button) {
-  background: rgba(255, 255, 255, 0.92);
+  background: transparent;
 }
 
 .material-asset.is-audio,

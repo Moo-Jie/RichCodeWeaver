@@ -25,28 +25,37 @@ const emit = defineEmits<{
 .material-actions {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
+  min-width: 59px;
+  overflow: hidden;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.94);
 }
 
 .material-action-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 29px;
+  height: 27px;
   padding: 0;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  border: 0;
+  border-radius: 0;
   color: #777;
   background: transparent;
+  font-size: 13px;
   cursor: pointer;
   transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
+.material-action-btn + .material-action-btn {
+  border-left: 1px solid #f0f0f0;
+}
+
 .material-action-btn:hover {
-  border-color: #e5e5e5;
   color: #1a1a1a;
-  background: #fafafa;
+  background: #f5f5f5;
 }
 
 .material-action-btn.is-danger:hover {
