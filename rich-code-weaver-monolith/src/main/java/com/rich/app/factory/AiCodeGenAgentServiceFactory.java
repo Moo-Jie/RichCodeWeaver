@@ -61,6 +61,18 @@ public class AiCodeGenAgentServiceFactory {
 """;
 
     /**
+     * 对话展示契约，统一输出为克制的标准 Markdown。
+     */
+    private static final String AGENT_DISPLAY_CONTRACT = """
+
+        ## 对话展示契约（面向用户的输出）
+
+        1. 只输出标准 Markdown，不使用 emoji、装饰符号、彩色 HTML 或自定义样式标签；文档最多使用一个 H1，阶段标题使用 H2/H3。
+        2. 不使用重复的过程播报；工具调用和构建进度由系统统一展示。
+        3. 最终回复控制在 3-5 句话，说明交付结果和必要注意事项，不粘贴已写入工作区的完整源码。
+        """;
+
+    /**
      * Caffeine 缓存，用于存储 Agent 服务实例（相同 appId 复用，避免重复加载历史）
      */
     private final Cache<Long, AiCodeGenAgentService> caffeineCache = Caffeine.newBuilder()
@@ -227,7 +239,7 @@ public class AiCodeGenAgentServiceFactory {
                 .streamingChatModel(reasoningStreamingChatModel)
                 // 系统提示词
                 .systemMessageProvider(memoryId -> appendSummaryToPrompt(
-                        systemPrompt + AGENT_RUNTIME_QUALITY_CONTRACT,
+                        systemPrompt + AGENT_RUNTIME_QUALITY_CONTRACT + AGENT_DISPLAY_CONTRACT,
                         memoryId,
                         AiServiceConstant.SUMMARY_TYPE_AGENT))
                 // 原有本地工具全部保留，例如 taskPlan / think / 文件工具 等

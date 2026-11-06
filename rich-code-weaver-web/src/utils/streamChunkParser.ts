@@ -1,7 +1,8 @@
 /**
- * AI 流式响应 JSON 消息块解析器
- * 用于前端解析后端 AI 流式输出中的 JSON 格式消息（ai_response / tool_request / tool_executed）
- * 与后端 JsonStreamHandler.parseJsonChunk 保持一致的解析逻辑
+ * 流式消息兼容层。
+ *
+ * 新链路由后端 JsonStreamHandler 统一输出可展示 Markdown，这里只负责提取隐藏任务计划；
+ * 下方 JSON 工具映射仅用于兼容历史 VUE_PROJECT 对话记录。
  */
 
 /** 工具名称 → 中文显示名映射 */
@@ -27,30 +28,9 @@ const TOOL_DISPLAY_NAMES: Record<string, string> = {
   exit: '退出工具调用'
 }
 
-/** 工具名称 → 图标映射 */
-const TOOL_ICONS: Record<string, string> = {
-  creatAndWrite: '📝',
-  readFile: '📖',
-  modifyFile: '✏️',
-  deleteFile: '🗑️',
-  readDir: '📂',
-  diffFile: '🧩',
-  searchWeb: '🌐',
-  scrapeWebPage: '🕸️',
-  aiGeneratorImage: '🎨',
-  searchImages: '🖼️',
-  searchCodeExample: '📚',
-  taskPlan: '📋',
-  think: '🧠',
-  sendMessage: '💬',
-  setCodeGenType: '⚙️',
-  buildProject: '🏗',
-  getUserProfile: '👤',
-  updateUserProfile: '📝',
-  exit: '🚪'
-}
-
 /** 任务计划数据接口 */
+type ToolArguments = Record<string, unknown>
+
 export interface TaskPlanData {
   type: 'taskPlan'
   action: string
@@ -68,18 +48,6 @@ export interface TaskPlanData {
   }
 }
 
-/** 获取文件扩展名对应的语言标识 */
-function getFileLang(filePath: string): string {
-  const ext = filePath.split('.').pop()?.toLowerCase() || ''
-  const langMap: Record<string, string> = {
-    js: 'javascript', ts: 'typescript', vue: 'vue', jsx: 'jsx', tsx: 'tsx',
-    css: 'css', scss: 'scss', less: 'less', html: 'html', json: 'json',
-    md: 'markdown', py: 'python', java: 'java', xml: 'xml', yaml: 'yaml',
-    yml: 'yaml', sh: 'bash', bat: 'batch', sql: 'sql', txt: 'text'
-  }
-  return langMap[ext] || ext
-}
-
 function clipText(value: unknown, maxLength: number = 36): string {
   if (typeof value !== 'string') return ''
   const normalized = value.replace(/\s+/g, ' ').trim()
@@ -87,7 +55,7 @@ function clipText(value: unknown, maxLength: number = 36): string {
   return normalized.length > maxLength ? `${normalized.slice(0, maxLength)}...` : normalized
 }
 
-function getUserProfileFieldSummary(args: Record<string, any>): string {
+function getUserProfileFieldSummary(args: ToolArguments): string {
   const fieldLabelMap: Record<string, string> = {
     preferredCodeGenType: '项目类型',
     preferredGenMode: '生成模式',
@@ -107,17 +75,22 @@ function getUserProfileFieldSummary(args: Record<string, any>): string {
   return fields.length > 0 ? `更新字段：${fields.join('、')}` : '更新用户画像'
 }
 
-function getToolExecutionSummary(toolName: string, args: Record<string, any>): string {
+function getStringArgument(args: ToolArguments, key: string): string {
+  const value = args[key]
+  return typeof value === 'string' ? value : ''
+}
+
+function getToolExecutionSummary(toolName: string, args: ToolArguments): string {
   switch (toolName) {
     case 'creatAndWrite':
     case 'modifyFile':
     case 'readFile':
     case 'deleteFile':
-      return args.relativeFilePath || ''
+      return getStringArgument(args, 'relativeFilePath')
     case 'readDir':
-      return args.relativeDirPath || args.dirPath || '.'
+      return getStringArgument(args, 'relativeDirPath') || getStringArgument(args, 'dirPath') || '.'
     case 'diffFile':
-      return [args.filePath1, args.filePath2].filter(Boolean).join(' ↔ ') || (args.originalContent || args.newContent ? '内容差异对比' : '')
+      return [getStringArgument(args, 'filePath1'), getStringArgument(args, 'filePath2')].filter(Boolean).join(' ↔ ') || (args.originalContent || args.newContent ? '内容差异对比' : '')
     case 'searchWeb':
     case 'searchImages':
     case 'searchCodeExample':
@@ -142,7 +115,7 @@ function getToolExecutionSummary(toolName: string, args: Record<string, any>): s
       return [type, title].filter(Boolean).join(' · ')
     }
     case 'setCodeGenType':
-      return args.codeGenType || ''
+      return getStringArgument(args, 'codeGenType')
     case 'buildProject':
       return 'Vue 项目构建'
     case 'getUserProfile':
@@ -174,6 +147,10 @@ export class StreamChunkParserContext {
    */
   parseChunk(content: string): string {
     if (!content || !content.trim()) return content
+
+    const contentWithoutTaskPlan = this.extractTaskPlanMarkers(content)
+    if (!contentWithoutTaskPlan.trim()) return ''
+    content = contentWithoutTaskPlan
 
     // 尝试检测是否为 JSON 格式的消息块
     const trimmed = content.trim()
@@ -236,9 +213,26 @@ export class StreamChunkParserContext {
     this.toolCallCount++
     const toolName = obj.name || 'unknown'
     const displayName = TOOL_DISPLAY_NAMES[toolName] || toolName
-    const icon = TOOL_ICONS[toolName] || '🔧'
 
-    return `\n\n[开始调用系统工具] ${icon} ${displayName}\n\n`
+    return `\n\n[开始调用系统工具] ${displayName}\n\n`
+  }
+
+  /** 提取后端下发的隐藏任务计划，不进入正文渲染 */
+  private extractTaskPlanMarkers(content: string): string {
+    return content.replace(/<!--CW_TASK_PLAN:([A-Za-z0-9+/=]+)-->/g, (_match, encoded: string) => {
+      try {
+        const binary = atob(encoded)
+        const bytes = Uint8Array.from(binary, char => char.charCodeAt(0))
+        const payload = new TextDecoder().decode(bytes)
+        const data = JSON.parse(payload) as TaskPlanData
+        if (data.type === 'taskPlan' && data.tasks) {
+          this.taskPlanCallback?.(data)
+        }
+      } catch {
+        // 损坏的任务计划标记直接丢弃，不影响正文。
+      }
+      return ''
+    })
   }
 
   /** 处理工具执行完成消息 */

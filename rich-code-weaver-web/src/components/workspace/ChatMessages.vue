@@ -5,7 +5,12 @@
       <button v-if="hasMore && !loadingHistory" class="load-more-btn" @click="$emit('loadMore')">
         加载更多历史消息
       </button>
-      <a-spin v-if="loadingHistory" size="small" />
+      <div v-if="loadingHistory && messages.length === 0" class="history-loading-state">
+        <span class="history-loading-spinner" aria-hidden="true"></span>
+        <span>正在加载对话记录...</span>
+        <span class="history-loading-track" aria-hidden="true"><span></span></span>
+      </div>
+      <a-spin v-else-if="loadingHistory" size="small" />
     </div>
 
     <!-- Messages -->
@@ -50,18 +55,24 @@
               :collapse-long-code="collapseLongCode"
               :auto-collapse-sections="true"
             />
-            <div v-if="msg.loading && !msg.content" class="msg-loading">
-              <div class="loading-dots">
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
+            <div v-if="msg.loading && !msg.content" class="msg-loading-state">
+              <span class="msg-loading-spinner" aria-hidden="true"></span>
+              <div class="msg-loading-copy">
+                <strong>正在生成内容</strong>
+                <span>正在连接模型并准备上下文...</span>
               </div>
-              <span class="loading-text">AI 正在编织灵感...</span>
+            </div>
+            <div v-else-if="msg.loading" class="msg-stream-status" role="status" aria-live="polite">
+              <span class="stream-status-dot" aria-hidden="true"></span>
+              <span>正在输出</span>
+              <span class="stream-status-dots" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </span>
             </div>
           </div>
         </div>
       </div>
-      <div v-if="messages.length === 0" class="empty-messages">
+      <div v-if="messages.length === 0 && !loadingHistory" class="empty-messages">
         <p class="empty-text">开始对话，创造无限可能</p>
       </div>
     </div>
@@ -338,10 +349,12 @@ defineExpose({ scrollToBottom })
   flex: 1;
   min-width: 0;
   max-width: 900px;
-  background: #f7f7f8;
+  padding: 14px 16px;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  background: #fff;
   color: #1a1a1a;
-  border-bottom-left-radius: 4px;
-  border: 1px solid #f0f0f0;
+  box-shadow: none;
 }
 
 @media (max-width: 720px) {
@@ -363,13 +376,147 @@ defineExpose({ scrollToBottom })
   }
 }
 
-.msg-loading {
+.history-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 0 22px;
+  color: #666;
+  font-size: 13px;
+}
+
+.history-loading-spinner,
+.msg-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e5e5e5;
+  border-top-color: #1a1a1a;
+  border-radius: 50%;
+  animation: cw-loading-spin 760ms linear infinite;
+}
+
+.history-loading-track {
+  width: 140px;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: #ececec;
+}
+
+.history-loading-track > span {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: #1a1a1a;
+  animation: cw-loading-sweep 1.15s ease-in-out infinite;
+}
+
+.msg-loading-state {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #999;
+  min-height: 64px;
+  padding: 6px 2px;
+}
+
+.msg-loading-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.msg-loading-copy strong {
+  color: #333;
   font-size: 13px;
-  margin-top: 4px;
+  font-weight: 600;
+}
+
+.msg-loading-copy span {
+  color: #999;
+  font-size: 11.5px;
+}
+
+.msg-stream-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: max-content;
+  margin-top: 12px;
+  padding: 6px 10px;
+  border: 1px solid #ececec;
+  border-radius: 999px;
+  background: #fafafa;
+  color: #666;
+  font-size: 11.5px;
+}
+
+.stream-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  animation: cw-stream-dot-pulse 1.15s ease-in-out infinite;
+}
+
+.stream-status-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.stream-status-dots > span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #777;
+  animation: cw-stream-dots 1.15s ease-in-out infinite;
+}
+
+.stream-status-dots > span:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.stream-status-dots > span:nth-child(3) {
+  animation-delay: 0.28s;
+}
+
+@keyframes cw-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes cw-loading-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+@keyframes cw-stream-dot-pulse {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes cw-stream-dots {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
 }
 
 .loading-dots {

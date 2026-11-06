@@ -125,10 +125,21 @@
       <div
         v-if="taskProgressState.visible"
         :class="['app-task-progress', `is-${taskProgressState.status.toLowerCase()}`]"
+        role="status"
+        aria-live="polite"
       >
         <div class="app-task-progress-main">
           <div class="app-task-progress-meta">
-            <span class="app-task-progress-title">{{ taskProgressTitle }}</span>
+            <span class="app-task-progress-title">
+              {{ taskProgressTitle }}
+              <span
+                v-if="taskProgressState.status === 'running' || taskProgressState.status === 'retrying'"
+                class="app-task-progress-dots"
+                aria-hidden="true"
+              >
+                <span></span><span></span><span></span>
+              </span>
+            </span>
             <span class="app-task-progress-desc">{{ taskProgressState.message || '任务处理中...' }}</span>
           </div>
           <span class="app-task-progress-percent">{{ taskProgressPercent }}%</span>
@@ -163,7 +174,7 @@
             :is-owner="canEditApp"
             :selected-element="selectedElement"
             :sending="isGenerating"
-            placeholder="✨  描述越详尽，创作越符合您的预期"
+            placeholder="描述越详尽，创作越符合您的预期"
             @send="sendMessage"
             @clear-selection="clearSelection"
           />
@@ -650,6 +661,9 @@ const taskProgressTitle = computed(() => {
     case 'retrying':
       return `${actionLabel}重试中`
     default:
+      if (taskProgressState.type === 'deploy' && taskProgressState.progress < 10) {
+        return '部署任务排队中'
+      }
       return `${actionLabel}进行中`
   }
 })
@@ -950,25 +964,14 @@ const fetchAppInfo = async () => {
     if (res.data.code === 0 && res.data.data) {
       appStore.refreshSelectedApp(res.data.data)
       appStore.rightPanelVisible = true
+      // 进入任意产物时都以对话模式为第一落点，确保历史消息在可见容器内完成布局和滚动。
+      appStore.setMode('chat')
       await fetchCollaborators(id as unknown as number)
       await refreshCollaboratorPermission(id as unknown as number)
 
       await fetchChatHistory()
       updatePreview()
       fetchHotStat()
-
-      // 智能判断默认模式：检测是否有正在传输的SSE流
-      const hasActiveSSE = !!getGeneratingInfo()
-      if (hasActiveSSE) {
-        // 有正在传输的SSE流，进入对话模式
-        appStore.setMode('chat')
-      } else if (appStore.selectedApp?.initPrompt && messages.value.length === 0) {
-        // 新创建的产物（有初始提示词但无消息历史），即将自动发送初始消息，进入对话模式
-        appStore.setMode('chat')
-      } else {
-        // 没有正在传输的SSE流，展示数字产物模式
-        appStore.setMode('app')
-      }
 
       // Auto-send initial prompt if new app with init prompt
       // 但不在部署或其他操作后自动发送，只在首次加载且无消息时发送
@@ -1053,8 +1056,6 @@ const fetchChatHistory = async (loadMore = false) => {
         hasMore.value = false
       }
 
-      await nextTick()
-      chatMessagesRef.value?.scrollToBottom(true)
       updatePreview()
 
       if (!loadMore) {
@@ -1063,6 +1064,11 @@ const fetchChatHistory = async (loadMore = false) => {
     }
   } finally {
     loadingHistory.value = false
+    if (!loadMore) {
+      // 等历史加载条从 DOM 移除后再滚到底部，避免容器高度变化后停在旧位置。
+      await nextTick()
+      chatMessagesRef.value?.scrollToBottom(true)
+    }
   }
 }
 
@@ -1073,17 +1079,12 @@ const checkAndResumeGeneration = () => {
 
   const lastMessage = messages.value[messages.value.length - 1]
 
-  // 检查是否已部署（deployKey 存在说明生成肯定已完成）
-  if (appStore.selectedApp?.deployKey) {
-    console.log('检测到已部署数字产物，清除过期标记')
-    markGeneratingEnd()
-    return
-  }
+  // deployKey 可能来自上一轮生成，不能用它判断本轮任务已结束。
 
-  // 检查最后一条 AI 消息是否包含工作流完成/错误标记（系统分步执行模式的可靠完成判断）
+  // 只有“最后一条消息本身是 AI 且带终态标记”才视为已完成，避免误清第二轮生成任务。
   if (lastMessage?.type === 'ai' && lastMessage.content && !lastMessage.loading) {
     const content = lastMessage.content
-    if (content.includes('WORKFLOW_COMPLETE') || content.includes('WORKFLOW_ERROR') || content.includes('代码生成任务完成')) {
+    if (content.includes('WORKFLOW_COMPLETE') || content.includes('WORKFLOW_ERROR') || content.includes('CW_FINAL_STATUS') || content.includes('代码生成任务完成')) {
       console.log('检测到已完成的生成任务（含完成标记），清除过期标记')
       markGeneratingEnd()
       return
@@ -1440,6 +1441,17 @@ const ensureEditPermission = () => {
   return false
 }
 
+watch(
+  () => appStore.currentMode,
+  async (mode) => {
+    if (mode !== 'chat') return
+    await nextTick()
+    requestAnimationFrame(() => {
+      chatMessagesRef.value?.scrollToBottom(true)
+    })
+  }
+)
+
 const handleModeSwitch = (newMode: 'chat' | 'app') => {
   // Auto-exit visual edit mode when switching to chat mode
   if (newMode === 'chat' && isEditMode.value) {
@@ -1456,11 +1468,12 @@ const clearSelection = () => {
 }
 
 // === Deploy ===
-const deployApp = async () => {
-  if (!appId.value) return
-  if (isDeployed.value) return
+const performDeploy = async (isRedeploy = false) => {
+  if (!appId.value || deploying.value) return
 
-  // Auto-exit visual edit mode
+  const isVueProject = appStore.selectedApp?.codeGenType === CodeGenTypeEnum.VUE_PROJECT
+  const actionLabel = isRedeploy ? '重新部署' : '部署'
+
   if (isEditMode.value) {
     isEditMode.value = false
     visualEditor.value?.disableEditMode()
@@ -1468,38 +1481,42 @@ const deployApp = async () => {
   }
 
   deploying.value = true
-  const isVueProject = appStore.selectedApp?.codeGenType === CodeGenTypeEnum.VUE_PROJECT
+  setTaskProgressState(
+    'deploy',
+    'running',
+    isVueProject ? 3 : 20,
+    isVueProject ? '正在提交部署任务...' : '正在部署静态产物...'
+  )
 
   try {
     if (isVueProject) {
-      // Vue项目使用异步部署 + WebSocket进度推送
       const res = await deployAppAsyncApi({ appId: appId.value as unknown as number })
       if (res.data.code === 0 && res.data.data) {
         deployUrl.value = res.data.data
-        setTaskProgressState('deploy', 'running', 5, '任务已提交，正在构建部署...')
+        setTaskProgressState('deploy', 'running', 8, '任务已提交，正在等待构建队列调度...')
         await subscribeDeployProgress()
       } else {
-        message.error('部署失败：' + (res.data.message || ''))
+        finishTaskProgressState('deploy', 'failed', res.data.message || `${actionLabel}失败`, 0)
+        message.error(`${actionLabel}失败：` + (res.data.message || ''))
         deploying.value = false
       }
     } else {
-      // HTML/MULTI_FILE使用同步部署
       const res = await deployAppApi({ appId: appId.value as unknown as number })
       if (res.data.code === 0 && res.data.data) {
         deployUrl.value = res.data.data
+        finishTaskProgressState('deploy', 'success', `${actionLabel}完成，访问地址已生成`, 100)
         deployModalVisible.value = true
-        message.success('部署成功')
+        message.success(`${actionLabel}成功`)
         await refreshAppInfoOnly()
       } else {
-        message.error('部署失败：' + (res.data.message || ''))
+        finishTaskProgressState('deploy', 'failed', res.data.message || `${actionLabel}失败`, taskProgressPercent.value)
+        message.error(`${actionLabel}失败：` + (res.data.message || ''))
       }
       deploying.value = false
     }
   } catch (error) {
-    if (isVueProject) {
-      finishTaskProgressState('deploy', 'failed', '部署失败，请重试', taskProgressPercent.value)
-    }
-    message.error('部署失败，请重试')
+    finishTaskProgressState('deploy', 'failed', `${actionLabel}失败，请重试`, taskProgressPercent.value)
+    message.error(`${actionLabel}失败，请重试`)
     deploying.value = false
   }
 }
@@ -1530,62 +1547,25 @@ const subscribeDeployProgress = async () => {
     })
   } catch (err) {
     console.error('WebSocket订阅失败，部署已在后台执行', err)
-    finishTaskProgressState('deploy', 'failed', '进度订阅失败，请稍后手动查看部署结果', taskProgressPercent.value)
+    finishTaskProgressState('deploy', 'failed', '进度订阅失败，部署任务仍在后台执行', taskProgressPercent.value)
     deploying.value = false
   }
 }
 
-const confirmReDeploy = async () => {
-  // Auto-exit visual edit mode
-  if (isEditMode.value) {
-    isEditMode.value = false
-    visualEditor.value?.disableEditMode()
-    clearSelection()
-  }
+const deployApp = async () => {
+  if (!appId.value || isDeployed.value) return
+  await performDeploy(false)
+}
 
+const confirmReDeploy = async () => {
   Modal.confirm({
     title: '重复部署警告',
     content: '请勿频繁部署，若违反则系统自动封号处理！确定要继续部署吗？',
     okText: '确定部署',
     cancelText: '取消',
-    onOk: async () => {
-      deploying.value = true
-      const isVueProject = appStore.selectedApp?.codeGenType === CodeGenTypeEnum.VUE_PROJECT
-
-      try {
-        if (isVueProject) {
-          const res = await deployAppAsyncApi({ appId: appId.value as unknown as number })
-          if (res.data.code === 0 && res.data.data) {
-            deployUrl.value = res.data.data
-            setTaskProgressState('deploy', 'running', 5, '任务已提交，正在构建部署...')
-            await subscribeDeployProgress()
-          } else {
-            message.error('重新部署失败：' + (res.data.message || ''))
-            deploying.value = false
-          }
-        } else {
-          const res = await deployAppApi({ appId: appId.value as unknown as number })
-          if (res.data.code === 0 && res.data.data) {
-            deployUrl.value = res.data.data
-            deployModalVisible.value = true
-            message.success('重新部署成功')
-            await refreshAppInfoOnly()
-          } else {
-            message.error('重新部署失败：' + (res.data.message || ''))
-          }
-          deploying.value = false
-        }
-      } catch (error) {
-        if (isVueProject) {
-          finishTaskProgressState('deploy', 'failed', '重新部署失败，请重试', taskProgressPercent.value)
-        }
-        message.error('重新部署失败，请重试')
-        deploying.value = false
-      }
-    }
+    onOk: async () => performDeploy(true)
   })
 }
-
 // === Download ===
 const downloadCode = async () => {
   if (!appId.value) return
@@ -1883,10 +1863,11 @@ const handleCopyShare = async () => {
 // === Route Watcher ===
 watch(() => route.params.id, (newId) => {
   if (newId) {
-    // Set appId first to prevent flash of default view
+    // 路由切换时先回到对话模式，避免沿用上一个产物的人工模式选择。
+    appStore.setMode('chat')
     appId.value = newId as string
     resetChatState()
-    appId.value = newId as string // Re-set after reset clears it
+    appId.value = newId as string
     fetchAppInfo()
   } else {
     appId.value = ''
@@ -2387,13 +2368,13 @@ const handleIframeMessage = (event: MessageEvent) => {
 }
 
 .app-task-progress.is-success {
-  border-color: #d9e7d8;
-  background: #fcfdfc;
+  border-color: #d9d9d9;
+  background: #fafafa;
 }
 
 .app-task-progress.is-failed {
-  border-color: #f1d9d9;
-  background: #fffdfd;
+  border-color: #ffccc7;
+  background: #fff7f5;
 }
 
 .app-task-progress-main {
@@ -2412,9 +2393,34 @@ const handleIframeMessage = (event: MessageEvent) => {
 }
 
 .app-task-progress-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-size: 14px;
   font-weight: 600;
   color: #1a1a1a;
+}
+
+.app-task-progress-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.app-task-progress-dots > span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #333;
+  animation: taskQueueDot 1.1s ease-in-out infinite;
+}
+
+.app-task-progress-dots > span:nth-child(2) {
+  animation-delay: 0.14s;
+}
+
+.app-task-progress-dots > span:nth-child(3) {
+  animation-delay: 0.28s;
 }
 
 .app-task-progress-desc {
@@ -2439,6 +2445,26 @@ const handleIframeMessage = (event: MessageEvent) => {
   overflow: hidden;
 }
 
+.app-task-progress-track::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 32%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, #bdbdbd 45%, transparent);
+  opacity: 0;
+  transform: translateX(-120%);
+}
+
+.app-task-progress.is-running .app-task-progress-track::before,
+.app-task-progress.is-retrying .app-task-progress-track::before {
+  opacity: 0.72;
+  animation: taskQueueSweep 1.35s ease-in-out infinite;
+}
+
 .app-task-progress-fill {
   height: 100%;
   border-radius: inherit;
@@ -2460,6 +2486,23 @@ const handleIframeMessage = (event: MessageEvent) => {
 @keyframes taskProgressShimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+@keyframes taskQueueSweep {
+  to {
+    transform: translateX(360%);
+  }
+}
+
+@keyframes taskQueueDot {
+  0%, 60%, 100% {
+    opacity: 0.28;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
   }
 }
 

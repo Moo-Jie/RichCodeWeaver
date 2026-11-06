@@ -6,6 +6,7 @@ import com.rich.app.langGraph.node.*;
 import com.rich.app.langGraph.state.WorkflowContext;
 import com.rich.app.service.ChatHistoryService;
 import com.rich.app.utils.streamHandle.CommonStreamHandler;
+import com.rich.app.utils.streamHandle.ConversationOutputFormatter;
 import com.rich.app.utils.streamHandle.JsonStreamHandler;
 import com.rich.ai.aiTools.userProfile.UserProfileGetTool;
 import com.rich.common.constant.AiServiceConstant;
@@ -25,9 +26,14 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.bsc.langgraph4j.StateGraph.END;
 import static org.bsc.langgraph4j.StateGraph.START;
@@ -47,8 +53,6 @@ public class CodeGenWorkflowApp {
      * 质量门禁最大修复轮次
      */
     private static final int MAX_REPAIR_ATTEMPTS = 3;
-    // 流式输出每个字符的延迟（毫秒），模拟 AI 打字效果
-    private static final int STREAM_CHAR_DELAY_MS = 15;
     /**
      * 条件边判断参数映射，用于根据代码生成类型决定工作流路由
      * key: 路由条件判断结果
@@ -186,340 +190,305 @@ public class CodeGenWorkflowApp {
                                                          ChatHistoryService chatHistoryService,
                                                          Long userId,
                                                          boolean isModification) {
-        // 填充 appId→userId 映射缓存（userId 为发起对话的调用方，非 App 归属者）
-        // 供 UserProfileGetTool / UserProfileUpdateTool 通过 @ToolMemoryId(appId) 反查 userId
         UserProfileGetTool.APP_USER_MAPPING.put(appId, userId);
-
-        // 每次执行使用局部 StringBuilder，避免并发问题
         StringBuilder aiResponseBuilder = new StringBuilder();
-        // 构建 Agent 工作流风格的响应流
-        Flux<String> fluxStream = Flux.create(sink -> {
-            // 使用虚拟线程执行工作流，避免阻塞主线程
-            Thread.startVirtualThread(() -> {
-                try {
-                    // 初始化工作流上下文
-                    WorkflowContext initialContext = WorkflowContext.builder()
-                            .appId(appId)
-                            .userId(userId)
-                            .genMode("workflow")
-                            .originalPrompt(originalPrompt)
-                            .generationType(type)
-                            .currentStep("工作流初始化")
-                            .isModification(isModification)
-                            .build();
 
-                    // 注册流式输出发射器，使代码生成节点能将 AI 流式内容实时转发到前端
-                    if (type == CodeGeneratorTypeEnum.VUE_PROJECT) {
-                        Set<String> seenToolIds = new HashSet<>();
-                        CodeGeneratorNode.registerStreamEmitter(appId, chunk -> {
-                            String parsed = jsonStreamHandler.parseJsonChunk(chunk, seenToolIds);
-                            if (StrUtil.isNotEmpty(parsed)) {
-                                sink.next(parsed);
+        Flux<String> fluxStream = Flux.create(sink -> Thread.startVirtualThread(() -> {
+            AtomicBoolean codePhaseStarted = new AtomicBoolean(false);
+            AtomicInteger codeGenerationRound = new AtomicInteger(0);
+            try {
+                WorkflowContext initialContext = WorkflowContext.builder()
+                        .appId(appId)
+                        .userId(userId)
+                        .genMode("workflow")
+                        .originalPrompt(originalPrompt)
+                        .generationType(type)
+                        .currentStep("工作流初始化")
+                        .isModification(isModification)
+                        .build();
+
+                Runnable startCodePhase = () -> {
+                    if (codePhaseStarted.compareAndSet(false, true)) {
+                        int round = codeGenerationRound.incrementAndGet();
+                        emitStreamBlock(sink, aiResponseBuilder,
+                                ConversationOutputFormatter.phaseStarted(stageTitle("code_generator", round), ""));
+                    }
+                };
+
+                if (type == CodeGeneratorTypeEnum.VUE_PROJECT) {
+                    Set<String> seenToolIds = new HashSet<>();
+                    CodeGeneratorNode.registerStreamEmitter(appId, chunk -> {
+                        startCodePhase.run();
+                        String parsed = jsonStreamHandler.parseWorkflowChunk(chunk, seenToolIds);
+                        if (StrUtil.isNotEmpty(parsed)) {
+                            sink.next(parsed);
+                            if (!ConversationOutputFormatter.isTransientMarker(parsed)) {
                                 aiResponseBuilder.append(parsed);
                             }
-                        });
-                    } else {
-                        CodeGeneratorNode.registerStreamEmitter(appId, chunk -> {
-                            sink.next(chunk);
-                            aiResponseBuilder.append(chunk);
-                        });
-                    }
-
-                    // 根据是否为二次修改选择不同的工作流
-                    CompiledGraph<MessagesState<String>> workflow;
-                    if (isModification) {
-                        workflow = createModificationWorkflow();
-                        emitStreamBlock(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_START -->\n\n" +
-                                "# \uD83D\uDD04 代码修改 Agent 启动\n\n" +
-                                "---\n\n");
-                    } else {
-                        workflow = createWorkflow();
-                        // 发送工作流开始事件 - 使用结构化格式
-                        String startInfo = "\n\n<!-- WORKFLOW_START -->\n\n" +
-                                "# \uD83D\uDE80 代码生成 Agent 启动\n\n" +
-                                "<div class='workflow-meta'>\n\n" +
-                                "| 项目 | 信息 |\n" +
-                                "|------|------|\n" +
-                                "| 产物ID | `" + appId + "` |\n" +
-                                "| 生成类型 | **" + type.getValue() + "** |\n" +
-                                "| 执行模式 | **分布式工作流** |\n" +
-                                "| 原始需求 | " + (originalPrompt.length() > 100 ? originalPrompt.substring(0, 100) + "..." : originalPrompt) + " |\n\n" +
-                                "</div>\n\n";
-                        emitStreamBlock(sink, aiResponseBuilder, startInfo);
-                        emitStreamBlock(sink, aiResponseBuilder, "\n\n<!-- WORKFLOW_EXECUTION_START -->\n\n" +
-                                "## \uD83D\uDCCB 工作流执行计划\n\n" +
-                                "<div class='workflow-steps'>\n\n" +
-                                "**执行阶段:**\n\n" +
-                                "1. \uD83C\uDF10 资源收集（网络资源 + 图片资源并行）\n" +
-                                "2. ✨ 提示词智能增强\n" +
-                                "3. \uD83C\uDFAF 代码类型策略分析\n" +
-                                "4. \uD83D\uDCBB AI 代码生成\n" +
-                                "5. \uD83D\uDD0D 代码质量审查\n" +
-                                "6. \uD83C\uDFD7\uFE0F 项目构建部署\n\n" +
-                                "</div>\n\n" +
-                                "---\n\n");
-                    }
-
-                    // 生成可视化工作流图
-                    GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);
-                    log.info("\n工作流图:\n{}", graph.content());
-
-                    WorkflowContext finalContext = null;
-                    for (NodeOutput<MessagesState<String>> step : workflow.stream(
-                            Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {
-
-                        // 获取当前步骤的上下文
-                        WorkflowContext currentContext = WorkflowContext.getContext(step.state());
-                        if (currentContext != null) {
-                            finalContext = currentContext;
-                            StringBuilder stepInfo = new StringBuilder();
-                            String nodeName = step.node();
-                            String stepTitle = currentContext.getCurrentStep();
-
-                            // 使用结构化的步骤标记
-                            stepInfo.append(String.format("\n\n<!-- NODE_START:%s -->\n\n", nodeName));
-                            stepInfo.append(String.format("### ✅ %s\n\n", stepTitle));
-                            stepInfo.append("<div class='node-result'>\n\n");
-
-                            // 根据节点类型输出特定信息，采用更清晰的展示格式
-                            switch (nodeName) {
-                                case "resource_collector":
-                                    stepInfo.append("**🌐 资源收集节点（并行执行）**\n\n");
-                                    String webResource = currentContext.getWebResourceListStr();
-                                    String imageResource = currentContext.getImageListStr();
-                                    if (StrUtil.isNotBlank(webResource) && !"无".equals(webResource.trim())) {
-                                        stepInfo.append(String.format("- ✓ 网络资源整理完成：收集到 **%d** 字符\n", webResource.length()));
-                                    } else {
-                                        stepInfo.append("- ℹ️ 未找到相关网络资源或无需收集\n");
-                                    }
-                                    if (StrUtil.isNotBlank(imageResource) && !"无".equals(imageResource.trim())) {
-                                        stepInfo.append(String.format("- ✓ 图片资源收集完成：获取到 **%d** 字符\n", imageResource.length()));
-                                    } else {
-                                        stepInfo.append("- ℹ️ 未找到相关图片资源或无需收集\n");
-                                    }
-                                    stepInfo.append("- ✓ 执行模式：网络资源 + 图片资源**并行收集**\n");
-                                    break;
-
-                                case "prompt_enhancer":
-                                    stepInfo.append("**✨ 提示词增强节点**\n\n");
-                                    if (StrUtil.isNotBlank(currentContext.getEnhancedPrompt())) {
-                                        int length = currentContext.getEnhancedPrompt().length();
-                                        stepInfo.append(String.format("- ✓ 增强完成：提示词优化至 **%d** 字符\n", length));
-                                        stepInfo.append("- ✓ 增强内容：融合网络资源、图片信息\n");
-                                        stepInfo.append("- ✓ 质量提升：更精准的代码生成指令\n");
-                                    }
-                                    break;
-
-                                case "ai_code_generator_type_strategy":
-                                    stepInfo.append("**🎯 代码类型策略节点**\n\n");
-                                    if (currentContext.getGenerationType() != null) {
-                                        String codeType = currentContext.getGenerationType().getValue();
-                                        stepInfo.append(String.format("- ✓ 策略确定：选择 **%s** 生成模式\n", codeType));
-                                        stepInfo.append("- ✓ AI分析：基于需求自动选择最优方案\n");
-                                        stepInfo.append("- ✓ 准备就绪：开始代码生成流程\n");
-                                    }
-                                    break;
-
-                                case "code_generator":
-                                    stepInfo.append("**💻 AI 代码生成节点**\n\n");
-                                    if (StrUtil.isNotBlank(currentContext.getOutputDir())) {
-                                        stepInfo.append(String.format("- ✓ 生成完成：代码已输出\n"));
-                                        stepInfo.append(String.format("- ✓ 输出路径：`%s`\n", currentContext.getOutputDir()));
-                                        stepInfo.append("- ✓ 下一步：等待 AI 代码质量审查\n");
-                                    }
-                                    stepInfo.append("\n> 🔍 正在启动代码审查流程...\n");
-                                    break;
-
-                                case "project_preflight":
-                                    stepInfo.append("**🧩 项目结构预检节点**\n\n");
-                                    if (currentContext.isPreflightPassed()) {
-                                        stepInfo.append("- ✅ **预检通过**：关键文件和本地资源引用完整\n");
-                                    } else {
-                                        stepInfo.append("- ⚠️ **预检未通过**：已生成定向修复任务\n");
-                                        if (currentContext.getPreflightErrors() != null) {
-                                            currentContext.getPreflightErrors().forEach(error ->
-                                                    stepInfo.append("- ").append(error).append("\n"));
-                                        }
-                                    }
-                                    break;
-
-                                case "ai_code_reviewer":
-                                    stepInfo.append("**🔍 代码审查节点**\n\n");
-                                    if (currentContext.getCodeReviewResponse() != null) {
-                                        boolean passed = Boolean.TRUE.equals(currentContext.getCodeReviewResponse().getIsPass());
-                                        if (passed) {
-                                            stepInfo.append("- ✅ **审查通过**：代码质量符合标准\n");
-                                            stepInfo.append("- ✓ 代码规范：符合最佳实践\n");
-                                            stepInfo.append("- ✓ 功能完整：满足需求描述\n");
-                                        } else {
-                                            stepInfo.append("- ⚠️ **审查未通过**：发现需要优化的问题\n");
-                                            stepInfo.append("- 🔄 自动修复：正在重新生成优化代码\n");
-                                            stepInfo.append("- 📝 改进方案：基于审查反馈调整\n");
-                                        }
-                                    }
-                                    break;
-
-                                case "project_builder":
-                                    stepInfo.append("**🏗️ 项目构建节点**\n\n");
-                                    if (currentContext.isBuildPassed()) {
-                                        stepInfo.append("- ✅ 构建通过：npm run build 返回成功且 dist/index.html 已生成\n");
-                                        stepInfo.append(String.format("- ✓ 部署目录：`%s`\n", currentContext.getDeployDir()));
-                                    } else {
-                                        stepInfo.append("- ❌ 构建失败：已保留真实构建日志，进入有限修复流程\n");
-                                        if (StrUtil.isNotBlank(currentContext.getBuildErrorLog())) {
-                                            stepInfo.append("\n```text\n").append(currentContext.getBuildErrorLog()).append("\n```\n");
-                                        }
-                                    }
-                                    break;
-
-                                case "delivery_gate":
-                                    stepInfo.append("**🚦 交付质量门禁节点**\n\n");
-                                    if (currentContext.isDeliveryReady()) {
-                                        stepInfo.append("- ✅ **允许交付**：结构、审查和构建证据均通过\n");
-                                    } else {
-                                        stepInfo.append("- ⛔ **阻止交付**：产物未达到可部署标准\n");
-                                        if (StrUtil.isNotBlank(currentContext.getErrorMessage())) {
-                                            stepInfo.append("\n```text\n").append(currentContext.getErrorMessage()).append("\n```\n");
-                                        }
-                                    }
-                                    break;
-
-                                default:
-                                    stepInfo.append("**⚙️ 工作流初始化**\n\n");
-                                    stepInfo.append("- ✓ 工作流上下文已创建\n");
-                                    stepInfo.append("- ✓ 执行参数已配置完成\n");
-                                    stepInfo.append("- ✓ 准备开始执行各节点任务\n");
-                                    break;
-                            }
-
-                            // 错误信息总是显示，使用醒目的格式
-                            if (StrUtil.isNotBlank(currentContext.getErrorMessage())) {
-                                stepInfo.append("\n\n---\n\n");
-                                stepInfo.append("**⚠️ 执行异常**\n\n");
-                                stepInfo.append("```\n");
-                                stepInfo.append(currentContext.getErrorMessage());
-                                stepInfo.append("\n```\n");
-                                stepInfo.append("\n> 💡 提示：异常详情已记录到服务端日志，请检查控制台输出\n");
-                            }
-
-                            stepInfo.append("\n\n</div>\n\n");
-                            stepInfo.append(String.format("<!-- NODE_END:%s -->\n\n", nodeName));
-
-                            emitStreamBlock(sink, aiResponseBuilder, stepInfo.toString());
-                            log.info("当前步骤: {} - {}", nodeName, currentContext.getCurrentStep());
-
-                            // 交付门禁是最后一步，到达后主动结束循环，防止流迭代器阻塞
-                            if ("delivery_gate".equals(nodeName)) {
-                                log.info("交付门禁执行完成，主动结束工作流循环");
-                                break;
-                            }
                         }
-                    }
-
-                    // 只有通过交付门禁才允许发送成功标记，失败时明确进入会话错误状态
-                    if (finalContext == null || !finalContext.isDeliveryReady()) {
-                        String failureMessage = finalContext != null && StrUtil.isNotBlank(finalContext.getErrorMessage())
-                                ? finalContext.getErrorMessage()
-                                : "工作流未产生可交付产物";
-                        String errorInfo = "\n\n<!-- WORKFLOW_ERROR -->\n\n" +
-                                "---\n\n" +
-                                "# 🛑 产物未通过交付质量门禁\n\n" +
-                                "<div class='workflow-error'>\n\n" +
-                                "**阻断原因：**\n\n" +
-                                "```text\n" + failureMessage + "\n```\n\n" +
-                                "**系统处理：**\n\n" +
-                                "- 已阻止发送“生成完成”状态\n" +
-                                "- 已阻止进入部署推荐\n" +
-                                "- 构建日志和门禁错误已保留用于下一轮修复\n\n" +
-                                "</div>\n\n";
-                        emitStreamBlock(sink, aiResponseBuilder, errorInfo);
-                        log.warn("工作流被交付门禁阻断，产物ID: {}，原因: {}", appId, failureMessage);
-                        sink.error(new BusinessException(ErrorCode.OPERATION_ERROR, "产物未通过交付质量门禁"));
-                        return;
-                    }
-
-                    // 发送工作流完成事件 - 使用结构化完成标记
-                    String completeInfo = "\n\n<!-- WORKFLOW_COMPLETE -->\n\n" +
-                            "---\n\n" +
-                            "# 🎉 代码生成任务完成\n\n" +
-                            "<div class='workflow-summary'>\n\n" +
-                            "**✅ 所有质量门禁通过**\n\n" +
-                            "- 🌐 网络资源已整理\n" +
-                            "- 🖼️ 图片资源已收集\n" +
-                            "- ✨ 提示词已增强\n" +
-                            "- 🎯 代码类型已确定\n" +
-                            "- 💻 代码已生成\n" +
-                            "- 🧩 项目结构已预检\n" +
-                            "- 🔍 质量已审查\n" +
-                            "- 🏗️ 构建结果已验证（Vue 项目）\n" +
-                            "- 🚦 交付门禁已通过\n\n" +
-                            "**下一步操作：**\n\n" +
-                            "- 📱 切换到「产物模式」查看预览\n" +
-                            "- 🚀 点击「部署」发布到线上\n" +
-                            "- 💾 点击「下载」获取源代码\n\n" +
-                            "</div>\n\n";
-                    emitStreamBlock(sink, aiResponseBuilder, completeInfo);
-
-                    log.info("代码生成工作流执行完成！产物ID: {}", appId);
-                    sink.complete();
-                } catch (Throwable e) {
-                    log.error("工作流执行失败，产物ID: {}，错误信息: {}", appId, e.getMessage(), e);
-                    // 发送错误事件 - 使用结构化错误格式
-                    String errorInfo = "\n\n<!-- WORKFLOW_ERROR -->\n\n" +
-                            "---\n\n" +
-                            "# 🛑 工作流执行异常\n\n" +
-                            "<div class='workflow-error'>\n\n" +
-                            "**异常类型：** " + e.getClass().getSimpleName() + "\n\n" +
-                            "**错误信息：**\n\n" +
-                            "```\n" +
-                            e.getMessage() +
-                            "\n```\n\n" +
-                            "**处理建议：**\n\n" +
-                            "1. 检查服务端控制台日志获取详细堆栈信息\n" +
-                            "2. 确认AI服务配置是否正确（API Key等）\n" +
-                            "3. 如问题持续，请联系技术支持\n\n" +
-                            "</div>\n\n";
-
-                    emitStreamBlock(sink, aiResponseBuilder, errorInfo);
-                    sink.error(e);
-                } finally {
-                    // 确保流式输出发射器被注销，防止内存泄漏
-                    CodeGeneratorNode.unregisterStreamEmitter(appId);
+                    });
+                } else {
+                    CodeGeneratorNode.registerStreamEmitter(appId, chunk -> startCodePhase.run());
                 }
-            });
-        });
-        // 处理流，把收集 AI 响应内容保存到对话历史，并进一步处理为响应给前端的最终内容
-        return commonStreamHandler.handleStream(
-                fluxStream
-                        // 过滤空字串
-                        .filter(StrUtil::isNotEmpty),
-                chatHistoryService, appId, userId, aiResponseBuilder, AiServiceConstant.SUMMARY_TYPE_WORKFLOW);
-    }
 
-    /**
-     * 辅助方法：流式输出文本，模拟打字效果（仅用于需要打字效果的场景，如 AI 代码生成流）
-     *
-     * @param sink              SSE事件流
-     * @param aiResponseBuilder 响应内容构建器
-     * @param text              需要输出的文本
-     */
-    private void emitStreamText(FluxSink<String> sink, StringBuilder aiResponseBuilder, String text) {
-        // 使用 codePoints() 遍历，正确处理 emoji 等 Unicode 补充字符（避免 surrogate pair 被拆分导致乱码）
-        text.codePoints().forEach(codePoint -> {
-            try {
-                Thread.sleep(STREAM_CHAR_DELAY_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                CompiledGraph<MessagesState<String>> workflow = isModification
+                        ? createModificationWorkflow()
+                        : createWorkflow();
+
+                String startInfo = "\n\n<!-- WORKFLOW_START -->\n\n"
+                        + ConversationOutputFormatter.documentHeader(
+                        isModification ? "修改过程" : "生成过程",
+                        "系统分步执行 · " + type.getText());
+                emitStreamBlock(sink, aiResponseBuilder, startInfo);
+
+                List<String> overviewDetails = List.of(
+                        ConversationOutputFormatter.item("代码类型", type.getText()),
+                        ConversationOutputFormatter.item("执行方式", "系统分步执行"),
+                        ConversationOutputFormatter.item("质量门禁", "结构检查、AI 审查与真实构建")
+                );
+                emitStreamBlock(sink, aiResponseBuilder,
+                        ConversationOutputFormatter.section("执行概览", "已启动", overviewDetails));
+
+                GraphRepresentation graph = workflow.getGraph(GraphRepresentation.Type.MERMAID);
+                log.info("\n工作流图:\n{}", graph.content());
+
+                WorkflowContext finalContext = null;
+                Map<String, Integer> phaseRounds = new HashMap<>();
+
+                for (NodeOutput<MessagesState<String>> step : workflow.stream(
+                        Map.of(WorkflowContext.WORKFLOW_CONTEXT_KEY, initialContext))) {
+                    WorkflowContext currentContext = WorkflowContext.getContext(step.state());
+                    if (currentContext == null) {
+                        continue;
+                    }
+
+                    finalContext = currentContext;
+                    String nodeName = step.node();
+                    if (!isDisplayStage(nodeName)) {
+                        continue;
+                    }
+                    boolean codePhaseAlreadyStarted = "code_generator".equals(nodeName)
+                            && codePhaseStarted.getAndSet(false);
+                    int round;
+                    if ("code_generator".equals(nodeName)) {
+                        round = codePhaseAlreadyStarted
+                                ? codeGenerationRound.get()
+                                : codeGenerationRound.incrementAndGet();
+                    } else {
+                        round = phaseRounds.merge(nodeName, 1, Integer::sum);
+                    }
+
+                    String title = stageTitle(nodeName, round);
+                    String status = stageStatus(nodeName, currentContext);
+                    List<String> details = buildStageDetails(nodeName, currentContext);
+                    String stageMarkdown = codePhaseAlreadyStarted
+                            ? ConversationOutputFormatter.sectionBody(status, details)
+                            : ConversationOutputFormatter.section(title, status, details);
+                    emitStreamBlock(sink, aiResponseBuilder, stageMarkdown);
+                    log.info("当前步骤: {} - {}", nodeName, currentContext.getCurrentStep());
+
+                    if ("delivery_gate".equals(nodeName)) {
+                        break;
+                    }
+                }
+
+                if (finalContext == null || !finalContext.isDeliveryReady()) {
+                    String failureMessage = finalContext != null && StrUtil.isNotBlank(finalContext.getErrorMessage())
+                            ? finalContext.getErrorMessage()
+                            : "工作流未产生可交付产物";
+                    String errorInfo = "\n\n<!-- WORKFLOW_ERROR -->\n\n"
+                            + ConversationOutputFormatter.failure(failureMessage);
+                    emitStreamBlock(sink, aiResponseBuilder, errorInfo);
+                    log.warn("工作流被交付门禁阻断，产物ID: {}，原因: {}", appId, failureMessage);
+                    sink.error(new BusinessException(ErrorCode.OPERATION_ERROR, "产物未通过交付质量门禁"));
+                    return;
+                }
+
+                String completeInfo = "\n\n<!-- WORKFLOW_COMPLETE -->\n\n"
+                        + ConversationOutputFormatter.completion("质量门禁已通过，可查看预览、部署或下载");
+                emitStreamBlock(sink, aiResponseBuilder, completeInfo);
+                log.info("代码生成工作流执行完成，产物ID: {}", appId);
+                sink.complete();
+            } catch (Throwable e) {
+                log.error("工作流执行失败，产物ID: {}，错误信息: {}", appId, e.getMessage(), e);
+                emitStreamBlock(sink, aiResponseBuilder,
+                        "\n\n<!-- WORKFLOW_ERROR -->\n\n"
+                                + ConversationOutputFormatter.failure(
+                                StrUtil.blankToDefault(e.getMessage(), "工作流执行异常")));
+                sink.error(e);
+            } finally {
+                CodeGeneratorNode.unregisterStreamEmitter(appId);
             }
-            String ch = new String(Character.toChars(codePoint));
-            sink.next(ch);
-            aiResponseBuilder.append(ch);
-        });
+        }));
+
+        return commonStreamHandler.handleStream(
+                fluxStream.filter(StrUtil::isNotEmpty),
+                chatHistoryService,
+                appId,
+                userId,
+                aiResponseBuilder,
+                AiServiceConstant.SUMMARY_TYPE_WORKFLOW
+        );
     }
 
     /**
-     * 辅助方法：批量发送文本，一次性推送整段内容（用于工作流状态信息，无需模拟打字效果）
-     * 相比 emitStreamText 逐字符发送，可节省大量延迟时间
+     * 仅展示业务阶段，过滤框架产生的内部节点。
+     */
+    private boolean isDisplayStage(String nodeName) {
+        return switch (nodeName) {
+            case "resource_collector", "prompt_enhancer", "ai_code_generator_type_strategy",
+                    "code_generator", "project_preflight", "ai_code_reviewer",
+                    "project_builder", "delivery_gate" -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * 获取统一阶段标题。
+     */
+    private String stageTitle(String nodeName, int round) {
+        String baseTitle = switch (nodeName) {
+            case "resource_collector" -> "资源准备";
+            case "prompt_enhancer" -> "需求增强";
+            case "ai_code_generator_type_strategy" -> "生成策略";
+            case "code_generator" -> "代码生成";
+            case "project_preflight" -> "结构检查";
+            case "ai_code_reviewer" -> "质量审查";
+            case "project_builder" -> "项目构建";
+            case "delivery_gate" -> "交付检查";
+            default -> "执行阶段";
+        };
+        return round > 1 ? baseTitle + " · 第 " + round + " 轮" : baseTitle;
+    }
+
+    /**
+     * 获取统一阶段状态。
+     */
+    private String stageStatus(String nodeName, WorkflowContext context) {
+        return switch (nodeName) {
+            case "resource_collector" -> context.getCurrentStep() != null
+                    && context.getCurrentStep().contains("跳过") ? "已跳过" : "已完成";
+            case "project_preflight", "ai_code_reviewer", "project_builder" -> {
+                boolean passed = switch (nodeName) {
+                    case "project_preflight" -> context.isPreflightPassed();
+                    case "ai_code_reviewer" -> context.getCodeReviewResponse() != null
+                            && Boolean.TRUE.equals(context.getCodeReviewResponse().getIsPass());
+                    case "project_builder" -> context.isBuildPassed();
+                    default -> false;
+                };
+                yield passed ? "已完成" : "需修复";
+            }
+            case "delivery_gate" -> context.isDeliveryReady() ? "已完成" : "失败";
+            default -> "已完成";
+        };
+    }
+
+    /**
+     * 生成阶段摘要，保持每个节点只输出必要信息。
+     */
+    private List<String> buildStageDetails(String nodeName, WorkflowContext context) {
+        List<String> details = new ArrayList<>();
+        switch (nodeName) {
+            case "resource_collector" -> {
+                details.add(ConversationOutputFormatter.item(
+                        "网络资料", resourceSizeSummary(context.getWebResourceListStr())));
+                details.add(ConversationOutputFormatter.item(
+                        "图片素材", imageResourceSummary(context.getImageListStr())));
+                details.add(ConversationOutputFormatter.item("执行方式", "网络资料与图片素材并行处理"));
+            }
+            case "prompt_enhancer" -> {
+                details.add(ConversationOutputFormatter.item("增强结果", "需求、素材与页面结构已合并"));
+                details.add(ConversationOutputFormatter.item(
+                        "提示词规模", context.getEnhancedPrompt() == null
+                                ? "未生成"
+                                : ConversationOutputFormatter.count(context.getEnhancedPrompt().length()) + " 字符"));
+            }
+            case "ai_code_generator_type_strategy" -> {
+                String generationType = context.getGenerationType() == null
+                        ? "未确定"
+                        : context.getGenerationType().getText();
+                details.add(ConversationOutputFormatter.item("生成模式", generationType));
+                details.add(ConversationOutputFormatter.item("决策方式", "AI 根据需求自动选择"));
+            }
+            case "code_generator" -> {
+                String generationType = context.getGenerationType() == null
+                        ? "未确定"
+                        : context.getGenerationType().getText();
+                details.add(ConversationOutputFormatter.item("代码类型", generationType));
+                details.add(ConversationOutputFormatter.item("写入状态", "代码已保存至当前产物工作区"));
+            }
+            case "project_preflight" -> {
+                details.add(ConversationOutputFormatter.item(
+                        "结构检查", context.isPreflightPassed() ? "通过" : "未通过"));
+                appendLimitedItems(details, "检查问题", context.getPreflightErrors(), 3);
+            }
+            case "ai_code_reviewer" -> {
+                CodeReviewResponse review = context.getCodeReviewResponse();
+                boolean passed = review != null && Boolean.TRUE.equals(review.getIsPass());
+                details.add(ConversationOutputFormatter.item("审查结论", passed ? "通过" : "未通过"));
+                if (review != null) {
+                    appendLimitedItems(details, "审查问题", review.getErrorList(), 2);
+                    appendLimitedItems(details, "改进建议", review.getSuggestionList(), 2);
+                }
+            }
+            case "project_builder" -> {
+                details.add(ConversationOutputFormatter.item("构建结果", context.isBuildPassed() ? "通过" : "未通过"));
+                if (!context.isBuildPassed() && StrUtil.isNotBlank(context.getBuildErrorLog())) {
+                    details.add(ConversationOutputFormatter.item(
+                            "失败摘要", firstLine(context.getBuildErrorLog(), 160)));
+                }
+            }
+            case "delivery_gate" -> {
+                details.add(ConversationOutputFormatter.item(
+                        "交付结论", context.isDeliveryReady() ? "允许交付" : "阻止交付"));
+                if (StrUtil.isNotBlank(context.getErrorMessage())) {
+                    details.add(ConversationOutputFormatter.item(
+                            "阻断原因", ConversationOutputFormatter.clip(context.getErrorMessage(), 160)));
+                }
+            }
+            default -> details.add(ConversationOutputFormatter.item(
+                    "当前状态", StrUtil.blankToDefault(context.getCurrentStep(), "已完成")));
+        }
+        return details;
+    }
+
+    private void appendLimitedItems(List<String> details, String label, List<String> values, int limit) {
+        if (values == null || values.isEmpty()) {
+            return;
+        }
+        int count = Math.min(limit, values.size());
+        for (int i = 0; i < count; i++) {
+            details.add(ConversationOutputFormatter.item(
+                    label + " " + (i + 1),
+                    ConversationOutputFormatter.clip(values.get(i), 160)));
+        }
+    }
+
+    private String resourceSizeSummary(String value) {
+        if (StrUtil.isBlank(value) || "无".equals(value.trim())) {
+            return "无新增";
+        }
+        return ConversationOutputFormatter.count(value.length()) + " 字符";
+    }
+
+    private String imageResourceSummary(String value) {
+        if (StrUtil.isBlank(value) || "无".equals(value.trim())) {
+            return "无新增";
+        }
+        long imageCount = value.lines().filter(line -> line.contains("http")).count();
+        return imageCount > 0
+                ? ConversationOutputFormatter.count(imageCount) + " 项"
+                : "已获取";
+    }
+
+    private String firstLine(String value, int maxLength) {
+        String normalized = value.replace("\r", "\n");
+        int lineEnd = normalized.indexOf('\n');
+        String line = lineEnd >= 0 ? normalized.substring(0, lineEnd) : normalized;
+        return ConversationOutputFormatter.clip(line, maxLength);
+    }
+    /**
+     * 辅助方法：批量发送已标准化的 Markdown 阶段内容
      *
      * @param sink              SSE事件流
      * @param aiResponseBuilder 响应内容构建器

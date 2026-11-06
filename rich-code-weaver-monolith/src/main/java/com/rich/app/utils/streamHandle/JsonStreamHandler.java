@@ -10,6 +10,7 @@ import com.rich.ai.model.msgResponse.StreamMsgResponse;
 import com.rich.ai.model.msgResponse.StreamToolExecutedMsgResponse;
 import com.rich.ai.model.msgResponse.StreamToolInvocMsgResponse;
 import com.rich.app.service.ChatHistoryService;
+import com.rich.common.constant.AiServiceConstant;
 import com.rich.common.exception.ErrorCode;
 import com.rich.common.exception.ThrowUtils;
 import com.rich.model.enums.ReasoningStreamMsgTypeEnum;
@@ -23,24 +24,32 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 用于 AI JSON 输出的流处理器
- * (用于推理构建 Vue 项目模式的 AI 响应流处理器，因为推理模型关于 【思考步骤】 和 【工具调用】 等信息，是用 JOSN 格式输出的)
+ * 用于 AI JSON 输出的流处理器。
+ *
+ * <p>后端在此处统一把推理模型的 ai_response、tool_request、tool_executed 转换为
+ * 可展示 Markdown，前端不再维护工具名称、图标、参数摘要等业务映射。</p>
  *
  * @author DuRuiChi
  * @create 2025/12/27
- **/
+ */
 @Slf4j
 @Component
 public class JsonStreamHandler {
-    /**
-     * MCP 工具或未注册本地工具的兜底开始提示模板
-     **/
-    private static final String DEFAULT_TOOL_START_TEMPLATE = "\n\n[开始调用系统工具] %s\n\n";
 
     /**
-     * MCP 工具或未注册本地工具的兜底结束提示模板
-     **/
-    private static final String DEFAULT_TOOL_END_TEMPLATE = "[工具调用结束] %s";
+     * 不进入对话正文的低信息量内部工具。文件读写是执行细节，由阶段摘要和产物状态承载。
+     */
+    private static final Set<String> SILENT_TOOLS = Set.of(
+            "think",
+            "sendMessage",
+            "exit",
+            "creatAndWrite",
+            "modifyFile",
+            "readFile",
+            "readDir",
+            "diffFile",
+            "deleteFile"
+    );
 
     @Resource
     private CommonStreamHandler commonStreamHandler;
@@ -49,158 +58,204 @@ public class JsonStreamHandler {
     private ToolsManager toolsManager;
 
     /**
-     * 处理 AI JSON 输出的流
+     * 处理 AI JSON 输出并生成统一 SSE 流。
      *
      * @param stringFlux         AI 响应流
      * @param chatHistoryService 对话历史服务
      * @param appId              产物 ID
      * @param userId             用户 ID
-     * @return 处理后的 AI 响应流
+     * @param summaryType        摘要类型
+     * @return 处理后的 SSE 流
      */
-    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux, ChatHistoryService chatHistoryService, Long appId, Long userId, String summaryType) {
-        // 收集 AI 响应内容，用于保存到对话历史
+    public Flux<ServerSentEvent<String>> handleStream(Flux<String> stringFlux,
+                                                      ChatHistoryService chatHistoryService,
+                                                      Long appId,
+                                                      Long userId,
+                                                      String summaryType) {
         StringBuilder aiResponseBuilder = new StringBuilder();
-
-        // 用于跟踪已经见过的工具ID，判断是否是第一次调用
-        // 因为同一个工具调用在流式输出中可能会拆成多段 tool_request 消息
         Set<String> seenToolIds = new HashSet<>();
 
-        // 处理 AI 响应流
-        // 注意：不在此处添加 doOnComplete 保存对话历史，CommonStreamHandler.doFinally 已统一处理保存逻辑
+        String modeLabel = AiServiceConstant.SUMMARY_TYPE_WORKFLOW.equals(summaryType)
+                ? "系统分步执行"
+                : "Agent 智能生成";
+        String header = ConversationOutputFormatter.documentHeader("生成过程", modeLabel);
+        String completion = ConversationOutputFormatter.completion("可查看预览、部署或下载");
+        aiResponseBuilder.append(header);
+
+        Flux<String> displayFlux = stringFlux
+                .map(chunk -> handleJsonChunk(chunk, aiResponseBuilder, seenToolIds))
+                .filter(StrUtil::isNotEmpty);
+
+        Flux<String> outputFlux = Flux.concat(
+                Flux.just(header),
+                displayFlux,
+                Flux.just(completion).doOnNext(aiResponseBuilder::append)
+        );
+
         return commonStreamHandler.handleStream(
-                stringFlux
-                        // 收集并解析 AI 响应内容的 TokenStream 数据块，用于保存到对话历史
-                        .map(chunk -> {
-                            // 解析每个 JSON 消息块
-                            return handleJsonChunk(chunk, aiResponseBuilder, seenToolIds);
-                        })
-                        // 过滤空字串
-                        .filter(StrUtil::isNotEmpty),
+                outputFlux,
                 chatHistoryService,
                 appId,
                 userId,
                 aiResponseBuilder,
-                summaryType);
+                summaryType
+        );
     }
 
     /**
-     * 解析 AI 响应流（TokenStream）中的 JSON 消息块，根据消息类型提取有效内容
-     * （公共方法，供外部调用，如工作流模式下的流式输出发射器）
+     * Agent 模式解析入口，保留 AI 的最终自然语言回复。
      *
-     * @param chunk       AI 响应内容的 TokenStream 数据块
-     * @param seenToolIds 已经见过的工具 ID 集合
-     * @return java.lang.String 解析后的有效文本内容
-     **/
+     * @param chunk       AI 响应块
+     * @param seenToolIds 已见工具 ID
+     * @return 可展示 Markdown
+     */
     public String parseJsonChunk(String chunk, Set<String> seenToolIds) {
-        // 移除可能的空白字符并检查是否为空
+        return parseJsonChunk(chunk, seenToolIds, true);
+    }
+
+    /**
+     * 工作流模式解析入口。工作流正文由阶段摘要承载，不展示模型过程性闲聊。
+     *
+     * @param chunk       AI 响应块
+     * @param seenToolIds 已见工具 ID
+     * @return 可展示 Markdown 或隐藏任务计划标记
+     */
+    public String parseWorkflowChunk(String chunk, Set<String> seenToolIds) {
+        return parseJsonChunk(chunk, seenToolIds, false);
+    }
+
+    private String parseJsonChunk(String chunk, Set<String> seenToolIds, boolean includeAiResponse) {
         String trimmedChunk = StrUtil.trim(chunk);
         if (StrUtil.isEmpty(trimmedChunk)) {
             return "";
         }
-        // 解析 JSON 字符串为基础消息对象
-        StreamMsgResponse streamMsgResponse = JSONUtil.toBean(chunk, StreamMsgResponse.class);
 
-        // 获取类型
-        // type 决定当前 chunk 是普通文本、工具调用开始，还是工具执行结束
+        StreamMsgResponse streamMsgResponse = JSONUtil.toBean(trimmedChunk, StreamMsgResponse.class);
         ReasoningStreamMsgTypeEnum type = ReasoningStreamMsgTypeEnum.getEnumByValue(streamMsgResponse.getType());
         ThrowUtils.throwIf(type == null, ErrorCode.OPERATION_ERROR, "不支持的 AI 消息类型");
 
-        /*
-            根据消息类型进行不同的流处理：
-            type="ai_response", data="接下来我将开始创建代码："}
-
-            {type="tool_request", index=xxx, id="xxx", name="CreatAndWriteAiTool", arguments="调用工具的参数（流式碎片）"}
-            {type="tool_request", index=xxx, id="xxx", name="CreatAndWriteAiTool", arguments="调用工具的参数（流式碎片）"}
-            .
-            .
-            .
-            {type="tool_request", index=xxx, id="xxx", name="CreatAndWriteAiTool", arguments="调用工具的参数（流式碎片）"}
-
-            {type="tool_executed", index=xxx, id="xxx", name="CreatAndWriteAiTool", arguments="文件写入完成！"}
-
-            {type="ai_response", data="本次代码生成结束！"}
-        */
-        switch (type) {
-            // AI 响应信息
+        return switch (type) {
             case AI_RESPONSE -> {
-                // 转为用于 【AI 回复内容信息】 的响应结果类
-                StreamAiChatMsgResponse streamAiChatMsgResponse = JSONUtil.toBean(chunk, StreamAiChatMsgResponse.class);
-                return streamAiChatMsgResponse.getData();
+                StreamAiChatMsgResponse response = JSONUtil.toBean(trimmedChunk, StreamAiChatMsgResponse.class);
+                yield includeAiResponse ? StrUtil.blankToDefault(response.getData(), "") : "";
             }
-            // 工具请求信息
             case TOOL_REQUEST -> {
-                // 转为用于 【工具调用信息】 的响应结果类
-                StreamToolInvocMsgResponse streamToolInvocMsgResponse = JSONUtil.toBean(chunk, StreamToolInvocMsgResponse.class);
-                // 获取工具 ID
-                String toolId = streamToolInvocMsgResponse.getId();
-
-                // 构建输出结果
-                // 当第一次调用工具时，返回工具开始调用的消息
-                if (toolId != null && !seenToolIds.contains(toolId)) {
-                    // 记录工具 ID，防止重复输出开始调用的消息
-                    seenToolIds.add(toolId);
-
-                    // 构建输出结果
-                    // 先尝试按本地工具名查找，因为原有工具都在 ToolsManager 中注册
-                    BaseTool tool = toolsManager.getToolByName(streamToolInvocMsgResponse.getName());
-                    if (tool != null) {
-                        // 本地工具走原有展示逻辑，保证前端文案与历史行为一致
-                        return tool.getResponseMsg();
-                    }
-
-                    // MCP 工具不在本地 ToolsManager 中注册时，使用通用提示文案兜底
-                    // 这样即使是外部 MCP 工具，前端也能看到“开始调用工具”的过程提示
-                    return String.format(DEFAULT_TOOL_START_TEMPLATE, streamToolInvocMsgResponse.getName());
-                } else {
-                    // 非首次调用，返回空字符串避免重复提示
-                    // 因为后续碎片通常只是补充 arguments，不需要反复提示“开始调用工具”
-                    return "";
+                StreamToolInvocMsgResponse request = JSONUtil.toBean(trimmedChunk, StreamToolInvocMsgResponse.class);
+                if (StrUtil.isNotBlank(request.getId())) {
+                    seenToolIds.add(request.getId());
                 }
+                yield "";
             }
-            // 工具执行结果信息
-            case TOOL_EXECUTED -> {
-                // 转为用于 【工具执行结果信息】 的响应结果类
-                StreamToolExecutedMsgResponse streamToolExecutedMsgResponse = JSONUtil.toBean(chunk, StreamToolExecutedMsgResponse.class);
-                // 获取工具
-                BaseTool tool = toolsManager.getToolByName(streamToolExecutedMsgResponse.getName());
-                // 解析 Arguments 属性为 JSON 对象
-                JSONObject argumentsJson = JSONUtil.parseObj(streamToolExecutedMsgResponse.getArguments());
+            case TOOL_EXECUTED -> buildToolExecutedMarkdown(
+                    JSONUtil.toBean(trimmedChunk, StreamToolExecutedMsgResponse.class));
+        };
+    }
 
-                // 获取工具执行结果（传递实际的工具执行结果，供部分工具提取信息）
-                String toolResult = streamToolExecutedMsgResponse.getResult();
-                if (tool != null) {
-                    // 本地工具继续复用原有 resultMsg 渲染逻辑，保证展示内容不变
-                    return String.format("\n\n%s\n\n", tool.getResultMsg(argumentsJson, toolResult));
-                }
+    private String buildToolExecutedMarkdown(StreamToolExecutedMsgResponse executedMessage) {
+        String toolName = StrUtil.blankToDefault(executedMessage.getName(), "unknown");
+        String toolResult = executedMessage.getResult();
+        JSONObject arguments = parseArguments(executedMessage.getArguments());
 
-                // MCP 工具执行结束时，优先展示工具返回结果；没有结果时再展示通用结束文案
-                // 这样既兼容真正返回文本结果的 MCP 工具，也兼容只返回状态的工具
-                String toolName = streamToolExecutedMsgResponse.getName();
-                String fallbackMsg = StrUtil.isNotBlank(toolResult)
-                        ? toolResult
-                        : String.format(DEFAULT_TOOL_END_TEMPLATE, toolName);
-                return String.format("\n\n%s\n\n", fallbackMsg);
-            }
-            default -> {
-                log.error("不支持的消息类型: {}", type);
-                return "";
-            }
+        if ("taskPlan".equals(toolName)) {
+            return buildTaskPlanMarker(toolResult);
+        }
+        if (SILENT_TOOLS.contains(toolName)) {
+            return "";
+        }
+
+        String displayName = getToolDisplayName(toolName);
+        String summary = getToolExecutionSummary(toolName, arguments, toolResult);
+        return ConversationOutputFormatter.toolCompleted(displayName, summary);
+    }
+
+    private JSONObject parseArguments(String arguments) {
+        if (StrUtil.isBlank(arguments)) {
+            return new JSONObject();
+        }
+        try {
+            return JSONUtil.parseObj(arguments);
+        } catch (Exception e) {
+            log.debug("解析工具参数失败，使用空参数", e);
+            return new JSONObject();
         }
     }
 
-    /**
-     * 处理 AI响应流（TokenStream）中的 JSON 消息块，根据消息类型执行不同的消息处理逻辑
-     *
-     * @param chunk             AI 响应内容的 TokenStream 数据块
-     * @param aiResponseBuilder 对话历史字符串构建器
-     * @param seenToolIds       已经见过的工具 ID 集合
-     * @return java.lang.String
-     **/
+    private String getToolDisplayName(String toolName) {
+        BaseTool tool = toolsManager.getToolByName(toolName);
+        if (tool != null && StrUtil.isNotBlank(tool.getToolDisplayName())) {
+            return tool.getToolDisplayName();
+        }
+        return toolName;
+    }
+
+    private String getToolExecutionSummary(String toolName, JSONObject arguments, String toolResult) {
+        String summary = switch (toolName) {
+            case "creatAndWrite", "modifyFile", "readFile", "deleteFile" ->
+                    arguments.getStr("relativeFilePath");
+            case "readDir" -> StrUtil.blankToDefault(
+                    arguments.getStr("relativeDirPath"),
+                    StrUtil.blankToDefault(arguments.getStr("dirPath"), "."));
+            case "diffFile" -> buildDiffSummary(arguments);
+            case "searchWeb", "searchImages", "searchCodeExample" -> arguments.getStr("query");
+            case "scrapeWebPage" -> StrUtil.blankToDefault(
+                    arguments.getStr("scrapUrl"),
+                    StrUtil.blankToDefault(arguments.getStr("ScrapUrl"), arguments.getStr("url")));
+            case "aiGeneratorImage" -> ConversationOutputFormatter.safeInline(
+                    StrUtil.blankToDefault(arguments.getStr("description"), arguments.getStr("type")));
+            case "setCodeGenType" -> arguments.getStr("codeGenType");
+            case "buildProject" -> StrUtil.isNotBlank(toolResult)
+                    ? firstLine(toolResult, 100)
+                    : "Vue 项目构建";
+            case "validateProject" -> StrUtil.isNotBlank(toolResult)
+                    ? firstLine(toolResult, 100)
+                    : "产物结构验证";
+            case "getUserProfile" -> "读取当前用户画像";
+            case "updateUserProfile" -> "更新当前用户画像";
+            default -> StrUtil.isNotBlank(toolResult) ? firstLine(toolResult, 100) : "";
+        };
+        return ConversationOutputFormatter.clip(summary, 120);
+    }
+
+    private String buildDiffSummary(JSONObject arguments) {
+        String left = arguments.getStr("filePath1");
+        String right = arguments.getStr("filePath2");
+        if (StrUtil.isNotBlank(left) || StrUtil.isNotBlank(right)) {
+            return StrUtil.blankToDefault(left, "文件") + " / " + StrUtil.blankToDefault(right, "文件");
+        }
+        return "内容差异对比";
+    }
+
+    private String buildTaskPlanMarker(String toolResult) {
+        if (StrUtil.isBlank(toolResult)) {
+            return "";
+        }
+        int markerIndex = toolResult.lastIndexOf("[任务计划]");
+        if (markerIndex < 0) {
+            return "";
+        }
+        String taskPlanJson = toolResult.substring(markerIndex + "[任务计划]".length()).trim();
+        if (StrUtil.isBlank(taskPlanJson)) {
+            return "";
+        }
+        try {
+            JSONUtil.parseObj(taskPlanJson);
+            return ConversationOutputFormatter.taskPlanMarker(taskPlanJson);
+        } catch (Exception e) {
+            log.debug("任务计划 JSON 解析失败，跳过隐藏标记", e);
+            return "";
+        }
+    }
+
+    private String firstLine(String value, int maxLength) {
+        String normalized = value.replace("\r", "\n");
+        int lineEnd = normalized.indexOf('\n');
+        String line = lineEnd >= 0 ? normalized.substring(0, lineEnd) : normalized;
+        return ConversationOutputFormatter.clip(line, maxLength);
+    }
+
     private String handleJsonChunk(String chunk, StringBuilder aiResponseBuilder, Set<String> seenToolIds) {
-        // 先解析出当前 chunk 对应的最终可展示文本
         String result = parseJsonChunk(chunk, seenToolIds);
-        if (StrUtil.isNotEmpty(result)) {
-            // 只有真正展示给前端的内容，才累计到对话历史里
+        if (StrUtil.isNotEmpty(result) && !ConversationOutputFormatter.isTransientMarker(result)) {
             aiResponseBuilder.append(result);
         }
         return result;

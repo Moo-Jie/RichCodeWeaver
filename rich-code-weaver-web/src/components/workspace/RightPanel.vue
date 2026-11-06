@@ -50,13 +50,15 @@
             <span>{{ refreshing ? '刷新中...' : '刷新产物' }}</span>
           </button>
           <template v-if="isDeployed">
-            <button :disabled="isGenerating" class="panel-btn" @click="$emit('reDeploy')">
-              <CloudUploadOutlined />
+            <button :disabled="isGenerating || deploying" class="panel-btn" @click="$emit('reDeploy')">
+              <LoadingOutlined v-if="deploying" spin />
+              <CloudUploadOutlined v-else />
               <span>{{ deploying ? '部署中...' : '重新部署' }}</span>
             </button>
           </template>
-          <button v-else :disabled="isGenerating" class="panel-btn" @click="$emit('deploy')">
-            <CloudUploadOutlined />
+          <button v-else :disabled="isGenerating || deploying" class="panel-btn" @click="$emit('deploy')">
+            <LoadingOutlined v-if="deploying" spin />
+            <CloudUploadOutlined v-else />
             <span>{{ deploying ? '部署中...' : '部署网站' }}</span>
           </button>
         </div>

@@ -22,10 +22,10 @@ export interface SmoothTextStream {
 export function createSmoothTextStream(options: SmoothTextStreamOptions): SmoothTextStream {
   const {
     initialText = '',
-    intervalMs = 20,
-    drainTicks = 120,
+    intervalMs = 18,
+    drainTicks = 180,
     maxTailLength = 8192,
-    maxChunkLength = 512,
+    maxChunkLength = 10,
     onUpdate
   } = options
 

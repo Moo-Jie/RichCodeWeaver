@@ -1,5 +1,9 @@
 <template>
-  <div class="markdown-content" @click="handleContentClick">
+  <div
+    class="markdown-content"
+    :class="{ 'cw-stream-markdown': autoCollapseSections }"
+    @click="handleContentClick"
+  >
     <div
       v-for="section in renderedSections"
       :key="section.key"
@@ -66,6 +70,7 @@ interface MarkdownSourceSection {
   source: string
   level: number
   title: string
+  order?: number
 }
 
 interface RenderedMarkdownSection {
@@ -198,7 +203,7 @@ const WORKFLOW_FOLD_HINTS = [
   '交付检查'
 ]
 
-const AUTO_FOLD_HEADING_PATTERN = /^(#{1,3})[ \t]+(.+?)[ \t]*#*[ \t]*$/
+const AUTO_FOLD_HEADING_PATTERN = /^(#{2,3})[ \t]+(.+?)[ \t]*#*[ \t]*$/
 
 const stripHeadingHtml = (value: string) => {
   return value
@@ -250,7 +255,7 @@ const foldWorkflowSections = (html: string, streaming: boolean) => {
   return output
 }
 
-// 将连续 Markdown 按 h1-h3 切成稳定片段。代码围栏内的 # 不参与切分。
+// 将连续 Markdown 按 h2-h3 切成稳定片段。H1 保留为文档标题，代码围栏内的 # 不参与切分。
 const splitMarkdownSections = (markdown: string): MarkdownSourceSection[] => {
   if (!markdown) return []
 
@@ -258,6 +263,7 @@ const splitMarkdownSections = (markdown: string): MarkdownSourceSection[] => {
   const lines = markdown.match(/[^\n]*(?:\n|$)/g) ?? []
   let activeFence = ''
   let sectionIndex = 0
+  let stageOrder = 0
   let current: MarkdownSourceSection = {
     key: `section-${sectionIndex++}`,
     source: '',
@@ -285,6 +291,17 @@ const splitMarkdownSections = (markdown: string): MarkdownSourceSection[] => {
       continue
     }
 
+    if (!activeFence && lineContent.trim() === '<!--CW_FINAL_STATUS-->') {
+      flush()
+      current = {
+        key: `section-${sectionIndex++}`,
+        source: '',
+        level: 0,
+        title: ''
+      }
+      continue
+    }
+
     const headingMatch = !activeFence ? lineContent.match(AUTO_FOLD_HEADING_PATTERN) : null
     if (headingMatch) {
       flush()
@@ -292,7 +309,8 @@ const splitMarkdownSections = (markdown: string): MarkdownSourceSection[] => {
         key: `section-${sectionIndex++}`,
         source: '',
         level: headingMatch[1].length,
-        title: stripHeadingHtml(md.renderInline(headingMatch[2].trim()))
+        title: stripHeadingHtml(md.renderInline(headingMatch[2].trim())),
+        order: ++stageOrder
       }
     }
 
@@ -303,13 +321,58 @@ const splitMarkdownSections = (markdown: string): MarkdownSourceSection[] => {
   return sections
 }
 
+const decorateConversationSemantics = (html: string) => {
+  return html
+    .replace(/<p>状态：([^<]*)<\/p>/g, (_match, status: string) => {
+      const normalized = status.trim()
+      const isError = /失败|未通过|中断|阻止/.test(normalized)
+      return `<p class="cw-status-line${isError ? ' is-error' : ''}"><span class="cw-status-dot" aria-hidden="true"></span><span class="cw-status-label">状态</span><span class="cw-status-value">${md.utils.escapeHtml(normalized)}</span></p>`
+    })
+    .replace(/<blockquote>\s*<p>(生成完成[^<]*)<\/p>\s*<\/blockquote>/g, (_match, text: string) => {
+      return `<blockquote class="cw-completion-note"><p>${text}</p></blockquote>`
+    })
+    .replace(/<blockquote>\s*<p>(生成未完成[^<]*)<\/p>\s*<\/blockquote>/g, (_match, text: string) => {
+      return `<blockquote class="cw-error-note"><p>${text}</p></blockquote>`
+    })
+}
+
+const getStageIconMarkup = (title: string) => {
+  let path = '<path d="M6 3.5h8l4 4V20H6V3.5Z"/><path d="M14 3.5v4h4M9 12h6M9 15.5h6"/>'
+  if (title.includes('执行概览')) {
+    path = '<path d="M5 6h14M5 12h14M5 18h9"/><circle cx="18" cy="18" r="2"/>'
+  } else if (title.includes('资源')) {
+    path = '<path d="m4 7.5 8-4.5 8 4.5-8 4.5-8-4.5Z"/><path d="m4 12 8 4.5 8-4.5M4 16.5l8 4.5 8-4.5"/>'
+  } else if (title.includes('需求增强')) {
+    path = '<path d="m11 3 1.5 4.5L17 9l-4.5 1.5L11 15l-1.5-4.5L5 9l4.5-1.5L11 3Z"/><path d="m18 14 .8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8L18 14Z"/>'
+  } else if (title.includes('生成策略')) {
+    path = '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>'
+  } else if (title.includes('代码生成')) {
+    path = '<path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>'
+  } else if (title.includes('结构检查')) {
+    path = '<path d="M12 3 5 6v5c0 4.8 3 8 7 10 4-2 7-5.2 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>'
+  } else if (title.includes('质量审查')) {
+    path = '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4M8 11h6"/>'
+  } else if (title.includes('项目构建')) {
+    path = '<path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="M4 7v10l8 4 8-4V7M12 11v10"/>'
+  } else if (title.includes('交付检查')) {
+    path = '<path d="M5 20V5m0 0h10l-2 3 2 3H5"/>'
+  }
+  return `<span class="cw-stage-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${path}</svg></span>`
+}
+
 const wrapMarkdownSection = (
   section: MarkdownSourceSection,
   renderedHtml: string,
   index: number,
-  lastIndex: number
+  lastIndex: number,
+  lastStageIndex: number
 ) => {
-  if (!section.level) return renderedHtml
+  const isActiveSection = props.streaming && index === lastIndex
+  const cursor = isActiveSection
+    ? '<span class="cw-typing-cursor" aria-hidden="true"></span>'
+    : ''
+
+  if (!section.level) return renderedHtml + cursor
 
   const headingPattern = new RegExp(
     `^\\s*<h${section.level}[^>]*>([\\s\\S]*?)<\\/h${section.level}>\\s*`,
@@ -317,16 +380,29 @@ const wrapMarkdownSection = (
   )
   const headingMatch = renderedHtml.match(headingPattern)
   const body = headingMatch ? renderedHtml.slice(headingMatch[0].length) : renderedHtml
-  const isActiveSection = props.streaming && index === lastIndex
+  const status = section.source.match(/(?:^|\n)状态：([^\n]+)/)?.[1]?.trim() || ''
+  const isError = /失败|未通过|阻断|中断/.test(status)
+  const isWarning = /需修复|警告/.test(status)
+  const state = isError ? 'error' : isWarning ? 'warning' : isActiveSection ? 'active' : 'completed'
+  const stateLabel = state === 'error' ? '异常' : state === 'warning' ? '需修复' : state === 'active' ? '进行中' : '已完成'
+  const railSymbol = state === 'completed'
+    ? '<span class="cw-stage-check"></span>'
+    : state === 'active'
+      ? '<span class="cw-stage-dot"></span>'
+      : '<span class="cw-stage-rail-label">!</span>'
   const placeholder = isActiveSection && !body.trim()
     ? '<p class="cw-workflow-fold-placeholder">正在生成...</p>'
     : ''
+  const orderLabel = section.order ? String(section.order).padStart(2, '0') : ''
+  const stageIcon = getStageIconMarkup(section.title)
+  const isLastStage = index === lastStageIndex
 
-  return `<details class="cw-workflow-fold cw-workflow-fold--h${section.level}"${isActiveSection ? ' open' : ''}>`
-    + `<summary class="cw-workflow-fold-summary"><span class="cw-workflow-fold-title"><span class="cw-workflow-fold-level">H${section.level}</span><span>${md.utils.escapeHtml(section.title)}</span></span><span class="cw-workflow-fold-mark" aria-hidden="true"></span></summary>`
-    + `<div class="cw-workflow-fold-body">${body}${placeholder}</div></details>`
+  return `<div class="cw-stage-shell cw-stage-shell--h${section.level}${isLastStage ? ' is-last-stage' : ''}">`
+    + `<span class="cw-stage-rail-node is-${state}" aria-label="${stateLabel}">${railSymbol}</span>`
+    + `<details class="cw-workflow-fold cw-workflow-fold--h${section.level}"${isActiveSection ? ' open' : ''}>`
+    + `<summary class="cw-workflow-fold-summary"><span class="cw-workflow-fold-title">${stageIcon}${orderLabel ? `<span class="cw-stage-index">${orderLabel}</span>` : ''}<span class="cw-stage-title">${md.utils.escapeHtml(section.title)}</span></span><span class="cw-workflow-fold-tail"><span class="cw-workflow-fold-mark" aria-hidden="true"></span></span></summary>`
+    + `<div class="cw-workflow-fold-body${isActiveSection ? ' is-streaming' : ''}">${body}${placeholder}</div></details></div>`
 }
-
 // 预处理Markdown内容，识别并包裹工具调用信息和工作流标记
 const preprocessMarkdown = (content: string): string => {
   if (!content) return ''
@@ -354,6 +430,7 @@ const renderedSections = computed(() => {
   const allCodeBlocks = new Map<string, CodeBlockInfo>()
   const renderKey = `${props.streaming}|${props.collapseLongCode}|${props.collapseLongCodeThreshold}`
   const lastSectionIndex = sourceSections.length - 1
+  const lastStageIndex = sourceSections.reduce((last, section, index) => section.level > 0 ? index : last, -1)
 
   const sections = sourceSections.map((section, index) => {
     let renderedSection = sectionRenderCache.get(index)
@@ -377,7 +454,7 @@ const renderedSections = computed(() => {
 
     let html = renderedSection.html
     if (props.autoCollapseSections) {
-      html = wrapMarkdownSection(section, html, index, lastSectionIndex)
+      html = decorateConversationSemantics(wrapMarkdownSection(section, html, index, lastSectionIndex, lastStageIndex))
     } else {
       html = foldWorkflowSections(html, props.streaming)
     }
@@ -1600,6 +1677,542 @@ const handleContentClick = (event: MouseEvent) => {
   .markdown-content :deep(td),
   .markdown-content :deep(th) {
     overflow-wrap: anywhere;
+  }
+}
+/* Conversation output: unified neutral system for both Agent and workflow modes. */
+.cw-stream-markdown {
+  color: #3f3f3f;
+  font-size: 13.5px;
+  line-height: 1.72;
+}
+
+.cw-stream-markdown :deep(h1) {
+  margin: 0 0 12px;
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 1px solid #e8e8e8;
+  color: #1a1a1a;
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.cw-stream-markdown :deep(h2),
+.cw-stream-markdown :deep(h3),
+.cw-stream-markdown :deep(h4) {
+  margin: 18px 0 8px;
+  border: 0;
+  color: #1f1f1f;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+
+.cw-stream-markdown :deep(h2) {
+  font-size: 15px;
+}
+
+.cw-stream-markdown :deep(h3),
+.cw-stream-markdown :deep(h4) {
+  font-size: 13.5px;
+}
+
+.cw-stream-markdown :deep(p) {
+  margin: 8px 0;
+  color: #444;
+}
+
+.cw-stream-markdown :deep(strong) {
+  color: #1f1f1f;
+  font-weight: 600;
+}
+
+.cw-stream-markdown :deep(ul),
+.cw-stream-markdown :deep(ol) {
+  margin: 8px 0 10px;
+  padding-left: 18px;
+}
+
+.cw-stream-markdown :deep(li) {
+  margin: 4px 0;
+  padding-left: 2px;
+  color: #555;
+}
+
+.cw-stream-markdown :deep(li::marker) {
+  color: #999;
+}
+
+.cw-stream-markdown :deep(a) {
+  color: #1890ff;
+  text-underline-offset: 2px;
+}
+
+.cw-stream-markdown :deep(blockquote) {
+  margin: 8px 0;
+  padding: 7px 10px;
+  border-left: 2px solid #d9d9d9;
+  border-radius: 0;
+  background: #fafafa;
+  color: #666;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.cw-stream-markdown :deep(blockquote p) {
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.cw-stream-markdown :deep(.cw-completion-note) {
+  margin-left: 28px;
+  border-left-color: #1a1a1a;
+  background: #f7f7f7;
+  color: #333;
+}
+
+.cw-stream-markdown :deep(.cw-error-note) {
+  margin-left: 28px;
+  border-left-color: #ff4d4f;
+  background: #fff7f5;
+  color: #8a2c12;
+}
+
+.cw-stream-markdown :deep(.cw-completion-note p),
+.cw-stream-markdown :deep(.cw-error-note p) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cw-stream-markdown :deep(.cw-completion-note p::before),
+.cw-stream-markdown :deep(.cw-error-note p::before) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 10px 10px;
+  content: '';
+}
+
+.cw-stream-markdown :deep(.cw-completion-note p::before) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.2 6.2 4.8 8.8 9.8 3.6' fill='none' stroke='%23333333' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.cw-stream-markdown :deep(.cw-error-note p::before) {
+  border-color: #ffccc7;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 2.4v4.8M6 9.6h.01' fill='none' stroke='%23cf1322' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.cw-stream-markdown :deep(hr) {
+  height: 1px;
+  margin: 18px 0;
+  border: 0;
+  background: #ececec;
+}
+
+.cw-stream-markdown :deep(code) {
+  padding: 1px 5px;
+  border: 0;
+  border-radius: 4px;
+  background: #f2f2f2;
+  color: #333;
+  font-size: 0.88em;
+}
+
+.cw-stream-markdown :deep(pre) {
+  max-height: 440px;
+  margin: 10px 0;
+  padding: 12px 14px;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  background: #fafafa;
+  box-shadow: none;
+}
+
+.cw-stream-markdown :deep(pre code) {
+  padding: 0;
+  background: transparent;
+}
+
+.cw-stream-markdown :deep(table) {
+  margin: 10px 0;
+  border: 1px solid #ececec;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cw-stream-markdown :deep(th),
+.cw-stream-markdown :deep(td) {
+  padding: 7px 10px;
+  border-color: #ececec;
+  color: #555;
+  font-size: 12px;
+}
+
+.cw-stream-markdown :deep(th) {
+  background: #fafafa;
+  color: #333;
+  font-weight: 600;
+}
+
+.cw-stream-markdown :deep(tr:nth-child(even)) {
+  background: transparent;
+}
+
+.cw-stream-markdown :deep(.cw-status-line) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 0 10px;
+  color: #555;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.cw-stream-markdown :deep(.cw-status-dot) {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  opacity: 0.72;
+}
+
+.cw-stream-markdown :deep(.cw-status-line.is-error .cw-status-dot) {
+  background: #ff4d4f;
+  opacity: 1;
+}
+
+.cw-stream-markdown :deep(.cw-status-label) {
+  color: #aaa;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+
+.cw-stream-markdown :deep(.cw-status-value) {
+  color: #444;
+  font-weight: 600;
+}
+
+.cw-stream-markdown :deep(.cw-stage-shell) {
+  position: relative;
+  margin: 8px 0;
+  padding-left: 28px;
+}
+
+.cw-stream-markdown :deep(.cw-stage-shell::before) {
+  content: '';
+  position: absolute;
+  top: 14px;
+  bottom: -18px;
+  left: 8px;
+  width: 1px;
+  background: #e9e9e9;
+}
+
+.cw-stream-markdown :deep(.cw-stage-shell.is-last-stage::before) {
+  bottom: calc(100% - 22px);
+}
+
+.cw-stream-markdown :deep(.cw-stage-rail-node) {
+  position: absolute;
+  top: 14px;
+  left: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #d9d9d9;
+  border-radius: 50%;
+  color: #666;
+  background: #fff;
+}
+
+.cw-stream-markdown :deep(.cw-stage-rail-node.is-completed) {
+  border-color: #cfcfcf;
+  background: #f5f5f5;
+}
+
+.cw-stream-markdown :deep(.cw-stage-rail-node.is-active) {
+  border-color: #1a1a1a;
+  background: #fff;
+}
+
+.cw-stream-markdown :deep(.cw-stage-rail-node.is-error) {
+  border-color: #ffccc7;
+  color: #cf1322;
+  background: #fff7f5;
+}
+
+.cw-stream-markdown :deep(.cw-stage-rail-node.is-warning) {
+  border-color: #d9d9d9;
+  color: #555;
+  background: #fafafa;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold) {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #ececec;
+  border-radius: 9px;
+  background: #fcfcfc;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold[open]) {
+  border-color: #dedede;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.025);
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold-summary) {
+  padding: 10px 12px;
+  color: #4d4d4d;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: transparent;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold-summary:hover) {
+  color: #1a1a1a;
+  background: #f7f7f7;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold-title) {
+  gap: 7px;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold-tail) {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 9px;
+}
+
+.cw-stream-markdown :deep(.cw-stage-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: 1px solid #ececec;
+  border-radius: 7px;
+  color: #666;
+  background: #f5f5f5;
+}
+
+.cw-stream-markdown :deep(.cw-stage-icon svg) {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold[open] .cw-stage-icon) {
+  border-color: #d9d9d9;
+  color: #1a1a1a;
+  background: #f0f0f0;
+}
+
+.cw-stream-markdown :deep(.cw-stage-index) {
+  flex-shrink: 0;
+  width: 17px;
+  color: #b0b0b0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.cw-stream-markdown :deep(.cw-stage-title) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cw-stream-markdown :deep(.cw-stage-check) {
+  width: 4px;
+  height: 7px;
+  margin-top: -2px;
+  border-right: 1.3px solid #333;
+  border-bottom: 1.3px solid #333;
+  transform: rotate(45deg);
+}
+
+.cw-stream-markdown :deep(.cw-stage-dot) {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #1a1a1a;
+  animation: cw-stage-pulse 1.25s ease-in-out infinite;
+}
+
+.cw-stream-markdown :deep(.cw-stage-rail-label) {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold--h2 .cw-workflow-fold-summary) {
+  padding-left: 12px;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold--h3) {
+  border-radius: 8px;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold--h3 .cw-workflow-fold-summary) {
+  padding-left: 10px;
+  color: #666;
+  font-size: 12px;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold-mark) {
+  width: 6px;
+  height: 6px;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+  border-color: #999;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold-body) {
+  padding: 10px 14px 14px;
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold--h3 .cw-workflow-fold-body) {
+  padding-left: 14px;
+}
+
+.cw-stream-markdown.is-streaming :deep(.cw-workflow-fold-body.is-streaming) {
+  padding-bottom: 16px;
+}
+
+.markdown-content :deep(.cw-typing-cursor),
+.cw-stream-markdown :deep(.cw-workflow-fold-body.is-streaming > :last-child::after) {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: #1a1a1a;
+  content: '';
+  animation: cw-caret-blink 900ms steps(1, end) infinite;
+}
+
+@keyframes cw-caret-blink {
+  0%, 46% {
+    opacity: 1;
+  }
+  47%, 100% {
+    opacity: 0;
+  }
+}
+
+@keyframes cw-stage-pulse {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.cw-stream-markdown :deep(.cw-workflow-fold-placeholder) {
+  margin: 2px 0 0;
+  color: #aaa;
+  font-size: 11.5px;
+}
+
+.cw-stream-markdown :deep(.tool-call-item) {
+  padding: 6px 0;
+  margin: 2px 0;
+  border: 0;
+  border-bottom: 1px solid #f2f2f2;
+  border-radius: 0;
+  background: transparent;
+  font-size: 12px;
+}
+
+.cw-stream-markdown :deep(.tool-call-item .tci-icon),
+.cw-stream-markdown :deep(.tool-type-icon),
+.cw-stream-markdown :deep(.think-icon),
+.cw-stream-markdown :deep(.conclusion-icon),
+.cw-stream-markdown :deep(.plan-icon),
+.cw-stream-markdown :deep(.task-icon) {
+  display: none;
+}
+
+.cw-stream-markdown :deep(.tool-call-item .tci-label),
+.cw-stream-markdown :deep(.tool-call-item .tci-text) {
+  color: #666;
+  background: transparent;
+  font-size: 12px;
+}
+
+.cw-stream-markdown :deep(.workflow-meta),
+.cw-stream-markdown :deep(.workflow-steps),
+.cw-stream-markdown :deep(.node-result),
+.cw-stream-markdown :deep(.workflow-summary),
+.cw-stream-markdown :deep(.workflow-error),
+.cw-stream-markdown :deep(.task-list-wrapper),
+.cw-stream-markdown :deep(.think-content-wrapper) {
+  margin: 8px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.cw-stream-markdown :deep(.task-list-toggle),
+.cw-stream-markdown :deep(.think-content-toggle) {
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+}
+
+.cw-stream-markdown :deep(.task-list-content),
+.cw-stream-markdown :deep(.think-content-body) {
+  padding: 4px 0 8px;
+}
+
+@media (max-width: 720px) {
+  .cw-stream-markdown {
+    font-size: 13px;
+  }
+
+  .cw-stream-markdown :deep(h1) {
+    font-size: 18px;
+  }
+
+  .cw-stream-markdown :deep(.cw-workflow-fold-summary) {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .cw-stream-markdown :deep(.cw-workflow-fold--h3 .cw-workflow-fold-summary) {
+    padding-left: 10px;
+  }
+
+  .cw-stream-markdown :deep(.cw-workflow-fold--h3 .cw-workflow-fold-body) {
+    padding-left: 10px;
   }
 }
 </style>
