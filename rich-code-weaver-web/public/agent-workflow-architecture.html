@@ -1,0 +1,1294 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="RichCodeWeaver Agent 与分步工作流架构优化说明" />
+  <title>Agent × Workflow | 架构优化说明</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --subtle: #fafafa;
+      --muted-bg: #f5f5f5;
+      --line: #f0f0f0;
+      --line-strong: #e5e5e5;
+      --ink: #1a1a1a;
+      --text: #333333;
+      --secondary: #666666;
+      --muted: #999999;
+      --info: #1890ff;
+      --info-bg: #e6f7ff;
+      --success: #52c41a;
+      --success-bg: #f6ffed;
+      --warning: #faad14;
+      --warning-bg: #fffbe6;
+      --danger: #ff4d4f;
+      --danger-bg: #fff2f0;
+      --radius: 12px;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sans: "Inter", "SF Pro Display", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.025) 1px, transparent 1px),
+        var(--bg);
+      background-size: 32px 32px;
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    a:focus-visible, summary:focus-visible { outline: 2px solid var(--info); outline-offset: 3px; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    code, .mono { font-family: var(--mono); }
+
+    #scroll-progress {
+      position: fixed;
+      inset: 0 auto auto 0;
+      width: 0;
+      height: 3px;
+      z-index: 100;
+      background: var(--ink);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 24px;
+      padding: 16px clamp(20px, 4vw, 56px);
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand-mark {
+      width: 24px;
+      height: 24px;
+      border: 1.5px solid var(--ink);
+      border-radius: 7px;
+      position: relative;
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      background: var(--ink);
+      border-radius: 2px;
+    }
+
+    .brand-mark::before { width: 7px; height: 2px; left: 4px; top: 7px; }
+    .brand-mark::after { width: 7px; height: 2px; left: 4px; top: 13px; }
+
+    .topnav {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--subtle);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    .topnav a {
+      padding: 6px 11px;
+      border-radius: 7px;
+      color: var(--secondary);
+      font-size: 12px;
+      font-weight: 600;
+      transition: color 180ms ease, background 180ms ease;
+    }
+
+    .topnav a:hover,
+    .topnav a.active {
+      color: var(--ink);
+      background: var(--bg);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+
+    .build-stamp {
+      color: var(--muted);
+      font: 11px/1.4 var(--mono);
+      white-space: nowrap;
+    }
+
+    main {
+      width: min(1440px, calc(100% - 48px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      min-height: 76vh;
+      display: grid;
+      align-content: center;
+      padding: 72px 0 52px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow,
+    .section-kicker,
+    .micro-label {
+      color: var(--muted);
+      font: 11px/1.4 var(--mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+      gap: clamp(32px, 6vw, 96px);
+      align-items: end;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 860px;
+      margin: 16px 0 24px;
+      font-size: clamp(42px, 6.8vw, 92px);
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+      font-weight: 760;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+      margin-bottom: 28px;
+      color: var(--secondary);
+      font-size: clamp(16px, 1.6vw, 20px);
+      line-height: 1.6;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 17px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 650;
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .button:hover { transform: translateY(-1px); border-color: var(--ink); }
+    .button.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+    .hero-schema {
+      position: relative;
+      min-height: 350px;
+      padding: 18px;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .hero-schema::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(0, 0, 0, 0.15) 1px, transparent 1px);
+      background-size: 18px 18px;
+      mask-image: linear-gradient(to bottom, black, transparent 78%);
+      pointer-events: none;
+      opacity: 0.55;
+    }
+
+    .schema-head {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--line);
+      font: 11px var(--mono);
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .schema-lane {
+      position: relative;
+      display: grid;
+      grid-template-columns: 94px 1fr;
+      gap: 14px;
+      align-items: center;
+      margin-top: 16px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.94);
+    }
+
+    .schema-lane strong { font-size: 13px; }
+    .schema-lane span { color: var(--secondary); font-size: 12px; }
+    .schema-lane .lane-line {
+      position: relative;
+      height: 32px;
+    }
+
+    .schema-lane .lane-line::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: var(--line-strong);
+    }
+
+    .schema-lane .lane-line::after {
+      content: "";
+      position: absolute;
+      top: calc(50% - 4px);
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--ink);
+      box-shadow: 0 0 0 5px var(--bg);
+      animation: scan-line 4s linear infinite;
+    }
+
+    .schema-lane:nth-child(3) .lane-line::after { animation-delay: -1.4s; background: var(--info); }
+    .schema-lane:nth-child(4) .lane-line::after { animation-delay: -2.8s; background: var(--success); }
+
+    .schema-caption {
+      position: relative;
+      margin-top: 18px;
+      padding: 13px 14px;
+      border-left: 3px solid var(--ink);
+      background: var(--subtle);
+      color: var(--secondary);
+      font-size: 12px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 1px;
+      margin-top: 44px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--line);
+      overflow: hidden;
+    }
+
+    .metric {
+      padding: 18px 20px;
+      background: var(--surface);
+    }
+
+    .metric strong {
+      display: block;
+      font: 700 clamp(24px, 3vw, 38px)/1 var(--mono);
+      letter-spacing: -0.05em;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .section {
+      padding: 84px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr) minmax(280px, 0.7fr);
+      gap: 24px;
+      align-items: start;
+      margin-bottom: 36px;
+    }
+
+    .section-no {
+      color: var(--muted);
+      font: 12px/1 var(--mono);
+      padding-top: 8px;
+    }
+
+    h2 {
+      margin-bottom: 0;
+      font-size: clamp(30px, 4vw, 52px);
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .section-head p {
+      margin: 3px 0 0;
+      color: var(--secondary);
+      font-size: 14px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      background: var(--subtle);
+    }
+
+    .panel-head h3 { margin: 0; font-size: 15px; }
+    .panel-body { padding: 20px; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .status::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status.warn { color: #ad6800; background: var(--warning-bg); }
+    .status.ok { color: #389e0d; background: var(--success-bg); }
+    .status.info { color: #096dd9; background: var(--info-bg); }
+    .status.error { color: #cf1322; background: var(--danger-bg); }
+
+    .rail {
+      position: relative;
+      display: flex;
+      gap: 8px;
+      padding: 8px 2px 24px;
+      overflow-x: auto;
+      scrollbar-width: thin;
+    }
+
+    .rail::before {
+      content: "";
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      top: 44px;
+      height: 1px;
+      background: var(--line-strong);
+    }
+
+    .rail-node {
+      position: relative;
+      z-index: 1;
+      flex: 1 1 92px;
+      min-width: 92px;
+      padding: 12px 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      background: var(--surface);
+      text-align: center;
+      transition: border-color 180ms ease, transform 180ms ease;
+    }
+
+    .rail-node:hover { transform: translateY(-2px); border-color: var(--ink); }
+    .rail-node small { display: block; margin-bottom: 4px; color: var(--muted); font: 10px var(--mono); }
+    .rail-node strong { font-size: 12px; line-height: 1.35; }
+
+    .rail-node.gate {
+      border-color: #b7eb8f;
+      background: var(--success-bg);
+    }
+
+    .rail-node.warn {
+      border-color: #ffe58f;
+      background: var(--warning-bg);
+    }
+
+    .rail-node .pulse {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.35);
+      animation: gate-pulse 2.8s ease-out infinite;
+    }
+
+    .loop-zone {
+      position: relative;
+      height: 42px;
+      margin: 2px 18px 18px;
+      border-bottom: 1px dashed #d48806;
+      border-left: 1px dashed #d48806;
+      border-right: 1px dashed #d48806;
+      border-radius: 0 0 10px 10px;
+    }
+
+    .loop-zone::before {
+      content: "";
+      position: absolute;
+      left: -4px;
+      bottom: -4px;
+      width: 7px;
+      height: 7px;
+      border-top: 1px solid #d48806;
+      border-left: 1px solid #d48806;
+      transform: rotate(-45deg);
+    }
+
+    .loop-zone span {
+      position: absolute;
+      left: 50%;
+      bottom: -11px;
+      transform: translateX(-50%);
+      padding: 2px 8px;
+      color: #ad6800;
+      background: var(--surface);
+      font: 10px var(--mono);
+      white-space: nowrap;
+    }
+
+    .issue-list,
+    .check-list,
+    .evidence-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .issue-list li,
+    .check-list li,
+    .evidence-list li {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      gap: 10px;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+      color: var(--secondary);
+      font-size: 13px;
+    }
+
+    .issue-list li:first-child,
+    .check-list li:first-child,
+    .evidence-list li:first-child { border-top: 0; }
+
+    .issue-list .mark,
+    .check-list .mark,
+    .evidence-list .mark {
+      display: grid;
+      place-items: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: var(--warning-bg);
+      color: #ad6800;
+      font: 700 11px var(--mono);
+    }
+
+    .check-list .mark { background: var(--success-bg); color: #389e0d; }
+    .issue-list strong, .check-list strong { display: block; color: var(--text); font-size: 13px; }
+
+    .agent-loop {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 8px 0 22px;
+    }
+
+    .agent-loop::before {
+      content: "";
+      position: absolute;
+      left: 16%;
+      right: 16%;
+      top: 50%;
+      height: 1px;
+      background: var(--line-strong);
+    }
+
+    .loop-step {
+      position: relative;
+      z-index: 1;
+      padding: 20px 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      background: var(--surface);
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .loop-step small { display: block; margin-top: 4px; color: var(--muted); font: 10px var(--mono); font-weight: 400; }
+
+    .coding-notes {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .note {
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--subtle);
+    }
+
+    .note b { display: block; margin-bottom: 4px; font-size: 12px; }
+    .note span { color: var(--secondary); font-size: 12px; line-height: 1.5; }
+
+    .quality-strip {
+      display: grid;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .quality-row {
+      display: grid;
+      grid-template-columns: 96px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--subtle);
+    }
+
+    .quality-row strong { font: 11px var(--mono); }
+    .quality-row span { color: var(--secondary); font-size: 12px; }
+    .quality-row em { color: var(--muted); font: normal 10px var(--mono); white-space: nowrap; }
+
+    .gate-banner {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 22px;
+      align-items: center;
+      margin-top: 16px;
+      padding: 24px;
+      border: 1px solid #b7eb8f;
+      border-radius: var(--radius);
+      background: var(--success-bg);
+    }
+
+    .gate-banner .gate-symbol {
+      display: grid;
+      place-items: center;
+      width: 54px;
+      height: 54px;
+      border: 1px solid #95de64;
+      border-radius: 50%;
+      background: var(--surface);
+      color: #389e0d;
+      font: 700 22px var(--mono);
+    }
+
+    .gate-banner h3 { margin: 0 0 3px; font-size: 18px; }
+    .gate-banner p { margin: 0; color: var(--secondary); font-size: 13px; }
+    .gate-formula { font: 700 12px var(--mono); white-space: nowrap; }
+
+    .matrix-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .matrix {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .matrix th,
+    .matrix td {
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .matrix th {
+      color: var(--muted);
+      background: var(--subtle);
+      font: 10px var(--mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .matrix tr:last-child td { border-bottom: 0; }
+    .matrix td:first-child { color: var(--ink); font-weight: 650; white-space: nowrap; }
+    .matrix td:nth-child(2) { color: var(--secondary); }
+    .matrix td:nth-child(3) { color: var(--text); }
+    .matrix td:last-child { color: #389e0d; font-weight: 600; }
+    .matrix tbody tr { transition: background 160ms ease; }
+    .matrix tbody tr:hover { background: #fcfcfc; }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .result-card {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .result-card strong {
+      display: block;
+      margin-bottom: 5px;
+      font: 700 30px/1 var(--mono);
+      letter-spacing: -0.05em;
+    }
+
+    .result-card span { color: var(--secondary); font-size: 12px; }
+    .result-card small { display: block; margin-top: 12px; color: var(--muted); font: 10px/1.5 var(--mono); }
+
+    details.evidence {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    details.evidence summary {
+      cursor: pointer;
+      padding: 15px 17px;
+      font-size: 13px;
+      font-weight: 700;
+      list-style: none;
+    }
+
+    details.evidence summary::-webkit-details-marker { display: none; }
+    details.evidence summary::after { content: "+"; float: right; font: 16px var(--mono); color: var(--muted); }
+    details.evidence[open] summary::after { content: "−"; }
+
+    .evidence-body {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      padding: 0 17px 17px;
+    }
+
+    .evidence-item {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--subtle);
+      font-size: 12px;
+    }
+
+    .evidence-item code { display: block; margin-top: 4px; color: var(--secondary); font-size: 10px; word-break: break-all; }
+
+    .footnote {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      padding: 28px 0 48px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .footnote code { color: var(--secondary); }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 520ms ease, transform 520ms cubic-bezier(.2,.7,.2,1);
+    }
+
+    .reveal.is-visible { opacity: 1; transform: translateY(0); }
+
+    .stagger > * {
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 420ms ease, transform 420ms ease;
+    }
+
+    .stagger.is-visible > * { opacity: 1; transform: translateY(0); }
+    .stagger.is-visible > *:nth-child(2) { transition-delay: 60ms; }
+    .stagger.is-visible > *:nth-child(3) { transition-delay: 120ms; }
+    .stagger.is-visible > *:nth-child(4) { transition-delay: 180ms; }
+    .stagger.is-visible > *:nth-child(5) { transition-delay: 240ms; }
+
+    @keyframes scan-line {
+      0% { left: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { left: calc(100% - 8px); opacity: 0; }
+    }
+
+    @keyframes gate-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.38); }
+      70% { box-shadow: 0 0 0 9px rgba(82, 196, 26, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(82, 196, 26, 0); }
+    }
+
+    @keyframes orbit-trace { to { transform: rotate(360deg); } }
+
+    .agent-orbit {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 8px auto 22px;
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+    }
+
+    .agent-orbit::before {
+      content: "";
+      position: absolute;
+      inset: 20px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 50%;
+      animation: orbit-trace 18s linear infinite;
+    }
+
+    .agent-orbit .orbit-core {
+      position: absolute;
+      inset: 72px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #fff;
+      font: 10px/1.4 var(--mono);
+      text-align: center;
+    }
+
+    .orbit-tag {
+      position: absolute;
+      padding: 4px 7px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--secondary);
+      font: 10px var(--mono);
+    }
+
+    .orbit-tag.think { top: 12px; left: 50%; transform: translateX(-50%); }
+    .orbit-tag.act { right: -18px; top: 50%; transform: translateY(-50%); }
+    .orbit-tag.observe { bottom: 12px; left: 50%; transform: translateX(-50%); }
+
+    @media (max-width: 980px) {
+      .topbar { grid-template-columns: 1fr auto; }
+      .topnav { display: none; }
+      .hero-grid, .section-head, .grid-2 { grid-template-columns: 1fr; }
+      .hero { min-height: auto; }
+      .section-head { gap: 8px; }
+      .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .result-grid { grid-template-columns: 1fr; }
+      .gate-banner { grid-template-columns: auto 1fr; }
+      .gate-formula { grid-column: 2; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { padding: 13px 16px; }
+      .build-stamp { display: none; }
+      main { width: min(100% - 28px, 1440px); }
+      .hero { padding-top: 44px; }
+      h1 { font-size: clamp(38px, 14vw, 58px); }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric:last-child { grid-column: 1 / -1; }
+      .section { padding: 58px 0; }
+      .panel-body { padding: 15px; }
+      .coding-notes, .evidence-body { grid-template-columns: 1fr; }
+      .quality-row { grid-template-columns: 78px 1fr; }
+      .quality-row em { grid-column: 2; }
+      .matrix-wrap { overflow-x: auto; }
+      .matrix { min-width: 760px; }
+      .gate-banner { grid-template-columns: 1fr; }
+      .gate-formula { grid-column: auto; white-space: normal; }
+      .footnote { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+      .reveal, .stagger > * { opacity: 1; transform: none; }
+    }
+
+    @media print {
+      .topbar, #scroll-progress { display: none; }
+      body { background: #fff; }
+      .section, .hero { break-inside: avoid; }
+      .reveal, .stagger > * { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="scroll-progress" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="返回顶部">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>RCW / Architecture</span>
+    </a>
+    <nav class="topnav" aria-label="页面导航">
+      <a href="#original">原有架构</a>
+      <a href="#current">当前架构</a>
+      <a href="#impact">改造效果</a>
+      <a href="#evidence">实现证据</a>
+    </nav>
+    <span class="build-stamp">monolithic_v2 · 2026.11</span>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">AGENT × WORKFLOW / ARCHITECTURE BRIEF</div>
+          <h1>把生成结果，推进到可交付。</h1>
+          <p class="hero-copy">
+            本次改造把质量控制下沉到工作流状态、Agent 工具边界和真实构建结果。
+            两种执行模式共享同一套门禁，同时保留各自的编排方式。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#original">查看架构对比</a>
+            <a class="button" href="#evidence">实现证据</a>
+          </div>
+        </div>
+
+        <aside class="hero-schema reveal" aria-label="两套生成模式摘要">
+          <div class="schema-head">
+            <span>Execution Models</span>
+            <span>2 modes / 1 quality layer</span>
+          </div>
+          <div class="schema-lane">
+            <strong>分步执行</strong>
+            <div>
+              <div class="lane-line"></div>
+              <span>状态图编排，节点结果决定下一步</span>
+            </div>
+          </div>
+          <div class="schema-lane">
+            <strong>Agent</strong>
+            <div>
+              <div class="lane-line"></div>
+              <span>推理模型规划，工具执行，观察后继续</span>
+            </div>
+          </div>
+          <div class="schema-caption">
+            完成条件统一为：结构验证、语义审查、真实构建、最终交付门禁。
+          </div>
+        </aside>
+      </div>
+
+      <div class="metrics stagger" aria-label="架构关键指标">
+        <div class="metric"><strong><span class="counter" data-count="8">0</span></strong><span>工作流节点</span></div>
+        <div class="metric"><strong><span class="counter" data-count="4">0</span></strong><span>质量检查层</span></div>
+        <div class="metric"><strong><span class="counter" data-count="3">0</span></strong><span>最大修复轮次</span></div>
+        <div class="metric"><strong><span class="counter" data-count="40">0</span></strong><span>连续工具上限</span></div>
+        <div class="metric"><strong>128K</strong><span>Token 上下文窗口</span></div>
+      </div>
+    </section>
+
+    <section class="section" id="original">
+      <div class="section-head reveal">
+        <div class="section-no">01 / BASE</div>
+        <div>
+          <div class="section-kicker">ORIGINAL ARCHITECTURE</div>
+          <h2>原有架构</h2>
+        </div>
+        <p>链路可以执行，完成判定依赖模型和最后节点。结构检查与构建结果没有统一收口。</p>
+      </div>
+
+      <div class="grid-2">
+        <article class="panel reveal">
+          <div class="panel-head">
+            <h3>系统分步执行</h3>
+            <span class="status warn">验证分散</span>
+          </div>
+          <div class="panel-body">
+            <div class="rail" aria-label="原工作流链路">
+              <div class="rail-node"><small>01</small><strong>资源收集</strong></div>
+              <div class="rail-node"><small>02</small><strong>提示词增强</strong></div>
+              <div class="rail-node"><small>03</small><strong>类型策略</strong></div>
+              <div class="rail-node"><small>04</small><strong>代码生成</strong></div>
+              <div class="rail-node warn"><small>05</small><strong>AI 审查<br>+ 条件构建</strong></div>
+              <div class="rail-node"><small>06</small><strong>END</strong></div>
+            </div>
+            <ul class="issue-list">
+              <li><span class="mark">!</span><div><strong>审查异常失败开放</strong>审查服务报错时仍按通过继续，错误可能流入后续节点。</div></li>
+              <li><span class="mark">!</span><div><strong>构建异常被吞掉</strong>构建失败后仍把原目录写回状态，工作流继续到 END。</div></li>
+              <li><span class="mark">!</span><div><strong>修复轮次粗粒度</strong>最多 2 轮，失败后从提示词增强节点重新开始。</div></li>
+            </ul>
+            <div class="coding-notes">
+              <div class="note"><b>原完成信号</b><span>最后节点执行结束</span></div>
+              <div class="note"><b>原最终门禁</b><span>无独立交付门禁</span></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel reveal">
+          <div class="panel-head">
+            <h3>Agent 智能生成</h3>
+            <span class="status warn">依赖模型自检</span>
+          </div>
+          <div class="panel-body">
+            <div class="agent-loop" aria-label="原 Agent 循环">
+              <div class="loop-step">Think<small>分析 / 规划</small></div>
+              <div class="loop-step">Act<small>文件 / 构建工具</small></div>
+              <div class="loop-step">Observe<small>读取工具结果</small></div>
+            </div>
+            <ul class="issue-list">
+              <li><span class="mark">!</span><div><strong>exit 只有终止语义</strong>没有结构验证、构建验证或拒绝退出机制。</div></li>
+              <li><span class="mark">!</span><div><strong>质量约定放在提示词里</strong>模型可以跳过 validateProject 或 buildProject，系统仍会接受最终回复。</div></li>
+              <li><span class="mark">!</span><div><strong>路径处理分散在各工具</strong>项目根目录和相对路径由多个工具重复拼接，边界不统一。</div></li>
+              <li><span class="mark">!</span><div><strong>会话完成缺少兜底</strong>模型未调用 exit 时，流结束即被视为完成。</div></li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+      <div class="gate-banner reveal" style="margin-top:16px; border-color: var(--line-strong); background: var(--subtle);">
+        <div class="gate-symbol" style="color: var(--muted); border-color: var(--line-strong);">0</div>
+        <div>
+          <h3>原有架构的直接风险</h3>
+          <p>代码写入成功、构建成功、交付成功缺少统一证据链；构建日志存在，但不能自动阻止错误产物完成。</p>
+        </div>
+        <div class="gate-formula" style="color: var(--muted);">OUTPUT ≠ DELIVERABLE</div>
+      </div>
+    </section>
+
+    <section class="section" id="current">
+      <div class="section-head reveal">
+        <div class="section-no">02 / NOW</div>
+        <div>
+          <div class="section-kicker">CURRENT ARCHITECTURE</div>
+          <h2>现在添加的架构</h2>
+        </div>
+        <p>工作流多了确定性预检、真实构建和交付门禁；Agent 多了代码级运行时契约、项目沙箱和完成兜底。</p>
+      </div>
+
+      <article class="panel reveal" style="margin-bottom:16px;">
+        <div class="panel-head">
+          <h3>系统分步执行：状态图 + 三类反馈回路</h3>
+          <span class="status ok">8 节点 / 3 轮修复</span>
+        </div>
+        <div class="panel-body">
+          <div class="rail" aria-label="当前工作流链路">
+            <div class="rail-node"><small>01</small><strong>资源收集</strong></div>
+            <div class="rail-node"><small>02</small><strong>提示词增强</strong></div>
+            <div class="rail-node"><small>03</small><strong>类型策略</strong></div>
+            <div class="rail-node"><small>04</small><strong>代码生成</strong></div>
+            <div class="rail-node gate"><small>05</small><strong>结构预检</strong><span class="pulse"></span></div>
+            <div class="rail-node"><small>06</small><strong>AI 语义审查</strong></div>
+            <div class="rail-node gate"><small>07</small><strong>真实构建</strong><span class="pulse"></span></div>
+            <div class="rail-node gate"><small>08</small><strong>交付门禁</strong><span class="pulse"></span></div>
+          </div>
+          <div class="loop-zone" aria-label="失败修复回路">
+            <span>预检 / 审查 / 构建失败 → 携带错误证据回到提示词增强 → 最多 3 轮</span>
+          </div>
+
+          <div class="grid-2" style="margin-top:20px;">
+            <div>
+              <div class="micro-label" style="margin-bottom:10px;">节点职责拆开</div>
+              <ul class="check-list">
+                <li><span class="mark">1</span><div><strong>结构预检</strong>Vue 必需文件、package scripts、Vite base、哈希路由、本地资源引用。</div></li>
+                <li><span class="mark">2</span><div><strong>语义审查</strong>只判断功能完整度、交互与实现质量；异常按未通过处理。</div></li>
+                <li><span class="mark">3</span><div><strong>真实构建</strong>执行 npm 安装与 npm run build，失败日志进入下一轮修复上下文。</div></li>
+              </ul>
+            </div>
+            <div>
+              <div class="micro-label" style="margin-bottom:10px;">交付判定</div>
+              <ul class="check-list">
+                <li><span class="mark">✓</span><div><strong>静态产物</strong>结构预检 + AI 审查通过即可进入交付门禁。</div></li>
+                <li><span class="mark">✓</span><div><strong>Vue 产物</strong>额外要求真实构建成功并生成 dist/index.html。</div></li>
+                <li><span class="mark">✓</span><div><strong>失败终态</strong>达到修复上限后阻止成功标记、部署推荐和完成状态。</div></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <div class="grid-2">
+        <article class="panel reveal">
+          <div class="panel-head">
+            <h3>Agent：推理循环 + 系统级约束</h3>
+            <span class="status info">Tool Calling</span>
+          </div>
+          <div class="panel-body">
+            <div class="agent-orbit" aria-label="Agent 推理与工具循环">
+              <div class="orbit-core">Reasoning<br>Model</div>
+              <span class="orbit-tag think">think / taskPlan</span>
+              <span class="orbit-tag act">file / build</span>
+              <span class="orbit-tag observe">tool result</span>
+            </div>
+            <ul class="check-list">
+              <li><span class="mark">1</span><div><strong>规划显式化</strong>taskPlan 管理任务状态，think 记录分析、决策、反思和总结。</div></li>
+              <li><span class="mark">2</span><div><strong>工具边界统一</strong>ProjectPathResolver 统一项目根目录，拦截绝对路径和目录穿越。</div></li>
+              <li><span class="mark">3</span><div><strong>运行时质量契约</strong>代码级注入，后台旧提示词无法覆盖 validate → build → exit 的执行顺序。</div></li>
+              <li><span class="mark">4</span><div><strong>循环保护</strong>连续工具调用上限 40 次；滑动窗口检测重复工具调用；幻觉工具名返回可读结果。</div></li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="panel reveal">
+          <div class="panel-head">
+            <h3>Agent：完成前的四段验证链</h3>
+            <span class="status ok">Fail Closed</span>
+          </div>
+          <div class="panel-body">
+            <div class="quality-strip">
+              <div class="quality-row"><strong>01 / validate</strong><span>检查项目结构、依赖脚本、Vite 配置、路由模式和本地资源引用</span><em>结构证据</em></div>
+              <div class="quality-row"><strong>02 / build</strong><span>执行真实 npm 安装与构建，完整错误日志回传给模型</span><em>运行证据</em></div>
+              <div class="quality-row"><strong>03 / exit</strong><span>再次验证结构；Vue 项目再次构建，失败则拒绝退出</span><em>最终校验</em></div>
+              <div class="quality-row"><strong>04 / complete</strong><span>流完成回调自动执行门禁，模型跳过 exit 也会被系统拦截</span><em>完成兜底</em></div>
+            </div>
+            <div class="coding-notes">
+              <div class="note"><b>写入即失效</b><span>创建、修改、删除文件后必须重新验证与构建。</span></div>
+              <div class="note"><b>异常即失败</b><span>审查或构建异常不再被当成通过结果。</span></div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <article class="panel reveal" style="margin-top:16px;">
+        <div class="panel-head">
+          <h3>共享质量层：按生成类型执行确定性检查</h3>
+          <span class="status info">ProjectQualityGateService</span>
+        </div>
+        <div class="panel-body">
+          <div class="quality-strip">
+            <div class="quality-row"><strong>Vue</strong><span>入口文件、package.json、main.js、App.vue、vite 配置、build script、vue 依赖、base、hash 路由、本地引用</span><em>可构建性</em></div>
+            <div class="quality-row"><strong>多文件</strong><span>index.html / style.css / script.js 齐全，HTML 与 CSS 引用可解析</span><em>完整性</em></div>
+            <div class="quality-row"><strong>单文件</strong><span>HTML 非空，本地脚本、样式、图片与字体引用存在</span><em>可直接打开</em></div>
+          </div>
+        </div>
+      </article>
+
+      <div class="gate-banner reveal">
+        <div class="gate-symbol">✓</div>
+        <div>
+          <h3>交付门禁成为唯一成功出口</h3>
+          <p>结构、审查、构建三类证据统一进入 deliveryReady。Vue 项目只有 dist 构建通过才允许完成。</p>
+        </div>
+        <div class="gate-formula">preflight ∧ review ∧ build</div>
+      </div>
+    </section>
+
+    <section class="section" id="impact">
+      <div class="section-head reveal">
+        <div class="section-no">03 / DELTA</div>
+        <div>
+          <div class="section-kicker">ARCHITECTURE DELTA</div>
+          <h2>改造带来什么</h2>
+        </div>
+        <p>变化集中在四个位置：完成判定、修复方式、工具边界和运行可观测性。</p>
+      </div>
+
+      <div class="matrix-wrap reveal">
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>维度</th>
+              <th>原有实现</th>
+              <th>当前实现</th>
+              <th>直接结果</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>完成判定</td>
+              <td>最后节点结束；Agent 以模型最终回复为准</td>
+              <td>deliveryReady 统一门禁；Agent 流完成自动执行 exit</td>
+              <td>失败产物不能进入完成态</td>
+            </tr>
+            <tr>
+              <td>审查职责</td>
+              <td>结构检查、AI 审查、异常处理混在同一节点</td>
+              <td>确定性预检、AI 语义审查、真实构建拆成独立节点</td>
+              <td>错误定位更直接</td>
+            </tr>
+            <tr>
+              <td>异常语义</td>
+              <td>AI 审查异常按通过继续</td>
+              <td>异常按未通过处理，进入修复或失败终态</td>
+              <td>质量链路失败关闭</td>
+            </tr>
+            <tr>
+              <td>修复循环</td>
+              <td>最多 2 轮，以提示词增强重新生成</td>
+              <td>最多 3 轮；预检、审查、构建证据进入修复上下文</td>
+              <td>修复更接近真实错误</td>
+            </tr>
+            <tr>
+              <td>Vue 构建</td>
+              <td>构建失败被吞掉，仍可能结束</td>
+              <td>npm 安装、npm run build、dist 校验成为交付前置条件</td>
+              <td>部署前暴露构建错误</td>
+            </tr>
+            <tr>
+              <td>Agent 边界</td>
+              <td>工具各自拼接路径，退出无验证</td>
+              <td>统一项目路径解析器；validate、build、exit 形成硬约束</td>
+              <td>越界与提前退出被拦截</td>
+            </tr>
+            <tr>
+              <td>运行状态</td>
+              <td>“看起来完成”与“构建完成”边界模糊</td>
+              <td>结构化阶段输出、工具结果摘要、明确失败终态</td>
+              <td>前端展示与后端事实一致</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="result-grid stagger">
+        <div class="result-card"><strong>8 / 8</strong><span>Agent 任务计划完成并由 exit 质量门禁放行</span><small>实测 appId 476218760859639808</small></div>
+        <div class="result-card"><strong>3</strong><span>分步工作流的结构预检、AI 审查、交付门禁依次通过</span><small>实测 appId 476217246845997056</small></div>
+        <div class="result-card"><strong>2 / 2</strong><span>新产物完成部署，封面由真实页面截图生成</span><small>mSA6D8C6 · NPap7qiN</small></div>
+      </div>
+    </section>
+
+    <section class="section" id="evidence">
+      <div class="section-head reveal">
+        <div class="section-no">04 / TRACE</div>
+        <div>
+          <div class="section-kicker">IMPLEMENTATION EVIDENCE</div>
+          <h2>实现锚点</h2>
+        </div>
+        <p>关键机制都有明确代码入口，便于后续继续演进。</p>
+      </div>
+
+      <details class="evidence reveal" open>
+        <summary>工作流编排与质量门禁</summary>
+        <div class="evidence-body">
+          <div class="evidence-item">8 节点状态图与 10 个路由出口<code>CodeGenWorkflowApp.java:89-129</code></div>
+          <div class="evidence-item">交付条件：预检 + 审查 + Vue 构建<code>DeliveryGateNode.java:31-75</code></div>
+          <div class="evidence-item">预检、审查、构建三类修复回路<code>CodeGenWorkflowApp.java:508-569</code></div>
+          <div class="evidence-item">按生成类型执行结构检查<code>ProjectQualityGateService.java:91-213</code></div>
+        </div>
+      </details>
+
+      <details class="evidence reveal" style="margin-top:10px;">
+        <summary>Agent 运行约束</summary>
+        <div class="evidence-body">
+          <div class="evidence-item">原生工具调用、MCP 扩展、40 次连续调用上限<code>AiCodeGenAgentServiceFactory.java:233-260</code></div>
+          <div class="evidence-item">项目路径统一解析与目录穿越拦截<code>ProjectPathResolver.java:27-53</code></div>
+          <div class="evidence-item">结构验证、真实构建、退出前再验证<code>ValidateProjectTool.java · BuildProjectTool.java · ExitTool.java</code></div>
+          <div class="evidence-item">流完成自动执行最终门禁<code>ConvertAgentTokenStreamToFluxUtils.java:128-142</code></div>
+        </div>
+      </details>
+
+      <details class="evidence reveal" style="margin-top:10px;">
+        <summary>运行稳定性与流式链路</summary>
+        <div class="evidence-body">
+          <div class="evidence-item">LangChain4j 1.23 Bean 装配冲突修复<code>commit ffa0e6e</code></div>
+          <div class="evidence-item">流式工具调用传递 InvocationContext<code>commit 711d502</code></div>
+          <div class="evidence-item">工具结果裁剪大字段，降低流消息体积<code>ConvertAgentTokenStreamToFluxUtils.java:101-118</code></div>
+          <div class="evidence-item">工具循环检测与策略纠偏提示<code>ConvertAgentTokenStreamToFluxUtils.java:159-214</code></div>
+        </div>
+      </details>
+
+      <footer class="footnote">
+        <span>RichCodeWeaver · monolithic_v2 · 架构说明 · 2026-11-06</span>
+        <span><code>commit 3c58a10</code> + <code>ffa0e6e</code> + <code>711d502</code></span>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    const progress = document.getElementById('scroll-progress');
+    const navLinks = [...document.querySelectorAll('.topnav a')];
+    const navSections = navLinks.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
+
+    const updateProgress = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = max > 0 ? `${(window.scrollY / max) * 100}%` : '0%';
+    };
+
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add('is-visible');
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal, .stagger').forEach((node) => revealObserver.observe(node));
+
+    const navObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        navLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`));
+      });
+    }, { rootMargin: '-20% 0px -65% 0px', threshold: 0 });
+    navSections.forEach((section) => navObserver.observe(section));
+
+    const animateCounter = (element) => {
+      const target = Number(element.dataset.count || 0);
+      const duration = 680;
+      const start = performance.now();
+      const tick = (now) => {
+        const progress = Math.min((now - start) / duration, 1);
+        element.textContent = String(Math.round(target * (1 - Math.pow(1 - progress, 3))));
+        if (progress < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+
+    document.querySelectorAll('.counter').forEach((counter) => {
+      const observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          animateCounter(counter);
+          observer.disconnect();
+        }
+      }, { threshold: 0.7 });
+      observer.observe(counter);
+    });
+  </script>
+</body>
+</html>
