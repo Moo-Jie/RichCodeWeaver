@@ -117,12 +117,17 @@
       :body-style="{ maxHeight: '70vh', overflowY: 'auto' }"
       :cancel-text="'取消'"
       :ok-text="'提交'"
+      :confirm-loading="submitting"
       :title="isEdit ? '编辑模板' : '新增模板'"
       width="900px"
       @ok="handleSubmit"
     >
-      <a-form :label-col="{ span: 4 }" :model="formData" :wrapper-col="{ span: 20 }"
-              style="margin-top: 16px;">
+      <a-form
+        :label-col="{ span: 4 }"
+        :model="formData"
+        :wrapper-col="{ span: 20 }"
+        style="margin-top: 16px"
+      >
         <a-form-item label="模板名称" required>
           <a-input v-model:value="formData.templateName" placeholder="请输入模板名称" />
         </a-form-item>
@@ -151,10 +156,7 @@
           />
         </a-form-item>
         <a-form-item label="提示词内容" required>
-          <PromptContentEditor
-            v-model="formData.promptContent"
-            :fields="currentFields"
-          />
+          <PromptContentEditor v-model="formData.promptContent" :fields="currentFields" />
         </a-form-item>
         <a-form-item label="排序权重">
           <a-input-number v-model:value="formData.sortOrder" :max="9999" :min="0" />
@@ -168,14 +170,14 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons-vue'
 import {
   addPromptTemplate,
   deletePromptTemplate,
   listPromptTemplateByPage,
-  updatePromptTemplate
+  updatePromptTemplate,
 } from '@/api/promptTemplateController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import { identityLabelMap, identityOptions, industryOptions } from '@/constants/identityOptions'
@@ -186,6 +188,9 @@ const loading = ref(false)
 const dataList = ref<API.PromptTemplateVO[]>([])
 const modalVisible = ref(false)
 const isEdit = ref(false)
+const submitting = ref(false)
+const deletingTemplateIds = reactive(new Set<number>())
+let fetchRequestId = 0
 
 const searchParams = reactive<API.PromptTemplateQueryRequest>({
   pageNum: 1,
@@ -193,7 +198,7 @@ const searchParams = reactive<API.PromptTemplateQueryRequest>({
   templateName: '',
   matchIdentity: undefined,
   matchIndustry: '',
-  isEnabled: undefined
+  isEnabled: undefined,
 })
 
 const pagination = reactive({
@@ -201,7 +206,7 @@ const pagination = reactive({
   pageSize: 10,
   total: 0,
   showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`
+  showTotal: (total: number) => `共 ${total} 条`,
 })
 
 const formData = reactive({
@@ -213,7 +218,7 @@ const formData = reactive({
   promptContent: '',
   templateFields: '',
   sortOrder: 0,
-  isEnabled: 1
+  isEnabled: 1,
 })
 
 const currentFields = ref<API.TemplateField[]>([])
@@ -226,10 +231,10 @@ const formEnabled = computed({
   get: () => formData.isEnabled === 1,
   set: (val: boolean) => {
     formData.isEnabled = val ? 1 : 0
-  }
+  },
 })
 
-const industryAutoOptions = industryOptions.map(item => ({ value: item }))
+const industryAutoOptions = industryOptions.map((item) => ({ value: item }))
 
 const filterIndustry = (input: string, option: { value: string }) => {
   return option.value.toLowerCase().includes(input.toLowerCase())
@@ -242,25 +247,31 @@ const columns = [
   { title: '匹配行业', dataIndex: 'matchIndustry', width: 120 },
   { title: '排序', dataIndex: 'sortOrder', width: 70 },
   { title: '状态', dataIndex: 'isEnabled', width: 80 },
-  { title: '操作', dataIndex: 'action', width: 120, fixed: 'right' }
+  { title: '操作', dataIndex: 'action', width: 120, fixed: 'right' },
 ]
 
 const fetchData = async () => {
+  const requestId = ++fetchRequestId
   loading.value = true
   try {
     const res = await listPromptTemplateByPage({
       ...searchParams,
       pageNum: pagination.current,
-      pageSize: pagination.pageSize
+      pageSize: pagination.pageSize,
     })
+    if (requestId !== fetchRequestId) return
     if (res.data.code === 0 && res.data.data) {
       dataList.value = res.data.data.records || []
-      pagination.total = res.data.data.totalRow || 0
+      pagination.total = Number(res.data.data.totalRow) || 0
+    } else if (res.data.code !== 0) {
+      message.error('加载模板列表失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (e) {
+    if (requestId !== fetchRequestId) return
     console.error('加载模板列表失败', e)
+    message.error('加载模板列表失败，请稍后重试')
   } finally {
-    loading.value = false
+    if (requestId === fetchRequestId) loading.value = false
   }
 }
 
@@ -277,9 +288,9 @@ const resetSearch = () => {
   doSearch()
 }
 
-const handleTableChange = (pag: any) => {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
+const handleTableChange = (pag: { current?: number; pageSize?: number }) => {
+  pagination.current = pag.current || 1
+  pagination.pageSize = pag.pageSize || 10
   fetchData()
 }
 
@@ -297,12 +308,20 @@ const resetForm = () => {
 }
 
 const showAddModal = () => {
+  if (submitting.value) {
+    message.warning('模板正在提交，请稍候')
+    return
+  }
   isEdit.value = false
   resetForm()
   modalVisible.value = true
 }
 
 const showEditModal = (record: API.PromptTemplateVO) => {
+  if (submitting.value) {
+    message.warning('模板正在提交，请稍候')
+    return
+  }
   isEdit.value = true
   formData.id = record.id
   formData.templateName = record.templateName || ''
@@ -329,6 +348,7 @@ const showEditModal = (record: API.PromptTemplateVO) => {
 }
 
 const handleSubmit = async () => {
+  if (submitting.value) return
   if (!formData.templateName || !formData.promptContent) {
     message.warning('模板名称和提示词内容不能为空')
     return
@@ -344,6 +364,7 @@ const handleSubmit = async () => {
     }
   }
 
+  submitting.value = true
   try {
     if (isEdit.value && formData.id) {
       const res = await updatePromptTemplate({
@@ -355,7 +376,7 @@ const handleSubmit = async () => {
         promptContent: formData.promptContent,
         templateFields: formData.templateFields,
         sortOrder: formData.sortOrder,
-        isEnabled: formData.isEnabled
+        isEnabled: formData.isEnabled,
       })
       if (res.data.code === 0) {
         message.success('更新成功')
@@ -373,7 +394,7 @@ const handleSubmit = async () => {
         promptContent: formData.promptContent,
         templateFields: formData.templateFields,
         sortOrder: formData.sortOrder,
-        isEnabled: formData.isEnabled
+        isEnabled: formData.isEnabled,
       })
       if (res.data.code === 0) {
         message.success('新增成功')
@@ -383,12 +404,16 @@ const handleSubmit = async () => {
         message.error('新增失败：' + res.data.message)
       }
     }
-  } catch (e: any) {
-    message.error('操作失败：' + (e.message || '请重试'))
+  } catch (e: unknown) {
+    message.error('操作失败：' + (e instanceof Error ? e.message : '请重试'))
+  } finally {
+    submitting.value = false
   }
 }
 
 const handleDelete = async (id: number) => {
+  if (deletingTemplateIds.has(id)) return
+  deletingTemplateIds.add(id)
   try {
     const res = await deletePromptTemplate({ id })
     if (res.data.code === 0) {
@@ -397,13 +422,19 @@ const handleDelete = async (id: number) => {
     } else {
       message.error('删除失败：' + res.data.message)
     }
-  } catch (e: any) {
-    message.error('删除失败：' + (e.message || '请重试'))
+  } catch (e: unknown) {
+    message.error('删除失败：' + (e instanceof Error ? e.message : '请重试'))
+  } finally {
+    deletingTemplateIds.delete(id)
   }
 }
 
 onMounted(() => {
   fetchData()
+})
+
+onBeforeUnmount(() => {
+  fetchRequestId += 1
 })
 </script>
 

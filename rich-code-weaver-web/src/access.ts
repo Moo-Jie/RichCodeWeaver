@@ -2,28 +2,77 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import { message } from 'ant-design-vue'
 import router from '@/router'
 
-// 是否为首次获取登录用户
-let firstFetchLoginUser = true
+let loginUserInitialized = false
+let loginUserRequest: Promise<void> | null = null
 
-/**
- * 全局权限校验
- */
-router.beforeEach(async (to, from, next) => {
-  const loginUserStore = useLoginUserStore()
-  let loginUser = loginUserStore.loginUser
-  // 确保页面刷新，首次加载时，能够等后端返回用户信息后再校验权限
-  if (firstFetchLoginUser) {
-    await loginUserStore.fetchLoginUser()
-    loginUser = loginUserStore.loginUser
-    firstFetchLoginUser = false
+function safeRedirectPath(fullPath: string): string {
+  if (!fullPath.startsWith('/') || fullPath.startsWith('//')) return '/'
+  return fullPath
+}
+
+async function ensureLoginUser() {
+  if (loginUserInitialized) return
+  if (!loginUserRequest) {
+    const loginUserStore = useLoginUserStore()
+    loginUserRequest = loginUserStore
+      .fetchLoginUser()
+      .catch((error) => {
+        console.warn('[Auth] 登录态初始化失败，按未登录处理', error)
+      })
+      .finally(() => {
+        loginUserInitialized = true
+        loginUserRequest = null
+      })
   }
-  const toUrl = to.fullPath
-  if (toUrl.startsWith('/admin')) {
-    if (!loginUser || loginUser.userRole !== 'admin') {
-      message.error('没有权限访问管理员页面')
-      next(`/user/login?redirect=${to.fullPath}`)
-      return
+  await loginUserRequest
+}
+
+router.beforeEach(async (to) => {
+  await ensureLoginUser()
+  const loginUserStore = useLoginUserStore()
+  const loginUser = loginUserStore.loginUser
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
+  const requiresAdmin = to.matched.some(
+    (record) => record.path === '/admin' || record.path.startsWith('/admin/'),
+  )
+
+  if (requiresAuth && !loginUser?.id) {
+    return {
+      path: '/user/login',
+      query: { redirect: safeRedirectPath(to.fullPath) },
+      replace: true,
     }
   }
-  next()
+
+  if (requiresAdmin && loginUser?.userRole !== 'admin') {
+    message.error('没有权限访问管理员页面')
+    return {
+      path: '/user/login',
+      query: { redirect: safeRedirectPath(to.fullPath) },
+      replace: true,
+    }
+  }
+
+  if ((to.path === '/user/login' || to.path === '/user/register') && loginUser?.id) {
+    return safeRedirectPath(typeof to.query.redirect === 'string' ? to.query.redirect : '/')
+  }
+
+  return true
 })
+
+let lastRouterErrorAt = 0
+
+router.onError((error) => {
+  console.error('[Router] 路由切换失败', error)
+  const now = Date.now()
+  if (now - lastRouterErrorAt < 3000) return
+  lastRouterErrorAt = now
+  message.error('页面加载失败，请检查网络后重试')
+})
+
+export function resetAuthInitialization() {
+  loginUserInitialized = false
+  loginUserRequest = null
+}
+
+export { safeRedirectPath }

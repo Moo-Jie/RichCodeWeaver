@@ -34,12 +34,7 @@
             {{ t.label }}
           </span>
         </div>
-        <a-button
-          type="primary"
-          size="small"
-          @click="handleAddMaterial"
-          class="add-material-btn"
-        >
+        <a-button type="primary" size="small" @click="handleAddMaterial" class="add-material-btn">
           <template #icon><PlusOutlined /></template>
           添加素材
         </a-button>
@@ -56,10 +51,7 @@
         <span>我的素材</span>
         <span v-if="personalTotal > 0" class="tab-count">{{ personalTotal }}</span>
       </div>
-      <div
-        :class="['tab-item', { active: activeTab === 'public' }]"
-        @click="switchTab('public')"
-      >
+      <div :class="['tab-item', { active: activeTab === 'public' }]" @click="switchTab('public')">
         <GlobalOutlined class="tab-icon" />
         <span>素材广场</span>
       </div>
@@ -73,8 +65,11 @@
           <a-spin size="large" />
           <span>加载中...</span>
         </div>
-        <a-empty v-else-if="!personalLoading && personalMaterials.length === 0"
-                 description="暂无个人素材" class="empty-state">
+        <a-empty
+          v-else-if="!personalLoading && personalMaterials.length === 0"
+          description="暂无个人素材"
+          class="empty-state"
+        >
           <template #image><InboxOutlined class="empty-icon" /></template>
         </a-empty>
         <div v-else class="material-grid">
@@ -100,8 +95,11 @@
           <a-spin size="large" />
           <span>加载中...</span>
         </div>
-        <a-empty v-else-if="!publicLoading && publicMaterials.length === 0"
-                 description="暂无素材广场" class="empty-state">
+        <a-empty
+          v-else-if="!publicLoading && publicMaterials.length === 0"
+          description="暂无素材广场"
+          class="empty-state"
+        >
           <template #image><GlobalOutlined class="empty-icon" /></template>
         </a-empty>
         <div v-else class="material-grid">
@@ -136,10 +134,14 @@
               <img v-if="item.materialType === 'image'" :src="item.content || item.thumbnailUrl" />
               <component :is="getTypeIcon(item.materialType)" v-else class="thumb-icon" />
             </div>
-            <span v-if="selectedMaterials.length > 5" class="more-count">+{{ selectedMaterials.length - 5 }}</span>
+            <span v-if="selectedMaterials.length > 5" class="more-count"
+              >+{{ selectedMaterials.length - 5 }}</span
+            >
           </div>
           <div class="selection-stats">
-            <span class="selected-text">已选 <b>{{ selectedIds.length }}</b> 个</span>
+            <span class="selected-text"
+              >已选 <b>{{ selectedIds.length }}</b> 个</span
+            >
             <div class="limit-counters">
               <span class="counter-item" :class="{ warning: currentTextLength > 1500 }">
                 文字：{{ currentTextLength }}/1800
@@ -149,7 +151,9 @@
               </span>
             </div>
           </div>
-          <a-button type="link" size="small" @click="clearSelection" class="clear-btn">清除</a-button>
+          <a-button type="link" size="small" @click="clearSelection" class="clear-btn"
+            >清除</a-button
+          >
         </template>
         <span v-else class="no-select-hint">请选择素材</span>
       </div>
@@ -171,124 +175,154 @@
   </a-modal>
 </template>
 
- <!-- 素材卡片子组件（内联定义） -->
- <script lang="ts">
- import { defineComponent, h, reactive } from 'vue'
- import {
-   CheckOutlined as CheckOutlinedIcon,
-   FileTextOutlined as FileTextOutlinedIcon,
-   LinkOutlined as LinkOutlinedIcon,
-   PaperClipOutlined as PaperClipOutlinedIcon,
-   SoundOutlined as SoundOutlinedIcon,
-   VideoCameraOutlined as VideoCameraOutlinedIcon
- } from '@ant-design/icons-vue'
+<!-- 素材卡片子组件（内联定义） -->
+<script lang="ts">
+import { defineComponent, h, reactive } from 'vue'
+import {
+  CheckOutlined as CheckOutlinedIcon,
+  FileTextOutlined as FileTextOutlinedIcon,
+  LinkOutlined as LinkOutlinedIcon,
+  PaperClipOutlined as PaperClipOutlinedIcon,
+  SoundOutlined as SoundOutlinedIcon,
+  VideoCameraOutlined as VideoCameraOutlinedIcon,
+} from '@ant-design/icons-vue'
 
- const stripMd = (s: string) =>
-   s.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1')
-   .replace(/#{1,6}\s*/g, '').replace(/`([^`]+)`/g, '$1').trim()
+const stripMd = (s: string) =>
+  s
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/#{1,6}\s*/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .trim()
 
 const TYPE_COLOR: Record<string, string> = {
-  image: '#1677ff', text: '#fa8c16', video: '#52c41a', audio: '#eb2f96', link: '#722ed1'
+  image: '#1677ff',
+  text: '#fa8c16',
+  video: '#52c41a',
+  audio: '#eb2f96',
+  link: '#722ed1',
 }
 const TYPE_LABEL: Record<string, string> = {
-  image: '图片', text: '文本', video: '视频', audio: '音频', link: '链接'
- }
- const TYPE_ICON = {
+  image: '图片',
+  text: '文本',
+  video: '视频',
+  audio: '音频',
+  link: '链接',
+}
+const TYPE_ICON = {
   image: PaperClipOutlinedIcon,
   text: FileTextOutlinedIcon,
   video: VideoCameraOutlinedIcon,
   audio: SoundOutlinedIcon,
-  link: LinkOutlinedIcon
- }
+  link: LinkOutlinedIcon,
+}
 
- const IMAGE_STATUS = reactive<Record<number, 'loading' | 'loaded' | 'error'>>({})
+const IMAGE_STATUS = reactive<Record<number, 'loading' | 'loaded' | 'error'>>({})
 
- const setImageStatus = (id: number | undefined, status: 'loading' | 'loaded' | 'error') => {
+const setImageStatus = (id: number | undefined, status: 'loading' | 'loaded' | 'error') => {
   if (!id) return
   IMAGE_STATUS[id] = status
- }
+}
 
- const getImageStatus = (id: number | undefined) => {
+const getImageStatus = (id: number | undefined) => {
   if (!id) return 'loading'
   return IMAGE_STATUS[id] || 'loading'
- }
+}
 
- const getPreviewSrc = (item: API.MaterialVO) => {
+const getPreviewSrc = (item: API.MaterialVO) => {
   if (item.materialType === 'image') {
     return item.content || item.thumbnailUrl || ''
   }
   return item.thumbnailUrl || item.content || ''
- }
+}
 
- const getUrlSnippet = (item: API.MaterialVO) => {
-  const value = item.materialType === 'image' ? (item.content || item.thumbnailUrl || '') : getPreviewSrc(item)
+const getUrlSnippet = (item: API.MaterialVO) => {
+  const value =
+    item.materialType === 'image' ? item.content || item.thumbnailUrl || '' : getPreviewSrc(item)
   if (!value) return ''
   return value.length > 48 ? `${value.substring(0, 48)}...` : value
- }
+}
 
- const getSafePreviewSrc = (item: API.MaterialVO) => getPreviewSrc(item) || undefined
+const getSafePreviewSrc = (item: API.MaterialVO) => getPreviewSrc(item) || undefined
 
- export const MaterialItem = defineComponent({
+export const MaterialItem = defineComponent({
   name: 'MaterialItem',
   props: { item: Object, selected: Boolean },
   emits: ['click'],
   setup(props, { emit }) {
     return () => {
       const item = props.item as API.MaterialVO
-      return h('div', {
-        class: ['material-item', { selected: props.selected }],
-        onClick: () => emit('click')
-      }, [
-        props.selected ? h('div', { class: 'check-mark' }, [h(CheckOutlinedIcon)]) : null,
-        h('div', { class: ['item-preview', `item-preview--${item.materialType}`] }, [
-          item.materialType === 'image'
-            ? h('div', { class: 'image-preview-wrap' }, [
-                getImageStatus(item.id) !== 'loaded'
-                  ? h('div', { class: 'image-placeholder' }, [h(PaperClipOutlinedIcon, { class: 'image-placeholder-icon' })])
+      return h(
+        'div',
+        {
+          class: ['material-item', { selected: props.selected }],
+          onClick: () => emit('click'),
+        },
+        [
+          props.selected ? h('div', { class: 'check-mark' }, [h(CheckOutlinedIcon)]) : null,
+          h('div', { class: ['item-preview', `item-preview--${item.materialType}`] }, [
+            item.materialType === 'image'
+              ? h('div', { class: 'image-preview-wrap' }, [
+                  getImageStatus(item.id) !== 'loaded'
+                    ? h('div', { class: 'image-placeholder' }, [
+                        h(PaperClipOutlinedIcon, { class: 'image-placeholder-icon' }),
+                      ])
+                    : null,
+                  h('img', {
+                    src: getSafePreviewSrc(item),
+                    alt: item.materialName,
+                    loading: 'lazy',
+                    class: ['preview-image', { 'is-loaded': getImageStatus(item.id) === 'loaded' }],
+                    onLoad: () => setImageStatus(item.id, 'loaded'),
+                    onError: () => setImageStatus(item.id, 'error'),
+                  }),
+                ])
+              : item.materialType === 'text'
+                ? h(
+                    'div',
+                    { class: 'preview-text-snippet' },
+                    stripMd(item.content?.substring(0, 120) || ''),
+                  )
+                : h(
+                    TYPE_ICON[item.materialType as keyof typeof TYPE_ICON] || FileTextOutlinedIcon,
+                    {
+                      class: ['type-icon', item.materialType],
+                    },
+                  ),
+          ]),
+          h('div', { class: 'item-info' }, [
+            h('div', { class: 'item-name' }, item.materialName),
+            ['image', 'link'].includes(item.materialType || '') && getUrlSnippet(item)
+              ? h('div', { class: 'item-url' }, getUrlSnippet(item))
+              : null,
+            h('div', { class: 'item-meta' }, [
+              h('span', { class: 'item-category' }, item.categoryName || ''),
+              h('div', { class: 'meta-right' }, [
+                h('span', { class: 'item-use-count' }, `选择${item.useCount || 0}次`),
+                // 显示字符数（仅文本类型）
+                item.materialType === 'text' && item.content
+                  ? h('span', { class: 'char-count' }, `${item.content.length}字`)
                   : null,
-                h('img', {
-                  src: getSafePreviewSrc(item),
-                  alt: item.materialName,
-                  loading: 'lazy',
-                  class: ['preview-image', { 'is-loaded': getImageStatus(item.id) === 'loaded' }],
-                  onLoad: () => setImageStatus(item.id, 'loaded'),
-                  onError: () => setImageStatus(item.id, 'error')
-                })
-              ])
-          : item.materialType === 'text'
-              ? h('div', { class: 'preview-text-snippet' }, stripMd(item.content?.substring(0, 120) || ''))
-              : h(TYPE_ICON[item.materialType as keyof typeof TYPE_ICON] || FileTextOutlinedIcon, {
-                  class: ['type-icon', item.materialType]
-                })
-        ]),
-        h('div', { class: 'item-info' }, [
-          h('div', { class: 'item-name' }, item.materialName),
-          ['image', 'link'].includes(item.materialType || '') && getUrlSnippet(item)
-            ? h('div', { class: 'item-url' }, getUrlSnippet(item))
-            : null,
-          h('div', { class: 'item-meta' }, [
-            h('span', { class: 'item-category' }, item.categoryName || ''),
-            h('div', { class: 'meta-right' }, [
-              h('span', { class: 'item-use-count' }, `选择${item.useCount || 0}次`),
-              // 显示字符数（仅文本类型）
-              item.materialType === 'text' && item.content
-                ? h('span', { class: 'char-count' }, `${item.content.length}字`)
-                : null,
-              h('span', {
-                class: 'item-type-badge',
-                style: { background: TYPE_COLOR[item.materialType || ''] || '#aaa' }
-              }, TYPE_LABEL[item.materialType || ''] || item.materialType || '')
-            ])
-          ])
-        ])
-      ])
+                h(
+                  'span',
+                  {
+                    class: 'item-type-badge',
+                    style: { background: TYPE_COLOR[item.materialType || ''] || '#aaa' },
+                  },
+                  TYPE_LABEL[item.materialType || ''] || item.materialType || '',
+                ),
+              ]),
+            ]),
+          ]),
+        ],
+      )
     }
-  }
+  },
 })
 </script>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   CheckOutlined,
@@ -302,12 +336,12 @@ import {
   PlusOutlined,
   SoundOutlined,
   UserOutlined,
-  VideoCameraOutlined
+  VideoCameraOutlined,
 } from '@ant-design/icons-vue'
 import {
   listMyMaterialByPage,
   listPublicMaterialByPage,
-  listEnabledCategories
+  listEnabledCategories,
 } from '@/api/materialController'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { useRouter } from 'vue-router'
@@ -327,7 +361,7 @@ const emit = defineEmits<{
 
 const visible = computed({
   get: () => props.open,
-  set: (val) => emit('update:open', val)
+  set: (val) => emit('update:open', val),
 })
 
 // 分类
@@ -346,14 +380,18 @@ const personalMaterials = ref<API.MaterialVO[]>([])
 const personalLoading = ref(false)
 const personalPage = ref(1)
 const personalTotal = ref(0)
-const personalHasMore = computed(() => personalMaterials.value.length < personalTotal.value)
+const personalHasMore = ref(false)
+let personalRequestId = 0
+let personalController: AbortController | null = null
 
 // ── 素材广场 ──
 const publicMaterials = ref<API.MaterialVO[]>([])
 const publicLoading = ref(false)
 const publicPage = ref(1)
 const publicTotal = ref(0)
-const publicHasMore = computed(() => publicMaterials.value.length < publicTotal.value)
+const publicHasMore = ref(false)
+let publicRequestId = 0
+let publicController: AbortController | null = null
 
 // 选中状态
 const selectedIds = ref<number[]>([])
@@ -364,75 +402,122 @@ const isSelected = (id?: number) => !!id && selectedIds.value.includes(id)
 // 计算当前选中素材的统计信息
 const currentTextLength = computed(() => {
   return selectedMaterials.value
-    .filter(m => m.materialType === 'text')
+    .filter((m) => m.materialType === 'text')
     .reduce((total, m) => total + (m.content?.length || 0), 0)
 })
 
 const currentUrlCount = computed(() => {
-  return selectedMaterials.value
-    .filter(m => m.materialType === 'link' || (m.materialType === 'image' && m.content))
-    .length
+  return selectedMaterials.value.filter(
+    (m) => m.materialType === 'link' || (m.materialType === 'image' && m.content),
+  ).length
 })
 
 // 是否显示警告
 const showWarning = computed(() => {
-  return currentTextLength.value > 1500 || currentUrlCount.value > 8 || selectedIds.value.length > 15
+  return (
+    currentTextLength.value > 1500 || currentUrlCount.value > 8 || selectedIds.value.length > 15
+  )
 })
 
 const loadCategories = async () => {
   try {
     const res = await listEnabledCategories()
     if (res.data.code === 0) categories.value = res.data.data || []
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    /* ignore */
+  }
 }
 
-const loadPersonal = async (reset = false) => {
-  if (reset) { personalPage.value = 1; personalMaterials.value = [] }
+const loadPersonal = async (reset = false, targetPage = reset ? 1 : personalPage.value) => {
+  const requestId = ++personalRequestId
+  personalController?.abort()
+  const controller = new AbortController()
+  personalController = controller
   personalLoading.value = true
   try {
-    const res = await listMyMaterialByPage({
-      pageNum: personalPage.value,
-      pageSize: 20,
-      sortField: 'useCount',
-      sortOrder: 'descend',
-      searchText: searchText.value || undefined,
-      categoryId: filterCategoryId.value,
-      materialType: filterType.value
-    })
-    if (res.data.code === 0) {
-      const d = res.data.data
-      if (reset) personalMaterials.value = d?.records || []
-      else personalMaterials.value.push(...(d?.records || []))
-      personalTotal.value = d?.totalRow || 0
+    const res = await listMyMaterialByPage(
+      {
+        pageNum: targetPage,
+        pageSize: 20,
+        sortField: 'useCount',
+        sortOrder: 'descend',
+        searchText: searchText.value || undefined,
+        categoryId: filterCategoryId.value,
+        materialType: filterType.value,
+      },
+      { signal: controller.signal },
+    )
+    if (requestId !== personalRequestId) return
+    if (res.data.code !== 0 || !res.data.data)
+      throw new Error(res.data.message || '加载个人素材失败')
+    const d = res.data.data
+    const records = d.records || []
+    if (reset) {
+      personalMaterials.value = records
+      personalPage.value = 1
+    } else {
+      const knownIds = new Set(personalMaterials.value.map((item) => String(item.id)))
+      personalMaterials.value.push(...records.filter((item) => !knownIds.has(String(item.id))))
+      personalPage.value = targetPage
     }
-  } catch (e) { message.error('加载个人素材失败') }
-  finally { personalLoading.value = false }
+    personalTotal.value = Number(d.totalRow) || 0
+    personalHasMore.value =
+      records.length === 20 && personalMaterials.value.length < personalTotal.value
+  } catch (e) {
+    if (
+      !(e instanceof DOMException && e.name === 'AbortError') &&
+      requestId === personalRequestId
+    ) {
+      message.error('加载个人素材失败')
+    }
+  } finally {
+    if (requestId === personalRequestId) personalLoading.value = false
+  }
 }
 
-const loadPublic = async (reset = false) => {
-  if (reset) { publicPage.value = 1; publicMaterials.value = [] }
+const loadPublic = async (reset = false, targetPage = reset ? 1 : publicPage.value) => {
+  const requestId = ++publicRequestId
+  publicController?.abort()
+  const controller = new AbortController()
+  publicController = controller
   publicLoading.value = true
   try {
-    const res = await listPublicMaterialByPage({
-      pageNum: publicPage.value,
-      pageSize: 20,
-      sortField: 'useCount',
-      sortOrder: 'descend',
-      searchText: searchText.value || undefined,
-      categoryId: filterCategoryId.value,
-      materialType: filterType.value
-    })
-    if (res.data.code === 0) {
-      const d = res.data.data
-      const myId = loginUserStore.loginUser?.id
-      // 公约：个人素材优先——素材广场列表中排除自己的素材
-      const records = (d?.records || []).filter((m: API.MaterialVO) => m.userId !== myId)
-      if (reset) publicMaterials.value = records
-      else publicMaterials.value.push(...records)
-      publicTotal.value = d?.totalRow || 0
+    const res = await listPublicMaterialByPage(
+      {
+        pageNum: targetPage,
+        pageSize: 20,
+        sortField: 'useCount',
+        sortOrder: 'descend',
+        searchText: searchText.value || undefined,
+        categoryId: filterCategoryId.value,
+        materialType: filterType.value,
+      },
+      { signal: controller.signal },
+    )
+    if (requestId !== publicRequestId) return
+    if (res.data.code !== 0 || !res.data.data)
+      throw new Error(res.data.message || '加载素材广场失败')
+    const d = res.data.data
+    const myId = loginUserStore.loginUser?.id
+    const pageRecords = d.records || []
+    const records = pageRecords.filter((m: API.MaterialVO) => String(m.userId) !== String(myId))
+    if (reset) {
+      publicMaterials.value = records
+      publicPage.value = 1
+    } else {
+      const knownIds = new Set(publicMaterials.value.map((item) => String(item.id)))
+      publicMaterials.value.push(...records.filter((item) => !knownIds.has(String(item.id))))
+      publicPage.value = targetPage
     }
-  } catch (e) { message.error('加载素材广场失败') }
-  finally { publicLoading.value = false }
+    publicTotal.value = Number(d.totalRow) || 0
+    publicHasMore.value = pageRecords.length === 20
+  } catch (e) {
+    if (!(e instanceof DOMException && e.name === 'AbortError') && requestId === publicRequestId) {
+      message.error('加载素材广场失败')
+    }
+  } finally {
+    if (requestId === publicRequestId) publicLoading.value = false
+  }
 }
 
 const handleSearch = () => {
@@ -442,7 +527,8 @@ const handleSearch = () => {
 
 const switchTab = (key: string) => {
   activeTab.value = key
-  if (key === 'public' && publicMaterials.value.length === 0) loadPublic(true)
+  if (key === 'public') loadPublic(true)
+  else loadPersonal(true)
 }
 
 const typeOptions = [
@@ -451,7 +537,7 @@ const typeOptions = [
   { value: 'text', label: '文本' },
   { value: 'video', label: '视频' },
   { value: 'audio', label: '音频' },
-  { value: 'link', label: '链接' }
+  { value: 'link', label: '链接' },
 ]
 
 const toggleTypeFilter = (val: string) => {
@@ -465,13 +551,17 @@ const getTypeIcon = (type?: string) => {
     text: FileTextOutlined,
     video: VideoCameraOutlined,
     audio: SoundOutlined,
-    link: LinkOutlined
+    link: LinkOutlined,
   }
   return map[type as keyof typeof map] || FileTextOutlined
 }
 
-const loadMorePersonal = () => { personalPage.value++; loadPersonal() }
-const loadMorePublic = () => { publicPage.value++; loadPublic() }
+const loadMorePersonal = () => {
+  if (!personalLoading.value && personalHasMore.value) loadPersonal(false, personalPage.value + 1)
+}
+const loadMorePublic = () => {
+  if (!publicLoading.value && publicHasMore.value) loadPublic(false, publicPage.value + 1)
+}
 
 const toggleSelect = (item: API.MaterialVO) => {
   const id = item.id!
@@ -480,7 +570,7 @@ const toggleSelect = (item: API.MaterialVO) => {
   if (idx > -1) {
     // 取消选择
     selectedIds.value.splice(idx, 1)
-    selectedMaterials.value = selectedMaterials.value.filter(m => m.id !== id)
+    selectedMaterials.value = selectedMaterials.value.filter((m) => m.id !== id)
   } else {
     // 添加选择 - 先进行各种限制检查
 
@@ -489,7 +579,9 @@ const toggleSelect = (item: API.MaterialVO) => {
       const newTextLength = currentTextLength.value + (item.content?.length || 0)
       if (newTextLength > 1800) {
         const remaining = 1800 - currentTextLength.value
-        message.warning(`文字素材总长度不能超过1800字符，当前已选${currentTextLength.value}字符，最多还能选择${remaining}字符`)
+        message.warning(
+          `文字素材总长度不能超过1800字符，当前已选${currentTextLength.value}字符，最多还能选择${remaining}字符`,
+        )
         return
       }
     }
@@ -519,7 +611,9 @@ const clearSelection = () => {
   selectedMaterials.value = []
 }
 
-const handleClose = () => { visible.value = false }
+const handleClose = () => {
+  visible.value = false
+}
 
 const handleConfirm = () => {
   emit('confirm', selectedMaterials.value)
@@ -532,20 +626,30 @@ const handleAddMaterial = () => {
   router.push('/my/materials')
 }
 
-watch(() => props.open, (val) => {
-  if (val) {
-    if (props.selected?.length) {
-      selectedMaterials.value = [...props.selected]
-      selectedIds.value = props.selected.map(item => item.id!).filter(Boolean)
-    } else {
-      selectedIds.value = []
-      selectedMaterials.value = []
-    }
-    if (categories.value.length === 0) loadCategories()
-    activeTab.value = 'personal'
-    loadPersonal(true)
-  }
+onBeforeUnmount(() => {
+  personalRequestId += 1
+  publicRequestId += 1
+  personalController?.abort()
+  publicController?.abort()
 })
+
+watch(
+  () => props.open,
+  (val) => {
+    if (val) {
+      if (props.selected?.length) {
+        selectedMaterials.value = [...props.selected]
+        selectedIds.value = props.selected.map((item) => item.id!).filter(Boolean)
+      } else {
+        selectedIds.value = []
+        selectedMaterials.value = []
+      }
+      if (categories.value.length === 0) loadCategories()
+      activeTab.value = 'personal'
+      loadPersonal(true)
+    }
+  },
+)
 </script>
 
 <style scoped>
@@ -1000,7 +1104,7 @@ watch(() => props.open, (val) => {
   border-radius: 6px;
   overflow: hidden;
   border: 2px solid #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   margin-left: -8px;
   background: #f5f5f5;
   display: flex;

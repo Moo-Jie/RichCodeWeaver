@@ -97,13 +97,17 @@
             <p>1. 在首页输入数字产物描述，或者选择"热门提示词"。</p>
             <p>2. 选择数字产物生成模式，点击"创建作品"按钮生成数字产物。</p>
             <p>3. 系统自动进入数字产物生成页面，生成数字产物代码。</p>
-            <p>4. 可在数字产物生成页面对数字产物进行实时预览、AI 局部优化、AI
-              全局重构、部署上线、编辑数字产物信息等操作。</p>
+            <p>
+              4. 可在数字产物生成页面对数字产物进行实时预览、AI 局部优化、AI
+              全局重构、部署上线、编辑数字产物信息等操作。
+            </p>
           </div>
 
           <div v-if="activeSection.id === 'prompt-guide'">
             <p>1. 数字产物基础信息：数字产物名称、数字产物类型与核心功能、目标用户等。</p>
-            <p>2. 技术栈与项目规范： 项目结构（Vue项目/ React项目/ 纯静态项目）、UI框架/组件库等。</p>
+            <p>
+              2. 技术栈与项目规范： 项目结构（Vue项目/ React项目/ 纯静态项目）、UI框架/组件库等。
+            </p>
             <p>3. 详细功能需求：功能列表、交互流程、数据持久化等。</p>
             <p>4. UI/UX与布局设计：布局描述、风格描述、附加元素等。</p>
             <p>5. 数据与API：数字产物需要动态数据，必须详细说明。</p>
@@ -205,12 +209,12 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
+import { onBeforeUnmount, reactive, ref } from 'vue'
 import {
   ArrowLeftOutlined,
   CodeOutlined,
   ExperimentOutlined,
-  RocketOutlined
+  RocketOutlined,
 } from '@ant-design/icons-vue'
 
 // 折叠面板状态管理
@@ -220,33 +224,33 @@ const activeKeys = ref<string[]>(['1'])
 const quickStartItems = reactive([
   { id: 'getting-started', title: '创建第一个数字产物' },
   { id: 'prompt-guide', title: '提示词编写指南' },
-  { id: 'deploy-app', title: '数字产物部署流程' }
+  { id: 'deploy-app', title: '数字产物部署流程' },
 ])
 
 const optimizationItems = reactive([
   { id: 'vue-optimization', title: 'Vue项目优化指南' },
   { id: 'code-refactor', title: '代码重构技巧' },
-  { id: 'performance-optimization', title: '性能优化方法' }
+  { id: 'performance-optimization', title: '性能优化方法' },
 ])
 
-const bestPracticeItems = reactive([
-  { id: 'prompt-best-practice', title: '提示词最佳实践' }
-])
+const bestPracticeItems = reactive([{ id: 'prompt-best-practice', title: '提示词最佳实践' }])
 
 // 当前活动文档区域
 const activeSection = ref<{ id: string; title: string } | null>(null)
+let scrollTimer: ReturnType<typeof setTimeout> | null = null
 
 // 处理文档项点击
 const handleItemClick = (id: string) => {
   // 查找对应的文档项
   const allItems = [...quickStartItems, ...optimizationItems, ...bestPracticeItems]
-  const item = allItems.find(i => i.id === id)
+  const item = allItems.find((i) => i.id === id)
 
   if (item) {
     activeSection.value = { id: item.id, title: item.title }
 
-    // 滚动到文档区域
-    setTimeout(() => {
+    if (scrollTimer) clearTimeout(scrollTimer)
+    scrollTimer = setTimeout(() => {
+      scrollTimer = null
       const element = document.querySelector('.docs-content')
       if (element) {
         element.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -254,6 +258,13 @@ const handleItemClick = (id: string) => {
     }, 100)
   }
 }
+
+onBeforeUnmount(() => {
+  if (scrollTimer) {
+    clearTimeout(scrollTimer)
+    scrollTimer = null
+  }
+})
 </script>
 
 <style scoped>
@@ -261,7 +272,14 @@ const handleItemClick = (id: string) => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 40px 20px;
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Nunito',
+    'Comic Neue',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   min-height: 100vh;
   position: relative;
   z-index: 2;

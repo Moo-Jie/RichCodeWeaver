@@ -110,6 +110,7 @@ export const useCommunicationStore = defineStore('communication', () => {
 
   const activeConversationId = ref<number | null>(null)
   const activeConversationVisible = ref(false)
+  const activeConversationAtBottom = ref(true)
   const currentMessages = ref<LocalChatMessage[]>([])
   const messagesLoading = ref(false)
   const messagesError = ref('')
@@ -126,9 +127,16 @@ export const useCommunicationStore = defineStore('communication', () => {
   let initPromise: Promise<void> | null = null
   let activeMessageRequest = 0
   let readTimer: ReturnType<typeof setTimeout> | null = null
+  let unreadRetryTimer: ReturnType<typeof setTimeout> | null = null
   const ackWaiters = new Map<string, AckWaiter>()
   const readRequests = new Set<number>()
   const readAgainRequests = new Set<number>()
+  let resourceGeneration = 0
+  let conversationsRequestId = 0
+  let friendsRequestId = 0
+  let pendingRequestId = 0
+  let collabRequestId = 0
+  let unreadRequestId = 0
 
   const currentUserId = computed(() => loginUserStore.loginUser?.id)
   const activeConversation = computed(
@@ -472,7 +480,10 @@ export const useCommunicationStore = defineStore('communication', () => {
     const normalized = normalizeMessage(message)
     const isCurrent = sameId(message.conversationId, activeConversationId.value)
     const shouldMarkRead =
-      isCurrent && activeConversationVisible.value && document.visibilityState === 'visible'
+      isCurrent &&
+      activeConversationVisible.value &&
+      activeConversationAtBottom.value &&
+      document.visibilityState === 'visible'
 
     if (isCurrent) {
       const exists = currentMessages.value.some(
@@ -672,6 +683,7 @@ export const useCommunicationStore = defineStore('communication', () => {
   }
 
   async function markConversationRead(conversationId: number, lastReadMessageId?: number) {
+    const generation = resourceGeneration
     if (readRequests.has(conversationId)) {
       readAgainRequests.add(conversationId)
       return
@@ -683,10 +695,12 @@ export const useCommunicationStore = defineStore('communication', () => {
     totalUnreadCount.value = Math.max(0, totalUnreadCount.value - previousUnread)
     try {
       const response = await markAsRead({ conversationId, lastReadMessageId })
+      if (generation !== resourceGeneration) return
       if (response.data.code !== 0) {
         throw new Error(response.data.message || '标记已读失败')
       }
     } catch {
+      if (generation !== resourceGeneration) return
       if (socket?.readyState === WebSocket.OPEN) {
         socket.send(
           JSON.stringify({
@@ -694,7 +708,9 @@ export const useCommunicationStore = defineStore('communication', () => {
             payload: { conversationId, lastReadMessageId },
           }),
         )
-        setTimeout(() => {
+        if (unreadRetryTimer) clearTimeout(unreadRetryTimer)
+        unreadRetryTimer = setTimeout(() => {
+          unreadRetryTimer = null
           void fetchUnreadTotal()
           void fetchConversations()
         }, 600)
@@ -704,7 +720,11 @@ export const useCommunicationStore = defineStore('communication', () => {
       }
     } finally {
       readRequests.delete(conversationId)
-      if (readAgainRequests.delete(conversationId) && activeConversationVisible.value) {
+      if (
+        generation === resourceGeneration &&
+        readAgainRequests.delete(conversationId) &&
+        activeConversationVisible.value
+      ) {
         scheduleMarkRead()
       }
     }
@@ -714,13 +734,23 @@ export const useCommunicationStore = defineStore('communication', () => {
     if (readTimer) clearTimeout(readTimer)
     readTimer = setTimeout(() => {
       readTimer = null
-      if (!activeConversationId.value || !activeConversationVisible.value) return
+      if (
+        !activeConversationId.value ||
+        !activeConversationVisible.value ||
+        !activeConversationAtBottom.value
+      )
+        return
       const lastReadable = [...currentMessages.value].reverse().find((item) => item.id != null)?.id
       void markConversationRead(activeConversationId.value, lastReadable)
     }, 120)
   }
 
   async function selectConversation(conversationId: number) {
+    activeMessageRequest += 1
+    if (readTimer) {
+      clearTimeout(readTimer)
+      readTimer = null
+    }
     activeConversationId.value = conversationId
     pendingChatFriendId.value = null
     currentMessages.value = []
@@ -747,6 +777,7 @@ export const useCommunicationStore = defineStore('communication', () => {
   }
 
   function clearActiveConversation() {
+    activeMessageRequest += 1
     activeConversationId.value = null
     activeConversationVisible.value = false
     pendingChatFriendId.value = null
@@ -813,96 +844,146 @@ export const useCommunicationStore = defineStore('communication', () => {
   }
 
   async function fetchConversations() {
+    const generation = resourceGeneration
+    const requestId = ++conversationsRequestId
     conversationsLoading.value = true
     conversationsError.value = ''
     try {
       const response = await listConversations()
+      if (generation !== resourceGeneration || requestId !== conversationsRequestId) return false
       if (response.data.code !== 0 || !response.data.data) {
         throw new Error(response.data.message || '会话加载失败')
       }
       conversations.value = [...response.data.data].sort(
         (a, b) => messageTimeValue(b.lastMessageTime) - messageTimeValue(a.lastMessageTime),
       )
+      return true
     } catch (error) {
-      conversationsError.value = errorMessage(error, '会话加载失败')
+      if (generation === resourceGeneration && requestId === conversationsRequestId) {
+        conversationsError.value = errorMessage(error, '会话加载失败')
+      }
+      return false
     } finally {
-      conversationsLoading.value = false
+      if (generation === resourceGeneration && requestId === conversationsRequestId) {
+        conversationsLoading.value = false
+      }
     }
   }
 
   async function fetchFriends() {
+    const generation = resourceGeneration
+    const requestId = ++friendsRequestId
     friendsLoading.value = true
     friendsError.value = ''
     try {
       const response = await listFriends()
+      if (generation !== resourceGeneration || requestId !== friendsRequestId) return false
       if (response.data.code !== 0 || !response.data.data) {
         throw new Error(response.data.message || '好友加载失败')
       }
       friends.value = response.data.data
+      return true
     } catch (error) {
-      friendsError.value = errorMessage(error, '好友加载失败')
+      if (generation === resourceGeneration && requestId === friendsRequestId) {
+        friendsError.value = errorMessage(error, '好友加载失败')
+      }
+      return false
     } finally {
-      friendsLoading.value = false
+      if (generation === resourceGeneration && requestId === friendsRequestId) {
+        friendsLoading.value = false
+      }
     }
   }
 
   async function fetchPendingRequests() {
+    const generation = resourceGeneration
+    const requestId = ++pendingRequestId
     pendingLoading.value = true
     pendingError.value = ''
     try {
       const response = await listPendingRequests()
+      if (generation !== resourceGeneration || requestId !== pendingRequestId) return false
       if (response.data.code !== 0 || !response.data.data) {
         throw new Error(response.data.message || '好友申请加载失败')
       }
       pendingRequests.value = response.data.data
       pendingCount.value = response.data.data.length
+      return true
     } catch (error) {
-      pendingError.value = errorMessage(error, '好友申请加载失败')
+      if (generation === resourceGeneration && requestId === pendingRequestId) {
+        pendingError.value = errorMessage(error, '好友申请加载失败')
+      }
+      return false
     } finally {
-      pendingLoading.value = false
+      if (generation === resourceGeneration && requestId === pendingRequestId) {
+        pendingLoading.value = false
+      }
     }
   }
 
   async function fetchPendingCollabInvitations() {
+    const generation = resourceGeneration
+    const requestId = ++collabRequestId
     collabLoading.value = true
     collabError.value = ''
     try {
       const response = await listPendingCollabInvitations()
+      if (generation !== resourceGeneration || requestId !== collabRequestId) return false
       if (response.data.code !== 0 || !response.data.data) {
         throw new Error(response.data.message || '协作邀请加载失败')
       }
       pendingCollabInvitations.value = response.data.data
       pendingCollabCount.value = response.data.data.length
+      return true
     } catch (error) {
-      collabError.value = errorMessage(error, '协作邀请加载失败')
+      if (generation === resourceGeneration && requestId === collabRequestId) {
+        collabError.value = errorMessage(error, '协作邀请加载失败')
+      }
+      return false
     } finally {
-      collabLoading.value = false
+      if (generation === resourceGeneration && requestId === collabRequestId) {
+        collabLoading.value = false
+      }
     }
   }
 
   async function fetchUnreadTotal() {
+    const generation = resourceGeneration
+    const requestId = ++unreadRequestId
     unreadLoading.value = true
     try {
       const response = await getUnreadCount()
-      if (response.data.code === 0 && typeof response.data.data === 'number') {
-        totalUnreadCount.value = response.data.data
-      }
+      if (generation !== resourceGeneration || requestId !== unreadRequestId) return false
+      if (response.data.code !== 0 || typeof response.data.data !== 'number') return false
+      totalUnreadCount.value = response.data.data
+      return true
+    } catch {
+      return false
     } finally {
-      unreadLoading.value = false
+      if (generation === resourceGeneration && requestId === unreadRequestId) {
+        unreadLoading.value = false
+      }
     }
   }
 
   async function refreshCommunication() {
-    await Promise.all([
+    const results = await Promise.all([
       fetchConversations(),
       fetchFriends(),
       fetchPendingRequests(),
       fetchPendingCollabInvitations(),
       fetchUnreadTotal(),
     ])
+    return results.some(Boolean)
   }
 
   function resetUserState() {
+    resourceGeneration += 1
+    conversationsRequestId += 1
+    friendsRequestId += 1
+    pendingRequestId += 1
+    collabRequestId += 1
+    unreadRequestId += 1
     conversations.value = []
     friends.value = []
     pendingRequests.value = []
@@ -915,6 +996,15 @@ export const useCommunicationStore = defineStore('communication', () => {
     activeConversationId.value = null
     pendingChatFriendId.value = null
     activeConversationVisible.value = false
+    activeConversationAtBottom.value = true
+    messagesLoading.value = false
+    conversationsLoading.value = false
+    friendsLoading.value = false
+    pendingLoading.value = false
+    collabLoading.value = false
+    unreadLoading.value = false
+    messagesPage.value = 1
+    hasMoreMessages.value = false
     messagesError.value = ''
     conversationsError.value = ''
     friendsError.value = ''
@@ -926,6 +1016,10 @@ export const useCommunicationStore = defineStore('communication', () => {
       clearTimeout(readTimer)
       readTimer = null
     }
+    if (unreadRetryTimer) {
+      clearTimeout(unreadRetryTimer)
+      unreadRetryTimer = null
+    }
     readRequests.clear()
     readAgainRequests.clear()
   }
@@ -934,23 +1028,27 @@ export const useCommunicationStore = defineStore('communication', () => {
     const userId = currentUserId.value
     if (!userId) return
     if (initializedUserId !== null && initializedUserId !== userId) {
-      resetUserState()
-      manuallyClosed = false
+      resetCommunication()
     }
     if (force && initializedUserId === userId) {
+      connectSocket()
       await refreshCommunication()
       return
     }
-    if (initializedUserId === userId && initPromise) return initPromise
+    if (initPromise) return initPromise
     if (initializedUserId === userId) {
       connectSocket()
       return
     }
 
-    initializedUserId = userId
     manuallyClosed = false
     connectSocket()
-    initPromise = refreshCommunication().finally(() => {
+    initPromise = (async () => {
+      const hasSuccessfulRequest = await refreshCommunication()
+      if (userId === currentUserId.value && hasSuccessfulRequest) {
+        initializedUserId = userId
+      }
+    })().finally(() => {
       initPromise = null
     })
     return initPromise
@@ -986,6 +1084,7 @@ export const useCommunicationStore = defineStore('communication', () => {
     unreadLoading,
     activeConversationId,
     activeConversationVisible,
+    activeConversationAtBottom,
     currentMessages,
     messagesLoading,
     messagesError,

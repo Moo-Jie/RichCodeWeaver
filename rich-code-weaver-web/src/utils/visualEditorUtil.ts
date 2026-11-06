@@ -6,7 +6,8 @@ export interface ElementInfo {
   textContent: string // 元素的文本内容（截取前100个字符）
   selector: string // 元素的CSS选择器路径
   pagePath: string // 页面路径（包含查询参数和哈希值）
-  rect: { // 元素在页面中的位置和尺寸信息
+  rect: {
+    // 元素在页面中的位置和尺寸信息
     top: number // 距离顶部的距离
     left: number // 距离左侧的距离
     width: number // 元素宽度
@@ -28,6 +29,9 @@ export class visualEditorUtil {
   private iframe: HTMLIFrameElement | null = null // 关联的iframe元素
   private isEditMode = false // 当前是否处于编辑模式
   private options: VisualEditorOptions // 编辑器配置选项
+  private injectionTimer: ReturnType<typeof setTimeout> | null = null
+  private injectionPollTimer: ReturnType<typeof setTimeout> | null = null
+  private destroyed = false
 
   // 构造函数，初始化配置选项，指定选中、悬停回调函数
   constructor(options: VisualEditorOptions = {}) {
@@ -39,7 +43,30 @@ export class visualEditorUtil {
    * @param iframe - 要关联的iframe元素
    */
   init(iframe: HTMLIFrameElement) {
+    this.clearPendingTimers()
+    this.destroyed = false
     this.iframe = iframe
+  }
+
+  /**
+   * 释放编辑器资源
+   * 组件卸载或 iframe 被替换时应主动调用。
+   */
+  destroy() {
+    this.disableEditMode()
+    this.destroyed = true
+    this.iframe = null
+  }
+
+  private clearPendingTimers() {
+    if (this.injectionTimer) {
+      clearTimeout(this.injectionTimer)
+      this.injectionTimer = null
+    }
+    if (this.injectionPollTimer) {
+      clearTimeout(this.injectionPollTimer)
+      this.injectionPollTimer = null
+    }
   }
 
   /**
@@ -47,12 +74,15 @@ export class visualEditorUtil {
    * 注入编辑脚本到iframe中，启用元素选择功能
    */
   enableEditMode() {
-    if (!this.iframe) {
+    if (!this.iframe || this.destroyed) {
       return
     }
     this.isEditMode = true
+    this.clearPendingTimers()
     // 延迟注入脚本，确保iframe完全加载
-    setTimeout(() => {
+    this.injectionTimer = setTimeout(() => {
+      this.injectionTimer = null
+      if (!this.isEditMode || this.destroyed) return
       this.injectEditScript()
     }, 300)
   }
@@ -63,14 +93,15 @@ export class visualEditorUtil {
    */
   disableEditMode() {
     this.isEditMode = false
+    this.clearPendingTimers()
     // 通知iframe关闭编辑模式
     this.sendMessageToIframe({
       type: 'TOGGLE_EDIT_MODE',
-      editMode: false
+      editMode: false,
     })
     // 清除所有编辑状态
     this.sendMessageToIframe({
-      type: 'CLEAR_ALL_EFFECTS'
+      type: 'CLEAR_ALL_EFFECTS',
     })
   }
 
@@ -94,7 +125,7 @@ export class visualEditorUtil {
   syncState() {
     if (!this.isEditMode) {
       this.sendMessageToIframe({
-        type: 'CLEAR_ALL_EFFECTS'
+        type: 'CLEAR_ALL_EFFECTS',
       })
     }
   }
@@ -104,7 +135,7 @@ export class visualEditorUtil {
    */
   clearSelection() {
     this.sendMessageToIframe({
-      type: 'CLEAR_SELECTION'
+      type: 'CLEAR_SELECTION',
     })
   }
 
@@ -113,15 +144,20 @@ export class visualEditorUtil {
    * 根据当前编辑模式状态决定是否注入脚本
    */
   onIframeLoad() {
+    if (this.destroyed) return
+    this.clearPendingTimers()
     if (this.isEditMode) {
       // 延迟注入脚本，确保iframe完全加载
-      setTimeout(() => {
+      this.injectionTimer = setTimeout(() => {
+        this.injectionTimer = null
+        if (!this.isEditMode || this.destroyed) return
         this.injectEditScript()
       }, 500)
     } else {
       // 确保非编辑模式时清理状态
-      setTimeout(() => {
-        this.syncState()
+      this.injectionTimer = setTimeout(() => {
+        this.injectionTimer = null
+        if (!this.destroyed) this.syncState()
       }, 500)
     }
   }
@@ -131,6 +167,7 @@ export class visualEditorUtil {
    * @param event - 消息事件对象
    */
   handleIframeMessage(event: MessageEvent) {
+    if (!event.data || typeof event.data !== 'object') return
     const { type, data } = event.data
     switch (type) {
       case 'ELEMENT_SELECTED': // 处理元素选中消息
@@ -150,7 +187,7 @@ export class visualEditorUtil {
    * 向 iframe 发送消息
    * @param message - 要发送的消息对象
    */
-  private sendMessageToIframe(message: Record<string, any>) {
+  private sendMessageToIframe(message: Record<string, unknown>) {
     if (this.iframe?.contentWindow) {
       this.iframe.contentWindow.postMessage(message, '*')
     }
@@ -161,35 +198,43 @@ export class visualEditorUtil {
    * 通过轮询等待iframe加载完成后再注入脚本
    */
   private injectEditScript() {
-    if (!this.iframe) return
+    const iframe = this.iframe
+    if (!iframe || this.destroyed || !this.isEditMode) return
+    this.clearPendingTimers()
 
     // 等待iframe加载完成的轮询函数
     const waitForIframeLoad = () => {
+      this.injectionPollTimer = null
+      if (this.destroyed || this.iframe !== iframe || !this.isEditMode) return
+
       try {
-        if (this.iframe!.contentWindow && this.iframe!.contentDocument) {
+        const contentDocument = iframe.contentDocument
+        if (iframe.contentWindow && contentDocument?.head && contentDocument?.body) {
           // 检查是否已经注入过脚本
-          if (this.iframe!.contentDocument.getElementById('visual-edit-script')) {
+          if (contentDocument.getElementById('visual-edit-script')) {
             // 如果已注入，只需发送启用编辑模式消息
             this.sendMessageToIframe({
               type: 'TOGGLE_EDIT_MODE',
-              editMode: true
+              editMode: true,
             })
             return
           }
 
           // 生成并注入编辑脚本
           const script = this.generateEditScript()
-          const scriptElement = this.iframe!.contentDocument.createElement('script')
+          const scriptElement = contentDocument.createElement('script')
           scriptElement.id = 'visual-edit-script'
           scriptElement.textContent = script
-          this.iframe!.contentDocument.head.appendChild(scriptElement)
-        } else {
-          // iframe未加载完成，继续轮询
-          setTimeout(waitForIframeLoad, 100)
+          contentDocument.head.appendChild(scriptElement)
+          return
         }
       } catch {
         // 静默处理注入失败（可能是跨域限制）
+        return
       }
+
+      // iframe未加载完成，继续轮询；可被 disableEditMode/destroy 取消
+      this.injectionPollTimer = setTimeout(waitForIframeLoad, 100)
     }
 
     waitForIframeLoad()
@@ -349,115 +394,150 @@ export class visualEditorUtil {
         }
 
         let eventListenersAdded = false; // 标记事件监听器是否已添加
+        let mouseoverHandler = null;
+        let mouseoutHandler = null;
+        let clickHandler = null;
+
+        function removeEventListeners() {
+          if (!document.body) return;
+          if (mouseoverHandler) {
+            document.body.removeEventListener('mouseover', mouseoverHandler, true);
+            mouseoverHandler = null;
+          }
+          if (mouseoutHandler) {
+            document.body.removeEventListener('mouseout', mouseoutHandler, true);
+            mouseoutHandler = null;
+          }
+          if (clickHandler) {
+            document.body.removeEventListener('click', clickHandler, true);
+            clickHandler = null;
+          }
+          eventListenersAdded = false;
+        }
 
         // 添加事件监听器
         function addEventListeners() {
-           if (eventListenersAdded) return;
+          if (eventListenersAdded || !document.body) return;
 
-           // 鼠标悬停处理函数
-           const mouseoverHandler = (event) => {
-             if (!isEditMode) return;
+          // 鼠标悬停处理函数
+          mouseoverHandler = (event) => {
+            if (!isEditMode) return;
 
-             const target = event.target;
-             // 跳过当前已悬停或已选中的元素
-             if (target === currentHoverElement || target === currentSelectedElement) return;
-             if (target === document.body || target === document.documentElement) return;
-             // 跳过脚本和样式元素
-             if (target.tagName === 'SCRIPT' || target.tagName === 'STYLE') return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            // 跳过当前已悬停或已选中的元素
+            if (target === currentHoverElement || target === currentSelectedElement) return;
+            if (target === document.body || target === document.documentElement) return;
+            // 跳过脚本和样式元素
+            if (target.tagName === 'SCRIPT' || target.tagName === 'STYLE') return;
 
-             clearHoverEffect();
-             target.classList.add('edit-hover');
-             currentHoverElement = target;
+            clearHoverEffect();
+            target.classList.add('edit-hover');
+            currentHoverElement = target;
 
-             // 发送悬停元素信息给父窗口
-             const elementInfo = getElementInfo(target);
-             try {
-               window.parent.postMessage({
-                 type: 'ELEMENT_HOVER',
-                 data: { elementInfo }
-               }, '*');
-             } catch {
-               // 静默处理发送失败
-             }
-           };
+            // 发送悬停元素信息给父窗口
+            const elementInfo = getElementInfo(target);
+            try {
+              window.parent.postMessage({
+                type: 'ELEMENT_HOVER',
+                data: { elementInfo }
+              }, '*');
+            } catch {
+              // 静默处理发送失败
+            }
+          };
 
-           // 鼠标移出处理函数
-           const mouseoutHandler = (event) => {
-             if (!isEditMode) return;
+          // 鼠标移出处理函数
+          mouseoutHandler = (event) => {
+            if (!isEditMode) return;
 
-             const target = event.target;
-             // 只有当鼠标完全离开元素时才清除效果
-             if (!event.relatedTarget || !target.contains(event.relatedTarget)) {
-               clearHoverEffect();
-             }
-           };
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            // 只有当鼠标完全离开元素时才清除效果
+            if (!event.relatedTarget || !target.contains(event.relatedTarget)) {
+              clearHoverEffect();
+            }
+          };
 
-           // 点击处理函数
-           const clickHandler = (event) => {
-             if (!isEditMode) return;
+          // 点击处理函数
+          clickHandler = (event) => {
+            if (!isEditMode) return;
 
-             event.preventDefault();
-             event.stopPropagation();
+            event.preventDefault();
+            event.stopPropagation();
 
-             const target = event.target;
-             if (target === document.body || target === document.documentElement) return;
-             if (target.tagName === 'SCRIPT' || target.tagName === 'STYLE') return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (target === document.body || target === document.documentElement) return;
+            if (target.tagName === 'SCRIPT' || target.tagName === 'STYLE') return;
 
-             clearSelectedEffect();
-             clearHoverEffect();
+            clearSelectedEffect();
+            clearHoverEffect();
 
-             target.classList.add('edit-selected');
-             currentSelectedElement = target;
+            target.classList.add('edit-selected');
+            currentSelectedElement = target;
 
-             // 发送选中元素信息给父窗口
-             const elementInfo = getElementInfo(target);
-             try {
-               window.parent.postMessage({
-                 type: 'ELEMENT_SELECTED',
-                 data: { elementInfo }
-               }, '*');
-             } catch {
-               // 静默处理发送失败
-             }
-           };
+            // 发送选中元素信息给父窗口
+            const elementInfo = getElementInfo(target);
+            try {
+              window.parent.postMessage({
+                type: 'ELEMENT_SELECTED',
+                data: { elementInfo }
+              }, '*');
+            } catch {
+              // 静默处理发送失败
+            }
+          };
 
-           // 使用捕获模式确保事件处理
-           document.body.addEventListener('mouseover', mouseoverHandler, true);
-           document.body.addEventListener('mouseout', mouseoutHandler, true);
-           document.body.addEventListener('click', clickHandler, true);
-           eventListenersAdded = true;
-         }
+          // 使用捕获模式确保事件处理
+          document.body.addEventListener('mouseover', mouseoverHandler, true);
+          document.body.addEventListener('mouseout', mouseoutHandler, true);
+          document.body.addEventListener('click', clickHandler, true);
+          eventListenersAdded = true;
+        }
 
-         function setupEventListeners() {
-           addEventListeners();
-         }
+        function setupEventListeners() {
+          addEventListeners();
+        }
+
+        function handleParentMessage(event) {
+          const message = event.data;
+          if (!message || typeof message !== 'object') return;
+
+          const { type, editMode } = message;
+          switch (type) {
+            case 'TOGGLE_EDIT_MODE': // 切换编辑模式
+              isEditMode = editMode;
+              if (isEditMode) {
+                injectStyles();
+                setupEventListeners();
+              } else {
+                removeEventListeners();
+                clearHoverEffect();
+                clearSelectedEffect();
+              }
+              break;
+            case 'CLEAR_SELECTION': // 清除选中
+              clearSelectedEffect();
+              break;
+            case 'CLEAR_ALL_EFFECTS': { // 清除所有效果
+              isEditMode = false;
+              removeEventListeners();
+              clearHoverEffect();
+              clearSelectedEffect();
+              const tip = document.getElementById('edit-tip');
+              if (tip) tip.remove(); // 移除编辑提示
+              break;
+            }
+          }
+        }
 
         // 监听父窗口消息
-        window.addEventListener('message', (event) => {
-           const { type, editMode } = event.data;
-           switch (type) {
-             case 'TOGGLE_EDIT_MODE': // 切换编辑模式
-               isEditMode = editMode;
-               if (isEditMode) {
-                 injectStyles();
-                 setupEventListeners();
-               } else {
-                 clearHoverEffect();
-                 clearSelectedEffect();
-               }
-               break;
-             case 'CLEAR_SELECTION': // 清除选中
-               clearSelectedEffect();
-               break;
-             case 'CLEAR_ALL_EFFECTS': // 清除所有效果
-               isEditMode = false;
-               clearHoverEffect();
-               clearSelectedEffect();
-               const tip = document.getElementById('edit-tip');
-               if (tip) tip.remove(); // 移除编辑提示
-               break;
-           }
-         });
+        window.addEventListener('message', handleParentMessage);
+        window.addEventListener('pagehide', () => {
+          removeEventListeners();
+          window.removeEventListener('message', handleParentMessage);
+        }, { once: true });
 
          // 初始化编辑模式
          injectStyles();

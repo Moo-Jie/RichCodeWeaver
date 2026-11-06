@@ -34,9 +34,25 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import MarkdownIt from 'markdown-it'
-import hljs from 'highlight.js'
+import hljs from 'highlight.js/lib/core'
+import bash from 'highlight.js/lib/languages/bash'
+import css from 'highlight.js/lib/languages/css'
+import dockerfile from 'highlight.js/lib/languages/dockerfile'
+import java from 'highlight.js/lib/languages/java'
+import javascript from 'highlight.js/lib/languages/javascript'
+import json from 'highlight.js/lib/languages/json'
+import less from 'highlight.js/lib/languages/less'
+import markdown from 'highlight.js/lib/languages/markdown'
+import nginx from 'highlight.js/lib/languages/nginx'
+import python from 'highlight.js/lib/languages/python'
+import scss from 'highlight.js/lib/languages/scss'
+import sql from 'highlight.js/lib/languages/sql'
+import typescript from 'highlight.js/lib/languages/typescript'
+import xml from 'highlight.js/lib/languages/xml'
+import yaml from 'highlight.js/lib/languages/yaml'
+import DOMPurify from 'dompurify'
 import 'highlight.js/styles/github.css'
 import { processToolCallMarkers } from '@/utils/toolCallParser'
 import { fixCodeBlockFormat, processWorkflowMarkers } from '@/utils/workflowMarkerParser'
@@ -85,13 +101,86 @@ const props = withDefaults(defineProps<Props>(), {
   collapseLongCode: false,
   collapseLongCodeThreshold: 1200,
   collapseWorkflowSections: true,
-  autoCollapseSections: false
+  autoCollapseSections: false,
 })
+
+hljs.registerLanguage('bash', bash)
+hljs.registerLanguage('css', css)
+hljs.registerLanguage('dockerfile', dockerfile)
+hljs.registerLanguage('java', java)
+hljs.registerLanguage('javascript', javascript)
+hljs.registerLanguage('json', json)
+hljs.registerLanguage('less', less)
+hljs.registerLanguage('markdown', markdown)
+hljs.registerLanguage('nginx', nginx)
+hljs.registerLanguage('python', python)
+hljs.registerLanguage('scss', scss)
+hljs.registerLanguage('sql', sql)
+hljs.registerLanguage('typescript', typescript)
+hljs.registerLanguage('xml', xml)
+hljs.registerLanguage('yaml', yaml)
 
 const codeViewerOpen = ref(false)
 const codeViewer = ref<CodeBlockInfo | null>(null)
+const STREAM_RENDER_INTERVAL_MS = 32
+const LARGE_STREAM_RENDER_INTERVAL_MS = 72
+const LARGE_CONTENT_THRESHOLD = 24000
+const MAX_HIGHLIGHT_CONTENT_LENGTH = 60000
+const renderContent = ref(props.content)
+let renderTimer: number | null = null
+
+const flushRenderedContent = () => {
+  if (renderTimer !== null) {
+    clearTimeout(renderTimer)
+    renderTimer = null
+  }
+  renderContent.value = props.content
+}
+
+watch(
+  () => props.content,
+  () => {
+    if (!props.streaming) {
+      flushRenderedContent()
+      return
+    }
+    if (renderTimer !== null) return
+    const delay =
+      props.content.length >= LARGE_CONTENT_THRESHOLD
+        ? LARGE_STREAM_RENDER_INTERVAL_MS
+        : STREAM_RENDER_INTERVAL_MS
+    renderTimer = window.setTimeout(() => {
+      renderTimer = null
+      if (renderContent.value !== props.content) renderContent.value = props.content
+    }, delay)
+  },
+  { flush: 'sync' },
+)
+
+watch(
+  () => props.streaming,
+  (streaming) => {
+    if (!streaming) flushRenderedContent()
+  },
+  { flush: 'sync' },
+)
+
+onUnmounted(() => {
+  if (renderTimer !== null) {
+    clearTimeout(renderTimer)
+    renderTimer = null
+  }
+})
+
 let renderedCodeBlocks = new Map<string, CodeBlockInfo>()
 let sectionRenderCache = new Map<number, RenderedMarkdownSection>()
+
+const sanitizeRenderedHtml = (html: string) => {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true, svg: true, svgFilters: true },
+    ADD_ATTR: ['target', 'rel', 'data-cw-code-key', 'open'],
+  })
+}
 
 const LANGUAGE_LABELS: Record<string, string> = {
   html: 'HTML',
@@ -108,7 +197,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   sh: 'Shell',
   python: 'Python',
   java: 'Java',
-  sql: 'SQL'
+  sql: 'SQL',
 }
 
 const normalizeLanguage = (lang: string) => {
@@ -116,6 +205,8 @@ const normalizeLanguage = (lang: string) => {
   if (normalized === 'js') return 'javascript'
   if (normalized === 'ts') return 'typescript'
   if (normalized === 'html' || normalized === 'vue') return 'xml'
+  if (normalized === 'sh' || normalized === 'shell') return 'bash'
+  if (normalized === 'yml') return 'yaml'
   return normalized
 }
 
@@ -128,9 +219,14 @@ const md: MarkdownIt = new MarkdownIt({
   html: true,
   linkify: true,
   typographer: true,
-  highlight: function(str: string, lang: string): string {
+  highlight: function (str: string, lang: string): string {
     const normalizedLang = normalizeLanguage(lang)
-    if (!props.streaming && normalizedLang && hljs.getLanguage(normalizedLang)) {
+    if (
+      !props.streaming &&
+      renderContent.value.length <= MAX_HIGHLIGHT_CONTENT_LENGTH &&
+      normalizedLang &&
+      hljs.getLanguage(normalizedLang)
+    ) {
       try {
         return (
           '<pre class="hljs"><code>' +
@@ -143,7 +239,7 @@ const md: MarkdownIt = new MarkdownIt({
     }
 
     return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>'
-  }
+  },
 })
 
 const defaultFenceRule = md.renderer.rules.fence
@@ -165,7 +261,7 @@ md.renderer.rules.fence = (tokens, idx, options, env, self) => {
       language,
       languageLabel,
       lineCount,
-      charCount: code.length
+      charCount: code.length,
     }
     renderEnv.codeBlocks.set(key, codeBlock)
 
@@ -200,7 +296,7 @@ const WORKFLOW_FOLD_HINTS = [
   '任务执行完成',
   '项目已完成',
   '项目构建',
-  '交付检查'
+  '交付检查',
 ]
 
 const AUTO_FOLD_HEADING_PATTERN = /^(#{2,3})[ \t]+(.+?)[ \t]*#*[ \t]*$/
@@ -214,7 +310,7 @@ const stripHeadingHtml = (value: string) => {
 }
 
 const shouldFoldWorkflowSection = (title: string) => {
-  return WORKFLOW_FOLD_HINTS.some(hint => title.includes(hint))
+  return WORKFLOW_FOLD_HINTS.some((hint) => title.includes(hint))
 }
 
 // 将工作流模块转换为原生 details，最终输出默认收起，流式时只展开最后一个活动模块。
@@ -225,8 +321,8 @@ const foldWorkflowSections = (html: string, streaming: boolean) => {
   if (headings.length === 0) return html
 
   const foldableIndexes = headings
-    .map((heading, index) => shouldFoldWorkflowSection(stripHeadingHtml(heading[3])) ? index : -1)
-    .filter(index => index >= 0)
+    .map((heading, index) => (shouldFoldWorkflowSection(stripHeadingHtml(heading[3])) ? index : -1))
+    .filter((index) => index >= 0)
   if (foldableIndexes.length === 0) return html
 
   const lastFoldableIndex = foldableIndexes[foldableIndexes.length - 1]
@@ -268,7 +364,7 @@ const splitMarkdownSections = (markdown: string): MarkdownSourceSection[] => {
     key: `section-${sectionIndex++}`,
     source: '',
     level: 0,
-    title: ''
+    title: '',
   }
 
   const flush = () => {
@@ -297,7 +393,7 @@ const splitMarkdownSections = (markdown: string): MarkdownSourceSection[] => {
         key: `section-${sectionIndex++}`,
         source: '',
         level: 0,
-        title: ''
+        title: '',
       }
       continue
     }
@@ -310,7 +406,7 @@ const splitMarkdownSections = (markdown: string): MarkdownSourceSection[] => {
         source: '',
         level: headingMatch[1].length,
         title: stripHeadingHtml(md.renderInline(headingMatch[2].trim())),
-        order: ++stageOrder
+        order: ++stageOrder,
       }
     }
 
@@ -331,9 +427,12 @@ const decorateConversationSemantics = (html: string) => {
     .replace(/<blockquote>\s*<p>(生成完成[^<]*)<\/p>\s*<\/blockquote>/g, (_match, text: string) => {
       return `<blockquote class="cw-completion-note"><p>${text}</p></blockquote>`
     })
-    .replace(/<blockquote>\s*<p>(生成未完成[^<]*)<\/p>\s*<\/blockquote>/g, (_match, text: string) => {
-      return `<blockquote class="cw-error-note"><p>${text}</p></blockquote>`
-    })
+    .replace(
+      /<blockquote>\s*<p>(生成未完成[^<]*)<\/p>\s*<\/blockquote>/g,
+      (_match, text: string) => {
+        return `<blockquote class="cw-error-note"><p>${text}</p></blockquote>`
+      },
+    )
 }
 
 const getStageIconMarkup = (title: string) => {
@@ -341,11 +440,14 @@ const getStageIconMarkup = (title: string) => {
   if (title.includes('执行概览')) {
     path = '<path d="M5 6h14M5 12h14M5 18h9"/><circle cx="18" cy="18" r="2"/>'
   } else if (title.includes('资源')) {
-    path = '<path d="m4 7.5 8-4.5 8 4.5-8 4.5-8-4.5Z"/><path d="m4 12 8 4.5 8-4.5M4 16.5l8 4.5 8-4.5"/>'
+    path =
+      '<path d="m4 7.5 8-4.5 8 4.5-8 4.5-8-4.5Z"/><path d="m4 12 8 4.5 8-4.5M4 16.5l8 4.5 8-4.5"/>'
   } else if (title.includes('需求增强')) {
-    path = '<path d="m11 3 1.5 4.5L17 9l-4.5 1.5L11 15l-1.5-4.5L5 9l4.5-1.5L11 3Z"/><path d="m18 14 .8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8L18 14Z"/>'
+    path =
+      '<path d="m11 3 1.5 4.5L17 9l-4.5 1.5L11 15l-1.5-4.5L5 9l4.5-1.5L11 3Z"/><path d="m18 14 .8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8L18 14Z"/>'
   } else if (title.includes('生成策略')) {
-    path = '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>'
+    path =
+      '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>'
   } else if (title.includes('代码生成')) {
     path = '<path d="m8 7-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/>'
   } else if (title.includes('结构检查')) {
@@ -365,18 +467,16 @@ const wrapMarkdownSection = (
   renderedHtml: string,
   index: number,
   lastIndex: number,
-  lastStageIndex: number
+  lastStageIndex: number,
 ) => {
   const isActiveSection = props.streaming && index === lastIndex
-  const cursor = isActiveSection
-    ? '<span class="cw-typing-cursor" aria-hidden="true"></span>'
-    : ''
+  const cursor = isActiveSection ? '<span class="cw-typing-cursor" aria-hidden="true"></span>' : ''
 
   if (!section.level) return renderedHtml + cursor
 
   const headingPattern = new RegExp(
     `^\\s*<h${section.level}[^>]*>([\\s\\S]*?)<\\/h${section.level}>\\s*`,
-    'i'
+    'i',
   )
   const headingMatch = renderedHtml.match(headingPattern)
   const body = headingMatch ? renderedHtml.slice(headingMatch[0].length) : renderedHtml
@@ -384,24 +484,33 @@ const wrapMarkdownSection = (
   const isError = /失败|未通过|阻断|中断/.test(status)
   const isWarning = /需修复|警告/.test(status)
   const state = isError ? 'error' : isWarning ? 'warning' : isActiveSection ? 'active' : 'completed'
-  const stateLabel = state === 'error' ? '异常' : state === 'warning' ? '需修复' : state === 'active' ? '进行中' : '已完成'
-  const railSymbol = state === 'completed'
-    ? '<span class="cw-stage-check"></span>'
-    : state === 'active'
-      ? '<span class="cw-stage-dot"></span>'
-      : '<span class="cw-stage-rail-label">!</span>'
-  const placeholder = isActiveSection && !body.trim()
-    ? '<p class="cw-workflow-fold-placeholder">正在生成...</p>'
-    : ''
+  const stateLabel =
+    state === 'error'
+      ? '异常'
+      : state === 'warning'
+        ? '需修复'
+        : state === 'active'
+          ? '进行中'
+          : '已完成'
+  const railSymbol =
+    state === 'completed'
+      ? '<span class="cw-stage-check"></span>'
+      : state === 'active'
+        ? '<span class="cw-stage-dot"></span>'
+        : '<span class="cw-stage-rail-label">!</span>'
+  const placeholder =
+    isActiveSection && !body.trim() ? '<p class="cw-workflow-fold-placeholder">正在生成...</p>' : ''
   const orderLabel = section.order ? String(section.order).padStart(2, '0') : ''
   const stageIcon = getStageIconMarkup(section.title)
   const isLastStage = index === lastStageIndex
 
-  return `<div class="cw-stage-shell cw-stage-shell--h${section.level}${isLastStage ? ' is-last-stage' : ''}">`
-    + `<span class="cw-stage-rail-node is-${state}" aria-label="${stateLabel}">${railSymbol}</span>`
-    + `<details class="cw-workflow-fold cw-workflow-fold--h${section.level}"${isActiveSection ? ' open' : ''}>`
-    + `<summary class="cw-workflow-fold-summary"><span class="cw-workflow-fold-title">${stageIcon}${orderLabel ? `<span class="cw-stage-index">${orderLabel}</span>` : ''}<span class="cw-stage-title">${md.utils.escapeHtml(section.title)}</span></span><span class="cw-workflow-fold-tail"><span class="cw-workflow-fold-mark" aria-hidden="true"></span></span></summary>`
-    + `<div class="cw-workflow-fold-body${isActiveSection ? ' is-streaming' : ''}">${body}${placeholder}</div></details></div>`
+  return (
+    `<div class="cw-stage-shell cw-stage-shell--h${section.level}${isLastStage ? ' is-last-stage' : ''}">` +
+    `<span class="cw-stage-rail-node is-${state}" aria-label="${stateLabel}">${railSymbol}</span>` +
+    `<details class="cw-workflow-fold cw-workflow-fold--h${section.level}"${isActiveSection ? ' open' : ''}>` +
+    `<summary class="cw-workflow-fold-summary"><span class="cw-workflow-fold-title">${stageIcon}${orderLabel ? `<span class="cw-stage-index">${orderLabel}</span>` : ''}<span class="cw-stage-title">${md.utils.escapeHtml(section.title)}</span></span><span class="cw-workflow-fold-tail"><span class="cw-workflow-fold-mark" aria-hidden="true"></span></span></summary>` +
+    `<div class="cw-workflow-fold-body${isActiveSection ? ' is-streaming' : ''}">${body}${placeholder}</div></details></div>`
+  )
 }
 // 预处理Markdown内容，识别并包裹工具调用信息和工作流标记
 const preprocessMarkdown = (content: string): string => {
@@ -420,7 +529,7 @@ const preprocessMarkdown = (content: string): string => {
 }
 
 const renderedSections = computed(() => {
-  const processedContent = preprocessMarkdown(props.content)
+  const processedContent = preprocessMarkdown(renderContent.value)
   if (!processedContent) return []
 
   const sourceSections: MarkdownSourceSection[] = props.autoCollapseSections
@@ -428,24 +537,33 @@ const renderedSections = computed(() => {
     : [{ key: 'document', source: processedContent, level: 0, title: '' }]
   const nextCache = new Map<number, RenderedMarkdownSection>()
   const allCodeBlocks = new Map<string, CodeBlockInfo>()
-  const renderKey = `${props.streaming}|${props.collapseLongCode}|${props.collapseLongCodeThreshold}`
+  const highlightEnabled =
+    !props.streaming && renderContent.value.length <= MAX_HIGHLIGHT_CONTENT_LENGTH
+  const renderKey = `${highlightEnabled}|${props.collapseLongCode}|${props.collapseLongCodeThreshold}`
   const lastSectionIndex = sourceSections.length - 1
-  const lastStageIndex = sourceSections.reduce((last, section, index) => section.level > 0 ? index : last, -1)
+  const lastStageIndex = sourceSections.reduce(
+    (last, section, index) => (section.level > 0 ? index : last),
+    -1,
+  )
 
   const sections = sourceSections.map((section, index) => {
     let renderedSection = sectionRenderCache.get(index)
-    if (!renderedSection || renderedSection.source !== section.source || renderedSection.renderKey !== renderKey) {
+    if (
+      !renderedSection ||
+      renderedSection.source !== section.source ||
+      renderedSection.renderKey !== renderKey
+    ) {
       const codeBlocks = new Map<string, CodeBlockInfo>()
       const renderEnv: MarkdownRenderEnv = {
         codeBlocks,
         sectionKey: section.key,
-        nextCodeBlockIndex: 0
+        nextCodeBlockIndex: 0,
       }
       renderedSection = {
         source: section.source,
         renderKey,
-        html: md.render(section.source, renderEnv),
-        codeBlocks
+        html: sanitizeRenderedHtml(md.render(section.source, renderEnv)),
+        codeBlocks,
       }
     }
 
@@ -454,14 +572,16 @@ const renderedSections = computed(() => {
 
     let html = renderedSection.html
     if (props.autoCollapseSections) {
-      html = decorateConversationSemantics(wrapMarkdownSection(section, html, index, lastSectionIndex, lastStageIndex))
+      html = decorateConversationSemantics(
+        wrapMarkdownSection(section, html, index, lastSectionIndex, lastStageIndex),
+      )
     } else {
       html = foldWorkflowSections(html, props.streaming)
     }
 
     return {
       key: section.key,
-      html
+      html,
     }
   })
 
@@ -479,7 +599,7 @@ const highlightedViewerCode = computed(() => {
   const language = normalizeLanguage(codeViewer.value?.language || '')
   if (language && hljs.getLanguage(language)) {
     try {
-      return hljs.highlight(code, { language, ignoreIllegals: true }).value
+      return sanitizeRenderedHtml(hljs.highlight(code, { language, ignoreIllegals: true }).value)
     } catch {
       return md.utils.escapeHtml(code)
     }
@@ -866,7 +986,7 @@ const handleContentClick = (event: MouseEvent) => {
   border-radius: 10px;
   padding: 16px 20px;
   margin: 16px 0;
-  border-left: 4px solid #4CAF50;
+  border-left: 4px solid #4caf50;
 }
 
 .markdown-content :deep(.workflow-steps ul),
@@ -892,7 +1012,7 @@ const handleContentClick = (event: MouseEvent) => {
   transform: translateY(-50%);
   width: 6px;
   height: 6px;
-  background: #4CAF50;
+  background: #4caf50;
   border-radius: 50%;
 }
 
@@ -962,7 +1082,7 @@ const handleContentClick = (event: MouseEvent) => {
   content: '✓';
   position: absolute;
   left: 8px;
-  color: #4CAF50;
+  color: #4caf50;
   font-weight: bold;
   font-size: 16px;
 }
@@ -1022,7 +1142,7 @@ const handleContentClick = (event: MouseEvent) => {
 
 /* 引用块样式增强 */
 .markdown-content :deep(blockquote) {
-  border-left: 4px solid #4CAF50;
+  border-left: 4px solid #4caf50;
   background: linear-gradient(90deg, #f1f8f4 0%, #f8f9fa 100%);
   color: #495057;
   padding: 12px 16px;
@@ -1131,7 +1251,9 @@ const handleContentClick = (event: MouseEvent) => {
   color: #fff;
   background: #1a1a1a;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .markdown-content :deep(.cw-code-open-btn:hover) {
@@ -1222,7 +1344,10 @@ const handleContentClick = (event: MouseEvent) => {
   padding: 8px 12px;
   max-height: 200px;
   overflow-y: auto;
-  transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+  transition:
+    max-height 0.3s ease,
+    padding 0.3s ease,
+    opacity 0.3s ease;
 }
 
 /* 折叠状态 */
@@ -1373,7 +1498,10 @@ const handleContentClick = (event: MouseEvent) => {
   padding: 12px;
   max-height: 300px;
   overflow-y: auto;
-  transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+  transition:
+    max-height 0.3s ease,
+    padding 0.3s ease,
+    opacity 0.3s ease;
 }
 
 .markdown-content :deep(.think-content-wrapper.collapsed .think-content-body) {
@@ -1475,7 +1603,9 @@ const handleContentClick = (event: MouseEvent) => {
   color: #444;
   cursor: pointer;
   user-select: none;
-  transition: background 150ms ease, color 150ms ease;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
 }
 
 .markdown-content :deep(.cw-workflow-fold-summary:hover) {
@@ -1968,7 +2098,10 @@ const handleContentClick = (event: MouseEvent) => {
   border: 1px solid #ececec;
   border-radius: 9px;
   background: #fcfcfc;
-  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .cw-stream-markdown :deep(.cw-workflow-fold[open]) {
@@ -2115,16 +2248,19 @@ const handleContentClick = (event: MouseEvent) => {
 }
 
 @keyframes cw-caret-blink {
-  0%, 46% {
+  0%,
+  46% {
     opacity: 1;
   }
-  47%, 100% {
+  47%,
+  100% {
     opacity: 0;
   }
 }
 
 @keyframes cw-stage-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.45;
     transform: scale(0.82);
   }

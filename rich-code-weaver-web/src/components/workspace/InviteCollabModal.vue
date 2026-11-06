@@ -49,11 +49,7 @@
           <p>暂无可邀请的好友</p>
         </div>
         <div v-else class="friend-select-list">
-          <div
-            v-for="friend in availableFriends"
-            :key="friend.friendId"
-            class="friend-select-item"
-          >
+          <div v-for="friend in availableFriends" :key="friend.friendId" class="friend-select-item">
             <a-avatar :size="34" :src="friend.friendAvatar">
               {{ friend.friendName?.charAt(0) || 'U' }}
             </a-avatar>
@@ -85,19 +81,19 @@ import {
   InfoCircleOutlined,
   PlusOutlined,
   TeamOutlined,
-  UserOutlined
+  UserOutlined,
 } from '@ant-design/icons-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { useChatStore } from '@/stores/chatStore'
 import {
   inviteCollaborator,
   listCollaborators,
-  removeCollaborator
+  removeCollaborator,
 } from '@/api/collaboratorController'
 
 interface Props {
   open: boolean
-  appId: number | null
+  appId: number | string | null
 }
 
 const props = defineProps<Props>()
@@ -109,7 +105,7 @@ const chatStore = useChatStore()
 /** 控制弹窗可见性 */
 const visible = computed({
   get: () => props.open,
-  set: (val: boolean) => emit('update:open', val)
+  set: (val: boolean) => emit('update:open', val),
 })
 
 /** 当前产物的协作者列表 */
@@ -139,14 +135,14 @@ watch(
       await loadCollaborators()
       await chatStore.fetchFriends()
     }
-  }
+  },
 )
 
 /** 加载当前产物的协作者列表 */
 async function loadCollaborators() {
   if (!props.appId) return
   try {
-    const res = await listCollaborators({ appId: props.appId })
+    const res = await listCollaborators({ appId: props.appId as unknown as number })
     if (res.data.code === 0 && res.data.data) {
       collaborators.value = res.data.data
     }
@@ -161,9 +157,9 @@ async function doInvite(friend: API.UserFriendshipVO) {
   invitingId.value = friend.friendId
   try {
     const res = await inviteCollaborator({
-      appId: props.appId,
+      appId: props.appId as unknown as number,
       userId: friend.friendId,
-      role: 'editor'
+      role: 'editor',
     })
     if (res.data.code === 0) {
       message.success('邀请已发送')
@@ -182,7 +178,10 @@ async function doInvite(friend: API.UserFriendshipVO) {
 async function doRemoveCollab(collab: API.AppCollaboratorVO) {
   if (!props.appId || !collab.userId) return
   try {
-    const res = await removeCollaborator({ appId: props.appId, userId: collab.userId })
+    const res = await removeCollaborator({
+      appId: props.appId as unknown as number,
+      userId: collab.userId,
+    })
     if (res.data.code === 0) {
       message.success('已移除协作者')
       await loadCollaborators()

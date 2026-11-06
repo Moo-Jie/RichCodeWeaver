@@ -79,13 +79,23 @@
                 </a-tag>
               </template>
               <template v-if="column.key === 'isPublic'">
-                <a-tag :class="['mono-tag', record.isPublic === 1 ? 'status-tag-enabled' : 'status-tag-disabled']">
+                <a-tag
+                  :class="[
+                    'mono-tag',
+                    record.isPublic === 1 ? 'status-tag-enabled' : 'status-tag-disabled',
+                  ]"
+                >
                   {{ record.isPublic === 1 ? '公开' : '私有' }}
                 </a-tag>
               </template>
               <template v-if="column.key === 'content'">
                 <template v-if="record.materialType === 'image'">
-                  <a-image :src="record.content" width="48" height="48" style="object-fit:cover;border-radius:4px" />
+                  <a-image
+                    :src="record.content"
+                    width="48"
+                    height="48"
+                    style="object-fit: cover; border-radius: 4px"
+                  />
                 </template>
                 <template v-else>
                   <a-tooltip :title="record.content">
@@ -96,11 +106,9 @@
               <template v-if="column.key === 'action'">
                 <a-space>
                   <a-button type="link" size="small" @click="showMEditModal(record)">编辑</a-button>
-                  <a-button
-                    type="link"
-                    size="small"
-                    @click="togglePublic(record)"
-                  >{{ record.isPublic === 1 ? '设为私有' : '设为公开' }}</a-button>
+                  <a-button type="link" size="small" @click="togglePublic(record)">{{
+                    record.isPublic === 1 ? '设为私有' : '设为公开'
+                  }}</a-button>
                   <a-popconfirm title="确定删除此素材吗？" @confirm="handleMDelete(record.id)">
                     <a-button type="link" size="small" danger>删除</a-button>
                   </a-popconfirm>
@@ -137,7 +145,12 @@
                 <span v-else>-</span>
               </template>
               <template v-if="column.key === 'isEnabled'">
-                <a-tag :class="['mono-tag', record.isEnabled === 1 ? 'status-tag-enabled' : 'status-tag-disabled']">
+                <a-tag
+                  :class="[
+                    'mono-tag',
+                    record.isEnabled === 1 ? 'status-tag-enabled' : 'status-tag-disabled',
+                  ]"
+                >
                   {{ record.isEnabled === 1 ? '启用' : '禁用' }}
                 </a-tag>
               </template>
@@ -164,12 +177,21 @@
       width="620px"
       :destroy-on-close="true"
     >
-      <a-form :model="mForm" :label-col="{ span: 5 }" :wrapper-col="{ span: 18 }" style="margin-top:12px">
+      <a-form
+        :model="mForm"
+        :label-col="{ span: 5 }"
+        :wrapper-col="{ span: 18 }"
+        style="margin-top: 12px"
+      >
         <a-form-item label="素材名称" required>
           <a-input v-model:value="mForm.materialName" placeholder="请输入素材名称" />
         </a-form-item>
         <a-form-item label="分类" required>
-          <a-select v-model:value="mForm.categoryId" placeholder="请选择分类" @change="handleMCategoryChange">
+          <a-select
+            v-model:value="mForm.categoryId"
+            placeholder="请选择分类"
+            @change="handleMCategoryChange"
+          >
             <a-select-option v-for="cat in categories" :key="cat.id" :value="cat.id">
               {{ cat.categoryName }}
             </a-select-option>
@@ -194,10 +216,15 @@
               <a-input
                 v-model:value="mForm.content"
                 :placeholder="getContentPlaceholder(mForm.materialType)"
-                style="margin-top:8px"
+                style="margin-top: 8px"
               />
               <div v-if="mForm.materialType === 'image' && mForm.content" class="img-preview">
-                <a-image :src="mForm.content" width="120" height="80" style="object-fit:cover;border-radius:4px;margin-top:8px" />
+                <a-image
+                  :src="mForm.content"
+                  width="120"
+                  height="80"
+                  style="object-fit: cover; border-radius: 4px; margin-top: 8px"
+                />
               </div>
             </div>
           </template>
@@ -223,12 +250,14 @@
             mode="tags"
             placeholder="输入标签后按 Enter 确认"
             :token-separators="[',']"
-            style="width:100%"
+            style="width: 100%"
           />
         </a-form-item>
         <a-form-item label="是否公开">
           <a-switch v-model:checked="mIsPublicChecked" />
-          <span style="margin-left:8px;color:#999;font-size:12px">公开后其他用户也可使用此素材</span>
+          <span style="margin-left: 8px; color: #999; font-size: 12px"
+            >公开后其他用户也可使用此素材</span
+          >
         </a-form-item>
       </a-form>
     </a-modal>
@@ -278,7 +307,12 @@
       @ok="handleCSubmit"
       width="500px"
     >
-      <a-form :model="cForm" :label-col="{ span: 5 }" :wrapper-col="{ span: 18 }" style="margin-top:12px">
+      <a-form
+        :model="cForm"
+        :label-col="{ span: 5 }"
+        :wrapper-col="{ span: 18 }"
+        style="margin-top: 12px"
+      >
         <a-form-item label="分类名称" required>
           <a-input v-model:value="cForm.categoryName" placeholder="请输入分类名称" />
         </a-form-item>
@@ -287,12 +321,18 @@
             v-model:value="cForm.categoryCode"
             placeholder="请选择素材类型编码"
             :disabled="cIsEdit"
-            style="width:100%"
+            style="width: 100%"
           >
-            <a-select-option value="image">image &nbsp;—&nbsp; 图片类（需上传文件）</a-select-option>
+            <a-select-option value="image"
+              >image &nbsp;—&nbsp; 图片类（需上传文件）</a-select-option
+            >
             <a-select-option value="text">text &nbsp;—&nbsp; 文本类（纯文本输入）</a-select-option>
-            <a-select-option value="video">video &nbsp;—&nbsp; 视频类（需上传文件）</a-select-option>
-            <a-select-option value="audio">audio &nbsp;—&nbsp; 音频类（需上传文件）</a-select-option>
+            <a-select-option value="video"
+              >video &nbsp;—&nbsp; 视频类（需上传文件）</a-select-option
+            >
+            <a-select-option value="audio"
+              >audio &nbsp;—&nbsp; 音频类（需上传文件）</a-select-option
+            >
             <a-select-option value="link">link &nbsp;—&nbsp; 链接类（输入 URL）</a-select-option>
           </a-select>
           <div class="form-tip" v-if="!cIsEdit">编码决定该分类下素材的录入方式，创建后不可修改</div>
@@ -301,7 +341,9 @@
           <a-select v-model:value="cForm.categoryIcon" placeholder="选择图标" allow-clear>
             <a-select-option value="PaperClipOutlined">PaperClipOutlined (图片)</a-select-option>
             <a-select-option value="FileTextOutlined">FileTextOutlined (文本)</a-select-option>
-            <a-select-option value="VideoCameraOutlined">VideoCameraOutlined (视频)</a-select-option>
+            <a-select-option value="VideoCameraOutlined"
+              >VideoCameraOutlined (视频)</a-select-option
+            >
             <a-select-option value="SoundOutlined">SoundOutlined (音频)</a-select-option>
             <a-select-option value="LinkOutlined">LinkOutlined (链接)</a-select-option>
             <a-select-option value="FolderOutlined">FolderOutlined (文件夹)</a-select-option>
@@ -312,7 +354,12 @@
           <a-textarea v-model:value="cForm.description" placeholder="分类描述" :rows="2" />
         </a-form-item>
         <a-form-item label="排序">
-          <a-input-number v-model:value="cForm.sortOrder" :min="0" placeholder="越小越靠前" style="width:100%" />
+          <a-input-number
+            v-model:value="cForm.sortOrder"
+            :min="0"
+            placeholder="越小越靠前"
+            style="width: 100%"
+          />
         </a-form-item>
         <a-form-item label="是否启用">
           <a-switch v-model:checked="cIsEnabledChecked" />
@@ -323,7 +370,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, type Component } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { message } from 'ant-design-vue'
@@ -338,7 +385,7 @@ import {
   PlusOutlined,
   SoundOutlined,
   UploadOutlined,
-  VideoCameraOutlined
+  VideoCameraOutlined,
 } from '@ant-design/icons-vue'
 import {
   addMaterial,
@@ -349,31 +396,53 @@ import {
   listEnabledCategories,
   listMaterialCategoryByPage,
   updateMaterial,
-  updateMaterialCategory
+  updateMaterialCategory,
 } from '@/api/materialController'
 import { uploadFile } from '@/api/fileController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 
 const activeTab = ref('material')
+let materialsRequestId = 0
+let categoryTableRequestId = 0
+let categoriesRequestId = 0
+let uploadRequestId = 0
+const materialMutationIds = reactive(new Set<number>())
+const categoryMutationIds = reactive(new Set<number>())
 
 // ===== 分类数据（两个 tab 共用） =====
 const categories = ref<API.MaterialCategoryVO[]>([])
 const loadCategories = async () => {
+  const requestId = ++categoriesRequestId
   try {
     const res = await listEnabledCategories()
-    if (res.data.code === 0) categories.value = res.data.data || []
-  } catch (e) { /* ignore */ }
+    if (requestId === categoriesRequestId && res.data.code === 0) {
+      categories.value = res.data.data || []
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
-const iconMap: Record<string, any> = {
-  PaperClipOutlined, FileTextOutlined, VideoCameraOutlined,
-  SoundOutlined, LinkOutlined, FolderOutlined, FileOutlined
+const iconMap: Record<string, Component> = {
+  PaperClipOutlined,
+  FileTextOutlined,
+  VideoCameraOutlined,
+  SoundOutlined,
+  LinkOutlined,
+  FolderOutlined,
+  FileOutlined,
 }
 const getIconComponent = (name: string) => iconMap[name] || null
 
 // ===== 类型辅助 =====
 const typeLabel = (type?: string) => {
-  const m: Record<string, string> = { image: '图片', text: '文本', video: '视频', audio: '音频', link: '链接' }
+  const m: Record<string, string> = {
+    image: '图片',
+    text: '文本',
+    video: '视频',
+    audio: '音频',
+    link: '链接',
+  }
   return m[type || ''] || type
 }
 const getContentPlaceholder = (type?: string) => {
@@ -385,7 +454,7 @@ const getContentPlaceholder = (type?: string) => {
 }
 const getCategoryTypeById = (categoryId?: number) => {
   if (!categoryId) return undefined
-  return categories.value.find(cat => cat.id === categoryId)?.categoryCode
+  return categories.value.find((cat) => cat.id === categoryId)?.categoryCode
 }
 
 // ===== 素材管理 =====
@@ -395,7 +464,13 @@ const mSearchText = ref('')
 const mFilterType = ref<string>()
 const mFilterCategory = ref<number>()
 const mFilterPublic = ref<number>()
-const mPagination = ref({ current: 1, pageSize: 10, total: 0, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条` })
+const mPagination = ref({
+  current: 1,
+  pageSize: 10,
+  total: 0,
+  showSizeChanger: true,
+  showTotal: (t: number) => `共 ${t} 条`,
+})
 
 const mColumns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 70 },
@@ -405,11 +480,12 @@ const mColumns = [
   { title: '内容预览', dataIndex: 'content', key: 'content', width: 160 },
   { title: '公开', dataIndex: 'isPublic', key: 'isPublic', width: 80 },
   { title: '使用次数', dataIndex: 'useCount', key: 'useCount', width: 90 },
-  { title: '操作', key: 'action', width: 200 }
+  { title: '操作', key: 'action', width: 200 },
 ]
 
 const loadMaterials = async (reset = false) => {
   if (reset) mPagination.value.current = 1
+  const requestId = ++materialsRequestId
   mLoading.value = true
   try {
     const res = await listAllMaterialByPage({
@@ -418,25 +494,26 @@ const loadMaterials = async (reset = false) => {
       searchText: mSearchText.value || undefined,
       materialType: mFilterType.value,
       categoryId: mFilterCategory.value,
-      isPublic: mFilterPublic.value
+      isPublic: mFilterPublic.value,
     })
+    if (requestId !== materialsRequestId) return
     if (res.data.code === 0) {
       const d = res.data.data
       materials.value = d?.records || []
-      mPagination.value.total = d?.totalRow || 0
+      mPagination.value.total = Number(d?.totalRow) || 0
     } else {
       message.error(res.data.message || '加载素材失败')
     }
-  } catch (e) {
-    message.error('加载素材失败')
+  } catch {
+    if (requestId === materialsRequestId) message.error('加载素材失败')
   } finally {
-    mLoading.value = false
+    if (requestId === materialsRequestId) mLoading.value = false
   }
 }
 
-const handleMTableChange = (pag: any) => {
-  mPagination.value.current = pag.current
-  mPagination.value.pageSize = pag.pageSize
+const handleMTableChange = (pag: { current?: number; pageSize?: number }) => {
+  mPagination.value.current = pag.current || 1
+  mPagination.value.pageSize = pag.pageSize || 10
   loadMaterials()
 }
 
@@ -450,7 +527,9 @@ const mTagsArray = ref<string[]>([])
 
 const mIsPublicChecked = computed({
   get: () => mForm.value.isPublic === 1,
-  set: (val) => { mForm.value.isPublic = val ? 1 : 0 }
+  set: (val) => {
+    mForm.value.isPublic = val ? 1 : 0
+  },
 })
 
 // 文本编辑器弹窗
@@ -485,9 +564,12 @@ const handleMCategoryChange = (categoryId?: number) => {
 }
 
 const handleMUpload = async (file: File) => {
+  if (mUploading.value) return false
+  const requestId = ++uploadRequestId
   mUploading.value = true
   try {
     const res = await uploadFile(file)
+    if (requestId !== uploadRequestId) return false
     if (res.data.code === 0) {
       mForm.value.content = res.data.data
       mForm.value.fileSize = file.size
@@ -495,15 +577,21 @@ const handleMUpload = async (file: File) => {
     } else {
       message.error(res.data.message || '上传失败')
     }
-  } catch (e) {
-    message.error('上传失败')
+  } catch {
+    if (requestId === uploadRequestId) message.error('上传失败')
   } finally {
-    mUploading.value = false
+    if (requestId === uploadRequestId) mUploading.value = false
   }
   return false
 }
 
 const showMAddModal = () => {
+  if (mSubmitLoading.value) {
+    message.warning('素材正在提交，请稍候')
+    return
+  }
+  uploadRequestId += 1
+  mUploading.value = false
   mIsEdit.value = false
   mForm.value = { isPublic: 0 }
   mTagsArray.value = []
@@ -511,6 +599,12 @@ const showMAddModal = () => {
 }
 
 const showMEditModal = (item: API.MaterialVO) => {
+  if (mSubmitLoading.value) {
+    message.warning('素材正在提交，请稍候')
+    return
+  }
+  uploadRequestId += 1
+  mUploading.value = false
   mIsEdit.value = true
   mForm.value = { ...item }
   mForm.value.materialType = getCategoryTypeById(item.categoryId) || item.materialType
@@ -519,11 +613,24 @@ const showMEditModal = (item: API.MaterialVO) => {
 }
 
 const handleMSubmit = async () => {
-  if (!mForm.value.materialName) { message.warning('请输入素材名称'); return }
-  if (!mForm.value.categoryId) { message.warning('请选择分类'); return }
+  if (mSubmitLoading.value) return
+  if (!mForm.value.materialName) {
+    message.warning('请输入素材名称')
+    return
+  }
+  if (!mForm.value.categoryId) {
+    message.warning('请选择分类')
+    return
+  }
   mForm.value.materialType = getCategoryTypeById(mForm.value.categoryId)
-  if (!mForm.value.materialType) { message.warning('请选择素材类型'); return }
-  if (!mForm.value.content) { message.warning('请输入素材内容'); return }
+  if (!mForm.value.materialType) {
+    message.warning('请选择素材类型')
+    return
+  }
+  if (!mForm.value.content) {
+    message.warning('请输入素材内容')
+    return
+  }
 
   mForm.value.tags = mTagsArray.value.join(',')
   mSubmitLoading.value = true
@@ -538,7 +645,7 @@ const handleMSubmit = async () => {
     } else {
       message.error(res.data.message || '操作失败')
     }
-  } catch (e) {
+  } catch {
     message.error('操作失败')
   } finally {
     mSubmitLoading.value = false
@@ -546,21 +653,30 @@ const handleMSubmit = async () => {
 }
 
 const togglePublic = async (item: API.MaterialVO) => {
+  const id = item.id
+  if (!id || materialMutationIds.has(id)) return
+  materialMutationIds.add(id)
   try {
-    const res = await updateMaterial({ id: item.id, isPublic: item.isPublic === 1 ? 0 : 1 } as API.MaterialUpdateRequest)
+    const res = await updateMaterial({
+      id: item.id,
+      isPublic: item.isPublic === 1 ? 0 : 1,
+    } as API.MaterialUpdateRequest)
     if (res.data.code === 0) {
       message.success(item.isPublic === 1 ? '已设为私有' : '已设为公开')
       loadMaterials()
     } else {
       message.error(res.data.message || '操作失败')
     }
-  } catch (e) {
+  } catch {
     message.error('操作失败')
+  } finally {
+    materialMutationIds.delete(id)
   }
 }
 
 const handleMDelete = async (id?: number) => {
-  if (!id) return
+  if (!id || materialMutationIds.has(id)) return
+  materialMutationIds.add(id)
   try {
     const res = await deleteMaterial({ id })
     if (res.data.code === 0) {
@@ -569,14 +685,22 @@ const handleMDelete = async (id?: number) => {
     } else {
       message.error(res.data.message || '删除失败')
     }
-  } catch (e) {
+  } catch {
     message.error('删除失败')
+  } finally {
+    materialMutationIds.delete(id)
   }
 }
 
 // ===== 分类管理 =====
 const cLoading = ref(false)
-const cPagination = ref({ current: 1, pageSize: 10, total: 0, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条` })
+const cPagination = ref({
+  current: 1,
+  pageSize: 10,
+  total: 0,
+  showSizeChanger: true,
+  showTotal: (t: number) => `共 ${t} 条`,
+})
 
 const cColumns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
@@ -587,31 +711,33 @@ const cColumns = [
   { title: '素材数量', dataIndex: 'materialCount', key: 'materialCount', width: 100 },
   { title: '排序', dataIndex: 'sortOrder', key: 'sortOrder', width: 80 },
   { title: '状态', dataIndex: 'isEnabled', key: 'isEnabled', width: 80 },
-  { title: '操作', key: 'action', width: 160 }
+  { title: '操作', key: 'action', width: 160 },
 ]
 
 const loadCategoryTable = async () => {
+  const requestId = ++categoryTableRequestId
   cLoading.value = true
   try {
     const res = await listMaterialCategoryByPage({
       pageNum: cPagination.value.current,
-      pageSize: cPagination.value.pageSize
+      pageSize: cPagination.value.pageSize,
     })
+    if (requestId !== categoryTableRequestId) return
     if (res.data.code === 0) {
       const d = res.data.data
       categories.value = d?.records || []
-      cPagination.value.total = d?.totalRow || 0
+      cPagination.value.total = Number(d?.totalRow) || 0
     }
-  } catch (e) {
-    message.error('加载分类列表失败')
+  } catch {
+    if (requestId === categoryTableRequestId) message.error('加载分类列表失败')
   } finally {
-    cLoading.value = false
+    if (requestId === categoryTableRequestId) cLoading.value = false
   }
 }
 
-const handleCTableChange = (pag: any) => {
-  cPagination.value.current = pag.current
-  cPagination.value.pageSize = pag.pageSize
+const handleCTableChange = (pag: { current?: number; pageSize?: number }) => {
+  cPagination.value.current = pag.current || 1
+  cPagination.value.pageSize = pag.pageSize || 10
   loadCategoryTable()
 }
 
@@ -621,24 +747,41 @@ const cSubmitLoading = ref(false)
 const cForm = ref<API.MaterialCategoryAddRequest & { id?: number }>({})
 const cIsEnabledChecked = computed({
   get: () => cForm.value.isEnabled === 1,
-  set: (val) => { cForm.value.isEnabled = val ? 1 : 0 }
+  set: (val) => {
+    cForm.value.isEnabled = val ? 1 : 0
+  },
 })
 
 const showCAddModal = () => {
+  if (cSubmitLoading.value) {
+    message.warning('分类正在提交，请稍候')
+    return
+  }
   cIsEdit.value = false
   cForm.value = { sortOrder: 0, isEnabled: 1 }
   cModalVisible.value = true
 }
 
 const showCEditModal = (record: API.MaterialCategoryVO) => {
+  if (cSubmitLoading.value) {
+    message.warning('分类正在提交，请稍候')
+    return
+  }
   cIsEdit.value = true
   cForm.value = { ...record }
   cModalVisible.value = true
 }
 
 const handleCSubmit = async () => {
-  if (!cForm.value.categoryName) { message.warning('请输入分类名称'); return }
-  if (!cForm.value.categoryCode) { message.warning('请输入分类编码'); return }
+  if (cSubmitLoading.value) return
+  if (!cForm.value.categoryName) {
+    message.warning('请输入分类名称')
+    return
+  }
+  if (!cForm.value.categoryCode) {
+    message.warning('请输入分类编码')
+    return
+  }
   cSubmitLoading.value = true
   try {
     const res = cIsEdit.value
@@ -652,7 +795,7 @@ const handleCSubmit = async () => {
     } else {
       message.error(res.data.message || '操作失败')
     }
-  } catch (e) {
+  } catch {
     message.error('操作失败')
   } finally {
     cSubmitLoading.value = false
@@ -660,7 +803,8 @@ const handleCSubmit = async () => {
 }
 
 const handleCDelete = async (id?: number) => {
-  if (!id) return
+  if (!id || categoryMutationIds.has(id)) return
+  categoryMutationIds.add(id)
   try {
     const res = await deleteMaterialCategory({ id: id as number })
     if (res.data.code === 0) {
@@ -670,8 +814,10 @@ const handleCDelete = async (id?: number) => {
     } else {
       message.error(res.data.message || '删除失败')
     }
-  } catch (e) {
+  } catch {
     message.error('删除失败')
+  } finally {
+    categoryMutationIds.delete(id)
   }
 }
 
@@ -679,6 +825,13 @@ onMounted(() => {
   loadCategories()
   loadMaterials()
   loadCategoryTable()
+})
+
+onBeforeUnmount(() => {
+  materialsRequestId += 1
+  categoryTableRequestId += 1
+  categoriesRequestId += 1
+  uploadRequestId += 1
 })
 </script>
 

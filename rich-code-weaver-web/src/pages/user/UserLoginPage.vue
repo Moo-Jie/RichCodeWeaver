@@ -95,7 +95,7 @@
 
 <script lang="ts" setup>
 import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { HomeOutlined, LockOutlined, MailOutlined } from '@ant-design/icons-vue'
 import { userLogin } from '@/api/userController'
 import { useLoginUserStore } from '@/stores/loginUser'
@@ -103,6 +103,7 @@ import { message } from 'ant-design-vue'
 import { validateEmail } from '@/utils/emailUtil'
 
 const router = useRouter()
+const route = useRoute()
 const loginUserStore = useLoginUserStore()
 const submitting = ref(false)
 
@@ -133,9 +134,11 @@ const handleSubmit = async () => {
     })
 
     if (res.data.code === 0 && res.data.data) {
-      await loginUserStore.fetchLoginUser()
+      loginUserStore.setLoginUser(res.data.data)
       message.success('登录成功')
-      router.replace({ path: '/' })
+      const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/'
+      const safeRedirect = redirect.startsWith('/') && !redirect.startsWith('//') ? redirect : '/'
+      await router.replace(safeRedirect)
     } else {
       message.error('登录失败：' + res.data.message)
     }

@@ -58,7 +58,11 @@
             />
             <div class="composer-row">
               <a-select v-model:value="postForm.category" style="width: 160px">
-                <a-select-option v-for="item in categoryOptions.slice(1)" :key="item.value" :value="item.value">
+                <a-select-option
+                  v-for="item in categoryOptions.slice(1)"
+                  :key="item.value"
+                  :value="item.value"
+                >
                   {{ item.label }}
                 </a-select-option>
               </a-select>
@@ -94,7 +98,9 @@
         </div>
 
         <div v-else-if="posts.length === 0" class="empty-card">
-          <p class="empty-title">{{ searchText ? '没有找到匹配帖子' : '还没有帖子，来发第一条吧' }}</p>
+          <p class="empty-title">
+            {{ searchText ? '没有找到匹配帖子' : '还没有帖子，来发第一条吧' }}
+          </p>
           <p class="empty-desc">你可以提问题、提建议，或者分享你用织码睿奇做出的作品</p>
         </div>
 
@@ -165,7 +171,9 @@
                 <span class="hot-topic-rank">{{ index + 1 }}</span>
                 <span class="hot-topic-main">
                   <span class="hot-topic-title">{{ topic.title }}</span>
-                  <span class="hot-topic-meta">{{ topic.replyCount || 0 }} 回复 · {{ topic.likeCount || 0 }} 点赞</span>
+                  <span class="hot-topic-meta"
+                    >{{ topic.replyCount || 0 }} 回复 · {{ topic.likeCount || 0 }} 点赞</span
+                  >
                 </span>
               </button>
             </div>
@@ -214,7 +222,9 @@
                 </a-avatar>
                 <div class="author-texts">
                   <span class="author-name">{{ selectedPost.user?.userName || '匿名用户' }}</span>
-                  <span class="author-meta">发布于 {{ formatDateTime(selectedPost.createTime) }}</span>
+                  <span class="author-meta"
+                    >发布于 {{ formatDateTime(selectedPost.createTime) }}</span
+                  >
                 </div>
               </div>
               <button
@@ -273,7 +283,10 @@
                         <span class="author-meta">{{ formatDateTime(reply.createTime) }}</span>
                       </div>
                     </div>
-                    <button :class="['icon-like-btn', { liked: reply.hasLiked }]" @click="handleLikeReply(reply)">
+                    <button
+                      :class="['icon-like-btn', { liked: reply.hasLiked }]"
+                      @click="handleLikeReply(reply)"
+                    >
                       <LikeOutlined />
                       {{ reply.likeCount || 0 }}
                     </button>
@@ -306,7 +319,7 @@ import {
   listCommunityPostByPage,
   listCommunityReplyByPage,
   toggleCommunityPostLike,
-  toggleCommunityReplyLike
+  toggleCommunityReplyLike,
 } from '@/api/communityController'
 import { useLoginUserStore } from '@/stores/loginUser'
 
@@ -327,7 +340,7 @@ const categoryOptions = [
   { label: '讨论', value: 'discuss' },
   { label: '问答', value: 'question' },
   { label: '反馈', value: 'feedback' },
-  { label: '分享', value: 'share' }
+  { label: '分享', value: 'share' },
 ]
 
 const sortOptions = [
@@ -335,22 +348,22 @@ const sortOptions = [
   { label: '最新发布', value: 'latest' },
   { label: '最多回复', value: 'replies' },
   { label: '最多点赞', value: 'likes' },
-  { label: '最多浏览', value: 'views' }
+  { label: '最多浏览', value: 'views' },
 ]
 
 const communityAnnouncements = [
   {
     title: '友善交流',
-    content: '提问、反馈和分享都欢迎，但请尽量围绕问题本身讨论，避免无关争执。'
+    content: '提问、反馈和分享都欢迎，但请尽量围绕问题本身讨论，避免无关争执。',
   },
   {
     title: '描述尽量具体',
-    content: '提问时建议写清场景、操作步骤和预期结果，越具体越容易获得高质量回复。'
+    content: '提问时建议写清场景、操作步骤和预期结果，越具体越容易获得高质量回复。',
   },
   {
     title: '鼓励分享经验',
-    content: '欢迎分享你使用织码睿奇做出的项目、提示词技巧和踩坑总结。'
-  }
+    content: '欢迎分享你使用织码睿奇做出的项目、提示词技巧和踩坑总结。',
+  },
 ]
 
 const activeCategory = ref('')
@@ -373,7 +386,7 @@ const pendingIncreaseView = ref(false)
 const postForm = reactive<PostFormState>({
   title: '',
   content: '',
-  category: 'question'
+  category: 'question',
 })
 
 const selectedPostId = computed(() => {
@@ -392,7 +405,7 @@ const normalizePostId = (postId?: number | string) => {
 }
 
 const getCategoryLabel = (category?: string) => {
-  return categoryOptions.find(item => item.value === category)?.label || '讨论'
+  return categoryOptions.find((item) => item.value === category)?.label || '讨论'
 }
 
 const hotTopics = computed(() => {
@@ -407,12 +420,12 @@ const hotTopics = computed(() => {
 
 const categoryStats = computed(() => {
   const total = posts.value.length || 1
-  return categoryOptions.slice(1).map(item => {
-    const count = posts.value.filter(post => post.category === item.value).length
+  return categoryOptions.slice(1).map((item) => {
+    const count = posts.value.filter((post) => post.category === item.value).length
     return {
       ...item,
       count,
-      percent: Math.max(count > 0 ? Math.round((count / total) * 100) : 0, count > 0 ? 12 : 0)
+      percent: Math.max(count > 0 ? Math.round((count / total) * 100) : 0, count > 0 ? 12 : 0),
     }
   })
 })
@@ -468,11 +481,11 @@ const fetchPosts = async (pageNum = 1) => {
       category: activeCategory.value || undefined,
       searchText: searchText.value.trim() || undefined,
       sortField: activeSort.value,
-      sortOrder: 'descend'
+      sortOrder: 'descend',
     })
     if (res.data.code === 0 && res.data.data) {
       const records = res.data.data.records || []
-      postsTotal.value = res.data.data.totalRow || 0
+      postsTotal.value = Number(res.data.data.totalRow) || 0
       if (pageNum === 1) {
         posts.value = records
       } else {
@@ -480,8 +493,8 @@ const fetchPosts = async (pageNum = 1) => {
       }
       page.value = pageNum
       hasMore.value = records.length === PAGE_SIZE
-      const currentSelectedExists = posts.value.some(item => item.id === selectedPost.value?.id)
-      const querySelectedExists = posts.value.some(item => item.id === selectedPostId.value)
+      const currentSelectedExists = posts.value.some((item) => item.id === selectedPost.value?.id)
+      const querySelectedExists = posts.value.some((item) => item.id === selectedPostId.value)
       if (selectedPostId.value && !selectedPost.value?.id && querySelectedExists) {
         await selectPost(selectedPostId.value, false, true)
       } else if (!currentSelectedExists) {
@@ -501,11 +514,11 @@ const fetchPostDetail = async (postId: number | string, increaseView = false) =>
   const res = await getCommunityPostVOById({ id: normalizedPostId, increaseView })
   if (res.data.code === 0 && res.data.data) {
     selectedPost.value = res.data.data
-    const index = posts.value.findIndex(item => item.id === normalizedPostId)
+    const index = posts.value.findIndex((item) => item.id === normalizedPostId)
     if (index >= 0) {
       posts.value[index] = {
         ...posts.value[index],
-        ...res.data.data
+        ...res.data.data,
       }
     }
   }
@@ -519,7 +532,7 @@ const fetchReplies = async (postId: number | string) => {
     const res = await listCommunityReplyByPage({
       postId: normalizedPostId,
       pageNum: 1,
-      pageSize: 50
+      pageSize: 50,
     })
     if (res.data.code === 0 && res.data.data) {
       replies.value = res.data.data.records || []
@@ -562,7 +575,7 @@ const submitPost = async () => {
     const res = await addCommunityPost({
       title: postForm.title.trim(),
       content: postForm.content.trim(),
-      category: postForm.category
+      category: postForm.category,
     })
     if (res.data.code === 0 && res.data.data) {
       message.success('发布成功')
@@ -594,14 +607,14 @@ const submitReply = async () => {
   try {
     const res = await addCommunityReply({
       postId: selectedPost.value.id,
-      content: replyContent.value.trim()
+      content: replyContent.value.trim(),
     })
     if (res.data.code === 0) {
       message.success('回复成功')
       replyContent.value = ''
       await fetchPostDetail(selectedPost.value.id, false)
       await fetchReplies(selectedPost.value.id)
-      const index = posts.value.findIndex(item => item.id === selectedPost.value?.id)
+      const index = posts.value.findIndex((item) => item.id === selectedPost.value?.id)
       if (index >= 0 && posts.value[index].replyCount != null) {
         posts.value[index].replyCount = selectedPost.value.replyCount
       }
@@ -622,8 +635,11 @@ const handleLikePost = async () => {
     if (res.data.code === 0) {
       const liked = !!res.data.data
       selectedPost.value.hasLiked = liked
-      selectedPost.value.likeCount = Math.max(0, (selectedPost.value.likeCount || 0) + (liked ? 1 : -1))
-      const index = posts.value.findIndex(item => item.id === selectedPost.value?.id)
+      selectedPost.value.likeCount = Math.max(
+        0,
+        (selectedPost.value.likeCount || 0) + (liked ? 1 : -1),
+      )
+      const index = posts.value.findIndex((item) => item.id === selectedPost.value?.id)
       if (index >= 0) {
         posts.value[index].hasLiked = liked
         posts.value[index].likeCount = selectedPost.value.likeCount
@@ -658,7 +674,7 @@ watch(
       pendingIncreaseView.value = false
       await selectPost(postId, false, increaseView)
     }
-  }
+  },
 )
 
 onMounted(async () => {

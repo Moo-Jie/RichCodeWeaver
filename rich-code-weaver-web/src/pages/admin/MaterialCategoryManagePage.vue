@@ -50,16 +50,10 @@
     <!-- 视图切换 -->
     <div class="view-toolbar">
       <div class="view-switch">
-        <span
-          :class="['view-btn', { active: viewMode === 'card' }]"
-          @click="viewMode = 'card'"
-        >
+        <span :class="['view-btn', { active: viewMode === 'card' }]" @click="viewMode = 'card'">
           <AppstoreOutlined /> 卡片
         </span>
-        <span
-          :class="['view-btn', { active: viewMode === 'table' }]"
-          @click="viewMode = 'table'"
-        >
+        <span :class="['view-btn', { active: viewMode === 'table' }]" @click="viewMode = 'table'">
           <UnorderedListOutlined /> 列表
         </span>
       </div>
@@ -97,12 +91,8 @@
           </div>
           <div class="card-footer">
             <div class="card-stats">
-              <span class="stat-item">
-                <FileOutlined /> {{ item.materialCount || 0 }} 个素材
-              </span>
-              <span class="stat-item">
-                排序: {{ item.sortOrder || 0 }}
-              </span>
+              <span class="stat-item"> <FileOutlined /> {{ item.materialCount || 0 }} 个素材 </span>
+              <span class="stat-item"> 排序: {{ item.sortOrder || 0 }} </span>
             </div>
             <div class="card-actions">
               <a-button type="text" size="small" @click="showEditModal(item)">
@@ -163,9 +153,7 @@
                 <EditOutlined /> 编辑
               </a-button>
               <a-popconfirm title="确定删除此分类吗？" @confirm="confirmDelete(record.id)">
-                <a-button type="link" size="small" danger>
-                  <DeleteOutlined /> 删除
-                </a-button>
+                <a-button type="link" size="small" danger> <DeleteOutlined /> 删除 </a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -182,9 +170,18 @@
       width="520px"
       class="category-modal"
     >
-      <a-form :model="formData" :label-col="{ span: 5 }" :wrapper-col="{ span: 18 }" class="category-form">
+      <a-form
+        :model="formData"
+        :label-col="{ span: 5 }"
+        :wrapper-col="{ span: 18 }"
+        class="category-form"
+      >
         <a-form-item label="分类名称" required>
-          <a-input v-model:value="formData.categoryName" placeholder="请输入分类名称" size="large" />
+          <a-input
+            v-model:value="formData.categoryName"
+            placeholder="请输入分类名称"
+            size="large"
+          />
         </a-form-item>
         <a-form-item label="分类编码" required>
           <a-select
@@ -194,29 +191,19 @@
             size="large"
           >
             <a-select-option value="image">
-              <div class="code-option">
-                <PaperClipOutlined /> image — 图片类
-              </div>
+              <div class="code-option"><PaperClipOutlined /> image — 图片类</div>
             </a-select-option>
             <a-select-option value="text">
-              <div class="code-option">
-                <FileTextOutlined /> text — 文本类
-              </div>
+              <div class="code-option"><FileTextOutlined /> text — 文本类</div>
             </a-select-option>
             <a-select-option value="video">
-              <div class="code-option">
-                <VideoCameraOutlined /> video — 视频类
-              </div>
+              <div class="code-option"><VideoCameraOutlined /> video — 视频类</div>
             </a-select-option>
             <a-select-option value="audio">
-              <div class="code-option">
-                <SoundOutlined /> audio — 音频类
-              </div>
+              <div class="code-option"><SoundOutlined /> audio — 音频类</div>
             </a-select-option>
             <a-select-option value="link">
-              <div class="code-option">
-                <LinkOutlined /> link — 链接类
-              </div>
+              <div class="code-option"><LinkOutlined /> link — 链接类</div>
             </a-select-option>
           </a-select>
           <div class="form-tip" v-if="!isEdit">
@@ -224,7 +211,12 @@
           </div>
         </a-form-item>
         <a-form-item label="图标">
-          <a-select v-model:value="formData.categoryIcon" placeholder="选择图标" allow-clear size="large">
+          <a-select
+            v-model:value="formData.categoryIcon"
+            placeholder="选择图标"
+            allow-clear
+            size="large"
+          >
             <a-select-option v-for="icon in iconOptions" :key="icon.value" :value="icon.value">
               <div class="icon-option">
                 <component :is="getIconComponent(icon.value)" />
@@ -254,12 +246,8 @@
         </a-form-item>
         <a-form-item label="状态">
           <a-radio-group v-model:value="formData.isEnabled" button-style="solid">
-            <a-radio-button :value="1">
-              <CheckCircleOutlined /> 启用
-            </a-radio-button>
-            <a-radio-button :value="0">
-              <StopOutlined /> 禁用
-            </a-radio-button>
+            <a-radio-button :value="1"> <CheckCircleOutlined /> 启用 </a-radio-button>
+            <a-radio-button :value="0"> <StopOutlined /> 禁用 </a-radio-button>
           </a-radio-group>
         </a-form-item>
       </a-form>
@@ -285,13 +273,13 @@ import {
   SoundOutlined,
   StopOutlined,
   UnorderedListOutlined,
-  VideoCameraOutlined
+  VideoCameraOutlined,
 } from '@ant-design/icons-vue'
 import {
   addMaterialCategory,
   deleteMaterialCategory,
   listMaterialCategoryByPage,
-  updateMaterialCategory
+  updateMaterialCategory,
 } from '@/api/materialController'
 
 // 视图模式
@@ -305,7 +293,7 @@ const iconMap: Record<string, any> = {
   SoundOutlined,
   LinkOutlined,
   FolderOutlined,
-  FileOutlined
+  FileOutlined,
 }
 
 const iconOptions = [
@@ -315,7 +303,7 @@ const iconOptions = [
   { value: 'SoundOutlined', label: '音频' },
   { value: 'LinkOutlined', label: '链接' },
   { value: 'FolderOutlined', label: '文件夹' },
-  { value: 'FileOutlined', label: '文件' }
+  { value: 'FileOutlined', label: '文件' },
 ]
 
 const getIconComponent = (iconName: string) => {
@@ -330,7 +318,7 @@ const columns = [
   { title: '素材数量', dataIndex: 'materialCount', key: 'materialCount', width: 100 },
   { title: '排序', dataIndex: 'sortOrder', key: 'sortOrder', width: 80 },
   { title: '状态', dataIndex: 'isEnabled', key: 'isEnabled', width: 100 },
-  { title: '操作', key: 'action', width: 160 }
+  { title: '操作', key: 'action', width: 160 },
 ]
 
 // 数据状态
@@ -341,13 +329,15 @@ const pagination = ref({
   pageSize: 20,
   total: 0,
   showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`
+  showTotal: (total: number) => `共 ${total} 条`,
 })
 
 // 统计数据
-const enabledCount = computed(() => categories.value.filter(c => c.isEnabled === 1).length)
-const disabledCount = computed(() => categories.value.filter(c => c.isEnabled !== 1).length)
-const totalMaterialCount = computed(() => categories.value.reduce((sum, c) => sum + (c.materialCount || 0), 0))
+const enabledCount = computed(() => categories.value.filter((c) => c.isEnabled === 1).length)
+const disabledCount = computed(() => categories.value.filter((c) => c.isEnabled !== 1).length)
+const totalMaterialCount = computed(() =>
+  categories.value.reduce((sum, c) => sum + (c.materialCount || 0), 0),
+)
 
 // 弹窗状态
 const modalVisible = ref(false)
@@ -361,12 +351,12 @@ const loadCategories = async () => {
   try {
     const res = await listMaterialCategoryByPage({
       pageNum: pagination.value.current,
-      pageSize: pagination.value.pageSize
+      pageSize: pagination.value.pageSize,
     })
     if (res.data.code === 0) {
       const data = res.data.data
       categories.value = data?.records || []
-      pagination.value.total = data?.totalRow || 0
+      pagination.value.total = Number(data?.totalRow) || 0
     }
   } catch (e) {
     message.error('加载分类列表失败')
@@ -405,7 +395,7 @@ const toggleEnabled = async (record: API.MaterialCategoryVO, checked: boolean) =
   try {
     const res = await updateMaterialCategory({
       id: record.id,
-      isEnabled: checked ? 1 : 0
+      isEnabled: checked ? 1 : 0,
     } as API.MaterialCategoryUpdateRequest)
     if (res.data.code === 0) {
       message.success(checked ? '已启用' : '已禁用')
@@ -562,10 +552,18 @@ onMounted(() => {
   justify-content: center;
 }
 
-.stat-icon.total { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); }
-.stat-icon.enabled { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
-.stat-icon.disabled { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
-.stat-icon.materials { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
+.stat-icon.total {
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+}
+.stat-icon.enabled {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+.stat-icon.disabled {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+.stat-icon.materials {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
 
 .stat-value {
   font-size: 24px;

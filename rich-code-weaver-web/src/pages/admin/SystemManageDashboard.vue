@@ -45,9 +45,7 @@
               <div v-if="item.metricKey" class="module-count-pill">
                 {{ formatNumber(metrics[item.metricKey] || 0) }}
               </div>
-              <div v-else class="module-count-pill neutral">
-                入口
-              </div>
+              <div v-else class="module-count-pill neutral">入口</div>
             </div>
             <div class="module-desc">{{ item.description }}</div>
             <div class="module-footer">
@@ -90,11 +88,7 @@
                 <span>数值</span>
                 <span>说明</span>
               </div>
-              <div
-                v-for="item in detailRows"
-                :key="item.key"
-                class="detail-row"
-              >
+              <div v-for="item in detailRows" :key="item.key" class="detail-row">
                 <span>{{ item.label }}</span>
                 <span>{{ item.displayValue || formatNumber(item.value) }}</span>
                 <span>{{ item.description }}</span>
@@ -233,7 +227,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
@@ -242,7 +236,7 @@ import { listAppChatHistoryByPageAdmin } from '@/api/chatHistoryController'
 import {
   listAllMaterialByPage,
   listEnabledCategories,
-  listMaterialCategoryByPage
+  listMaterialCategoryByPage,
 } from '@/api/materialController'
 import { listPromptTemplateByPage } from '@/api/promptTemplateController'
 import { listRagDocumentByPage } from '@/api/ragDocumentController'
@@ -288,7 +282,7 @@ const metrics = reactive<Record<string, number>>({
   materialTotal: 0,
   materialPublic: 0,
   categoryTotal: 0,
-  enabledCategoryTotal: 0
+  enabledCategoryTotal: 0,
 })
 
 const formatNumber = (value?: number) => {
@@ -298,7 +292,7 @@ const formatNumber = (value?: number) => {
 const formatDecimal = (value?: number) => {
   return new Intl.NumberFormat('zh-CN', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 1
+    maximumFractionDigits: 1,
   }).format(value || 0)
 }
 
@@ -337,7 +331,7 @@ const buildComposition = (items: Omit<CompositionItem, 'share'>[]): CompositionI
   const total = items.reduce((sum, item) => sum + item.value, 0)
   return items.map((item) => ({
     ...item,
-    share: calculateShare(item.value, total)
+    share: calculateShare(item.value, total),
   }))
 }
 
@@ -380,7 +374,9 @@ const isWithinDays = (value?: string, days = 7) => {
   return Date.now() - timestamp <= days * 24 * 60 * 60 * 1000
 }
 
-const appPerCreator = computed(() => (metrics.appCreatorTotal ? metrics.appTotal / metrics.appCreatorTotal : 0))
+const appPerCreator = computed(() =>
+  metrics.appCreatorTotal ? metrics.appTotal / metrics.appCreatorTotal : 0,
+)
 const appAveragePromptLength = computed(() => {
   const promptLengths = appRecords.value
     .map((item) => (hasText(item.initPrompt) ? item.initPrompt!.trim().length : 0))
@@ -405,106 +401,106 @@ const detailRows = computed<DetailRowItem[]>(() => [
     key: 'appTotal',
     label: '产物总量',
     value: metrics.appTotal,
-    description: '当前纳入后台管理的全部数字产物数量'
+    description: '当前纳入后台管理的全部数字产物数量',
   },
   {
     key: 'appCreatorTotal',
     label: '活跃创作者数',
     value: metrics.appCreatorTotal,
-    description: `覆盖平台 ${formatPercent(calculateShare(metrics.appCreatorTotal, metrics.userTotal))} 的用户，当前人均 ${formatDecimal(appPerCreator.value)} 个产物`
+    description: `覆盖平台 ${formatPercent(calculateShare(metrics.appCreatorTotal, metrics.userTotal))} 的用户，当前人均 ${formatDecimal(appPerCreator.value)} 个产物`,
   },
   {
     key: 'appHtml',
     label: '单文件结构产物',
     value: metrics.appHtml,
-    description: `占比 ${formatPercent(calculateShare(metrics.appHtml, metrics.appTotal))}`
+    description: `占比 ${formatPercent(calculateShare(metrics.appHtml, metrics.appTotal))}`,
   },
   {
     key: 'appMultiFile',
     label: '多文件结构产物',
     value: metrics.appMultiFile,
-    description: `占比 ${formatPercent(calculateShare(metrics.appMultiFile, metrics.appTotal))}`
+    description: `占比 ${formatPercent(calculateShare(metrics.appMultiFile, metrics.appTotal))}`,
   },
   {
     key: 'appVueProject',
     label: 'Vue 工程产物',
     value: metrics.appVueProject,
-    description: `占比 ${formatPercent(calculateShare(metrics.appVueProject, metrics.appTotal))}`
+    description: `占比 ${formatPercent(calculateShare(metrics.appVueProject, metrics.appTotal))}`,
   },
   {
     key: 'appWorkflow',
     label: 'Workflow 模式产物',
     value: metrics.appWorkflow,
-    description: `占比 ${formatPercent(calculateShare(metrics.appWorkflow, metrics.appTotal))}`
+    description: `占比 ${formatPercent(calculateShare(metrics.appWorkflow, metrics.appTotal))}`,
   },
   {
     key: 'appAgent',
     label: 'Agent 模式产物',
     value: metrics.appAgent,
-    description: `占比 ${formatPercent(calculateShare(metrics.appAgent, metrics.appTotal))}`
+    description: `占比 ${formatPercent(calculateShare(metrics.appAgent, metrics.appTotal))}`,
   },
   {
     key: 'appDeployed',
     label: '已部署产物数',
     value: metrics.appDeployed,
-    description: `近 7 日新增部署 ${formatNumber(metrics.appDeployed7d)} 个`
+    description: `近 7 日新增部署 ${formatNumber(metrics.appDeployed7d)} 个`,
   },
   {
     key: 'appWithDeployKey',
     label: '已配置部署密钥',
     value: metrics.appWithDeployKey,
-    description: `待部署 ${formatNumber(metrics.appDeployPending)} / 未配置 ${formatNumber(metrics.appDeployUnconfigured)}`
+    description: `待部署 ${formatNumber(metrics.appDeployPending)} / 未配置 ${formatNumber(metrics.appDeployUnconfigured)}`,
   },
   {
     key: 'appFeatured',
     label: '星选产物数',
     value: metrics.appFeatured,
-    description: `占已评分产物 ${formatPercent(calculateShare(metrics.appFeatured, metrics.appRated))}`
+    description: `占已评分产物 ${formatPercent(calculateShare(metrics.appFeatured, metrics.appRated))}`,
   },
   {
     key: 'appRated',
     label: '已评分产物数',
     value: metrics.appRated,
-    description: `未评分 ${formatNumber(metrics.appTotal - metrics.appRated)} 个`
+    description: `未评分 ${formatNumber(metrics.appTotal - metrics.appRated)} 个`,
   },
   {
     key: 'appWithCover',
     label: '已配置封面产物',
     value: metrics.appWithCover,
-    description: `缺少封面 ${formatNumber(metrics.appTotal - metrics.appWithCover)} 个`
+    description: `缺少封面 ${formatNumber(metrics.appTotal - metrics.appWithCover)} 个`,
   },
   {
     key: 'appWithPrompt',
     label: '已配置初始提示词',
     value: metrics.appWithPrompt,
-    description: `缺少初始提示词 ${formatNumber(metrics.appTotal - metrics.appWithPrompt)} 个`
+    description: `缺少初始提示词 ${formatNumber(metrics.appTotal - metrics.appWithPrompt)} 个`,
   },
   {
     key: 'appAveragePromptLength',
     label: '平均提示词长度',
     value: Math.round(appAveragePromptLength.value),
     displayValue: `${formatDecimal(appAveragePromptLength.value)} 字`,
-    description: '统计已填写初始提示词的产物平均字符长度'
+    description: '统计已填写初始提示词的产物平均字符长度',
   },
   {
     key: 'appAverageRating',
     label: '平均评分星级',
     value: Number(appAverageRating.value.toFixed(1)),
     displayValue: `${formatDecimal(appAverageRating.value)} 星`,
-    description: '基于后台 priority 字段折算出的平均星级'
+    description: '基于后台 priority 字段折算出的平均星级',
   },
   {
     key: 'appCreated7d',
     label: '近 7 日新增产物',
     value: metrics.appCreated7d,
-    description: `占总产物 ${formatPercent(calculateShare(metrics.appCreated7d, metrics.appTotal))}`
+    description: `占总产物 ${formatPercent(calculateShare(metrics.appCreated7d, metrics.appTotal))}`,
   },
   {
     key: 'appUpdated7d',
     label: '近 7 日更新产物',
     value: metrics.appUpdated7d,
-    description: `占总产物 ${formatPercent(calculateShare(metrics.appUpdated7d, metrics.appTotal))}`
-  }
+    description: `占总产物 ${formatPercent(calculateShare(metrics.appUpdated7d, metrics.appTotal))}`,
+  },
 ])
 
 const scaleChartRows = computed(() => {
@@ -516,126 +512,126 @@ const scaleChartRows = computed(() => {
     { key: 'appWithPrompt', label: '已配置初始提示词', value: metrics.appWithPrompt },
     { key: 'appFeatured', label: '星选产物', value: metrics.appFeatured },
     { key: 'appCreated7d', label: '近 7 日新增', value: metrics.appCreated7d },
-    { key: 'appUpdated7d', label: '近 7 日更新', value: metrics.appUpdated7d }
+    { key: 'appUpdated7d', label: '近 7 日更新', value: metrics.appUpdated7d },
   ]
   const max = Math.max(...items.map((item) => item.value), 1)
   return items.map((item) => ({
     ...item,
-    ratio: item.value / max
+    ratio: item.value / max,
   }))
 })
 
-const appTypeComposition = computed(() => buildComposition([
-  { key: 'appHtml', label: '单文件结构', value: metrics.appHtml, color: '#5b8ff9' },
-  { key: 'appMultiFile', label: '多文件结构', value: metrics.appMultiFile, color: '#5ad8a6' },
-  { key: 'appVueProject', label: 'Vue 工程', value: metrics.appVueProject, color: '#f6bd16' },
-  { key: 'appOtherType', label: '其他类型', value: metrics.appOtherType, color: '#9270ca' }
-]))
+const appTypeComposition = computed(() =>
+  buildComposition([
+    { key: 'appHtml', label: '单文件结构', value: metrics.appHtml, color: '#5b8ff9' },
+    { key: 'appMultiFile', label: '多文件结构', value: metrics.appMultiFile, color: '#5ad8a6' },
+    { key: 'appVueProject', label: 'Vue 工程', value: metrics.appVueProject, color: '#f6bd16' },
+    { key: 'appOtherType', label: '其他类型', value: metrics.appOtherType, color: '#9270ca' },
+  ]),
+)
 
 const appTypeDonutStyle = computed(() => ({
-  background: buildDonutBackground(appTypeComposition.value)
+  background: buildDonutBackground(appTypeComposition.value),
 }))
 
-const appModeComposition = computed(() => buildComposition([
-  { key: 'appWorkflow', label: 'Workflow 模式', value: metrics.appWorkflow, color: '#5b8ff9' },
-  { key: 'appAgent', label: 'Agent 模式', value: metrics.appAgent, color: '#5ad8a6' },
-  { key: 'appOtherMode', label: '其他模式', value: metrics.appOtherMode, color: '#f6bd16' }
-]))
+const appModeComposition = computed(() =>
+  buildComposition([
+    { key: 'appWorkflow', label: 'Workflow 模式', value: metrics.appWorkflow, color: '#5b8ff9' },
+    { key: 'appAgent', label: 'Agent 模式', value: metrics.appAgent, color: '#5ad8a6' },
+    { key: 'appOtherMode', label: '其他模式', value: metrics.appOtherMode, color: '#f6bd16' },
+  ]),
+)
 
 const appModeDonutStyle = computed(() => ({
-  background: buildDonutBackground(appModeComposition.value)
+  background: buildDonutBackground(appModeComposition.value),
 }))
 
-const appDeploymentComposition = computed(() => buildComposition([
-  { key: 'appDeployed', label: '已部署', value: metrics.appDeployed, color: '#5b8ff9' },
-  { key: 'appDeployPending', label: '已配置待部署', value: metrics.appDeployPending, color: '#5ad8a6' },
-  { key: 'appDeployUnconfigured', label: '未配置部署', value: metrics.appDeployUnconfigured, color: '#f6bd16' }
-]))
+const appDeploymentComposition = computed(() =>
+  buildComposition([
+    { key: 'appDeployed', label: '已部署', value: metrics.appDeployed, color: '#5b8ff9' },
+    {
+      key: 'appDeployPending',
+      label: '已配置待部署',
+      value: metrics.appDeployPending,
+      color: '#5ad8a6',
+    },
+    {
+      key: 'appDeployUnconfigured',
+      label: '未配置部署',
+      value: metrics.appDeployUnconfigured,
+      color: '#f6bd16',
+    },
+  ]),
+)
 
 const appDeploymentDonutStyle = computed(() => ({
-  background: buildDonutBackground(appDeploymentComposition.value)
+  background: buildDonutBackground(appDeploymentComposition.value),
 }))
 
 const governanceIndicators = computed(() => {
-  const deploymentRate = metrics.appTotal
-    ? (metrics.appDeployed / metrics.appTotal) * 100
-    : 0
-  const deployKeyRate = metrics.appTotal
-    ? (metrics.appWithDeployKey / metrics.appTotal) * 100
-    : 0
-  const coverRate = metrics.appTotal
-    ? (metrics.appWithCover / metrics.appTotal) * 100
-    : 0
-  const promptRate = metrics.appTotal
-    ? (metrics.appWithPrompt / metrics.appTotal) * 100
-    : 0
-  const workflowRate = metrics.appTotal
-    ? (metrics.appWorkflow / metrics.appTotal) * 100
-    : 0
-  const agentRate = metrics.appTotal
-    ? (metrics.appAgent / metrics.appTotal) * 100
-    : 0
-  const featuredRate = metrics.appTotal
-    ? (metrics.appFeatured / metrics.appTotal) * 100
-    : 0
-  const updated7dRate = metrics.appTotal
-    ? (metrics.appUpdated7d / metrics.appTotal) * 100
-    : 0
+  const deploymentRate = metrics.appTotal ? (metrics.appDeployed / metrics.appTotal) * 100 : 0
+  const deployKeyRate = metrics.appTotal ? (metrics.appWithDeployKey / metrics.appTotal) * 100 : 0
+  const coverRate = metrics.appTotal ? (metrics.appWithCover / metrics.appTotal) * 100 : 0
+  const promptRate = metrics.appTotal ? (metrics.appWithPrompt / metrics.appTotal) * 100 : 0
+  const workflowRate = metrics.appTotal ? (metrics.appWorkflow / metrics.appTotal) * 100 : 0
+  const agentRate = metrics.appTotal ? (metrics.appAgent / metrics.appTotal) * 100 : 0
+  const featuredRate = metrics.appTotal ? (metrics.appFeatured / metrics.appTotal) * 100 : 0
+  const updated7dRate = metrics.appTotal ? (metrics.appUpdated7d / metrics.appTotal) * 100 : 0
 
   return [
     {
       key: 'deploymentRate',
       label: '部署完成率',
       percent: clampPercent(deploymentRate),
-      description: `${formatNumber(metrics.appDeployed)} / ${formatNumber(metrics.appTotal)} 个产物已部署`
+      description: `${formatNumber(metrics.appDeployed)} / ${formatNumber(metrics.appTotal)} 个产物已部署`,
     },
     {
       key: 'deployKeyRate',
       label: '部署密钥配置率',
       percent: clampPercent(deployKeyRate),
-      description: `${formatNumber(metrics.appWithDeployKey)} / ${formatNumber(metrics.appTotal)} 个产物已配置部署密钥`
+      description: `${formatNumber(metrics.appWithDeployKey)} / ${formatNumber(metrics.appTotal)} 个产物已配置部署密钥`,
     },
     {
       key: 'coverRate',
       label: '封面完善率',
       percent: clampPercent(coverRate),
-      description: `${formatNumber(metrics.appWithCover)} / ${formatNumber(metrics.appTotal)} 个产物已配置封面`
+      description: `${formatNumber(metrics.appWithCover)} / ${formatNumber(metrics.appTotal)} 个产物已配置封面`,
     },
     {
       key: 'promptRate',
       label: '提示词完善率',
       percent: clampPercent(promptRate),
-      description: `${formatNumber(metrics.appWithPrompt)} / ${formatNumber(metrics.appTotal)} 个产物已配置初始提示词`
+      description: `${formatNumber(metrics.appWithPrompt)} / ${formatNumber(metrics.appTotal)} 个产物已配置初始提示词`,
     },
     {
       key: 'workflowRate',
       label: 'Workflow 模式占比',
       percent: clampPercent(workflowRate),
-      description: `${formatNumber(metrics.appWorkflow)} / ${formatNumber(metrics.appTotal)} 个产物使用 Workflow 模式`
+      description: `${formatNumber(metrics.appWorkflow)} / ${formatNumber(metrics.appTotal)} 个产物使用 Workflow 模式`,
     },
     {
       key: 'agentRate',
       label: 'Agent 模式占比',
       percent: clampPercent(agentRate),
-      description: `${formatNumber(metrics.appAgent)} / ${formatNumber(metrics.appTotal)} 个产物使用 Agent 模式`
+      description: `${formatNumber(metrics.appAgent)} / ${formatNumber(metrics.appTotal)} 个产物使用 Agent 模式`,
     },
     {
       key: 'featuredRate',
       label: '星选产物占比',
       percent: clampPercent(featuredRate),
-      description: `${formatNumber(metrics.appFeatured)} / ${formatNumber(metrics.appTotal)} 个产物已进入星选`
+      description: `${formatNumber(metrics.appFeatured)} / ${formatNumber(metrics.appTotal)} 个产物已进入星选`,
     },
     {
       key: 'updated7dRate',
       label: '近 7 日更新率',
       percent: clampPercent(updated7dRate),
-      description: `${formatNumber(metrics.appUpdated7d)} / ${formatNumber(metrics.appTotal)} 个产物近 7 日发生更新`
-    }
+      description: `${formatNumber(metrics.appUpdated7d)} / ${formatNumber(metrics.appTotal)} 个产物近 7 日发生更新`,
+    },
   ]
 })
 
-const assignMetric = (key: keyof typeof metrics, value?: number) => {
-  metrics[key] = value || 0
+const assignMetric = (key: keyof typeof metrics, value?: number | string | null) => {
+  metrics[key] = Number(value) || 0
 }
 
 const analyzeAppRecords = (records: API.AppVO[]) => {
@@ -748,19 +744,40 @@ const analyzeAppRecords = (records: API.AppVO[]) => {
   assignMetric('appDeployed7d', appDeployed7d)
 }
 
+type DashboardPageData = {
+  totalRow?: number
+  records?: API.AppVO[]
+}
+
+const getSettledResponse = (result: PromiseSettledResult<unknown>) => {
+  if (result.status === 'rejected') return undefined
+  return result.value as { data?: { code?: number; data?: unknown } }
+}
+
+const readSettledData = (result: PromiseSettledResult<unknown>) => {
+  const response = getSettledResponse(result)
+  if (!response || response.data?.code !== 0) return undefined
+  return response.data.data
+}
+
+const readSettledPage = (result: PromiseSettledResult<unknown>): DashboardPageData | undefined => {
+  const data = readSettledData(result)
+  return data && typeof data === 'object' ? (data as DashboardPageData) : undefined
+}
+
+const isSettledSuccess = (result: PromiseSettledResult<unknown>) => {
+  const response = getSettledResponse(result)
+  return response?.data?.code === 0
+}
+
+let dashboardRequestSequence = 0
+
 const loadDashboardMetrics = async () => {
+  if (refreshing.value) return
+  const requestId = ++dashboardRequestSequence
   refreshing.value = true
   try {
-    const [
-      userRes, adminUserRes,
-      appRes,
-      chatRes,
-      templateRes, templateEnabledRes,
-      systemPromptRes,
-      ragRes, ragEnabledRes,
-      materialRes, materialPublicRes,
-      categoryRes, enabledCategoryRes
-    ] = await Promise.all([
+    const results = await Promise.allSettled([
       listUserVoByPage({ pageNum: 1, pageSize: 1 }),
       listUserVoByPage({ pageNum: 1, pageSize: 1, userRole: 'admin' }),
       listAppVoByPageByAdmin({ pageNum: 1, pageSize: 1 }),
@@ -773,35 +790,88 @@ const loadDashboardMetrics = async () => {
       listAllMaterialByPage({ pageNum: 1, pageSize: 1 }),
       listAllMaterialByPage({ pageNum: 1, pageSize: 1, isPublic: 1 }),
       listMaterialCategoryByPage({ pageNum: 1, pageSize: 1 }),
-      listEnabledCategories()
+      listEnabledCategories(),
     ])
+    if (requestId !== dashboardRequestSequence) return
 
-    assignMetric('userTotal', userRes.data.data?.totalRow)
-    assignMetric('adminUserTotal', adminUserRes.data.data?.totalRow)
-    assignMetric('appTotal', appRes.data.data?.totalRow)
-    assignMetric('chatHistoryTotal', chatRes.data.data?.totalRow)
-    assignMetric('promptTemplateTotal', templateRes.data.data?.totalRow)
-    assignMetric('promptTemplateEnabled', templateEnabledRes.data.data?.totalRow)
-    assignMetric('systemPromptTotal', systemPromptRes.data.data?.totalRow)
-    assignMetric('ragDocTotal', ragRes.data.data?.totalRow)
-    assignMetric('ragDocEnabled', ragEnabledRes.data.data?.totalRow)
-    assignMetric('materialTotal', materialRes.data.data?.totalRow)
-    assignMetric('materialPublic', materialPublicRes.data.data?.totalRow)
-    assignMetric('categoryTotal', categoryRes.data.data?.totalRow)
-    metrics.enabledCategoryTotal = enabledCategoryRes.data.data?.length || 0
+    const [
+      userRes,
+      adminUserRes,
+      appRes,
+      chatRes,
+      templateRes,
+      templateEnabledRes,
+      systemPromptRes,
+      ragRes,
+      ragEnabledRes,
+      materialRes,
+      materialPublicRes,
+      categoryRes,
+      enabledCategoryRes,
+    ] = results
 
-    const appTotal = appRes.data.data?.totalRow || 0
-    if (appTotal > 0) {
-      const appRecordRes = await listAppVoByPageByAdmin({ pageNum: 1, pageSize: appTotal })
-      analyzeAppRecords(appRecordRes.data.data?.records || [])
-    } else {
-      analyzeAppRecords([])
+    const userPage = readSettledPage(userRes)
+    const adminUserPage = readSettledPage(adminUserRes)
+    const appPage = readSettledPage(appRes)
+    const chatPage = readSettledPage(chatRes)
+    const templatePage = readSettledPage(templateRes)
+    const templateEnabledPage = readSettledPage(templateEnabledRes)
+    const systemPromptPage = readSettledPage(systemPromptRes)
+    const ragPage = readSettledPage(ragRes)
+    const ragEnabledPage = readSettledPage(ragEnabledRes)
+    const materialPage = readSettledPage(materialRes)
+    const materialPublicPage = readSettledPage(materialPublicRes)
+    const categoryPage = readSettledPage(categoryRes)
+    const enabledCategories = readSettledData(enabledCategoryRes)
+
+    if (userPage) assignMetric('userTotal', Number(userPage.totalRow))
+    if (adminUserPage) assignMetric('adminUserTotal', Number(adminUserPage.totalRow))
+    if (appPage) assignMetric('appTotal', Number(appPage.totalRow))
+    if (chatPage) assignMetric('chatHistoryTotal', Number(chatPage.totalRow))
+    if (templatePage) assignMetric('promptTemplateTotal', Number(templatePage.totalRow))
+    if (templateEnabledPage)
+      assignMetric('promptTemplateEnabled', Number(templateEnabledPage.totalRow))
+    if (systemPromptPage) assignMetric('systemPromptTotal', Number(systemPromptPage.totalRow))
+    if (ragPage) assignMetric('ragDocTotal', Number(ragPage.totalRow))
+    if (ragEnabledPage) assignMetric('ragDocEnabled', Number(ragEnabledPage.totalRow))
+    if (materialPage) assignMetric('materialTotal', Number(materialPage.totalRow))
+    if (materialPublicPage) assignMetric('materialPublic', Number(materialPublicPage.totalRow))
+    if (categoryPage) assignMetric('categoryTotal', Number(categoryPage.totalRow))
+    if (Array.isArray(enabledCategories)) {
+      metrics.enabledCategoryTotal = enabledCategories.length
+    }
+
+    let partialFailureCount = results.filter((result) => !isSettledSuccess(result)).length
+    if (appPage) {
+      const appTotal = Number(appPage.totalRow) || 0
+      if (appTotal > 0) {
+        try {
+          const appRecordRes = await listAppVoByPageByAdmin({ pageNum: 1, pageSize: appTotal })
+          if (requestId !== dashboardRequestSequence) return
+          if (appRecordRes.data.code === 0) {
+            analyzeAppRecords(appRecordRes.data.data?.records || [])
+          } else {
+            partialFailureCount += 1
+          }
+        } catch (error) {
+          if (requestId !== dashboardRequestSequence) return
+          console.error('加载产物结构统计失败', error)
+          partialFailureCount += 1
+        }
+      } else {
+        analyzeAppRecords([])
+      }
+    }
+
+    if (partialFailureCount > 0) {
+      message.warning('部分数据加载失败，已展示其余可用指标')
     }
   } catch (error) {
+    if (requestId !== dashboardRequestSequence) return
     console.error('加载系统管理控制台数据失败', error)
     message.error('加载系统管理控制台数据失败')
   } finally {
-    refreshing.value = false
+    if (requestId === dashboardRequestSequence) refreshing.value = false
   }
 }
 
@@ -821,6 +891,11 @@ const handleAdminNavClick = (item: (typeof adminNavItems)[number]) => {
 
 onMounted(() => {
   loadDashboardMetrics()
+})
+
+onBeforeUnmount(() => {
+  dashboardRequestSequence += 1
+  refreshing.value = false
 })
 </script>
 

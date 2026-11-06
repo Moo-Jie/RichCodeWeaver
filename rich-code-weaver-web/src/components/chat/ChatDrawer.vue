@@ -20,7 +20,10 @@
           <div
             v-for="conv in chatStore.conversations"
             :key="conv.id"
-            :class="['conversation-item', { 'conversation-item-active': chatStore.activeConversationId === conv.id }]"
+            :class="[
+              'conversation-item',
+              { 'conversation-item-active': chatStore.activeConversationId === conv.id },
+            ]"
             @click="openChat(conv)"
           >
             <div class="conv-info">
@@ -33,11 +36,16 @@
                 <a-badge
                   v-if="conv.unreadCount && conv.unreadCount > 0"
                   :count="conv.unreadCount"
-                  :numberStyle="{ fontSize: '11px', minWidth: '18px', height: '18px', lineHeight: '18px' }"
+                  :numberStyle="{
+                    fontSize: '11px',
+                    minWidth: '18px',
+                    height: '18px',
+                    lineHeight: '18px',
+                  }"
                 />
               </div>
             </div>
-            <a-avatar :size="48" :src="conv.targetUserAvatar" style="margin-left: 12px;">
+            <a-avatar :size="48" :src="conv.targetUserAvatar" style="margin-left: 12px">
               {{ conv.targetUserName?.charAt(0) || 'U' }}
             </a-avatar>
           </div>
@@ -52,7 +60,7 @@
           </a-button>
           <span class="chat-title">{{ pendingFriendInfo?.friendName || '新对话' }}</span>
           <div class="chat-header-spacer"></div>
-          <a-avatar :size="36" :src="pendingFriendInfo?.friendAvatar" style="margin-left: 12px;">
+          <a-avatar :size="36" :src="pendingFriendInfo?.friendAvatar" style="margin-left: 12px">
             {{ pendingFriendInfo?.friendName?.charAt(0) || 'U' }}
           </a-avatar>
         </div>
@@ -71,7 +79,8 @@
           />
           <a-button
             type="primary"
-            :disabled="!inputMessage.trim()"
+            :disabled="!inputMessage.trim() || sendingMessage"
+            :loading="sendingMessage"
             @click="handlePendingSend"
           >
             <SendOutlined />
@@ -88,7 +97,7 @@
           </a-button>
           <span class="chat-title">{{ activeChatUser.targetUserName }}</span>
           <div class="chat-header-spacer"></div>
-          <a-avatar :size="36" :src="activeChatUser.targetUserAvatar" style="margin-left: 12px;">
+          <a-avatar :size="36" :src="activeChatUser.targetUserAvatar" style="margin-left: 12px">
             {{ activeChatUser.targetUserName?.charAt(0) || 'U' }}
           </a-avatar>
         </div>
@@ -107,13 +116,22 @@
             :key="msg.id"
             :class="['message-item', { 'message-self': msg.senderId === currentUserId }]"
           >
-            <a-avatar :size="30" :src="msg.senderAvatar" v-if="msg.senderId !== currentUserId" style="margin-left: 12px;">
+            <a-avatar
+              :size="30"
+              :src="msg.senderAvatar"
+              v-if="msg.senderId !== currentUserId"
+              style="margin-left: 12px"
+            >
               {{ msg.senderName?.charAt(0) || 'U' }}
             </a-avatar>
             <div class="message-bubble">
               <div v-if="msg.messageType === 'collab_invite'" class="collab-message-card">
                 <div class="collab-message-title">
-                  {{ msg.senderId === currentUserId ? '你发起了协作邀请' : `${msg.senderName || '对方'} 邀请你协作` }}
+                  {{
+                    msg.senderId === currentUserId
+                      ? '你发起了协作邀请'
+                      : `${msg.senderName || '对方'} 邀请你协作`
+                  }}
                 </div>
                 <div class="collab-message-app">
                   <img v-if="msg.appCover" :src="msg.appCover" alt="" class="collab-app-cover" />
@@ -128,12 +146,26 @@
                     {{ getCollabStatusLabel(msg.collabStatus) }}
                   </a-tag>
                 </div>
-                <div v-if="canHandleCollabInvite(msg)" class="invite-actions invite-actions-message">
-                  <a-button type="primary" size="small" @click="handleCollabAction(msg, 1)">
+                <div
+                  v-if="canHandleCollabInvite(msg)"
+                  class="invite-actions invite-actions-message"
+                >
+                  <a-button
+                    :disabled="collabActionPending"
+                    :loading="collabActionPending"
+                    type="primary"
+                    size="small"
+                    @click="handleCollabAction(msg, 1)"
+                  >
                     <CheckOutlined />
                     接受
                   </a-button>
-                  <a-button size="small" danger @click="handleCollabAction(msg, 2)">
+                  <a-button
+                    :disabled="collabActionPending"
+                    size="small"
+                    danger
+                    @click="handleCollabAction(msg, 2)"
+                  >
                     <CloseOutlined />
                     拒绝
                   </a-button>
@@ -141,10 +173,19 @@
               </div>
               <div v-else-if="msg.messageType === 'app_forward'" class="forward-message-card">
                 <div class="forward-message-title">
-                  {{ msg.senderId === currentUserId ? '你转发了一个产物' : `${msg.senderName || '对方'} 向你转发了一个产物` }}
+                  {{
+                    msg.senderId === currentUserId
+                      ? '你转发了一个产物'
+                      : `${msg.senderName || '对方'} 向你转发了一个产物`
+                  }}
                 </div>
                 <div class="forward-message-app">
-                  <img v-if="getForwardAppCover(msg)" :src="getForwardAppCover(msg)" alt="" class="forward-app-cover" />
+                  <img
+                    v-if="getForwardAppCover(msg)"
+                    :src="getForwardAppCover(msg)"
+                    alt=""
+                    class="forward-app-cover"
+                  />
                   <div class="forward-message-app-info">
                     <div class="forward-message-app-name">{{ getForwardAppName(msg) }}</div>
                     <div class="forward-message-app-meta">
@@ -163,7 +204,12 @@
               <div v-else class="message-content">{{ msg.content }}</div>
               <div class="message-time">{{ formatTime(msg.createTime) }}</div>
             </div>
-            <a-avatar :size="30" :src="msg.senderAvatar" v-if="msg.senderId === currentUserId" style="margin-left: 12px;">
+            <a-avatar
+              :size="30"
+              :src="msg.senderAvatar"
+              v-if="msg.senderId === currentUserId"
+              style="margin-left: 12px"
+            >
               {{ msg.senderName?.charAt(0) || 'U' }}
             </a-avatar>
           </div>
@@ -179,7 +225,8 @@
           />
           <a-button
             type="primary"
-            :disabled="!inputMessage.trim()"
+            :disabled="!inputMessage.trim() || sendingMessage"
+            :loading="sendingMessage"
             @click="handleSend"
           >
             <SendOutlined />
@@ -191,7 +238,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/chatStore'
@@ -205,7 +252,7 @@ import {
   ExportOutlined,
   FileOutlined,
   MessageOutlined,
-  SendOutlined
+  SendOutlined,
 } from '@ant-design/icons-vue'
 
 const chatStore = useChatStore()
@@ -220,12 +267,54 @@ const activeChatUser = ref<API.ChatConversationVO | null>(null)
 const inputMessage = ref('')
 /** 消息加载状态 */
 const loadingMessages = ref(false)
+/** 是否正在发送消息 */
+const sendingMessage = ref(false)
+/** 协作邀请操作是否正在提交 */
+const collabActionPending = ref(false)
 /** 是否有更多历史消息 */
 const hasMoreMessages = ref(false)
 /** 当前页码 */
 const currentPage = ref(1)
 /** 消息容器引用 */
 const messagesContainer = ref<HTMLElement | null>(null)
+
+let disposed = false
+let activeConversationSequence = 0
+let messageLoadRequestId = 0
+let messageLoadController: AbortController | null = null
+let readController: AbortController | null = null
+let conversationPollTimer: ReturnType<typeof setTimeout> | null = null
+let conversationPollToken = 0
+let pendingLookupSequence = 0
+
+const isAbortError = (error: unknown) => {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'ERR_CANCELED')
+  )
+}
+
+const shouldIgnoreEnter = (event?: KeyboardEvent) => {
+  return !!event && (event.isComposing || event.keyCode === 229)
+}
+
+const cancelMessageLoad = () => {
+  messageLoadRequestId++
+  messageLoadController?.abort()
+  messageLoadController = null
+  loadingMessages.value = false
+}
+
+const clearConversationPoll = () => {
+  conversationPollToken++
+  if (conversationPollTimer) {
+    clearTimeout(conversationPollTimer)
+    conversationPollTimer = null
+  }
+}
 
 /** 是否处于待发起聊天模式（从好友列表发起新对话） */
 const pendingChatMode = computed(() => {
@@ -243,17 +332,39 @@ const pendingFriendInfo = computed(() => {
  * @param conv 会话信息
  */
 async function openChat(conv: API.ChatConversationVO) {
+  const conversationId = conv.id
+  if (!conversationId) return
+
+  clearConversationPoll()
+  const sequence = ++activeConversationSequence
+  readController?.abort()
   activeChatUser.value = conv
-  chatStore.selectConversation(conv.id!)
+  chatStore.selectConversation(conversationId)
   currentPage.value = 1
-  await loadMessages()
-  // 标记已读
-  if (conv.id) {
-    await markAsRead({ conversationId: conv.id })
-    chatStore.sendWsRead(conv.id)
-    // 刷新会话列表以更新未读数
+  hasMoreMessages.value = false
+
+  const loaded = await loadMessages(1, false)
+  if (
+    !loaded ||
+    disposed ||
+    sequence !== activeConversationSequence ||
+    String(chatStore.activeConversationId) !== String(conversationId)
+  ) {
+    return
+  }
+
+  const controller = new AbortController()
+  readController = controller
+  try {
+    await markAsRead({ conversationId }, { signal: controller.signal })
+    if (disposed || sequence !== activeConversationSequence) return
+    chatStore.sendWsRead(conversationId)
     chatStore.fetchConversations()
     chatStore.fetchUnreadCount()
+  } catch (error) {
+    if (!disposed && !isAbortError(error)) console.error('标记消息已读失败', error)
+  } finally {
+    if (readController === controller) readController = null
   }
 }
 
@@ -261,7 +372,14 @@ async function openChat(conv: API.ChatConversationVO) {
  * 关闭聊天窗口回到会话列表
  */
 function closeChat() {
+  activeConversationSequence++
+  clearConversationPoll()
+  cancelMessageLoad()
+  readController?.abort()
+  readController = null
   activeChatUser.value = null
+  currentPage.value = 1
+  hasMoreMessages.value = false
   chatStore.clearCurrentMessages()
   chatStore.fetchConversations()
 }
@@ -269,33 +387,58 @@ function closeChat() {
 /**
  * 加载消息
  */
-async function loadMessages() {
-  if (!chatStore.activeConversationId) return
+async function loadMessages(pageNumber: number, append: boolean) {
+  const conversationId = chatStore.activeConversationId
+  if (!conversationId) return false
+
+  const requestId = ++messageLoadRequestId
+  messageLoadController?.abort()
+  const controller = new AbortController()
+  messageLoadController = controller
   loadingMessages.value = true
+
   try {
-    const res = await listMessages({
-      conversationId: chatStore.activeConversationId,
-      pageNum: currentPage.value,
-      pageSize: 50
-    })
-    if (res.data.code === 0 && res.data.data) {
-      const page = res.data.data
-      if (currentPage.value === 1) {
-        chatStore.currentMessages = page.records || []
-      } else {
-        // 加载更多时，将旧消息插入到前面
-        chatStore.currentMessages = [...(page.records || []), ...chatStore.currentMessages]
-      }
-      hasMoreMessages.value = (page.pageNumber || 1) < (page.totalPage || 1)
+    const res = await listMessages(
+      {
+        conversationId,
+        pageNum: pageNumber,
+        pageSize: 50,
+      },
+      { signal: controller.signal },
+    )
+    if (
+      disposed ||
+      requestId !== messageLoadRequestId ||
+      String(chatStore.activeConversationId) !== String(conversationId)
+    ) {
+      return false
     }
-  } catch (e) {
-    message.error('加载消息失败')
+    if (res.data.code !== 0 || !res.data.data) return false
+
+    const page = res.data.data
+    const records = page.records || []
+    if (append) {
+      const knownIds = new Set(chatStore.currentMessages.map((item) => String(item.id)))
+      const olderMessages = records.filter((item) => !item.id || !knownIds.has(String(item.id)))
+      chatStore.currentMessages = [...olderMessages, ...chatStore.currentMessages]
+    } else {
+      chatStore.currentMessages = records
+    }
+    hasMoreMessages.value = (page.pageNumber || 1) < (page.totalPage || 1)
+    return true
+  } catch (error) {
+    if (!disposed && requestId === messageLoadRequestId && !isAbortError(error)) {
+      message.error('加载消息失败')
+    }
+    return false
   } finally {
-    loadingMessages.value = false
-    // 首次加载滚动到底部
-    if (currentPage.value === 1) {
-      await nextTick()
-      scrollToBottom()
+    if (requestId === messageLoadRequestId) {
+      loadingMessages.value = false
+      messageLoadController = null
+      if (!append) {
+        await nextTick()
+        if (!disposed) scrollToBottom()
+      }
     }
   }
 }
@@ -304,34 +447,45 @@ async function loadMessages() {
  * 加载更多历史消息
  */
 async function loadMoreMessages() {
-  currentPage.value++
-  await loadMessages()
+  if (loadingMessages.value) return
+  const nextPage = currentPage.value + 1
+  const loaded = await loadMessages(nextPage, true)
+  if (loaded && !disposed) currentPage.value = nextPage
 }
 
 /**
  * 发送消息
  */
 async function handleSend(e?: KeyboardEvent) {
-  // Shift+Enter 换行，Enter 发送
-  if (e && e.shiftKey) return
+  // 输入法组合态下的 Enter 只用于确认候选词，不能触发发送
+  if (shouldIgnoreEnter(e) || (e && e.shiftKey)) return
   if (e) e.preventDefault()
+  if (sendingMessage.value) return
 
   const content = inputMessage.value.trim()
-  if (!content || !activeChatUser.value?.targetUserId) return
+  const targetUserId = activeChatUser.value?.targetUserId
+  if (!content || !targetUserId) return
 
   // 乐观插入：立即显示发出的消息
-  chatStore.currentMessages.push({
+  const optimisticMessage = {
     senderId: currentUserId.value,
     content,
     messageType: 'text',
-    createTime: new Date().toISOString()
-  } as API.ChatMessageVO)
+    createTime: new Date().toISOString(),
+  } as API.ChatMessageVO
+  chatStore.currentMessages.push(optimisticMessage)
   inputMessage.value = ''
+  sendingMessage.value = true
 
   try {
-    await chatStore.sendWsMessage(activeChatUser.value.targetUserId, content)
-  } catch (error) {
+    await chatStore.sendWsMessage(targetUserId, content)
+  } catch {
+    const optimisticIndex = chatStore.currentMessages.indexOf(optimisticMessage)
+    if (optimisticIndex >= 0) chatStore.currentMessages.splice(optimisticIndex, 1)
+    if (!inputMessage.value.trim()) inputMessage.value = content
     message.error('消息发送失败，请稍后重试')
+  } finally {
+    sendingMessage.value = false
   }
 }
 
@@ -368,7 +522,7 @@ function getForwardPayload(msg: API.ChatMessageVO) {
   if (!msg.content) return null
   try {
     return JSON.parse(msg.content)
-  } catch (error) {
+  } catch {
     return null
   }
 }
@@ -404,7 +558,7 @@ watch(
   () => chatStore.currentMessages.length,
   () => {
     nextTick(() => scrollToBottom())
-  }
+  },
 )
 
 /**
@@ -412,48 +566,86 @@ watch(
  * 发送后保持聊天视图，乐观展示已发消息，轮询等待后端创建会话后自动切换
  */
 async function handlePendingSend(e?: KeyboardEvent) {
-  if (e && e.shiftKey) return
+  if (shouldIgnoreEnter(e) || (e && e.shiftKey)) return
   if (e) e.preventDefault()
-  const content = inputMessage.value.trim()
-  if (!content || !chatStore.pendingChatFriendId) return
+  if (sendingMessage.value) return
 
+  const content = inputMessage.value.trim()
   const friendId = chatStore.pendingChatFriendId
+  if (!content || !friendId) return
+
+  sendingMessage.value = true
   try {
     await chatStore.sendWsMessage(friendId, content)
-    inputMessage.value = ''
-  } catch (error) {
+  } catch {
     message.error('消息发送失败，请稍后重试')
     return
+  } finally {
+    sendingMessage.value = false
   }
+
+  if (
+    disposed ||
+    !chatStore.chatDrawerVisible ||
+    String(chatStore.pendingChatFriendId) !== String(friendId)
+  ) {
+    return
+  }
+  inputMessage.value = ''
 
   if (!chatStore.activeConversationId && !chatStore.currentMessages.some((item) => !item.id)) {
     chatStore.currentMessages.push({
       senderId: currentUserId.value,
-      content: content,
+      content,
       messageType: 'text',
-      createTime: new Date().toISOString()
+      createTime: new Date().toISOString(),
     } as API.ChatMessageVO)
   }
 
-  // 轮询等待后端创建会话，最多尝试5次
-  const pollForConversation = async (attempts: number) => {
-    if (attempts <= 0) return
+  scheduleConversationPoll(friendId, 5, 600)
+}
+
+function scheduleConversationPoll(friendId: number, attempts: number, delay: number) {
+  clearConversationPoll()
+  const token = conversationPollToken
+  conversationPollTimer = setTimeout(async () => {
+    conversationPollTimer = null
+    if (
+      disposed ||
+      token !== conversationPollToken ||
+      !chatStore.chatDrawerVisible ||
+      String(chatStore.pendingChatFriendId) !== String(friendId)
+    ) {
+      return
+    }
+
     await chatStore.fetchConversations()
-    const conv = chatStore.conversations.find((c) => String(c.targetUserId) === String(friendId))
+    if (
+      disposed ||
+      token !== conversationPollToken ||
+      !chatStore.chatDrawerVisible ||
+      String(chatStore.pendingChatFriendId) !== String(friendId)
+    ) {
+      return
+    }
+
+    const conv = chatStore.conversations.find(
+      (item) => String(item.targetUserId) === String(friendId),
+    )
     if (conv) {
       chatStore.pendingChatFriendId = null
-      openChat(conv)
-    } else {
-      setTimeout(() => pollForConversation(attempts - 1), 800)
+      void openChat(conv)
+      return
     }
-  }
-  setTimeout(() => pollForConversation(5), 600)
+    if (attempts > 1) scheduleConversationPoll(friendId, attempts - 1, 800)
+  }, delay)
 }
 
 /**
  * 取消待聊天模式，回到会话列表
  */
 function cancelPendingChat() {
+  clearConversationPoll()
   chatStore.pendingChatFriendId = null
 }
 
@@ -461,7 +653,8 @@ function cancelPendingChat() {
  * 处理协作邀请（接受/拒绝）
  */
 async function handleCollabAction(msg: API.ChatMessageVO, action: number) {
-  if (!msg.collabId) return
+  if (!msg.collabId || collabActionPending.value) return
+  collabActionPending.value = true
   try {
     const res = await handleCollabInvitation({ id: msg.collabId, action })
     if (res.data.code === 0) {
@@ -470,7 +663,7 @@ async function handleCollabAction(msg: API.ChatMessageVO, action: number) {
         if (item.id === msg.id) {
           return {
             ...item,
-            collabStatus: action === 1 ? 1 : 2
+            collabStatus: action === 1 ? 1 : 2,
           }
         }
         return item
@@ -479,13 +672,19 @@ async function handleCollabAction(msg: API.ChatMessageVO, action: number) {
     } else {
       message.error(res.data.message || '操作失败')
     }
-  } catch (e) {
+  } catch {
     message.error('处理协作邀请失败')
+  } finally {
+    collabActionPending.value = false
   }
 }
 
 function canHandleCollabInvite(msg: API.ChatMessageVO) {
-  return msg.messageType === 'collab_invite' && msg.receiverId === currentUserId.value && msg.collabStatus === 0
+  return (
+    msg.messageType === 'collab_invite' &&
+    msg.receiverId === currentUserId.value &&
+    msg.collabStatus === 0
+  )
 }
 
 function getCollabRoleLabel(role?: string) {
@@ -513,20 +712,21 @@ function getCollabStatusColor(status?: number) {
 watch(
   () => [chatStore.pendingChatFriendId, chatStore.chatDrawerVisible] as const,
   async ([friendId, visible]) => {
-    if (friendId && visible) {
-      await chatStore.fetchConversations()
-      const existing = chatStore.conversations.find(
-        (c) => String(c.targetUserId) === String(friendId)
-      )
-      if (existing) {
-        // 找到已有会话，直接打开并加载消息
-        chatStore.pendingChatFriendId = null
-        openChat(existing)
-      }
-      // 否则停留在pendingChatMode，用户可发送第一条消息
+    const sequence = ++pendingLookupSequence
+    if (!friendId || !visible || disposed) return
+
+    await chatStore.fetchConversations()
+    if (disposed || sequence !== pendingLookupSequence || !chatStore.chatDrawerVisible) return
+
+    const existing = chatStore.conversations.find(
+      (c) => String(c.targetUserId) === String(friendId),
+    )
+    if (existing) {
+      chatStore.pendingChatFriendId = null
+      void openChat(existing)
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 // 抽屉关闭时清理状态
@@ -534,11 +734,29 @@ watch(
   () => chatStore.chatDrawerVisible,
   (visible) => {
     if (!visible) {
+      activeConversationSequence++
+      pendingLookupSequence++
+      clearConversationPoll()
+      cancelMessageLoad()
+      readController?.abort()
+      readController = null
       activeChatUser.value = null
+      currentPage.value = 1
+      hasMoreMessages.value = false
       chatStore.clearCurrentMessages()
     }
-  }
+  },
 )
+
+onBeforeUnmount(() => {
+  disposed = true
+  activeConversationSequence++
+  pendingLookupSequence++
+  clearConversationPoll()
+  cancelMessageLoad()
+  readController?.abort()
+  readController = null
+})
 </script>
 
 <style scoped>
@@ -566,7 +784,9 @@ watch(
   padding: 13px 16px;
   border-radius: 16px;
   cursor: pointer;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .conversation-item:hover {

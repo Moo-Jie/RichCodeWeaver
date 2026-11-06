@@ -8,8 +8,11 @@
           <span class="hint-label">已选中：{{ getElementTypeLabel(selectedElement.tagName) }}</span>
         </div>
         <div v-if="selectedElement.textContent" class="hint-text-preview">
-          "{{ selectedElement.textContent.length > 60 ? selectedElement.textContent.substring(0, 60)
-          + '...' : selectedElement.textContent }}"
+          "{{
+            selectedElement.textContent.length > 60
+              ? selectedElement.textContent.substring(0, 60) + '...'
+              : selectedElement.textContent
+          }}"
         </div>
         <div class="hint-tip">请在下方输入框描述您想要的修改</div>
       </div>
@@ -32,18 +35,22 @@
         >
           <PaperClipOutlined />
           选择素材
-          <span v-if="selectedMaterials.length > 0" class="material-count">{{ selectedMaterials.length }}</span>
+          <span v-if="selectedMaterials.length > 0" class="material-count">{{
+            selectedMaterials.length
+          }}</span>
         </button>
         <div class="capsule-switch">
           <button
             :class="['capsule-item', { active: generatorMode }]"
             @click="$emit('update:generatorMode', true)"
-          >系统分步执行
+          >
+            系统分步执行
           </button>
           <button
             :class="['capsule-item', { active: !generatorMode }]"
             @click="$emit('update:generatorMode', false)"
-          >Agent 智能生成
+          >
+            Agent 智能生成
           </button>
         </div>
         <button v-if="showTourButton" class="tour-trigger-btn" @click="$emit('startTour')">
@@ -56,11 +63,7 @@
       <div v-if="selectedMaterials.length > 0" class="materials-hint">
         <div class="materials-list">
           <span class="materials-label"><PaperClipOutlined /> 已选素材：</span>
-          <span
-            v-for="(m, idx) in selectedMaterials.slice(0, 3)"
-            :key="m.id"
-            class="material-tag"
-          >
+          <span v-for="(m, idx) in selectedMaterials.slice(0, 3)" :key="m.id" class="material-tag">
             {{ m.materialName }}
             <span class="tag-remove" @click="removeMaterial(idx)">×</span>
           </span>
@@ -83,6 +86,7 @@
               class="chat-textarea"
               rows="1"
               @input="handleInput"
+              @keydown="handleKeydown"
             ></textarea>
             <div v-if="optimizing" class="mist-overlay"></div>
           </div>
@@ -98,12 +102,17 @@
             <a-spin :indicator="indicator" size="small" />
           </template>
           <template v-else>
-            <img :class="['optimize-btn', { disabled: optimizing || !modelValue?.trim() }]"
-                 src="@/assets/AiOptimize.png" />
+            <img
+              :class="['optimize-btn', { disabled: optimizing || !modelValue?.trim() }]"
+              src="@/assets/AiOptimize.png"
+            />
           </template>
         </button>
-        <button :class="['send-btn', { disabled: sending || !modelValue?.trim() }]"
-                :disabled="sending || optimizing" @click="handleSend">
+        <button
+          :class="['send-btn', { disabled: sending || !modelValue?.trim() }]"
+          :disabled="sending || optimizing || !modelValue?.trim()"
+          @click="handleSend"
+        >
           <template v-if="sending">
             <a-spin :indicator="indicator" size="small" />
           </template>
@@ -122,7 +131,7 @@ import {
   LoadingOutlined,
   PaperClipOutlined,
   QuestionCircleOutlined,
-  SendOutlined
+  SendOutlined,
 } from '@ant-design/icons-vue'
 
 interface ElementInfo {
@@ -133,12 +142,37 @@ interface ElementInfo {
 }
 
 const ELEMENT_TYPE_MAP: Record<string, string> = {
-  H1: '大标题', H2: '二级标题', H3: '三级标题', H4: '四级标题', H5: '五级标题', H6: '六级标题',
-  P: '段落文本', A: '链接', BUTTON: '按钮', IMG: '图片', VIDEO: '视频', AUDIO: '音频',
-  NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
-  SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
-  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框',
-  LABEL: '标签', SELECT: '下拉选择', TEXTAREA: '文本域', IFRAME: '嵌入框架'
+  H1: '大标题',
+  H2: '二级标题',
+  H3: '三级标题',
+  H4: '四级标题',
+  H5: '五级标题',
+  H6: '六级标题',
+  P: '段落文本',
+  A: '链接',
+  BUTTON: '按钮',
+  IMG: '图片',
+  VIDEO: '视频',
+  AUDIO: '音频',
+  NAV: '导航栏',
+  HEADER: '页头区域',
+  FOOTER: '页脚区域',
+  MAIN: '主要内容',
+  ASIDE: '侧边栏',
+  SECTION: '内容区块',
+  ARTICLE: '文章区块',
+  DIV: '区块容器',
+  SPAN: '文本片段',
+  UL: '无序列表',
+  OL: '有序列表',
+  LI: '列表项',
+  TABLE: '表格',
+  FORM: '表单',
+  INPUT: '输入框',
+  LABEL: '标签',
+  SELECT: '下拉选择',
+  TEXTAREA: '文本域',
+  IFRAME: '嵌入框架',
 }
 
 function getElementTypeLabel(tagName: string): string {
@@ -179,10 +213,20 @@ const props = withDefaults(defineProps<Props>(), {
   optimizing: false,
   showTourButton: false,
   showMaterialButton: false,
-  selectedMaterials: () => []
+  selectedMaterials: () => [],
 })
 
-const emit = defineEmits(['update:modelValue', 'send', 'clearSelection', 'update:generatorMode', 'optimize', 'startTour', 'openMaterialSelector', 'removeMaterial', 'clearMaterials'])
+const emit = defineEmits([
+  'update:modelValue',
+  'send',
+  'clearSelection',
+  'update:generatorMode',
+  'optimize',
+  'startTour',
+  'openMaterialSelector',
+  'removeMaterial',
+  'clearMaterials',
+])
 
 const selectedMaterials = computed(() => props.selectedMaterials || [])
 
@@ -203,6 +247,14 @@ onMounted(() => {
     baseHeight.value = inputRef.value.scrollHeight || 22
   }
 })
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.isComposing || e.keyCode === 229) return
+  if (e.key !== 'Enter' || e.shiftKey) return
+  e.preventDefault()
+  if (props.sending || props.optimizing || !props.modelValue?.trim()) return
+  handleSend()
+}
 
 const handleInput = (e: Event) => {
   const target = e.target as HTMLTextAreaElement
@@ -237,7 +289,7 @@ const resetHeight = () => {
 
 defineExpose({
   focus: () => inputRef.value?.focus(),
-  resetHeight
+  resetHeight,
 })
 </script>
 
@@ -379,7 +431,7 @@ defineExpose({
 .capsule-item.active {
   background: #1a1a1a;
   color: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .capsule-item:not(.active):hover {
@@ -415,7 +467,9 @@ defineExpose({
   border: 1px solid #e5e5e5;
   border-radius: 16px;
   padding: 10px 12px 10px 18px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .input-row:focus-within {
@@ -477,12 +531,15 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at 20% 50%, rgba(147, 197, 253, 0.25) 0%, transparent 50%),
-  radial-gradient(circle at 80% 50%, rgba(196, 181, 253, 0.2) 0%, transparent 50%),
-  radial-gradient(circle at 50% 80%, rgba(253, 186, 116, 0.18) 0%, transparent 50%),
-  radial-gradient(circle at 40% 20%, rgba(134, 239, 172, 0.15) 0%, transparent 50%);
+  background:
+    radial-gradient(circle at 20% 50%, rgba(147, 197, 253, 0.25) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(196, 181, 253, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(253, 186, 116, 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(134, 239, 172, 0.15) 0%, transparent 50%);
   background-size: 200% 200%;
-  animation: mistMove 6s ease-in-out infinite, mistFlow 3s ease-in-out infinite;
+  animation:
+    mistMove 6s ease-in-out infinite,
+    mistFlow 3s ease-in-out infinite;
   pointer-events: none;
   border-radius: 12px;
   z-index: 1;
@@ -490,25 +547,42 @@ defineExpose({
 
 @keyframes mistMove {
   0% {
-    background-position: 0% 50%, 100% 50%, 50% 100%, 20% 30%;
+    background-position:
+      0% 50%,
+      100% 50%,
+      50% 100%,
+      20% 30%;
     opacity: 0.5;
   }
   33% {
-    background-position: 100% 30%, 0% 70%, 30% 0%, 80% 50%;
+    background-position:
+      100% 30%,
+      0% 70%,
+      30% 0%,
+      80% 50%;
     opacity: 0.6;
   }
   66% {
-    background-position: 50% 100%, 50% 0%, 100% 50%, 0% 80%;
+    background-position:
+      50% 100%,
+      50% 0%,
+      100% 50%,
+      0% 80%;
     opacity: 0.55;
   }
   100% {
-    background-position: 0% 50%, 100% 50%, 50% 100%, 20% 30%;
+    background-position:
+      0% 50%,
+      100% 50%,
+      50% 100%,
+      20% 30%;
     opacity: 0.5;
   }
 }
 
 @keyframes mistFlow {
-  0%, 100% {
+  0%,
+  100% {
     filter: brightness(1) saturate(1);
   }
   50% {

@@ -45,7 +45,7 @@
     <div class="editor-hints">
       <div class="hint-item">
         <span class="hint-label">已使用变量：</span>
-        <a-tag v-for="variable in usedVariables" :key="variable" color="blue" style="margin: 2px;">
+        <a-tag v-for="variable in usedVariables" :key="variable" color="blue" style="margin: 2px">
           {{ variable }}
         </a-tag>
         <span v-if="usedVariables.length === 0" class="hint-empty">暂无</span>
@@ -63,18 +63,12 @@
       width="400px"
       @ok="insertCustomVariable"
     >
-      <a-form layout="vertical" style="margin-top: 16px;">
+      <a-form layout="vertical" style="margin-top: 16px">
         <a-form-item label="变量名（英文）">
-          <a-input
-            v-model:value="customVarName"
-            placeholder="例如：colorScheme"
-          />
+          <a-input v-model:value="customVarName" placeholder="例如：colorScheme" />
         </a-form-item>
         <a-form-item label="变量说明">
-          <a-input
-            v-model:value="customVarLabel"
-            placeholder="例如：UI色系"
-          />
+          <a-input v-model:value="customVarLabel" placeholder="例如：UI色系" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -82,7 +76,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { BulbOutlined, DownOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons-vue'
 
 const props = defineProps<{
@@ -99,10 +93,15 @@ const textareaRef = ref()
 const customVarVisible = ref(false)
 const customVarName = ref('')
 const customVarLabel = ref('')
+let cursorRestoreTimer: ReturnType<typeof setTimeout> | null = null
 
-watch(() => props.modelValue, (val) => {
-  localContent.value = val || ''
-}, { immediate: true })
+watch(
+  () => props.modelValue,
+  (val) => {
+    localContent.value = val || ''
+  },
+  { immediate: true },
+)
 
 const handleChange = () => {
   emit('update:modelValue', localContent.value)
@@ -156,7 +155,10 @@ const insertAtCursor = (text: string) => {
   handleChange()
 
   // Restore cursor position
-  setTimeout(() => {
+  if (cursorRestoreTimer) clearTimeout(cursorRestoreTimer)
+  cursorRestoreTimer = setTimeout(() => {
+    cursorRestoreTimer = null
+    if (!textarea.isConnected) return
     textarea.focus()
     const newPos = start + text.length
     textarea.setSelectionRange(newPos, newPos)
@@ -164,13 +166,21 @@ const insertAtCursor = (text: string) => {
 }
 
 const loadExample = () => {
-  localContent.value = '为一位{{identity}}旅游/酒店爱好者创建旅行游记静态网站。色系：{{colorScheme}}，布局：{{layout}}。包含旅行者介绍、游记文章列表（含目的地、日期、封面图占位）、旅行地图标记、旅行数据统计（去过的城市数、国家数等）、旅行Tips分享区。{{logoOption}}页面需有地图交互和文章卡片动效。所有内容使用真实可信的旅行场景文本。'
+  localContent.value =
+    '为一位{{identity}}旅游/酒店爱好者创建旅行游记静态网站。色系：{{colorScheme}}，布局：{{layout}}。包含旅行者介绍、游记文章列表（含目的地、日期、封面图占位）、旅行地图标记、旅行数据统计（去过的城市数、国家数等）、旅行Tips分享区。{{logoOption}}页面需有地图交互和文章卡片动效。所有内容使用真实可信的旅行场景文本。'
   handleChange()
 }
 
 const formatVariable = (key: string) => {
   return `{{${key}}}`
 }
+
+onBeforeUnmount(() => {
+  if (cursorRestoreTimer) {
+    clearTimeout(cursorRestoreTimer)
+    cursorRestoreTimer = null
+  }
+})
 </script>
 
 <style lang="less" scoped>

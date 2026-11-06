@@ -5,16 +5,14 @@
     <!-- 编辑模式顶部提示条 -->
     <div v-if="isEditMode" class="edit-mode-top-bar">
       <div class="top-bar-content">
-        <EditOutlined style="color: #595959; margin-right: 8px;" />
-        <span style="color: #595959; font-weight: 800;">可视化编辑模式已启用</span>
-        <span style="color: #595959; margin-left: 12px; font-size: 20px;">
-         （ 点击想要修改的页面元素并输入你的需求）
+        <EditOutlined style="color: #595959; margin-right: 8px" />
+        <span style="color: #595959; font-weight: 800">可视化编辑模式已启用</span>
+        <span style="color: #595959; margin-left: 12px; font-size: 20px">
+          （ 点击想要修改的页面元素并输入你的需求）
         </span>
       </div>
       <div class="top-bar-actions">
-        <button class="exit-edit-btn" @click="toggleEditMode">
-          退出编辑模式
-        </button>
+        <button class="exit-edit-btn" @click="toggleEditMode">退出编辑模式</button>
       </div>
     </div>
     <!-- 顶部栏 -->
@@ -24,9 +22,7 @@
           <div>
             名称：
             <a-tag :color="getTypeColor(appInfo?.codeGenType)">
-              {{
-                appInfo?.appName?.substring(0, 10) + '...' || '待命名数字产物'
-              }}
+              {{ appInfo?.appName?.substring(0, 10) + '...' || '待命名数字产物' }}
             </a-tag>
           </div>
         </template>
@@ -36,7 +32,13 @@
             生成模式：
             <a-tag :color="getTypeColor(appInfo?.codeGenType)" class="app-tag2">
               {{
-                appInfo.codeGenType === 'single_html' ? '单文件结构' : appInfo.codeGenType === 'multi_file' ? '多文件结构' : appInfo.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(appInfo.codeGenType)
+                appInfo.codeGenType === 'single_html'
+                  ? '单文件结构'
+                  : appInfo.codeGenType === 'multi_file'
+                    ? '多文件结构'
+                    : appInfo.codeGenType === 'vue_project'
+                      ? 'VUE 项目工程'
+                      : formatCodeGenType(appInfo.codeGenType)
               }}
             </a-tag>
           </div>
@@ -63,17 +65,27 @@
           查看/编辑 数字产物信息
         </a-button>
         <!-- 全屏查看预览  -->
-        <a-button v-if="previewUrl" :disabled="isGenerating" :loading="deploying" class="detail-btn"
-                  type="primary"
-                  @click="openInNewTab ">
+        <a-button
+          v-if="previewUrl"
+          :disabled="isGenerating"
+          :loading="deploying"
+          class="detail-btn"
+          type="primary"
+          @click="openInNewTab"
+        >
           <template #icon>
             <ExportOutlined />
           </template>
           全屏查看预览
         </a-button>
         <!-- 下载代码 -->
-        <a-button :disabled="isGenerating" :loading="downloading" class="detail-btn" type="primary"
-                  @click="downloadCode">
+        <a-button
+          :disabled="isGenerating"
+          :loading="downloading"
+          class="detail-btn"
+          type="primary"
+          @click="downloadCode"
+        >
           <template #icon>
             <DownloadOutlined />
           </template>
@@ -82,8 +94,13 @@
         <!-- 已部署状态下的 重复部署 按钮 -->
         <template v-if="isDeployed">
           <!-- 重复部署 按钮 -->
-          <a-button :disabled="isGenerating" :loading="deploying" class="detail-btn" type="primary"
-                    @click="confirmReDeploy">
+          <a-button
+            :disabled="isGenerating"
+            :loading="deploying"
+            class="detail-btn"
+            type="primary"
+            @click="confirmReDeploy"
+          >
             <template #icon>
               <CloudUploadOutlined />
             </template>
@@ -98,9 +115,14 @@
           </a-button>
         </template>
         <!-- 未部署状态下的 部署为可访问网站 按钮 -->
-        <a-button v-else :disabled="isGenerating" :loading="deploying" class="detail-btn"
-                  type="primary"
-                  @click="deployApp">
+        <a-button
+          v-else
+          :disabled="isGenerating"
+          :loading="deploying"
+          class="detail-btn"
+          type="primary"
+          @click="deployApp"
+        >
           <template #icon>
             <CloudUploadOutlined />
           </template>
@@ -132,13 +154,22 @@
           <a-spin v-else size="small" />
         </div>
 
-
         <!-- 消息区域 -->
-        <div ref="messagesContainer" class="messages-container" @scroll.passive="handleMessagesScroll">
+        <div
+          ref="messagesContainer"
+          class="messages-container"
+          @scroll.passive="handleMessagesScroll"
+        >
           <div
             v-for="(message, index) in messages"
             :key="message.id"
-            v-memo="[message.content, message.loading, message.type, isGenerating, isSingleFileMode]"
+            v-memo="[
+              message.content,
+              message.loading,
+              message.type,
+              isGenerating,
+              isSingleFileMode,
+            ]"
             class="message-item"
           >
             <div v-if="message.type === 'user'" class="user-message">
@@ -176,26 +207,44 @@
             class="selected-element-alert"
             closable
             show-icon
-            style="border-radius: 12px; border: 1px solid #d9f7be; background: linear-gradient(135deg, rgba(246, 255, 237, 0.95) 0%, rgba(230, 255, 250, 0.95) 100%);"
+            style="
+              border-radius: 12px;
+              border: 1px solid #d9f7be;
+              background: linear-gradient(
+                135deg,
+                rgba(246, 255, 237, 0.95) 0%,
+                rgba(230, 255, 250, 0.95) 100%
+              );
+            "
             type="success"
             @close="clearSelection"
           >
             <template #description>
               <div class="element-details">
-                <p v-if="selectedElement.textContent"
-                   style="margin: 4px 0; font-size: 13px; color: #389e0d; font-style: italic;">
-                  "{{ selectedElement.textContent.length > 60 ? selectedElement.textContent.substring(0, 60) + '...' : selectedElement.textContent
+                <p
+                  v-if="selectedElement.textContent"
+                  style="margin: 4px 0; font-size: 13px; color: #389e0d; font-style: italic"
+                >
+                  "{{
+                    selectedElement.textContent.length > 60
+                      ? selectedElement.textContent.substring(0, 60) + '...'
+                      : selectedElement.textContent
                   }}"
                 </p>
-                <p style="margin: 4px 0; font-size: 12px; color: #999;">
-                  请在下方输入框描述您想要的修改</p>
+                <p style="margin: 4px 0; font-size: 12px; color: #999">
+                  请在下方输入框描述您想要的修改
+                </p>
               </div>
             </template>
           </a-alert>
           <div>
             <div v-if="!isOwner" class="creator-tip">
-              <a-alert description="如需对话请创建您自己的项目" message="这是别人的创作作品"
-                       show-icon type="info" />
+              <a-alert
+                description="如需对话请创建您自己的项目"
+                message="这是别人的创作作品"
+                show-icon
+                type="info"
+              />
             </div>
             <a-textarea
               v-else
@@ -207,7 +256,7 @@
               placeholder="✨  描述越详尽，创作越符合您的预期"
               @keydown.enter.prevent="sendMessage"
             />
-            <br>
+            <br />
             <div class="input-actions">
               <!-- 新手指引按钮 -->
               <a-tooltip placement="top" title="新手指引">
@@ -215,7 +264,11 @@
                   class="tour-button"
                   shape="circle"
                   size="large"
-                  style="border-radius: 20px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);"
+                  style="
+                    border-radius: 20px;
+                    font-weight: 600;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                  "
                   type="primary"
                   @click="startTour"
                 >
@@ -226,8 +279,10 @@
               </a-tooltip>
               &nbsp;&nbsp;&nbsp;
               <!-- 编辑按钮 -->
-              <a-tooltip :title="isEditMode ? '退出编辑模式' : '进入可视化编辑模式'"
-                         placement="top">
+              <a-tooltip
+                :title="isEditMode ? '退出编辑模式' : '进入可视化编辑模式'"
+                placement="top"
+              >
                 <a-button
                   v-if="!isGenerating"
                   :class="{ 'edit-mode-active': isEditMode }"
@@ -235,7 +290,11 @@
                   class="edit-btn"
                   shape="circle"
                   size="large"
-                  style="border-radius: 20px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);"
+                  style="
+                    border-radius: 20px;
+                    font-weight: 600;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                  "
                   @click="toggleEditMode"
                 >
                   <template #icon>
@@ -289,8 +348,10 @@
           </div>
         </div>
         <div class="preview-content">
-          <div v-if="!previewUrl && !isGenerating"
-               class="preview-placeholder creative-preview-placeholder">
+          <div
+            v-if="!previewUrl && !isGenerating"
+            class="preview-placeholder creative-preview-placeholder"
+          >
             <div class="placeholder-icon">
               <div class="magic-pattern">
                 <div class="pattern-element pattern-1"></div>
@@ -323,9 +384,7 @@
         <div v-if="previewUrl" class="preview-footer">
           <div class="tips-toggle" @click="showTips = !showTips">
             <span>点击查看重点提示</span>
-            <span :class="['toggle-icon', { 'expanded': showTips }]">
-        ▼
-      </span>
+            <span :class="['toggle-icon', { expanded: showTips }]"> ▼ </span>
           </div>
           <transition name="slide-down">
             <a-alert
@@ -338,7 +397,9 @@
               <template #description>
                 <div>
                   <p>1.预览为静态页面效果，部署后可体验完整功能;</p>
-                  <p>2.数字产物封面将在部署后自动生成（本数字产物首页），请在部署后静待 1-5s 即可;</p>
+                  <p>
+                    2.数字产物封面将在部署后自动生成（本数字产物首页），请在部署后静待 1-5s 即可;
+                  </p>
                   <p>3.若未生成预览页面请刷新页面;</p>
                   <p>4.请勿频繁部署，若违反则系统自动封号处理。</p>
                 </div>
@@ -384,7 +445,7 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import {
   deleteApp as deleteAppApi,
   deployApp as deployAppApi,
-  getAppVoById
+  getAppVoById,
 } from '@/api/appController'
 import { CodeGenTypeEnum, formatCodeGenType } from '@/enums/codeGenTypes.ts'
 import request from '@/request'
@@ -397,7 +458,7 @@ import {
   API_BASE_URL,
   DEPLOY_DOMAIN,
   getStaticPreviewUrl,
-  getWebProjectStaticPreviewUrl
+  getWebProjectStaticPreviewUrl,
 } from '@/config/env'
 
 import {
@@ -408,7 +469,7 @@ import {
   InfoCircleOutlined,
   PlayCircleOutlined,
   SendOutlined,
-  StarFilled
+  StarFilled,
 } from '@ant-design/icons-vue'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { parseBatchContent, StreamChunkParserContext } from '@/utils/streamChunkParser'
@@ -429,32 +490,32 @@ const tourSteps = ref<TourProps['steps']>([
     title: '对话输入',
     description: '在这里输入您的需求，AI会根据您的描述生成代码',
     target: () => document.querySelector('.creative-textarea') as HTMLElement,
-    placement: 'top'
+    placement: 'top',
   },
   {
     title: '发送消息',
     description: '输入需求后点击这里发送给AI，开始生成代码',
     target: () => document.querySelector('.send-btn') as HTMLElement,
-    placement: 'top'
+    placement: 'top',
   },
   {
     title: '预览区域',
     description: '这里实时显示生成的网页效果，可以随时查看和测试',
     target: () => document.querySelector('.preview-section') as HTMLElement,
-    placement: 'left'
+    placement: 'left',
   },
   {
     title: '可视化编辑',
     description: '点击这里可以进入可视化编辑模式，直接修改网页元素',
     target: () => document.querySelector('.edit-btn') as HTMLElement,
-    placement: 'top'
+    placement: 'top',
   },
   {
     title: '部署数字产物',
     description: '生成完成后点击这里将数字产物部署到线上，获得可访问的网址',
     target: () => document.querySelector('.detail-btn') as HTMLElement,
-    placement: 'top'
-  }
+    placement: 'top',
+  },
 ])
 
 // 开始新手指引
@@ -481,10 +542,13 @@ const maxReconnectAttempts = 5
 // 使用 localStorage 跟踪正在进行的生成任务（跨页面刷新持久化）
 const getGeneratingKey = () => `rcw_generating_${appId.value}`
 const markGeneratingStart = (userMessage: string) => {
-  localStorage.setItem(getGeneratingKey(), JSON.stringify({
-    message: userMessage,
-    timestamp: Date.now()
-  }))
+  localStorage.setItem(
+    getGeneratingKey(),
+    JSON.stringify({
+      message: userMessage,
+      timestamp: Date.now(),
+    }),
+  )
 }
 const markGeneratingEnd = () => {
   localStorage.removeItem(getGeneratingKey())
@@ -506,7 +570,6 @@ const getGeneratingInfo = (): { message: string; timestamp: number } | null => {
   }
 }
 
-
 // 数字产物信息
 const appInfo = ref<API.AppVO>()
 const appId = ref<number>()
@@ -521,7 +584,7 @@ const handleDeployClick = () => {
     Modal.info({
       title: '请等待生成完成',
       content: '代码正在生成中，请等待生成完毕后部署网站',
-      okText: '知道了'
+      okText: '知道了',
     })
     return
   }
@@ -531,13 +594,13 @@ const handleDeployClick = () => {
 // 根据生成类型获取标签颜色
 const getTypeColor = (type?: string) => {
   const colors: Record<string, string> = {
-    'react': '#61dafb',
-    'vue': '#42b883',
-    'angular': '#dd0031',
-    'html': '#e34c26',
-    'nodejs': '#68a063',
-    'flutter': '#04599C',
-    'swift': '#ff2d55'
+    react: '#61dafb',
+    vue: '#42b883',
+    angular: '#dd0031',
+    html: '#e34c26',
+    nodejs: '#68a063',
+    flutter: '#04599C',
+    swift: '#ff2d55',
   }
   return type ? colors[type] || 'blue' : 'blue'
 }
@@ -600,14 +663,36 @@ const isEditMode = ref(false)
 const selectedElement = ref<ElementInfo | null>(null)
 
 const ELEMENT_TYPE_MAP: Record<string, string> = {
-  H1: '大标题', H2: '二级标题', H3: '三级标题', H4: '四级标题', H5: '五级标题', H6: '六级标题',
-  P: '段落文本', A: '链接', BUTTON: '按钮', IMG: '图片', VIDEO: '视频', AUDIO: '音频',
-  NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
-  SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
-  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框'
+  H1: '大标题',
+  H2: '二级标题',
+  H3: '三级标题',
+  H4: '四级标题',
+  H5: '五级标题',
+  H6: '六级标题',
+  P: '段落文本',
+  A: '链接',
+  BUTTON: '按钮',
+  IMG: '图片',
+  VIDEO: '视频',
+  AUDIO: '音频',
+  NAV: '导航栏',
+  HEADER: '页头区域',
+  FOOTER: '页脚区域',
+  MAIN: '主要内容',
+  ASIDE: '侧边栏',
+  SECTION: '内容区块',
+  ARTICLE: '文章区块',
+  DIV: '区块容器',
+  SPAN: '文本片段',
+  UL: '无序列表',
+  OL: '有序列表',
+  LI: '列表项',
+  TABLE: '表格',
+  FORM: '表单',
+  INPUT: '输入框',
 }
-const getElementTypeLabel = (tagName: string): string => ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
-
+const getElementTypeLabel = (tagName: string): string =>
+  ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
 
 // 显示产物详情
 const showAppDetail = () => {
@@ -671,7 +756,7 @@ onMounted(() => {
   visualEditor.value = new visualEditorUtil({
     onElementSelected: (elementInfo) => {
       selectedElement.value = elementInfo
-    }
+    },
   })
 
   // 监听来自 iframe 的消息
@@ -699,6 +784,8 @@ onUnmounted(() => {
 
 // 处理来自 iframe 的消息
 const handleIframeMessage = (event: MessageEvent) => {
+  if (!previewIframe.value?.contentWindow || event.source !== previewIframe.value.contentWindow)
+    return
   visualEditor.value?.handleIframeMessage(event)
 }
 
@@ -719,7 +806,6 @@ const clearSelection = () => {
   visualEditor.value?.clearSelection()
 }
 
-
 // 下载代码
 const downloadCode = async () => {
   if (!appId.value) {
@@ -729,7 +815,8 @@ const downloadCode = async () => {
   downloading.value = true
   try {
     const res = await request.get(`/generator/download/code/zip/${appId.value}`, {
-      responseType: 'blob'
+      responseType: 'blob',
+      timeout: 120000,
     })
 
     const blob = new Blob([res.data], { type: 'application/zip' })
@@ -779,7 +866,7 @@ const fetchChatHistory = async (loadMore = false) => {
     const params = {
       appId: appId.value,
       pageSize: 10,
-      lastCreateTime: lastCreateTime.value || undefined
+      lastCreateTime: lastCreateTime.value || undefined,
     }
 
     const res = await listAppChatHistoryByPage(params)
@@ -788,8 +875,11 @@ const fetchChatHistory = async (loadMore = false) => {
       const newMessages: Message[] = historyData.map((item, index) => ({
         id: item.id ? `history-${item.id}` : `history-${item.createTime || 'legacy'}-${index}`,
         type: item.messageType === 'user' ? 'user' : 'ai',
-        content: item.messageType === 'user' ? (item.message ?? '') : parseBatchContent(item.message ?? ''),
-        createTime: item.createTime
+        content:
+          item.messageType === 'user'
+            ? (item.message ?? '')
+            : parseBatchContent(item.message ?? ''),
+        createTime: item.createTime,
       }))
 
       // 处理加载更多
@@ -849,14 +939,21 @@ const checkAndResumeGeneration = () => {
   // 检查最后一条 AI 消息是否包含工作流完成/错误标记（系统分步执行模式的可靠完成判断）
   if (lastMessage?.type === 'ai' && lastMessage.content && !lastMessage.loading) {
     const content = lastMessage.content
-    if (content.includes('WORKFLOW_COMPLETE') || content.includes('WORKFLOW_ERROR') || content.includes('代码生成任务完成')) {
+    if (
+      content.includes('WORKFLOW_COMPLETE') ||
+      content.includes('WORKFLOW_ERROR') ||
+      content.includes('代码生成任务完成')
+    ) {
       console.log('检测到已完成的生成任务（含完成标记），清除过期标记')
       markGeneratingEnd()
       return
     }
   }
 
-  console.log('检测到未完成的生成任务（来自 localStorage），准备恢复...', generatingInfo.message.substring(0, 50))
+  console.log(
+    '检测到未完成的生成任务（来自 localStorage），准备恢复...',
+    generatingInfo.message.substring(0, 50),
+  )
   message.info('检测到未完成的任务，正在恢复生成...')
 
   let aiMessageIndex: number
@@ -872,7 +969,7 @@ const checkAndResumeGeneration = () => {
       id: createLocalMessageId('ai'),
       type: 'ai',
       content: '',
-      loading: true
+      loading: true,
     })
   }
 
@@ -893,7 +990,7 @@ const sendInitialMessage = async (prompt: string) => {
   messages.value.push({
     id: createLocalMessageId('user'),
     type: 'user',
-    content: prompt
+    content: prompt,
   })
 
   // 添加AI消息占位符
@@ -902,7 +999,7 @@ const sendInitialMessage = async (prompt: string) => {
     id: createLocalMessageId('ai'),
     type: 'ai',
     content: '',
-    loading: true
+    loading: true,
   })
 
   await forceScrollToBottom()
@@ -936,7 +1033,7 @@ const sendMessage = async () => {
   messages.value.push({
     id: createLocalMessageId('user'),
     type: 'user',
-    content: displayMsg
+    content: displayMsg,
   })
 
   // 添加AI消息占位符
@@ -945,7 +1042,7 @@ const sendMessage = async () => {
     id: createLocalMessageId('ai'),
     type: 'ai',
     content: '',
-    loading: true
+    loading: true,
   })
 
   await forceScrollToBottom()
@@ -965,7 +1062,11 @@ const sendMessage = async () => {
 }
 
 // 生成代码 - 使用 EventSource 处理流式响应（支持断线重连）
-const generateCode = async (userMessage: string, aiMessageIndex: number, isReconnect: boolean = false) => {
+const generateCode = async (
+  userMessage: string,
+  aiMessageIndex: number,
+  isReconnect: boolean = false,
+) => {
   autoFollowMessages = true
   generatingTime.value = 0
   timer.value = setInterval(() => {
@@ -979,7 +1080,9 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   let streamCompleted = false
   let streamFinalized = false
   const existingContent = messages.value[aiMessageIndex]?.content || ''
-  let reconnectReplayState: 'unknown' | 'replaying' | 'incremental' = isReconnect ? 'unknown' : 'incremental'
+  let reconnectReplayState: 'unknown' | 'replaying' | 'incremental' = isReconnect
+    ? 'unknown'
+    : 'incremental'
   let reconnectReplayRemaining = ''
   const chunkParser = new StreamChunkParserContext()
 
@@ -1041,7 +1144,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       aiMessage.content = content
       scrollToBottom()
       if (done) finalizeStream()
-    }
+    },
   })
   activeSmoothStream = smoothStream
 
@@ -1084,7 +1187,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
         appId: String(appId.value ?? ''),
         message: userMessage,
         isWorkflow: String(useAgentMode.value),
-        reconnect: String(reconnectMode)
+        reconnect: String(reconnectMode),
       })
       if (lastEventId.value) {
         params.set('lastEventId', lastEventId.value)
@@ -1092,10 +1195,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
 
       const url = `${baseURL}/generator/app/gen/code/stream?${params}`
       eventSource = new EventSource(url, {
-        withCredentials: true
+        withCredentials: true,
       })
 
-      eventSource.onmessage = function(event) {
+      eventSource.onmessage = function (event) {
         if (streamCompleted) return
         if (event.lastEventId) {
           lastEventId.value = event.lastEventId
@@ -1113,14 +1216,14 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
         }
       }
 
-      eventSource.addEventListener('end', function() {
+      eventSource.addEventListener('end', function () {
         if (streamCompleted) return
         streamCompleted = true
         eventSource?.close()
         smoothStream.finish()
       })
 
-      eventSource.addEventListener('error', function() {
+      eventSource.addEventListener('error', function () {
         if (streamCompleted || !isGenerating.value) return
 
         eventSource?.close()
@@ -1244,7 +1347,7 @@ const deployApp = async () => {
   deploying.value = true
   try {
     const res = await deployAppApi({
-      appId: appId.value
+      appId: appId.value,
     })
 
     if (res.data.code === 0 && res.data.data) {
@@ -1275,7 +1378,7 @@ const confirmReDeploy = async () => {
       deploying.value = true
       try {
         const res = await deployAppApi({
-          appId: appId.value
+          appId: appId.value,
         })
 
         if (res.data.code === 0 && res.data.data) {
@@ -1294,7 +1397,7 @@ const confirmReDeploy = async () => {
         deploying.value = false
         showReDeployWarning.value = false
       }
-    }
+    },
   })
 }
 
@@ -1378,7 +1481,14 @@ onUnmounted(() => {
   background: #f8f9fa linear-gradient(135deg, rgb(255, 248, 206) 0%, rgb(147, 203, 255) 100%);
   position: relative;
   overflow: hidden;
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Nunito',
+    'Comic Neue',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   color: #333333;
 }
 
@@ -1729,11 +1839,14 @@ onUnmounted(() => {
 }
 
 @keyframes editPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 6px 20px rgba(245, 34, 45, 0.4);
   }
   50% {
-    box-shadow: 0 8px 25px rgba(245, 34, 45, 0.6), 0 0 15px rgba(255, 77, 79, 0.5);
+    box-shadow:
+      0 8px 25px rgba(245, 34, 45, 0.6),
+      0 0 15px rgba(255, 77, 79, 0.5);
   }
 }
 
@@ -1755,7 +1868,8 @@ onUnmounted(() => {
 }
 
 @keyframes indicatorPulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -1774,11 +1888,14 @@ onUnmounted(() => {
 }
 
 @keyframes editModeBorderPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 0 3px rgba(245, 34, 45, 0.3);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(245, 34, 45, 0.6), 0 0 20px rgba(255, 77, 79, 0.4);
+    box-shadow:
+      0 0 0 4px rgba(245, 34, 45, 0.6),
+      0 0 20px rgba(255, 77, 79, 0.4);
   }
 }
 
@@ -1833,7 +1950,6 @@ onUnmounted(() => {
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
-
 @keyframes topBarSlideDown {
   from {
     transform: translateY(-100%);
@@ -1856,7 +1972,8 @@ onUnmounted(() => {
 }
 
 @keyframes overlayPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.3;
   }
   50% {
@@ -1902,9 +2019,10 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  box-shadow: 0 0 0 15px rgb(147, 203, 255),
-  0 0 25px rgb(89, 167, 255),
-  inset 0 0 20px rgba(24, 144, 255, 0.4);
+  box-shadow:
+    0 0 0 15px rgb(147, 203, 255),
+    0 0 25px rgb(89, 167, 255),
+    inset 0 0 20px rgba(24, 144, 255, 0.4);
   transform: scale(1.01);
   transition: all 0.3s ease;
   z-index: 100;
@@ -1912,14 +2030,16 @@ onUnmounted(() => {
 
 @keyframes previewHighlight {
   0% {
-    box-shadow: 0 0 0 5px rgba(24, 144, 255, 0.8),
-    0 0 25px rgba(24, 144, 255, 0.6),
-    inset 0 0 20px rgba(24, 144, 255, 0.4);
+    box-shadow:
+      0 0 0 5px rgba(24, 144, 255, 0.8),
+      0 0 25px rgba(24, 144, 255, 0.6),
+      inset 0 0 20px rgba(24, 144, 255, 0.4);
   }
   100% {
-    box-shadow: 0 0 0 7px rgba(24, 144, 255, 1),
-    0 0 35px rgba(24, 144, 255, 0.8),
-    inset 0 0 30px rgba(24, 144, 255, 0.6);
+    box-shadow:
+      0 0 0 7px rgba(24, 144, 255, 1),
+      0 0 35px rgba(24, 144, 255, 0.8),
+      inset 0 0 30px rgba(24, 144, 255, 0.6);
     transform: scale(1.015);
   }
 }
@@ -1969,16 +2089,19 @@ onUnmounted(() => {
 }
 
 @keyframes strong-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 6px rgba(24, 144, 255, 0.2),
-    0 0 40px rgba(24, 144, 255, 0.6),
-    inset 0 0 30px rgba(24, 144, 255, 0.15);
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 6px rgba(24, 144, 255, 0.2),
+      0 0 40px rgba(24, 144, 255, 0.6),
+      inset 0 0 30px rgba(24, 144, 255, 0.15);
     border-width: 5px;
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(24, 144, 255, 0.25),
-    0 0 50px rgba(24, 144, 255, 0.8),
-    inset 0 0 35px rgba(24, 144, 255, 0.2);
+    box-shadow:
+      0 0 0 8px rgba(24, 144, 255, 0.25),
+      0 0 50px rgba(24, 144, 255, 0.8),
+      inset 0 0 35px rgba(24, 144, 255, 0.2);
     border-width: 6px;
   }
 }
@@ -2058,7 +2181,8 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -2228,19 +2352,19 @@ onUnmounted(() => {
   border: 1px solid rgba(255, 0, 0, 0.1);
 }
 
-.detail-btn[target="_blank"] {
+.detail-btn[target='_blank'] {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
-.detail-btn[target="_blank"] .ant-btn-loading-icon,
-.detail-btn[target="_blank"] .anticon {
+.detail-btn[target='_blank'] .ant-btn-loading-icon,
+.detail-btn[target='_blank'] .anticon {
   display: flex !important;
   align-items: center !important;
 }
 
-.detail-btn[target="_blank"] span {
+.detail-btn[target='_blank'] span {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

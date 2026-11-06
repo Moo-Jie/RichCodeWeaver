@@ -5,107 +5,122 @@
       <div class="workspace-home-layout">
         <div class="workspace-home">
           <div class="home-scroll">
-          <!-- Greeting -->
-          <div ref="greetingRef" class="greeting">
-            <img alt="Logo" class="greeting-logo" src="@/assets/logo.png" />
-            <h1 class="greeting-title">RichCodeWeaver - 织码睿奇</h1>
-            <p class="greeting-sub">工作大幅提效，成果触手可及</p>
-          </div>
-
-          <!-- 热门数字产物 horizontal scrollable cards -->
-          <div v-if="appStore.hotApps.length > 0" ref="hotSectionRef" class="section">
-            <div class="section-header">
-              <span class="section-title">热门数字产物</span>
-              <button class="section-more" @click="router.push('/all/apps')">查看更多
-                <RightOutlined />
-              </button>
+            <!-- Greeting -->
+            <div ref="greetingRef" class="greeting">
+              <img
+                alt="Logo"
+                class="greeting-logo"
+                src="@/assets/logo.png"
+                decoding="async"
+                fetchpriority="high"
+              />
+              <h1 class="greeting-title">RichCodeWeaver - 织码睿奇</h1>
+              <p class="greeting-sub">工作大幅提效，成果触手可及</p>
             </div>
-            <div class="app-scroll-wrap">
-              <div class="app-scroll">
-                <div
-                  v-for="app in appStore.hotApps.slice(0, 10)"
-                  :key="app.id"
-                  class="app-card"
-                  @click="goToApp(app)"
-                >
-                  <div class="app-card-cover">
-                    <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
-                    <img v-else alt="默认" src="@/assets/logo.png" style="opacity:0.5" />
-                  </div>
-                  <span class="app-card-name">{{ app.appName || '未命名数字产物' }}</span>
-                </div>
+
+            <!-- 热门数字产物 horizontal scrollable cards -->
+            <div v-if="appStore.hotApps.length > 0" ref="hotSectionRef" class="section">
+              <div class="section-header">
+                <span class="section-title">热门数字产物</span>
+                <button class="section-more" @click="router.push('/all/apps')">
+                  查看更多
+                  <RightOutlined />
+                </button>
               </div>
-            </div>
-          </div>
-
-          <!-- Dynamic prompt templates -->
-          <div v-if="matchedTemplates.length > 0" ref="templateSectionRef" class="section">
-            <div class="section-header">
-              <span class="section-title">推荐模板</span>
-              <span v-if="loginUserStore.loginUser.userIndustry"
-                    class="section-tag">{{ loginUserStore.loginUser.userIndustry }}</span>
-            </div>
-            <div class="prompt-grid">
-              <div
-                v-for="tpl in matchedTemplates.slice(0, 8)"
-                :key="tpl.id"
-                class="prompt-card"
-                @click="openTemplateDialog(tpl)"
-              >
-                <div v-if="getColorSchemePreview(tpl)" class="prompt-color-preview">
+              <div class="app-scroll-wrap">
+                <div class="app-scroll">
                   <div
-                    v-for="(color, idx) in getColorSchemePreview(tpl)"
-                    :key="idx"
-                    :style="{ background: color }"
-                    :title="color"
-                    class="color-dot"
-                  />
+                    v-for="app in appStore.hotApps.slice(0, 10)"
+                    :key="app.id"
+                    class="app-card"
+                    @click="goToApp(app)"
+                  >
+                    <div class="app-card-cover">
+                      <img
+                        v-if="app.cover"
+                        :alt="app.appName"
+                        :src="app.cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <img v-else alt="默认" src="@/assets/logo.png" style="opacity: 0.5" />
+                    </div>
+                    <span class="app-card-name">{{ app.appName || '未命名数字产物' }}</span>
+                  </div>
                 </div>
-                <span class="prompt-label">{{ tpl.templateName }}</span>
-                <span class="prompt-desc">{{ tpl.description }}</span>
+              </div>
+            </div>
+
+            <!-- Dynamic prompt templates -->
+            <div v-if="matchedTemplates.length > 0" ref="templateSectionRef" class="section">
+              <div class="section-header">
+                <span class="section-title">推荐模板</span>
+                <span v-if="loginUserStore.loginUser.userIndustry" class="section-tag">{{
+                  loginUserStore.loginUser.userIndustry
+                }}</span>
+              </div>
+              <div class="prompt-grid">
+                <div
+                  v-for="tpl in matchedTemplates.slice(0, 8)"
+                  :key="tpl.id"
+                  class="prompt-card"
+                  @click="openTemplateDialog(tpl)"
+                >
+                  <div v-if="getColorSchemePreview(tpl)" class="prompt-color-preview">
+                    <div
+                      v-for="(color, idx) in getColorSchemePreview(tpl)"
+                      :key="idx"
+                      :style="{ background: color }"
+                      :title="color"
+                      class="color-dot"
+                    />
+                  </div>
+                  <span class="prompt-label">{{ tpl.templateName }}</span>
+                  <span class="prompt-desc">{{ tpl.description }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Chat Input at bottom -->
-        <ChatInput
-          ref="chatInputWrapRef"
-          v-model="userPrompt"
-          :generator-mode="useAgentMode"
-          :optimizing="optimizing"
-          :sending="creating"
-          :show-mode-selector="true"
-          :show-optimize-button="true"
-          :show-tour-button="true"
-          :show-material-button="true"
-          :selected-materials="selectedMaterials"
-          placeholder="描述您想要创建的数字产物..."
-          @optimize="handleOptimizePrompt"
-          @send="handleCreate"
-          @update:generator-mode="useAgentMode = $event"
-          @start-tour="startTour"
-          @open-material-selector="openMaterialSelector"
-          @remove-material="removeMaterial"
-          @clear-materials="clearMaterials"
-        />
-        <div class="home-meta">
-          <div class="home-meta-inner">
-            <span class="home-meta-item home-meta-filing">
-              <img alt="备案标识" class="home-meta-icon" src="@/assets/ICPFiling.png" />
-              <span>鲁ICP备2024125764号-2</span>
-            </span>
-            <span class="home-meta-divider">|</span>
-            <span class="home-meta-item">版权所有 © MOJIE TEAM</span>
-            <span class="home-meta-divider">|</span>
-            <span class="home-meta-item">作品内容由AI生成，详情请查看</span>
-            <router-link class="home-meta-link" to="/other/ai-generated-content">《AI 生成内容服务使用规范与权利义务声明》</router-link>
+          <!-- Chat Input at bottom -->
+          <ChatInput
+            ref="chatInputWrapRef"
+            v-model="userPrompt"
+            :generator-mode="useAgentMode"
+            :optimizing="optimizing"
+            :sending="creating"
+            :show-mode-selector="true"
+            :show-optimize-button="true"
+            :show-tour-button="true"
+            :show-material-button="true"
+            :selected-materials="selectedMaterials"
+            placeholder="描述您想要创建的数字产物..."
+            @optimize="handleOptimizePrompt"
+            @send="handleCreate"
+            @update:generator-mode="useAgentMode = $event"
+            @start-tour="startTour"
+            @open-material-selector="openMaterialSelector"
+            @remove-material="removeMaterial"
+            @clear-materials="clearMaterials"
+          />
+          <div class="home-meta">
+            <div class="home-meta-inner">
+              <span class="home-meta-item home-meta-filing">
+                <img alt="备案标识" class="home-meta-icon" src="@/assets/ICPFiling.png" />
+                <span>鲁ICP备2024125764号-2</span>
+              </span>
+              <span class="home-meta-divider">|</span>
+              <span class="home-meta-item">版权所有 © MOJIE TEAM</span>
+              <span class="home-meta-divider">|</span>
+              <span class="home-meta-item">作品内容由AI生成，详情请查看</span>
+              <router-link class="home-meta-link" to="/other/ai-generated-content"
+                >《AI 生成内容服务使用规范与权利义务声明》</router-link
+              >
+            </div>
           </div>
-        </div>
         </div>
         <CustomerServicePanel />
       </div>
-
     </template>
 
     <!-- App selected view -->
@@ -113,7 +128,7 @@
       <!-- Edit mode top bar -->
       <div v-if="isEditMode" class="edit-mode-bar">
         <span class="edit-bar-text">
-          <EditOutlined style="margin-right: 6px;" />
+          <EditOutlined style="margin-right: 6px" />
           可视化编辑模式已启用 — 点击预览页面中的元素并输入修改需求
         </span>
         <button class="edit-bar-exit" @click="toggleEditMode">退出编辑</button>
@@ -133,14 +148,18 @@
             <span class="app-task-progress-title">
               {{ taskProgressTitle }}
               <span
-                v-if="taskProgressState.status === 'running' || taskProgressState.status === 'retrying'"
+                v-if="
+                  taskProgressState.status === 'running' || taskProgressState.status === 'retrying'
+                "
                 class="app-task-progress-dots"
                 aria-hidden="true"
               >
                 <span></span><span></span><span></span>
               </span>
             </span>
-            <span class="app-task-progress-desc">{{ taskProgressState.message || '任务处理中...' }}</span>
+            <span class="app-task-progress-desc">{{
+              taskProgressState.message || '任务处理中...'
+            }}</span>
           </div>
           <span class="app-task-progress-percent">{{ taskProgressPercent }}%</span>
         </div>
@@ -259,8 +278,12 @@
     />
 
     <!-- Tour 漫游引导 -->
-    <a-tour v-model:open="tourOpen" :steps="tourSteps" @close="tourOpen = false"
-            @finish="tourOpen = false" />
+    <a-tour
+      v-model:open="tourOpen"
+      :steps="tourSteps"
+      @close="tourOpen = false"
+      @finish="tourOpen = false"
+    />
 
     <!-- Material Selector Modal -->
     <MaterialSelector
@@ -270,10 +293,7 @@
     />
 
     <!-- Invite Collaborator Modal -->
-    <InviteCollabModal
-      v-model:open="inviteCollabOpen"
-      :app-id="appStore.selectedApp?.id ?? null"
-    />
+    <InviteCollabModal v-model:open="inviteCollabOpen" :app-id="appStore.selectedApp?.id ?? null" />
     <ForwardAppModal
       v-model:open="forwardAppOpen"
       :app="appStore.selectedApp"
@@ -302,7 +322,7 @@ import {
   getAppVoById,
   optimizePrompt,
   refreshApp as refreshAppApi,
-  refreshAppAsync as refreshAppAsyncApi
+  refreshAppAsync as refreshAppAsyncApi,
 } from '@/api/appController'
 import taskProgressService from '@/utils/taskProgressService'
 import { listAppChatHistoryByPage } from '@/api/chatHistoryController'
@@ -311,14 +331,14 @@ import {
   API_BASE_URL,
   DEPLOY_DOMAIN,
   getStaticPreviewUrl,
-  getWebProjectStaticPreviewUrl
+  getWebProjectStaticPreviewUrl,
 } from '@/config/env'
 import { type ElementInfo, visualEditorUtil } from '@/utils/visualEditorUtil'
 import { listMatchedTemplates } from '@/api/promptTemplateController'
 import {
   parseBatchContent,
   StreamChunkParserContext,
-  type TaskPlanData
+  type TaskPlanData,
 } from '@/utils/streamChunkParser'
 import request from '@/request'
 import { createSmoothTextStream, type SmoothTextStream } from '@/utils/smoothTextStream'
@@ -387,29 +407,40 @@ const chatInputWrapRef = ref<any>(null)
 const tourSteps = computed(() => [
   {
     title: '欢迎使用 RichCodeWeaver',
-    description: '识码睭奇是一个 AI 驱动的数字产物生成平台，只需描述您的需求，AI 即可自动生成完整的网页应用。',
-    target: () => greetingRef.value
+    description:
+      '识码睭奇是一个 AI 驱动的数字产物生成平台，只需描述您的需求，AI 即可自动生成完整的网页应用。',
+    target: () => greetingRef.value,
   },
   {
     title: '输入您的想法',
-    description: '在输入框中描述您想要创建的数字产物，越详细越好。支持 Agent 智能模式，具备更强的理解能力。',
-    target: () => chatInputWrapRef.value?.$el ?? chatInputWrapRef.value
+    description:
+      '在输入框中描述您想要创建的数字产物，越详细越好。支持 Agent 智能模式，具备更强的理解能力。',
+    target: () => chatInputWrapRef.value?.$el ?? chatInputWrapRef.value,
   },
-  ...(appStore.hotApps.length > 0 ? [{
-    title: '热门数字产物',
-    description: '浏览社区中最受欢迎的数字产物，点击卡片即可进入对话体验。',
-    target: () => hotSectionRef.value
-  }] : []),
-  ...(matchedTemplates.value.length > 0 ? [{
-    title: '推荐模板',
-    description: '根据您的身份和行业智能推荐模板，点击模板可快速填充提示词。',
-    target: () => templateSectionRef.value
-  }] : []),
+  ...(appStore.hotApps.length > 0
+    ? [
+        {
+          title: '热门数字产物',
+          description: '浏览社区中最受欢迎的数字产物，点击卡片即可进入对话体验。',
+          target: () => hotSectionRef.value,
+        },
+      ]
+    : []),
+  ...(matchedTemplates.value.length > 0
+    ? [
+        {
+          title: '推荐模板',
+          description: '根据您的身份和行业智能推荐模板，点击模板可快速填充提示词。',
+          target: () => templateSectionRef.value,
+        },
+      ]
+    : []),
   {
     title: '我的产物',
-    description: '点击左侧边栏的「我的产物」可查看您创建的所有数字产物，支持编辑、删除、部署等操作。',
-    target: null
-  }
+    description:
+      '点击左侧边栏的「我的产物」可查看您创建的所有数字产物，支持编辑、删除、部署等操作。',
+    target: null,
+  },
 ])
 
 const startTour = () => {
@@ -429,7 +460,7 @@ const fetchMatchedTemplates = async () => {
   try {
     const res = await listMatchedTemplates({
       userIdentity: user.userIdentity || undefined,
-      userIndustry: user.userIndustry || undefined
+      userIndustry: user.userIndustry || undefined,
     })
     if (res.data.code === 0 && res.data.data) {
       matchedTemplates.value = res.data.data
@@ -467,46 +498,66 @@ const refreshArtifact = () => {
 }
 
 const doRefreshArtifact = async () => {
-  if (!appId.value || refreshing.value) return
-
+  const targetAppId = appId.value
+  if (!targetAppId || refreshing.value) return
+  const requestEpoch = workspaceEpoch
+  const isCurrent = () => isWorkspaceRequestCurrent(requestEpoch, targetAppId)
   const now = Date.now()
-  if (now - lastRefreshTriggerAt.value < 1000) {
-    return
-  }
+  if (now - lastRefreshTriggerAt.value < 1000) return
   lastRefreshTriggerAt.value = now
-
-  // Auto-exit visual edit mode
   if (isEditMode.value) {
     isEditMode.value = false
     visualEditor.value?.disableEditMode()
     clearSelection()
   }
-
   refreshing.value = true
   const isVueProject = appStore.selectedApp?.codeGenType === CodeGenTypeEnum.VUE_PROJECT
-
   try {
     if (isVueProject) {
-      // Vue项目使用异步刷新 + WebSocket进度
-      const res = await refreshAppAsyncApi({ appId: appId.value as unknown as number })
+      const res = await refreshAppAsyncApi({ appId: targetAppId as unknown as number })
+      if (!isCurrent()) return
       if (res.data.code === 0 && res.data.data) {
         setTaskProgressState('refresh', 'running', 5, '刷新任务已提交，正在重新构建...')
-        await taskProgressService.subscribeTaskProgress(appId.value, (progress: any) => {
+        await taskProgressService.subscribeTaskProgress(targetAppId, (progress: any) => {
+          if (!isCurrent()) {
+            taskProgressService.unsubscribeTaskProgress(targetAppId)
+            return
+          }
           if (progress.status === 'RUNNING') {
-            setTaskProgressState('refresh', 'running', progress.progress ?? 10, progress.message || '构建中...')
+            setTaskProgressState(
+              'refresh',
+              'running',
+              progress.progress ?? 10,
+              progress.message || '构建中...',
+            )
           } else if (progress.status === 'RETRYING') {
-            setTaskProgressState('refresh', 'retrying', progress.progress ?? 0, progress.message || '正在重试...')
+            setTaskProgressState(
+              'refresh',
+              'retrying',
+              progress.progress ?? 0,
+              progress.message || '正在重试...',
+            )
           } else if (progress.status === 'SUCCESS') {
-            finishTaskProgressState('refresh', 'success', progress.message || '产物刷新成功（已重新构建）', progress.progress ?? 100)
+            finishTaskProgressState(
+              'refresh',
+              'success',
+              progress.message || '产物刷新成功（已重新构建）',
+              progress.progress ?? 100,
+            )
             message.success('产物刷新成功（已重新构建）')
             refreshing.value = false
             updatePreview()
-            taskProgressService.unsubscribeTaskProgress(appId.value!)
+            taskProgressService.unsubscribeTaskProgress(targetAppId)
           } else if (progress.status === 'FAILED') {
-            finishTaskProgressState('refresh', 'failed', progress.message || '产物刷新失败', progress.progress ?? 0)
+            finishTaskProgressState(
+              'refresh',
+              'failed',
+              progress.message || '产物刷新失败',
+              progress.progress ?? 0,
+            )
             message.error('产物刷新失败: ' + (progress.message || ''))
             refreshing.value = false
-            taskProgressService.unsubscribeTaskProgress(appId.value!)
+            taskProgressService.unsubscribeTaskProgress(targetAppId)
           }
         })
       } else {
@@ -514,8 +565,11 @@ const doRefreshArtifact = async () => {
         refreshing.value = false
       }
     } else {
-      // 非Vue项目使用同步刷新
-      const res = await refreshAppApi({ appId: appId.value as unknown as number })
+      const res = await refreshAppApi(
+        { appId: targetAppId as unknown as number },
+        { timeout: 120000 },
+      )
+      if (!isCurrent()) return
       if (res.data.code === 0 && res.data.data) {
         message.success('产物刷新成功（已重新构建）')
         updatePreview()
@@ -524,10 +578,15 @@ const doRefreshArtifact = async () => {
       }
       refreshing.value = false
     }
-  } catch (error) {
-    if (isVueProject) {
-      finishTaskProgressState('refresh', 'failed', '产物刷新失败，请重试', taskProgressPercent.value)
-    }
+  } catch {
+    if (!isCurrent()) return
+    if (isVueProject)
+      finishTaskProgressState(
+        'refresh',
+        'failed',
+        '产物刷新失败，请重试',
+        taskProgressPercent.value,
+      )
     message.error('产物刷新失败，请重试')
     refreshing.value = false
   }
@@ -554,41 +613,8 @@ const getColorSchemePreview = (tpl: API.PromptTemplateVO): string[] => {
   }
 }
 
-const quickSendPrompts = [
-  {
-    title: '企业官网首页',
-    description: '适合快速生成品牌介绍、产品亮点与联系方式页面。',
-    prompt: '帮我生成一个简洁高级的企业官网首页，包含品牌介绍、核心服务、成功案例、客户评价和联系我们模块。'
-  },
-  {
-    title: '活动报名落地页',
-    description: '适合发布活动信息、亮点日程和报名入口。',
-    prompt: '帮我生成一个活动报名落地页，包含活动亮点、议程安排、嘉宾介绍、报名表单和常见问题模块。'
-  },
-  {
-    title: '产品展示页',
-    description: '适合展示 SaaS、工具产品或解决方案能力。',
-    prompt: '帮我生成一个科技感产品展示页，突出产品功能、使用流程、价格方案、用户评价和行动按钮。'
-  },
-  {
-    title: '个人作品集',
-    description: '适合设计师、开发者或自由职业者展示案例。',
-    prompt: '帮我生成一个个人作品集网站，包含个人介绍、代表作品、技能清单、服务内容和联系入口。'
-  }
-]
-
-const handleQuickSend = async (prompt: string) => {
-  if (creating.value || optimizing.value) {
-    return
-  }
-  userPrompt.value = prompt
-  await nextTick()
-  chatInputWrapRef.value?.resetHeight?.()
-  await handleCreate()
-}
-
 // === App Chat State ===
-const appId = ref<string>(route.params.id as string || '')
+const appId = ref<string>((route.params.id as string) || '')
 
 interface Message {
   id: string
@@ -629,6 +655,10 @@ const deployUrl = ref('')
 const lastRefreshTriggerAt = ref(0)
 let refreshDebounceTimer: ReturnType<typeof setTimeout> | null = null
 let taskProgressHideTimer: ReturnType<typeof setTimeout> | null = null
+let generationReconnectTimer: ReturnType<typeof setTimeout> | null = null
+let generationFinalRefreshTimer: ReturnType<typeof setTimeout> | null = null
+let generationSequence = 0
+let workspaceEpoch = 0
 
 type TaskProgressType = 'deploy' | 'refresh' | ''
 type TaskProgressStatus = 'idle' | 'running' | 'success' | 'failed' | 'retrying'
@@ -646,10 +676,12 @@ const taskProgressState = reactive<TaskProgressState>({
   type: '',
   status: 'idle',
   progress: 0,
-  message: ''
+  message: '',
 })
 
-const taskProgressPercent = computed(() => Math.max(0, Math.min(100, Number(taskProgressState.progress) || 0)))
+const taskProgressPercent = computed(() =>
+  Math.max(0, Math.min(100, Number(taskProgressState.progress) || 0)),
+)
 
 const taskProgressTitle = computed(() => {
   const actionLabel = taskProgressState.type === 'refresh' ? '产物刷新' : '构建部署'
@@ -668,6 +700,17 @@ const taskProgressTitle = computed(() => {
   }
 })
 
+const clearGenerationAsyncTasks = () => {
+  if (generationReconnectTimer) {
+    clearTimeout(generationReconnectTimer)
+    generationReconnectTimer = null
+  }
+  if (generationFinalRefreshTimer) {
+    clearTimeout(generationFinalRefreshTimer)
+    generationFinalRefreshTimer = null
+  }
+}
+
 const clearTaskProgressHideTimer = () => {
   if (taskProgressHideTimer) {
     clearTimeout(taskProgressHideTimer)
@@ -679,7 +722,7 @@ const setTaskProgressState = (
   type: TaskProgressType,
   status: TaskProgressStatus,
   progress: number,
-  messageText: string
+  messageText: string,
 ) => {
   clearTaskProgressHideTimer()
   taskProgressState.visible = true
@@ -702,12 +745,15 @@ const finishTaskProgressState = (
   type: TaskProgressType,
   status: Extract<TaskProgressStatus, 'success' | 'failed'>,
   messageText: string,
-  progress: number
+  progress: number,
 ) => {
   setTaskProgressState(type, status, progress, messageText)
-  taskProgressHideTimer = setTimeout(() => {
-    resetTaskProgressState()
-  }, status === 'success' ? 1400 : 2400)
+  taskProgressHideTimer = setTimeout(
+    () => {
+      resetTaskProgressState()
+    },
+    status === 'success' ? 1400 : 2400,
+  )
 }
 
 // === Visual Editor State ===
@@ -716,13 +762,36 @@ const isEditMode = ref(false)
 const selectedElement = ref<ElementInfo | null>(null)
 
 const ELEMENT_TYPE_MAP: Record<string, string> = {
-  H1: '大标题', H2: '二级标题', H3: '三级标题', H4: '四级标题', H5: '五级标题', H6: '六级标题',
-  P: '段落文本', A: '链接', BUTTON: '按钮', IMG: '图片', VIDEO: '视频', AUDIO: '音频',
-  NAV: '导航栏', HEADER: '页头区域', FOOTER: '页脚区域', MAIN: '主要内容', ASIDE: '侧边栏',
-  SECTION: '内容区块', ARTICLE: '文章区块', DIV: '区块容器', SPAN: '文本片段',
-  UL: '无序列表', OL: '有序列表', LI: '列表项', TABLE: '表格', FORM: '表单', INPUT: '输入框'
+  H1: '大标题',
+  H2: '二级标题',
+  H3: '三级标题',
+  H4: '四级标题',
+  H5: '五级标题',
+  H6: '六级标题',
+  P: '段落文本',
+  A: '链接',
+  BUTTON: '按钮',
+  IMG: '图片',
+  VIDEO: '视频',
+  AUDIO: '音频',
+  NAV: '导航栏',
+  HEADER: '页头区域',
+  FOOTER: '页脚区域',
+  MAIN: '主要内容',
+  ASIDE: '侧边栏',
+  SECTION: '内容区块',
+  ARTICLE: '文章区块',
+  DIV: '区块容器',
+  SPAN: '文本片段',
+  UL: '无序列表',
+  OL: '有序列表',
+  LI: '列表项',
+  TABLE: '表格',
+  FORM: '表单',
+  INPUT: '输入框',
 }
-const getElementTypeLabel = (tagName: string): string => ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
+const getElementTypeLabel = (tagName: string): string =>
+  ELEMENT_TYPE_MAP[tagName?.toUpperCase()] || '页面元素'
 
 // === UI Refs ===
 const chatMessagesRef = ref<InstanceType<typeof ChatMessages>>()
@@ -732,6 +801,8 @@ const activeGenerationEventSource = ref<EventSource | null>(null)
 
 // === Social State ===
 const hotStat = ref<API.AppHotStatVO | null>(null)
+const liking = ref(false)
+const favoriting = ref(false)
 const commentDialogOpen = ref(false)
 const collaborators = ref<API.AppCollaboratorVO[]>([])
 
@@ -795,7 +866,7 @@ const getSenderMeta = (userId?: number) => {
       senderName: owner.userName || '主创',
       senderAvatar: owner.userAvatar,
       senderRoleLabel: '主创',
-      isSelf: userId === currentUserId
+      isSelf: userId === currentUserId,
     }
   }
 
@@ -804,7 +875,7 @@ const getSenderMeta = (userId?: number) => {
       senderName: collaborator.userName || '协作者',
       senderAvatar: collaborator.userAvatar,
       senderRoleLabel: collaborator.role === 'viewer' ? '协作者' : '编辑者',
-      isSelf: collaborator.userId === currentUserId
+      isSelf: collaborator.userId === currentUserId,
     }
   }
 
@@ -812,7 +883,7 @@ const getSenderMeta = (userId?: number) => {
     senderName: userId === currentUserId ? loginUserStore.loginUser.userName || '我' : '协作者',
     senderAvatar: userId === currentUserId ? loginUserStore.loginUser.userAvatar : undefined,
     senderRoleLabel: userId === currentUserId ? (isOwner.value ? '主创' : '编辑者') : '协作者',
-    isSelf: userId === currentUserId
+    isSelf: userId === currentUserId,
   }
 }
 
@@ -827,7 +898,7 @@ const createUserMessage = (content: string, overrides: Partial<Message> = {}): M
     senderAvatar: senderMeta.senderAvatar,
     senderRoleLabel: senderMeta.senderRoleLabel,
     isSelf: true,
-    ...overrides
+    ...overrides,
   }
 }
 
@@ -845,10 +916,13 @@ const deployedSiteUrl = computed(() => {
 // === localStorage generating tracker ===
 const getGeneratingKey = () => `rcw_generating_${appId.value}`
 const markGeneratingStart = (userMessage: string) => {
-  localStorage.setItem(getGeneratingKey(), JSON.stringify({
-    message: userMessage,
-    timestamp: Date.now()
-  }))
+  localStorage.setItem(
+    getGeneratingKey(),
+    JSON.stringify({
+      message: userMessage,
+      timestamp: Date.now(),
+    }),
+  )
 }
 const markGeneratingEnd = () => {
   localStorage.removeItem(getGeneratingKey())
@@ -879,6 +953,7 @@ const goToApp = (app: API.AppVO) => {
 
 // === Create App ===
 const handleCreate = async () => {
+  if (creating.value) return
   if (!userPrompt.value.trim()) {
     message.warning('请输入数字产物描述')
     return
@@ -889,26 +964,32 @@ const handleCreate = async () => {
     return
   }
 
+  creating.value = true
   // 确认提示词
   Modal.confirm({
     title: '确认创建',
     content: '请确认您的提示词是否已经检查完毕？',
     okText: '确认创建',
     cancelText: '再检查一下',
+    onCancel: () => {
+      creating.value = false
+    },
     onOk: async () => {
-      creating.value = true
       try {
         const res = await addApp({
           initPrompt: userPrompt.value.trim(),
           generatorType: 'AI_STRATEGY',
-          genMode: useAgentMode.value ? 'workflow' : 'agent'
+          genMode: useAgentMode.value ? 'workflow' : 'agent',
         })
         if (res.data.code === 0 && res.data.data) {
           const newAppId = res.data.data
           message.success('数字产物创建成功')
           userPrompt.value = ''
           // 将素材ID传递到路由query中
-          const materialIds = selectedMaterials.value.map(m => m.id).filter(Boolean).join(',')
+          const materialIds = selectedMaterials.value
+            .map((m) => m.id)
+            .filter(Boolean)
+            .join(',')
           const query: Record<string, string> = { useAgent: String(useAgentMode.value) }
           if (materialIds) query.materialIds = materialIds
           selectedMaterials.value = [] // 清空已选素材
@@ -922,7 +1003,7 @@ const handleCreate = async () => {
       } finally {
         creating.value = false
       }
-    }
+    },
   })
 }
 
@@ -935,7 +1016,7 @@ const handleOptimizePrompt = async () => {
 
   optimizing.value = true
   try {
-    const res = await optimizePrompt(userPrompt.value.trim())
+    const res = await optimizePrompt(userPrompt.value.trim(), { timeout: 120000 })
     if (res.data.code === 0 && res.data.data) {
       userPrompt.value = res.data.data
       nextTick(() => {
@@ -953,29 +1034,46 @@ const handleOptimizePrompt = async () => {
 }
 
 // === Fetch App Info ===
-const fetchAppInfo = async () => {
-  const id = route.params.id as string
-  if (!id) return
+const isWorkspaceRequestCurrent = (epoch: number, targetAppId: string) => {
+  return epoch === workspaceEpoch && targetAppId === String(appId.value)
+}
 
+const fetchAppInfo = async () => {
+  const id = String(route.params.id || '')
+  if (!id) return
+  const requestEpoch = workspaceEpoch
   appId.value = id
 
   try {
     const res = await getAppVoById({ id: id as unknown as number })
+    if (!isWorkspaceRequestCurrent(requestEpoch, id)) return
     if (res.data.code === 0 && res.data.data) {
       appStore.refreshSelectedApp(res.data.data)
-      appStore.rightPanelVisible = true
+      appStore.rightPanelVisible = window.matchMedia('(min-width: 1201px)').matches
       // 进入任意产物时都以对话模式为第一落点，确保历史消息在可见容器内完成布局和滚动。
       appStore.setMode('chat')
-      await fetchCollaborators(id as unknown as number)
-      await refreshCollaboratorPermission(id as unknown as number)
-
-      await fetchChatHistory()
+      if (!loginUserStore.loginUser.id) {
+        updatePreview()
+        fetchHotStat(requestEpoch)
+        return
+      }
+      const [, , historyResult] = await Promise.allSettled([
+        fetchCollaborators(id as unknown as number, requestEpoch),
+        refreshCollaboratorPermission(id as unknown as number, requestEpoch),
+        fetchChatHistory(false, requestEpoch, id, false),
+      ])
+      if (!isWorkspaceRequestCurrent(requestEpoch, id)) return
       updatePreview()
-      fetchHotStat()
+      fetchHotStat(requestEpoch)
 
-      // Auto-send initial prompt if new app with init prompt
-      // 但不在部署或其他操作后自动发送，只在首次加载且无消息时发送
-      if (appStore.selectedApp?.initPrompt && isOwner.value && messages.value.length === 0 && !isGenerating.value) {
+      const historyLoaded = historyResult.status === 'fulfilled' && historyResult.value === true
+      if (!historyLoaded) return
+
+      checkAndResumeGeneration()
+      if (!isWorkspaceRequestCurrent(requestEpoch, id) || isGenerating.value) return
+
+      // Auto-send initial prompt only after confirming there is no existing history.
+      if (appStore.selectedApp?.initPrompt && isOwner.value && messages.value.length === 0) {
         await sendInitialMessage(appStore.selectedApp.initPrompt)
       } else if (messages.value.length >= 2) {
         updatePreview()
@@ -984,24 +1082,34 @@ const fetchAppInfo = async () => {
       message.error('获取数字产物信息失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (error) {
-    console.error('获取数字产物信息失败：', error)
-    collaborators.value = []
+    if (isWorkspaceRequestCurrent(requestEpoch, id)) {
+      console.error('获取数字产物信息失败：', error)
+      collaborators.value = []
+    }
   }
 }
 
-const fetchCollaborators = async (targetAppId: number) => {
+const fetchCollaborators = async (targetAppId: number, requestEpoch = workspaceEpoch) => {
   try {
     const res = await listCollaborators({ appId: targetAppId })
-    collaborators.value = res.data.code === 0 ? (res.data.data || []) : []
+    if (!isWorkspaceRequestCurrent(requestEpoch, String(targetAppId))) return
+    collaborators.value = res.data.code === 0 ? res.data.data || [] : []
   } catch (error) {
-    console.error('获取协作者列表失败：', error)
-    collaborators.value = []
+    if (isWorkspaceRequestCurrent(requestEpoch, String(targetAppId))) {
+      console.error('获取协作者列表失败：', error)
+      collaborators.value = []
+    }
   }
 }
 
 // === Chat History ===
-const fetchChatHistory = async (loadMore = false) => {
-  if (!appId.value || loadingHistory.value) return
+const fetchChatHistory = async (
+  loadMore = false,
+  requestEpoch = workspaceEpoch,
+  targetAppId = String(appId.value || ''),
+  resumeGeneration = true,
+): Promise<boolean> => {
+  if (!targetAppId || loadingHistory.value) return false
 
   // Reset cursor for fresh load to avoid stale pagination
   if (!loadMore) {
@@ -1009,21 +1117,28 @@ const fetchChatHistory = async (loadMore = false) => {
   }
 
   loadingHistory.value = true
+  let succeeded = false
   try {
     const params: any = {
-      appId: appId.value,
+      appId: targetAppId,
       pageSize: 10,
-      lastCreateTime: lastCreateTime.value || undefined
+      lastCreateTime: lastCreateTime.value || undefined,
     }
 
     const res = await listAppChatHistoryByPage(params)
-    if (res.data.code === 0 && res.data.data) {
+    if (!isWorkspaceRequestCurrent(requestEpoch, targetAppId)) return false
+    if (res.data.code !== 0 || !res.data.data) {
+      throw new Error(res.data.message || '对话历史加载失败')
+    }
+    if (res.data.data) {
       const historyData = (res.data.data.records || []).slice().reverse()
       const newMessages: Message[] = historyData.map((item: API.ChatHistory, index) => {
         if (item.messageType === 'user') {
           const senderMeta = getSenderMeta(item.userId)
           return {
-            id: item.id ? `history-${item.id}` : `history-user-${item.createTime || 'legacy'}-${index}`,
+            id: item.id
+              ? `history-${item.id}`
+              : `history-user-${item.createTime || 'legacy'}-${index}`,
             type: 'user',
             content: item.message || '',
             createTime: item.createTime,
@@ -1031,7 +1146,7 @@ const fetchChatHistory = async (loadMore = false) => {
             senderName: senderMeta.senderName,
             senderAvatar: senderMeta.senderAvatar,
             senderRoleLabel: senderMeta.senderRoleLabel,
-            isSelf: senderMeta.isSelf
+            isSelf: senderMeta.isSelf,
           }
         }
 
@@ -1039,7 +1154,7 @@ const fetchChatHistory = async (loadMore = false) => {
           id: item.id ? `history-${item.id}` : `history-ai-${item.createTime || 'legacy'}-${index}`,
           type: 'ai',
           content: parseBatchContent(item.message || ''),
-          createTime: item.createTime
+          createTime: item.createTime,
         }
       })
 
@@ -1058,18 +1173,26 @@ const fetchChatHistory = async (loadMore = false) => {
 
       updatePreview()
 
-      if (!loadMore) {
+      if (!loadMore && resumeGeneration) {
         checkAndResumeGeneration()
       }
+      succeeded = true
+    }
+  } catch (error) {
+    if (isWorkspaceRequestCurrent(requestEpoch, targetAppId)) {
+      console.error('获取对话历史失败:', error)
     }
   } finally {
-    loadingHistory.value = false
-    if (!loadMore) {
-      // 等历史加载条从 DOM 移除后再滚到底部，避免容器高度变化后停在旧位置。
-      await nextTick()
-      chatMessagesRef.value?.scrollToBottom(true)
+    if (isWorkspaceRequestCurrent(requestEpoch, targetAppId)) {
+      loadingHistory.value = false
+      if (!loadMore) {
+        // 等历史加载条从 DOM 移除后再滚到底部，避免容器高度变化后停在旧位置。
+        await nextTick()
+        chatMessagesRef.value?.scrollToBottom(true)
+      }
     }
   }
+  return succeeded
 }
 
 const checkAndResumeGeneration = () => {
@@ -1084,45 +1207,57 @@ const checkAndResumeGeneration = () => {
   // 只有“最后一条消息本身是 AI 且带终态标记”才视为已完成，避免误清第二轮生成任务。
   if (lastMessage?.type === 'ai' && lastMessage.content && !lastMessage.loading) {
     const content = lastMessage.content
-    if (content.includes('WORKFLOW_COMPLETE') || content.includes('WORKFLOW_ERROR') || content.includes('CW_FINAL_STATUS') || content.includes('代码生成任务完成')) {
+    if (
+      content.includes('WORKFLOW_COMPLETE') ||
+      content.includes('WORKFLOW_ERROR') ||
+      content.includes('CW_FINAL_STATUS') ||
+      content.includes('代码生成任务完成')
+    ) {
       console.log('检测到已完成的生成任务（含完成标记），清除过期标记')
       markGeneratingEnd()
       return
     }
   }
 
-  console.log('检测到未完成的生成任务（来自 localStorage），准备恢复...', generatingInfo.message.substring(0, 50))
+  console.log(
+    '检测到未完成的生成任务（来自 localStorage），准备恢复...',
+    generatingInfo.message.substring(0, 50),
+  )
   message.info('检测到未完成的任务，正在恢复生成...')
-  let aiMessageIndex: number
+  let aiMessage: Message
 
   if (lastMessage?.type === 'ai') {
-    aiMessageIndex = messages.value.length - 1
-    messages.value[aiMessageIndex].loading = true
+    aiMessage = lastMessage
+    aiMessage.loading = true
   } else {
-    aiMessageIndex = messages.value.length
-    messages.value.push({ id: createLocalMessageId('ai'), type: 'ai', content: '', loading: true })
+    aiMessage = { id: createLocalMessageId('ai'), type: 'ai', content: '', loading: true }
+    messages.value.push(aiMessage)
   }
 
   isGenerating.value = true
-  generateCode(generatingInfo.message, aiMessageIndex, true)
+  generateCode(generatingInfo.message, aiMessage.id, true)
 }
 
 const loadMoreHistory = async () => {
-  if (hasMore.value) {
-    await fetchChatHistory(true)
-  }
+  if (isGenerating.value || !hasMore.value) return
+  await fetchChatHistory(true)
 }
 
 // === Send Messages ===
 const sendInitialMessage = async (prompt: string) => {
   if (!ensureEditPermission()) return
   messages.value.push(createUserMessage(prompt))
-  const aiMessageIndex = messages.value.length
-  messages.value.push({ id: createLocalMessageId('ai'), type: 'ai', content: '', loading: true })
+  const aiMessage: Message = {
+    id: createLocalMessageId('ai'),
+    type: 'ai',
+    content: '',
+    loading: true,
+  }
+  messages.value.push(aiMessage)
   await nextTick()
   chatMessagesRef.value?.scrollToBottom(true)
   isGenerating.value = true
-  await generateCode(prompt, aiMessageIndex)
+  await generateCode(prompt, aiMessage.id)
 }
 
 const sendMessage = async () => {
@@ -1143,8 +1278,13 @@ const sendMessage = async () => {
   }
 
   messages.value.push(createUserMessage(displayMsg))
-  const aiMessageIndex = messages.value.length
-  messages.value.push({ id: createLocalMessageId('ai'), type: 'ai', content: '', loading: true })
+  const aiMessage: Message = {
+    id: createLocalMessageId('ai'),
+    type: 'ai',
+    content: '',
+    loading: true,
+  }
+  messages.value.push(aiMessage)
   await nextTick()
   chatMessagesRef.value?.scrollToBottom(true)
 
@@ -1155,20 +1295,25 @@ const sendMessage = async () => {
   }
 
   isGenerating.value = true
-  await generateCode(prompt, aiMessageIndex)
+  await generateCode(prompt, aiMessage.id)
 }
 
 // === SSE Code Generation ===
-const generateCode = async (userMessage: string, aiMessageIndex: number, isReconnect = false) => {
+const generateCode = async (userMessage: string, aiMessageId: string, isReconnect = false) => {
+  const currentAiMessage = messages.value.find((item) => item.id === aiMessageId)
   if (!canEditApp.value) {
-    if (messages.value[aiMessageIndex]) {
-      messages.value[aiMessageIndex].content = '你还没有该产物的编辑权限，请先接受协作邀请后再操作。'
-      messages.value[aiMessageIndex].loading = false
+    if (currentAiMessage) {
+      currentAiMessage.content = '你还没有该产物的编辑权限，请先接受协作邀请后再操作。'
+      currentAiMessage.loading = false
     }
     isGenerating.value = false
     return
   }
 
+  const generationId = ++generationSequence
+  const generationEpoch = workspaceEpoch
+  const generationAppId = String(appId.value || '')
+  clearGenerationAsyncTasks()
   generatingTime.value = 0
   timer.value = setInterval(() => generatingTime.value++, 1000)
   reconnectAttempts.value = 0
@@ -1177,8 +1322,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   let eventSource: EventSource | null = null
   let streamCompleted = false
   let streamFinalized = false
-  const existingContent = messages.value[aiMessageIndex]?.content || ''
-  let reconnectReplayState: 'unknown' | 'replaying' | 'incremental' = isReconnect ? 'unknown' : 'incremental'
+  const existingContent = messages.value.find((item) => item.id === aiMessageId)?.content || ''
+  let reconnectReplayState: 'unknown' | 'replaying' | 'incremental' = isReconnect
+    ? 'unknown'
+    : 'incremental'
   let reconnectReplayRemaining = ''
   const chunkParser = new StreamChunkParserContext()
   chunkParser.setTaskPlanCallback((data: TaskPlanData) => {
@@ -1245,11 +1392,11 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
   const smoothStream = createSmoothTextStream({
     initialText: existingContent,
     onUpdate(content, done) {
-      const aiMessage = messages.value[aiMessageIndex]
+      const aiMessage = messages.value.find((item) => item.id === aiMessageId)
       if (!aiMessage) return
       aiMessage.content = content
       if (done) finalizeStream()
-    }
+    },
   })
   activeSmoothStream = smoothStream
 
@@ -1258,12 +1405,13 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
     streamFinalized = true
     streamCompleted = true
     clearActiveSource()
+    clearGenerationAsyncTasks()
     markGeneratingEnd()
     clearGenerationTimer()
     isGenerating.value = false
     taskPlanData.value = null
 
-    const aiMessage = messages.value[aiMessageIndex]
+    const aiMessage = messages.value.find((item) => item.id === aiMessageId)
     if (aiMessage) {
       aiMessage.content = smoothStream.getSource()
       aiMessage.loading = false
@@ -1272,10 +1420,18 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       activeSmoothStream = null
     }
 
-    setTimeout(async () => {
+    generationFinalRefreshTimer = setTimeout(async () => {
+      generationFinalRefreshTimer = null
+      if (
+        generationId !== generationSequence ||
+        generationEpoch !== workspaceEpoch ||
+        generationAppId !== String(appId.value || '')
+      )
+        return
       await refreshAppInfoOnly()
+      if (generationId !== generationSequence || generationEpoch !== workspaceEpoch) return
       appPreviewRef.value?.refresh()
-      await fetchChatHistory()
+      await fetchChatHistory(false, generationEpoch, generationAppId)
     }, 3000)
   }
 
@@ -1293,7 +1449,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
     isGenerating.value = false
     taskPlanData.value = null
 
-    const aiMessage = messages.value[aiMessageIndex]
+    const aiMessage = messages.value.find((item) => item.id === aiMessageId)
     if (aiMessage) {
       aiMessage.content = errorText
       aiMessage.loading = false
@@ -1312,19 +1468,30 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
 
   // Agent mode from route query
   const useAgent = route.query.useAgent !== 'false'
-  const currentMaterialIds = selectedMaterials.value.map(m => m.id).filter(Boolean).join(',')
-  const materialIdsFromQuery = route.query.materialIds as string || ''
+  const currentMaterialIds = selectedMaterials.value
+    .map((m) => m.id)
+    .filter(Boolean)
+    .join(',')
+  const materialIdsFromQuery = (route.query.materialIds as string) || ''
   const materialIdsToSend = currentMaterialIds || materialIdsFromQuery
   let reconnectMode = isReconnect
 
   const connectSSE = () => {
+    if (
+      generationId !== generationSequence ||
+      generationEpoch !== workspaceEpoch ||
+      generationAppId !== String(appId.value || '') ||
+      streamCompleted ||
+      !isGenerating.value
+    )
+      return
     try {
       const baseURL = request.defaults.baseURL || API_BASE_URL
       const params = new URLSearchParams({
         appId: appId.value || '',
         message: userMessage,
         isWorkflow: String(useAgent),
-        reconnect: String(reconnectMode)
+        reconnect: String(reconnectMode),
       })
       if (lastEventId.value) {
         params.set('lastEventId', lastEventId.value)
@@ -1336,7 +1503,7 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
       eventSource = new EventSource(url, { withCredentials: true })
       activeGenerationEventSource.value = eventSource
 
-      eventSource.onmessage = function(event) {
+      eventSource.onmessage = function (event) {
         if (streamCompleted) return
         if (event.lastEventId) lastEventId.value = event.lastEventId
         try {
@@ -1360,7 +1527,10 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
           reconnectAttempts.value++
           reconnectMode = true
           message.info(`连接中断，正在重连... (${reconnectAttempts.value}/${maxReconnectAttempts})`)
-          setTimeout(connectSSE, 1000 * reconnectAttempts.value)
+          generationReconnectTimer = setTimeout(() => {
+            generationReconnectTimer = null
+            connectSSE()
+          }, 1000 * reconnectAttempts.value)
         } else {
           stopWithError('连接失败次数过多，请刷新页面重试')
         }
@@ -1376,16 +1546,20 @@ const generateCode = async (userMessage: string, aiMessageIndex: number, isRecon
 
 // === Lightweight refresh: only updates app info, no chat reload or auto-send ===
 const refreshAppInfoOnly = async () => {
-  const id = route.params.id as string
+  const id = String(route.params.id || '')
   if (!id) return
+  const requestEpoch = workspaceEpoch
   try {
     const res = await getAppVoById({ id: id as unknown as number })
+    if (!isWorkspaceRequestCurrent(requestEpoch, id)) return
     if (res.data.code === 0 && res.data.data) {
       appStore.refreshSelectedApp(res.data.data)
       updatePreview()
     }
   } catch (error) {
-    console.error('刷新数字产物信息失败：', error)
+    if (isWorkspaceRequestCurrent(requestEpoch, id)) {
+      console.error('刷新数字产物信息失败：', error)
+    }
   }
 }
 
@@ -1420,16 +1594,22 @@ const toggleEditMode = () => {
   }
 }
 
-const refreshCollaboratorPermission = async (targetAppId: number) => {
+const refreshCollaboratorPermission = async (
+  targetAppId: number,
+  requestEpoch = workspaceEpoch,
+) => {
   if (isOwner.value || isAdmin.value) {
     isAcceptedCollaborator.value = false
     return
   }
   try {
     const res = await checkCollaborator({ appId: targetAppId })
+    if (!isWorkspaceRequestCurrent(requestEpoch, String(targetAppId))) return
     isAcceptedCollaborator.value = !!(res.data.code === 0 && res.data.data)
-  } catch (error) {
-    isAcceptedCollaborator.value = false
+  } catch {
+    if (isWorkspaceRequestCurrent(requestEpoch, String(targetAppId))) {
+      isAcceptedCollaborator.value = false
+    }
   }
 }
 
@@ -1449,7 +1629,7 @@ watch(
     requestAnimationFrame(() => {
       chatMessagesRef.value?.scrollToBottom(true)
     })
-  }
+  },
 )
 
 const handleModeSwitch = (newMode: 'chat' | 'app') => {
@@ -1469,39 +1649,43 @@ const clearSelection = () => {
 
 // === Deploy ===
 const performDeploy = async (isRedeploy = false) => {
-  if (!appId.value || deploying.value) return
-
+  const targetAppId = appId.value
+  if (!targetAppId || deploying.value) return
+  const requestEpoch = workspaceEpoch
+  const isCurrent = () => isWorkspaceRequestCurrent(requestEpoch, targetAppId)
   const isVueProject = appStore.selectedApp?.codeGenType === CodeGenTypeEnum.VUE_PROJECT
   const actionLabel = isRedeploy ? '重新部署' : '部署'
-
   if (isEditMode.value) {
     isEditMode.value = false
     visualEditor.value?.disableEditMode()
     clearSelection()
   }
-
   deploying.value = true
   setTaskProgressState(
     'deploy',
     'running',
     isVueProject ? 3 : 20,
-    isVueProject ? '正在提交部署任务...' : '正在部署静态产物...'
+    isVueProject ? '正在提交部署任务...' : '正在部署静态产物...',
   )
-
   try {
     if (isVueProject) {
-      const res = await deployAppAsyncApi({ appId: appId.value as unknown as number })
+      const res = await deployAppAsyncApi({ appId: targetAppId as unknown as number })
+      if (!isCurrent()) return
       if (res.data.code === 0 && res.data.data) {
         deployUrl.value = res.data.data
         setTaskProgressState('deploy', 'running', 8, '任务已提交，正在等待构建队列调度...')
-        await subscribeDeployProgress()
+        await subscribeDeployProgress(targetAppId, requestEpoch)
       } else {
         finishTaskProgressState('deploy', 'failed', res.data.message || `${actionLabel}失败`, 0)
         message.error(`${actionLabel}失败：` + (res.data.message || ''))
         deploying.value = false
       }
     } else {
-      const res = await deployAppApi({ appId: appId.value as unknown as number })
+      const res = await deployAppApi(
+        { appId: targetAppId as unknown as number },
+        { timeout: 120000 },
+      )
+      if (!isCurrent()) return
       if (res.data.code === 0 && res.data.data) {
         deployUrl.value = res.data.data
         finishTaskProgressState('deploy', 'success', `${actionLabel}完成，访问地址已生成`, 100)
@@ -1509,45 +1693,86 @@ const performDeploy = async (isRedeploy = false) => {
         message.success(`${actionLabel}成功`)
         await refreshAppInfoOnly()
       } else {
-        finishTaskProgressState('deploy', 'failed', res.data.message || `${actionLabel}失败`, taskProgressPercent.value)
+        finishTaskProgressState(
+          'deploy',
+          'failed',
+          res.data.message || `${actionLabel}失败`,
+          taskProgressPercent.value,
+        )
         message.error(`${actionLabel}失败：` + (res.data.message || ''))
       }
       deploying.value = false
     }
-  } catch (error) {
-    finishTaskProgressState('deploy', 'failed', `${actionLabel}失败，请重试`, taskProgressPercent.value)
+  } catch {
+    if (!isCurrent()) return
+    finishTaskProgressState(
+      'deploy',
+      'failed',
+      `${actionLabel}失败，请重试`,
+      taskProgressPercent.value,
+    )
     message.error(`${actionLabel}失败，请重试`)
     deploying.value = false
   }
 }
 
 /** 订阅部署进度 WebSocket 推送 */
-const subscribeDeployProgress = async () => {
-  if (!appId.value) return
+const subscribeDeployProgress = async (targetAppId: string, requestEpoch: number) => {
+  const isCurrent = () => isWorkspaceRequestCurrent(requestEpoch, targetAppId)
   try {
-    await taskProgressService.subscribeTaskProgress(appId.value, (progress: any) => {
+    await taskProgressService.subscribeTaskProgress(targetAppId, (progress: any) => {
+      if (!isCurrent()) {
+        taskProgressService.unsubscribeTaskProgress(targetAppId)
+        return
+      }
       if (progress.status === 'RUNNING') {
-        setTaskProgressState('deploy', 'running', progress.progress ?? 10, progress.message || '构建中...')
+        setTaskProgressState(
+          'deploy',
+          'running',
+          progress.progress ?? 10,
+          progress.message || '构建中...',
+        )
       } else if (progress.status === 'SUCCESS') {
-        finishTaskProgressState('deploy', 'success', progress.message || '部署成功', progress.progress ?? 100)
+        finishTaskProgressState(
+          'deploy',
+          'success',
+          progress.message || '部署成功',
+          progress.progress ?? 100,
+        )
         message.success('部署成功')
         deploying.value = false
         if (progress.result) deployUrl.value = progress.result
         deployModalVisible.value = true
-        refreshAppInfoOnly()
-        taskProgressService.unsubscribeTaskProgress(appId.value!)
+        void refreshAppInfoOnly()
+        taskProgressService.unsubscribeTaskProgress(targetAppId)
       } else if (progress.status === 'FAILED') {
-        finishTaskProgressState('deploy', 'failed', progress.message || '部署失败', progress.progress ?? 0)
+        finishTaskProgressState(
+          'deploy',
+          'failed',
+          progress.message || '部署失败',
+          progress.progress ?? 0,
+        )
         message.error('部署失败: ' + (progress.message || '未知错误'))
         deploying.value = false
-        taskProgressService.unsubscribeTaskProgress(appId.value!)
+        taskProgressService.unsubscribeTaskProgress(targetAppId)
       } else if (progress.status === 'RETRYING') {
-        setTaskProgressState('deploy', 'retrying', progress.progress ?? 0, progress.message || '构建失败，正在重试...')
+        setTaskProgressState(
+          'deploy',
+          'retrying',
+          progress.progress ?? 0,
+          progress.message || '构建失败，正在重试...',
+        )
       }
     })
   } catch (err) {
+    if (!isCurrent()) return
     console.error('WebSocket订阅失败，部署已在后台执行', err)
-    finishTaskProgressState('deploy', 'failed', '进度订阅失败，部署任务仍在后台执行', taskProgressPercent.value)
+    finishTaskProgressState(
+      'deploy',
+      'failed',
+      '进度订阅失败，部署任务仍在后台执行',
+      taskProgressPercent.value,
+    )
     deploying.value = false
   }
 }
@@ -1563,7 +1788,7 @@ const confirmReDeploy = async () => {
     content: '请勿频繁部署，若违反则系统自动封号处理！确定要继续部署吗？',
     okText: '确定部署',
     cancelText: '取消',
-    onOk: async () => performDeploy(true)
+    onOk: async () => performDeploy(true),
   })
 }
 // === Download ===
@@ -1579,7 +1804,10 @@ const downloadCode = async () => {
 
   downloading.value = true
   try {
-    const res = await request.get(`/generator/download/code/zip/${appId.value}`, { responseType: 'blob' })
+    const res = await request.get(`/generator/download/code/zip/${appId.value}`, {
+      responseType: 'blob',
+      timeout: 120000,
+    })
     const blob = new Blob([res.data], { type: 'application/zip' })
     const contentDisposition = res.headers['content-disposition']
     let filename = `${appStore.selectedApp?.appName ?? 'code'}.zip`
@@ -1655,55 +1883,72 @@ const handleDeleteApp = async () => {
     } else {
       message.error('删除失败：' + (res.data.message || ''))
     }
-  } catch (error) {
+  } catch {
     message.error('删除失败，请重试')
   }
 }
 
 // === Social Handlers ===
-const fetchHotStat = async () => {
-  if (!appId.value) return
+const fetchHotStat = async (requestEpoch = workspaceEpoch) => {
+  const targetAppId = String(appId.value || '')
+  if (!targetAppId) return
   try {
-    const res = await getAppHotStat({ appId: appId.value as unknown as number })
+    const res = await getAppHotStat({ appId: targetAppId as unknown as number })
+    if (!isWorkspaceRequestCurrent(requestEpoch, targetAppId)) return
     if (res.data.code === 0 && res.data.data) {
       hotStat.value = res.data.data
     }
   } catch (e) {
-    console.error('获取热点数据失败:', e)
+    if (isWorkspaceRequestCurrent(requestEpoch, targetAppId)) {
+      console.error('获取热点数据失败:', e)
+    }
   }
 }
 
 const handleToggleLike = async () => {
-  if (!appId.value) return
+  const targetAppId = appId.value
+  if (!targetAppId || liking.value) return
   if (!loginUserStore.loginUser.id) {
     message.warning('请先登录')
     return
   }
+  const requestEpoch = workspaceEpoch
+  liking.value = true
   try {
-    const res = await toggleAppLike({ appId: appId.value as unknown as number })
-    if (res.data.code === 0) {
-      await fetchHotStat()
-    }
+    const res = await toggleAppLike({ appId: targetAppId as unknown as number })
+    if (!isWorkspaceRequestCurrent(requestEpoch, targetAppId)) return
+    if (res.data.code !== 0) throw new Error(res.data.message || '操作失败')
+    await fetchHotStat(requestEpoch)
   } catch (e) {
-    message.error('操作失败')
+    if (isWorkspaceRequestCurrent(requestEpoch, targetAppId)) {
+      message.error(e instanceof Error ? e.message : '操作失败')
+    }
+  } finally {
+    if (isWorkspaceRequestCurrent(requestEpoch, targetAppId)) liking.value = false
   }
 }
 
 const handleToggleFavorite = async () => {
-  if (!appId.value) return
+  const targetAppId = appId.value
+  if (!targetAppId || favoriting.value) return
   if (!loginUserStore.loginUser.id) {
     message.warning('请先登录')
     return
   }
+  const requestEpoch = workspaceEpoch
+  favoriting.value = true
   try {
-    const res = await toggleAppFavorite({ appId: appId.value as unknown as number })
-    if (res.data.code === 0) {
-      const favorited = res.data.data
-      message.success(favorited ? '已收藏' : '已取消收藏')
-      await fetchHotStat()
-    }
+    const res = await toggleAppFavorite({ appId: targetAppId as unknown as number })
+    if (!isWorkspaceRequestCurrent(requestEpoch, targetAppId)) return
+    if (res.data.code !== 0) throw new Error(res.data.message || '操作失败')
+    message.success(res.data.data ? '已收藏' : '已取消收藏')
+    await fetchHotStat(requestEpoch)
   } catch (e) {
-    message.error('操作失败')
+    if (isWorkspaceRequestCurrent(requestEpoch, targetAppId)) {
+      message.error(e instanceof Error ? e.message : '操作失败')
+    }
+  } finally {
+    if (isWorkspaceRequestCurrent(requestEpoch, targetAppId)) favoriting.value = false
   }
 }
 
@@ -1728,7 +1973,7 @@ const bumpLocalShareCount = () => {
   }
   hotStat.value = {
     ...hotStat.value,
-    shareCount: (hotStat.value.shareCount || 0) + 1
+    shareCount: (hotStat.value.shareCount || 0) + 1,
   }
 }
 
@@ -1768,7 +2013,7 @@ const handleForwardConfirm = async (friendIds: number[]) => {
       appId: currentApp.id,
       appName: currentApp.appName,
       appCover: currentApp.cover,
-      codeGenType: currentApp.codeGenType
+      codeGenType: currentApp.codeGenType,
     })
 
     let successCount = 0
@@ -1806,7 +2051,7 @@ const handleForwardConfirm = async (friendIds: number[]) => {
   }
 }
 
-const onCommentCountChange = (_delta: number) => {
+const onCommentCountChange = () => {
   fetchHotStat()
 }
 
@@ -1837,7 +2082,7 @@ const handleCopyShare = async () => {
       '',
       '—— 来自 RichCodeWeaver · 织码睿奇',
       'AI 驱动的数字产物生成平台，工作大幅提效，成果触手可及',
-      `平台首页：${window.location.origin}`
+      `平台首页：${window.location.origin}`,
     ]
     const shareContent = lines.join('\n')
     await copyTextToClipboard(shareContent)
@@ -1861,24 +2106,40 @@ const handleCopyShare = async () => {
 }
 
 // === Route Watcher ===
-watch(() => route.params.id, (newId) => {
-  if (newId) {
-    // 路由切换时先回到对话模式，避免沿用上一个产物的人工模式选择。
+watch(
+  () => route.params.id,
+  (newId) => {
+    // 路由切换时先回到对话模式，避免沿用上一个产物的状态和异步请求。
     appStore.setMode('chat')
-    appId.value = newId as string
     resetChatState()
-    appId.value = newId as string
-    fetchAppInfo()
-  } else {
-    appId.value = ''
-    messages.value = []
-    previewUrl.value = ''
-    previewReady.value = false
     appStore.selectedApp = null
-  }
-}, { immediate: false })
+    if (newId) {
+      appId.value = newId as string
+      fetchAppInfo()
+    }
+  },
+  { immediate: false },
+)
 
 const resetChatState = () => {
+  const previousAppId = appId.value
+  workspaceEpoch += 1
+  generationSequence += 1
+  clearGenerationAsyncTasks()
+  if (previousAppId) {
+    taskProgressService.unsubscribeTaskProgress(previousAppId)
+  }
+  if (activeGenerationEventSource.value) {
+    activeGenerationEventSource.value.close()
+    activeGenerationEventSource.value = null
+  }
+  if (timer.value) {
+    clearInterval(timer.value)
+    timer.value = null
+  }
+  activeSmoothStream?.stop()
+  activeSmoothStream = null
+
   appId.value = ''
   messages.value = []
   userInput.value = ''
@@ -1892,13 +2153,27 @@ const resetChatState = () => {
   isEditMode.value = false
   selectedElement.value = null
   hotStat.value = null
+  liking.value = false
+  favoriting.value = false
   commentDialogOpen.value = false
-  if (timer.value) {
-    clearInterval(timer.value)
-    timer.value = null
+  taskPlanData.value = null
+  creating.value = false
+  refreshing.value = false
+  deploying.value = false
+  downloading.value = false
+  optimizing.value = false
+  deployModalVisible.value = false
+  deployUrl.value = ''
+  resetTaskProgressState()
+  if (refreshDebounceTimer) {
+    clearTimeout(refreshDebounceTimer)
+    refreshDebounceTimer = null
   }
-  activeSmoothStream?.stop()
-  activeSmoothStream = null
+  lastRefreshTriggerAt.value = 0
+  collaborators.value = []
+  isAcceptedCollaborator.value = false
+  lastEventId.value = null
+  reconnectAttempts.value = 0
 }
 
 // === Lifecycle ===
@@ -1914,7 +2189,7 @@ onMounted(() => {
       nextTick(() => {
         message.info('已选中元素，请在下方输入框中描述您想要的修改需求', 3)
       })
-    }
+    },
   })
   window.addEventListener('message', handleIframeMessage)
 
@@ -1938,10 +2213,12 @@ watch(
     if (loginUserStore.loginUser.id) {
       fetchMatchedTemplates()
     }
-  }
+  },
 )
 
 onUnmounted(() => {
+  generationSequence += 1
+  clearGenerationAsyncTasks()
   window.removeEventListener('message', handleIframeMessage)
   if (activeGenerationEventSource.value) {
     activeGenerationEventSource.value.close()
@@ -1955,6 +2232,8 @@ onUnmounted(() => {
   if (timer.value) clearInterval(timer.value)
   activeSmoothStream?.stop()
   activeSmoothStream = null
+  visualEditor.value?.destroy()
+  visualEditor.value = null
   // 清理WebSocket订阅
   if (appId.value) {
     taskProgressService.unsubscribeTaskProgress(appId.value)
@@ -1962,6 +2241,8 @@ onUnmounted(() => {
 })
 
 const handleIframeMessage = (event: MessageEvent) => {
+  const iframe = appPreviewRef.value?.getIframe()
+  if (!iframe?.contentWindow || event.source !== iframe.contentWindow) return
   visualEditor.value?.handleIframeMessage(event)
 }
 </script>
@@ -2229,7 +2510,11 @@ const handleIframeMessage = (event: MessageEvent) => {
   background: #fcfcfc;
   cursor: pointer;
   text-align: left;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
 }
 
 .quick-send-card:hover {
@@ -2496,7 +2781,9 @@ const handleIframeMessage = (event: MessageEvent) => {
 }
 
 @keyframes taskQueueDot {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     opacity: 0.28;
     transform: translateY(0);
   }

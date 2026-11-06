@@ -5,12 +5,13 @@ import request from '@/request'
 /** 此处后端没有提供注释 POST /file/upload */
 export async function upload(body: {}, options?: { [key: string]: any }) {
   return request<API.BaseResponseString>('/file/upload', {
+    timeout: 120000,
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     },
     data: body,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -19,9 +20,10 @@ export async function uploadFile(file: File, options?: { [key: string]: any }) {
   const formData = new FormData()
   formData.append('file', file)
   return request<API.BaseResponseString>('/file/upload', {
+    timeout: 120000,
     method: 'POST',
     data: formData,
-    ...(options || {})
+    ...(options || {}),
   })
 }
 
@@ -30,8 +32,9 @@ export async function uploadFileAsync(file: File, options?: { [key: string]: any
   const formData = new FormData()
   formData.append('file', file)
   return request<API.BaseResponseString>('/file/upload/async', {
+    timeout: 120000,
     method: 'POST',
     data: formData,
-    ...(options || {})
+    ...(options || {}),
   })
 }

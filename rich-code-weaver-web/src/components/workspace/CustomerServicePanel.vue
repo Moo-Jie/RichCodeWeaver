@@ -7,13 +7,18 @@
       {
         'is-collapsed': isCollapsed,
         'is-dragging': isDragging,
-        'is-snapped-right': isSnappedRight
-      }
+        'is-snapped-right': isSnappedRight,
+      },
     ]"
     :style="floatingStyle"
   >
     <transition mode="out-in" name="panel-fade">
-      <div v-if="isCollapsed" key="collapsed" class="customer-service-collapsed" @click="expandPanel">
+      <div
+        v-if="isCollapsed"
+        key="collapsed"
+        class="customer-service-collapsed"
+        @click="expandPanel"
+      >
         <div class="collapsed-core">
           <div class="assistant-avatar assistant-avatar--image collapsed-avatar">
             <img :src="customerLogo" alt="RUBY 智能助手" class="assistant-avatar-image" />
@@ -37,19 +42,33 @@
             <div class="assistant-meta">
               <div class="assistant-name">RUBY 智能助手</div>
               <div class="assistant-status">
-                <span :class="['status-dot', { 'is-streaming': streaming, 'is-offline': !userModuleOnline && !streaming }]" />
-                <span>{{ streaming ? '响应生成中' : (userModuleOnline ? '在线' : '离线') }}</span>
+                <span
+                  :class="[
+                    'status-dot',
+                    { 'is-streaming': streaming, 'is-offline': !userModuleOnline && !streaming },
+                  ]"
+                />
+                <span>{{ streaming ? '响应生成中' : userModuleOnline ? '在线' : '离线' }}</span>
               </div>
             </div>
           </div>
           <div class="header-actions">
-            <button v-if="isFloating" class="icon-btn drag-btn" title="拖动面板" @mousedown.stop="startDrag">
+            <button
+              v-if="isFloating"
+              class="icon-btn drag-btn"
+              title="拖动面板"
+              @mousedown.stop="startDrag"
+            >
               <DragOutlined />
             </button>
             <button class="icon-btn" title="收缩到右侧" @click="collapsePanel">
               <MenuFoldOutlined />
             </button>
-            <button class="icon-btn" :title="isFloating ? '吸附到右侧' : '切换悬浮窗'" @click="toggleMode">
+            <button
+              class="icon-btn"
+              :title="isFloating ? '吸附到右侧' : '切换悬浮窗'"
+              @click="toggleMode"
+            >
               <PushpinOutlined v-if="isFloating" />
               <BorderOuterOutlined v-else />
             </button>
@@ -58,19 +77,31 @@
 
         <div class="customer-service-body">
           <transition name="history-panel">
-            <div v-if="showConversationHistory" class="history-overlay" @click.self="closeConversationHistory">
+            <div
+              v-if="showConversationHistory"
+              class="history-overlay"
+              @click.self="closeConversationHistory"
+            >
               <div class="history-panel">
                 <div class="history-panel-header">
                   <div class="sidebar-title">
                     <HistoryOutlined />
                     <span>会话历史</span>
                   </div>
-                  <button class="history-close-btn" title="收起历史" @click="closeConversationHistory">
+                  <button
+                    class="history-close-btn"
+                    title="收起历史"
+                    @click="closeConversationHistory"
+                  >
                     收起
                   </button>
                 </div>
                 <div class="conversation-toolbar">
-                  <button class="new-chat-btn" title="新建对话" @click="startFreshConversation">
+                  <button
+                    class="new-chat-btn"
+                    title="新建对话"
+                    @click="startFreshConversation(true)"
+                  >
                     <PlusOutlined />
                     <span>新建</span>
                   </button>
@@ -79,14 +110,21 @@
                   <button
                     v-for="conversation in conversations"
                     :key="conversation.id"
-                    :class="['conversation-item', { active: conversation.id === activeConversationId }]"
+                    :class="[
+                      'conversation-item',
+                      { active: conversation.id === activeConversationId },
+                    ]"
                     @click="selectConversation(conversation.id)"
                   >
                     <div class="conversation-item-line">
                       <span class="conversation-name">{{ conversation.title || '新对话' }}</span>
-                      <span class="conversation-time">{{ formatConversationTime(conversation.lastMessageTime) }}</span>
+                      <span class="conversation-time">{{
+                        formatConversationTime(conversation.lastMessageTime)
+                      }}</span>
                     </div>
-                    <span class="conversation-preview">{{ conversation.lastMessagePreview || '开始新的咨询' }}</span>
+                    <span class="conversation-preview">{{
+                      conversation.lastMessagePreview || '开始新的咨询'
+                    }}</span>
                   </button>
                 </div>
               </div>
@@ -110,7 +148,9 @@
                 <div class="empty-top">
                   <div>
                     <div class="empty-title">你好，我是RUBY</div>
-                    <div class="empty-desc">我可以帮你快速定位平台功能入口、使用步骤和常见问题。</div>
+                    <div class="empty-desc">
+                      我可以帮你快速定位平台功能入口、使用步骤和常见问题。
+                    </div>
                   </div>
                 </div>
                 <div class="suggestion-grid">
@@ -133,11 +173,16 @@
                 <div class="message-card">
                   <div class="message-meta">
                     <span class="role-chip">{{ item.senderType === 'user' ? '我' : 'RUBY' }}</span>
-                    <span v-if="item.createTime">{{ formatConversationTime(item.createTime) }}</span>
+                    <span v-if="item.createTime">{{
+                      formatConversationTime(item.createTime)
+                    }}</span>
                   </div>
                   <div class="message-bubble">
                     <template v-if="item.senderType === 'ai'">
-                      <MarkdownRenderer :content="item.content || (item.loading ? '思考中...' : '')" />
+                      <MarkdownRenderer
+                        :content="item.content || (item.loading ? '思考中...' : '')"
+                        :streaming="Boolean(item.loading)"
+                      />
                     </template>
                     <template v-else>
                       <div class="plain-text">{{ item.content }}</div>
@@ -166,7 +211,12 @@
                 />
                 <div class="input-actions">
                   <span class="hint-text">{{ streaming ? '生成中...' : '服务加载完成' }}</span>
-                  <a-button class="send-btn" :loading="streaming" type="primary" @click="sendMessage">
+                  <a-button
+                    class="send-btn"
+                    :loading="streaming"
+                    type="primary"
+                    @click="sendMessage"
+                  >
                     <template #icon>
                       <SendOutlined />
                     </template>
@@ -194,13 +244,13 @@ import {
   MenuUnfoldOutlined,
   PlusOutlined,
   PushpinOutlined,
-  SendOutlined
+  SendOutlined,
 } from '@ant-design/icons-vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import {
   createCustomerServiceConversation,
   listCustomerServiceConversations,
-  listCustomerServiceMessages
+  listCustomerServiceMessages,
 } from '@/api/customerServiceController'
 import { API_BASE_URL } from '@/config/env'
 import request from '@/request'
@@ -210,7 +260,7 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import { checkUserHealth } from '@/api/healthController'
 
 interface CustomerServiceMessageItem {
-  id?: number
+  id?: number | string
   conversationId?: number
   senderType: 'user' | 'ai'
   content: string
@@ -232,7 +282,7 @@ const suggestionPrompts = [
   '首页有哪些核心功能可以直接体验？',
   '怎么部署我创建的数字产物？',
   '推荐模板和我的身份信息有什么关系？',
-  '为什么生成失败了，我应该先检查什么？'
+  '为什么生成失败了，我应该先检查什么？',
 ]
 
 const userModuleOnline = ref(false)
@@ -267,9 +317,14 @@ const dragState = {
   startMouseX: 0,
   startMouseY: 0,
   startX: 0,
-  startY: 0
+  startY: 0,
 }
 let currentEventSource: EventSource | null = null
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+let scrollFrameId: number | null = null
+let streamSequence = 0
+let historyRequestId = 0
+let sendInFlight = false
 
 const panelModeClass = computed(() => (isFloating.value ? 'is-floating' : 'is-docked'))
 
@@ -287,16 +342,17 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 
 const clampFloatingPosition = (position: { x: number; y: number }) => {
   const width = getExpandedPanelWidth()
-  const height = panelRef.value?.offsetHeight || Math.min(Math.max(window.innerHeight - 120, 620), 760)
+  const height =
+    panelRef.value?.offsetHeight || Math.min(Math.max(window.innerHeight - 120, 620), 760)
   return {
     x: clamp(position.x, 12, Math.max(12, window.innerWidth - width - 12)),
-    y: clamp(position.y, 16, Math.max(16, window.innerHeight - height - 16))
+    y: clamp(position.y, 16, Math.max(16, window.innerHeight - height - 16)),
   }
 }
 
 const getDefaultFloatingPosition = () => ({
   x: getExpandedSnapLeft(),
-  y: clamp(88, 16, Math.max(16, window.innerHeight - 220))
+  y: clamp(88, 16, Math.max(16, window.innerHeight - 220)),
 })
 
 const persistMode = () => {
@@ -326,7 +382,7 @@ const restoreFloatingPosition = () => {
     const parsed = JSON.parse(raw)
     floatingPosition.value = clampFloatingPosition({
       x: Number(parsed?.x) || fallback.x,
-      y: Number(parsed?.y) || fallback.y
+      y: Number(parsed?.y) || fallback.y,
     })
   } catch {
     floatingPosition.value = fallback
@@ -340,7 +396,7 @@ const syncFloatingPosition = () => {
   if (isSnappedRight.value) {
     floatingPosition.value = {
       x: getExpandedSnapLeft(),
-      y: clamp(floatingPosition.value.y, 16, Math.max(16, window.innerHeight - 180))
+      y: clamp(floatingPosition.value.y, 16, Math.max(16, window.innerHeight - 180)),
     }
   } else {
     floatingPosition.value = clampFloatingPosition(floatingPosition.value)
@@ -353,15 +409,16 @@ const floatingStyle = computed<CSSProperties | undefined>(() => {
     return undefined
   }
   const width = isCollapsed.value ? getCollapsedPanelWidth() : getExpandedPanelWidth()
-  const left = isCollapsed.value && isSnappedRight.value
-    ? getCollapsedSnapLeft()
-    : isSnappedRight.value
-      ? getExpandedSnapLeft()
-      : floatingPosition.value.x
+  const left =
+    isCollapsed.value && isSnappedRight.value
+      ? getCollapsedSnapLeft()
+      : isSnappedRight.value
+        ? getExpandedSnapLeft()
+        : floatingPosition.value.x
   return {
     left: `${left}px`,
     top: `${floatingPosition.value.y}px`,
-    width: `${width}px`
+    width: `${width}px`,
   }
 })
 
@@ -420,7 +477,7 @@ const handleDragMove = (event: MouseEvent) => {
   isSnappedRight.value = false
   floatingPosition.value = clampFloatingPosition({
     x: dragState.startX + event.clientX - dragState.startMouseX,
-    y: dragState.startY + event.clientY - dragState.startMouseY
+    y: dragState.startY + event.clientY - dragState.startMouseY,
   })
 }
 
@@ -455,7 +512,10 @@ const startDrag = (event: MouseEvent) => {
 }
 
 const markGeneratingStart = (conversationId: number, prompt: string) => {
-  localStorage.setItem(GENERATING_KEY, JSON.stringify({ conversationId, prompt, timestamp: Date.now() }))
+  localStorage.setItem(
+    GENERATING_KEY,
+    JSON.stringify({ conversationId, prompt, timestamp: Date.now() }),
+  )
 }
 
 const clearGenerating = () => {
@@ -466,7 +526,11 @@ const clearPersistedActiveConversation = () => {
   localStorage.removeItem(ACTIVE_CONVERSATION_KEY)
 }
 
-const getGeneratingInfo = (): { conversationId: number; prompt: string; timestamp: number } | null => {
+const getGeneratingInfo = (): {
+  conversationId: number
+  prompt: string
+  timestamp: number
+} | null => {
   const raw = localStorage.getItem(GENERATING_KEY)
   if (!raw) return null
   try {
@@ -490,8 +554,40 @@ const scrollToBottom = async () => {
 }
 
 const closeEventSource = () => {
-  currentEventSource?.close()
+  if (!currentEventSource) return
+  currentEventSource.onmessage = null
+  currentEventSource.onerror = null
+  currentEventSource.close()
   currentEventSource = null
+}
+
+const scheduleScrollToBottom = () => {
+  if (scrollFrameId !== null) return
+  scrollFrameId = requestAnimationFrame(() => {
+    scrollFrameId = null
+    if (messagesRef.value) messagesRef.value.scrollTop = messagesRef.value.scrollHeight
+  })
+}
+
+const cancelActiveStream = (clearPersistedGeneration = true) => {
+  streamSequence += 1
+  historyRequestId += 1
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
+  if (scrollFrameId !== null) {
+    cancelAnimationFrame(scrollFrameId)
+    scrollFrameId = null
+  }
+  closeEventSource()
+  streaming.value = false
+  reconnectAttempts.value = 0
+  lastEventId.value = null
+  messages.value.forEach((item) => {
+    if (item.loading) item.loading = false
+  })
+  if (clearPersistedGeneration) clearGenerating()
 }
 
 const persistActiveConversation = () => {
@@ -500,11 +596,11 @@ const persistActiveConversation = () => {
   }
 }
 
-const startFreshConversation = () => {
+const startFreshConversation = (clearPersistedGeneration = false) => {
+  cancelActiveStream(clearPersistedGeneration)
   activeConversationId.value = undefined
   messages.value = []
   userInput.value = ''
-  lastEventId.value = null
   closeConversationHistory()
   clearPersistedActiveConversation()
 }
@@ -552,7 +648,7 @@ const loadConversations = async () => {
       ? conversations.value.find((item) => item.id === activeConversationId.value)
       : undefined
     if (activeConversationId.value && !existingConversation) {
-      startFreshConversation()
+      startFreshConversation(true)
       return
     }
     if (activeConversationId.value) {
@@ -566,16 +662,26 @@ const loadMessages = async (conversationId?: number) => {
     messages.value = []
     return
   }
-  const res = await listCustomerServiceMessages({ conversationId, pageSize: 50 })
-  if (res.data.code === 0) {
+  const requestId = ++historyRequestId
+  try {
+    const res = await listCustomerServiceMessages({ conversationId, pageSize: 50 })
+    if (requestId !== historyRequestId || activeConversationId.value !== conversationId) return
+    if (res.data.code !== 0) {
+      message.error(res.data.message || '加载客服消息失败')
+      return
+    }
     messages.value = ((res.data.data || []) as API.CustomerServiceMessageVO[]).map((item) => ({
       id: item.id,
       conversationId: item.conversationId,
       senderType: (item.senderType as 'user' | 'ai') || 'ai',
       content: item.content || '',
-      createTime: item.createTime
+      createTime: item.createTime,
     }))
     await scrollToBottom()
+  } catch {
+    if (requestId === historyRequestId && activeConversationId.value === conversationId) {
+      message.error('加载客服消息失败，请稍后重试')
+    }
   }
 }
 
@@ -594,7 +700,11 @@ const handleCreateConversation = async () => {
 }
 
 const selectConversation = async (conversationId?: number) => {
-  if (!conversationId) return
+  if (!conversationId || conversationId === activeConversationId.value) {
+    closeConversationHistory()
+    return
+  }
+  cancelActiveStream()
   activeConversationId.value = conversationId
   userInput.value = ''
   persistActiveConversation()
@@ -604,53 +714,69 @@ const selectConversation = async (conversationId?: number) => {
 
 const connectSse = (conversationId: number, prompt: string, isReconnect = false) => {
   closeEventSource()
-  let aiMessageIndex = messages.value.length - 1
-  const lastMessage = messages.value[aiMessageIndex]
-  if (!lastMessage || lastMessage.senderType !== 'ai' || !lastMessage.loading) {
-    aiMessageIndex = messages.value.push({
+  const streamId = ++streamSequence
+  const isCurrentStream = () =>
+    streamId === streamSequence && activeConversationId.value === conversationId && streaming.value
+
+  let aiMessage = [...messages.value]
+    .reverse()
+    .find((item) => item.senderType === 'ai' && item.loading)
+  if (!aiMessage) {
+    aiMessage = {
+      id: `local-${streamId}`,
       conversationId,
       senderType: 'ai',
       content: '',
-      loading: true
-    }) - 1
+      loading: true,
+    }
+    messages.value.push(aiMessage)
   }
+  const aiMessageId = aiMessage.id
+
+  const getAiMessage = () => messages.value.find((item) => item.id === aiMessageId)
 
   const params = new URLSearchParams({
     conversationId: String(conversationId),
     message: prompt,
-    reconnect: String(isReconnect)
+    reconnect: String(isReconnect),
   })
   if (lastEventId.value) {
     params.set('lastEventId', lastEventId.value)
   }
   const url = `${request.defaults.baseURL || API_BASE_URL}/generator/customerService/chat/stream?${params.toString()}`
-  currentEventSource = new EventSource(url, { withCredentials: true })
+  const source = new EventSource(url, { withCredentials: true })
+  currentEventSource = source
 
-  currentEventSource.onmessage = async (event) => {
+  source.onmessage = (event) => {
+    if (!isCurrentStream()) return
     if (event.lastEventId) {
       lastEventId.value = event.lastEventId
     }
     try {
       const data = JSON.parse(event.data || '{}')
-      const chunk = data.b || ''
-      messages.value[aiMessageIndex].content += chunk
-      messages.value[aiMessageIndex].loading = false
-      await scrollToBottom()
+      const chunk = typeof data.b === 'string' ? data.b : ''
+      const target = getAiMessage()
+      if (!target) return
+      target.content += chunk
+      scheduleScrollToBottom()
     } catch {
-      // ignore malformed chunks
+      // Ignore malformed chunks and keep the stream alive.
     }
   }
 
-  currentEventSource.addEventListener('end', async () => {
+  source.addEventListener('end', async () => {
+    if (!isCurrentStream()) return
     streaming.value = false
     reconnectAttempts.value = 0
+    const target = getAiMessage()
+    if (target) target.loading = false
     clearGenerating()
     closeEventSource()
-    await loadConversations()
-    await loadMessages(conversationId)
+    await Promise.allSettled([loadConversations(), loadMessages(conversationId)])
   })
 
-  currentEventSource.addEventListener('server_error', (event: MessageEvent) => {
+  source.addEventListener('server_error', (event: MessageEvent) => {
+    if (!isCurrentStream()) return
     try {
       const data = JSON.parse(event.data || '{}')
       message.error(data.error || 'AI 客服响应失败')
@@ -658,26 +784,28 @@ const connectSse = (conversationId: number, prompt: string, isReconnect = false)
       message.error('AI 客服响应失败')
     }
     streaming.value = false
-    if (messages.value[aiMessageIndex]) {
-      messages.value[aiMessageIndex].loading = false
-    }
+    const target = getAiMessage()
+    if (target) target.loading = false
     clearGenerating()
     closeEventSource()
   })
 
-  currentEventSource.onerror = () => {
+  source.onerror = () => {
+    if (!isCurrentStream()) return
     closeEventSource()
-    if (streaming.value && reconnectAttempts.value < maxReconnectAttempts) {
+    if (reconnectAttempts.value < maxReconnectAttempts) {
       reconnectAttempts.value += 1
-      setTimeout(() => connectSse(conversationId, prompt, true), reconnectAttempts.value * 1000)
-    } else if (streaming.value) {
-      streaming.value = false
-      if (messages.value[aiMessageIndex]) {
-        messages.value[aiMessageIndex].loading = false
-      }
-      clearGenerating()
-      message.error('客服连接中断，请稍后重试')
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null
+        if (isCurrentStream()) connectSse(conversationId, prompt, true)
+      }, reconnectAttempts.value * 1000)
+      return
     }
+    streaming.value = false
+    const target = getAiMessage()
+    if (target) target.loading = false
+    clearGenerating()
+    message.error('客服连接中断，请稍后重试')
   }
 }
 
@@ -688,26 +816,36 @@ const sendMessage = async () => {
     return
   }
   const prompt = userInput.value.trim()
-  if (!prompt || streaming.value) return
+  if (!prompt || streaming.value || sendInFlight) return
+
+  sendInFlight = true
   expandPanel()
   closeConversationHistory()
-  if (!activeConversationId.value) {
-    await handleCreateConversation()
-  }
-  if (!activeConversationId.value) return
+  try {
+    if (!activeConversationId.value) {
+      await handleCreateConversation()
+    }
+    const conversationId = activeConversationId.value
+    if (!conversationId) return
 
-  messages.value.push({
-    conversationId: activeConversationId.value,
-    senderType: 'user',
-    content: prompt
-  })
-  userInput.value = ''
-  streaming.value = true
-  reconnectAttempts.value = 0
-  lastEventId.value = null
-  markGeneratingStart(activeConversationId.value, prompt)
-  await scrollToBottom()
-  connectSse(activeConversationId.value, prompt)
+    messages.value.push({
+      conversationId,
+      senderType: 'user',
+      content: prompt,
+    })
+    userInput.value = ''
+    streaming.value = true
+    reconnectAttempts.value = 0
+    lastEventId.value = null
+    markGeneratingStart(conversationId, prompt)
+    await scrollToBottom()
+    connectSse(conversationId, prompt)
+  } catch {
+    streaming.value = false
+    message.error('发送客服消息失败，请稍后重试')
+  } finally {
+    sendInFlight = false
+  }
 }
 
 const tryResumeGeneration = async () => {
@@ -721,7 +859,7 @@ const tryResumeGeneration = async () => {
 }
 
 const handlePressEnter = (e: KeyboardEvent) => {
-  if (e.shiftKey) return
+  if (e.shiftKey || e.isComposing || e.keyCode === 229) return
   e.preventDefault()
   sendMessage()
 }
@@ -742,7 +880,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  closeEventSource()
+  cancelActiveStream(false)
   removeDragListeners()
   window.removeEventListener('resize', handleWindowResize)
   if (healthCheckTimer) {
@@ -760,7 +898,9 @@ onUnmounted(() => {
   min-height: 0;
   position: relative;
   align-self: stretch;
-  transition: width 0.28s ease, transform 0.28s ease;
+  transition:
+    width 0.28s ease,
+    transform 0.28s ease;
 }
 
 .customer-service-panel.is-collapsed {
@@ -785,7 +925,9 @@ onUnmounted(() => {
   border-radius: 20px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+  box-shadow:
+    0 18px 44px rgba(15, 23, 42, 0.08),
+    0 2px 8px rgba(15, 23, 42, 0.04);
   backdrop-filter: blur(18px);
 }
 
@@ -846,7 +988,9 @@ onUnmounted(() => {
 
 .assistant-avatar--image {
   background: linear-gradient(135deg, rgba(239, 246, 255, 0.92) 0%, rgba(219, 234, 254, 0.9) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 8px 18px rgba(59, 130, 246, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 8px 18px rgba(59, 130, 246, 0.12);
 }
 
 .assistant-avatar-image {
@@ -1479,7 +1623,9 @@ onUnmounted(() => {
 
 .panel-fade-enter-active,
 .panel-fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .panel-fade-enter-from,

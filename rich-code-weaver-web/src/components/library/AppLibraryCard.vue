@@ -6,7 +6,7 @@
       :aria-label="`打开 ${app.appName || '未命名数字产物'}`"
       @click="emit('open', app)"
     >
-      <img :src="app.cover || fallbackCover" :alt="app.appName || '数字产物封面'" loading="lazy" />
+      <img :src="app.cover || fallbackCover" :alt="app.appName || '数字产物封面'" loading="lazy" decoding="async" />
       <span v-if="rank" class="app-library-rank">#{{ String(rank).padStart(2, '0') }}</span>
       <span v-if="status" class="app-library-status">
         <span class="app-library-status-dot" :class="{ 'is-muted': status !== '已部署' }"></span>

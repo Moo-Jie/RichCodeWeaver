@@ -45,7 +45,7 @@
     </div>
 
     <section v-show="activeTab === 'hot'" class="library-section">
-      <div v-if="hotLoading && hotApps.length === 0" class="library-skeleton-grid">
+      <div v-if="hotLoading && !hotApps.some((item) => item.appVO)" class="library-skeleton-grid">
         <div v-for="i in 6" :key="'skeleton-' + i" class="library-skeleton"></div>
       </div>
       <div v-else-if="filteredHotApps.length === 0" class="library-empty">
@@ -106,19 +106,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/appStore'
 import { getAppVoById, listStarAppVoByPage } from '@/api/appController'
 import { listHotApps } from '@/api/socialController'
 import AppLibraryCard from '@/components/library/AppLibraryCard.vue'
-import {
-  CommentOutlined,
-  CrownOutlined,
-  FireOutlined,
-  LikeOutlined,
-  StarOutlined
-} from '@ant-design/icons-vue'
+import { isAbortError, runWithConcurrency } from '@/utils/asyncPool'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -138,6 +132,8 @@ const hotLoading = ref(false)
 const hotLoadingMore = ref(false)
 const hotPage = ref(1)
 const hotHasMore = ref(false)
+let hotRequestId = 0
+let hotAbortController: AbortController | null = null
 
 // === 精选推荐 ===
 const starApps = ref<API.AppVO[]>([])
@@ -145,6 +141,8 @@ const starLoading = ref(false)
 const starLoadingMore = ref(false)
 const starPage = ref(1)
 const starHasMore = ref(false)
+let starRequestId = 0
+let starAbortController: AbortController | null = null
 
 const PAGE_SIZE = 12
 
@@ -169,7 +167,7 @@ const formatNumber = (num: number) => {
 const hotStats = (item: HotAppItem) => [
   { label: '赞', value: formatNumber(item.stat.likeCount || 0) },
   { label: '藏', value: formatNumber(item.stat.favoriteCount || 0) },
-  { label: '评', value: formatNumber(item.stat.commentCount || 0) }
+  { label: '评', value: formatNumber(item.stat.commentCount || 0) },
 ]
 
 const handleSearch = () => {
@@ -180,97 +178,154 @@ const handleSearch = () => {
 const filteredHotApps = computed(() => {
   if (!searchKeyword.value.trim()) return hotApps.value
   const keyword = searchKeyword.value.toLowerCase()
-  return hotApps.value.filter(item =>
-    item.appVO?.appName?.toLowerCase().includes(keyword)
-  )
+  return hotApps.value.filter((item) => item.appVO?.appName?.toLowerCase().includes(keyword))
 })
 
 // 过滤精选推荐
 const filteredStarApps = computed(() => {
   if (!searchKeyword.value.trim()) return starApps.value
   const keyword = searchKeyword.value.toLowerCase()
-  return starApps.value.filter(app =>
-    app.appName?.toLowerCase().includes(keyword)
-  )
+  return starApps.value.filter((app) => app.appName?.toLowerCase().includes(keyword))
 })
 
 // 加载热门产物
 const fetchHotApps = async (pageNum = 1) => {
+  const requestId = ++hotRequestId
+  hotAbortController?.abort()
+  const controller = new AbortController()
+  hotAbortController = controller
   if (pageNum === 1) hotLoading.value = true
   else hotLoadingMore.value = true
 
   try {
-    const res = await listHotApps({ pageNum, pageSize: PAGE_SIZE })
-    if (res.data.code === 0 && res.data.data) {
-      const records = res.data.data.records || []
-      const items: HotAppItem[] = records
-        .filter((r) => r.appId)
-        .map((r) => ({ appId: r.appId!, stat: r, appVO: null }))
+    const res = await listHotApps(
+      { pageNum, pageSize: PAGE_SIZE },
+      {
+        signal: controller.signal,
+      },
+    )
+    if (requestId !== hotRequestId) return
+    if (res.data.code !== 0 || !res.data.data) {
+      throw new Error(res.data.message || '热门产物加载失败')
+    }
 
-      // 批量加载产物信息
-      await Promise.allSettled(
-        items.map(async (item) => {
-          try {
-            const appRes = await getAppVoById({ id: item.appId as any })
-            if (appRes.data.code === 0 && appRes.data.data) {
-              item.appVO = appRes.data.data
-            }
-          } catch { /* 跳过加载失败的产物 */
+    const records = res.data.data.records || []
+    const items: HotAppItem[] = records
+      .filter((record) => record.appId)
+      .map((record) => ({ appId: record.appId!, stat: record, appVO: null }))
+
+    if (pageNum === 1) {
+      hotApps.value = items
+    } else {
+      const knownIds = new Set(hotApps.value.map((item) => String(item.appId)))
+      hotApps.value = [
+        ...hotApps.value,
+        ...items.filter((item) => !knownIds.has(String(item.appId))),
+      ]
+    }
+
+    await runWithConcurrency(
+      items,
+      4,
+      async (item) => {
+        if (requestId !== hotRequestId || controller.signal.aborted) return
+        try {
+          const appRes = await getAppVoById(
+            { id: item.appId as unknown as number },
+            { signal: controller.signal },
+          )
+          if (requestId === hotRequestId && appRes.data.code === 0 && appRes.data.data) {
+            item.appVO = appRes.data.data
           }
-        })
-      )
+        } catch (error) {
+          if (!isAbortError(error)) {
+            console.warn('热门产物详情加载失败', item.appId, error)
+          }
+        }
+      },
+      () => requestId === hotRequestId && !controller.signal.aborted,
+    )
 
-      // 过滤掉加载失败的
-      const validItems = items.filter((i) => i.appVO)
-
-      if (pageNum === 1) {
-        hotApps.value = validItems
-      } else {
-        hotApps.value = [...hotApps.value, ...validItems]
-      }
-      hotHasMore.value = records.length === PAGE_SIZE
-      hotPage.value = pageNum
+    if (requestId !== hotRequestId) return
+    hotApps.value = hotApps.value.filter((item) => item.appVO)
+    hotHasMore.value = records.length === PAGE_SIZE
+    hotPage.value = pageNum
+  } catch (error) {
+    if (!isAbortError(error) && requestId === hotRequestId) {
+      console.error('热门产物加载失败', error)
     }
   } finally {
-    hotLoading.value = false
-    hotLoadingMore.value = false
+    if (requestId === hotRequestId) {
+      hotLoading.value = false
+      hotLoadingMore.value = false
+    }
   }
 }
 
 // 加载精选推荐
 const fetchStarApps = async (pageNum = 1) => {
+  const requestId = ++starRequestId
+  starAbortController?.abort()
+  const controller = new AbortController()
+  starAbortController = controller
   if (pageNum === 1) starLoading.value = true
   else starLoadingMore.value = true
 
   try {
-    const res = await listStarAppVoByPage({
-      pageNum,
-      pageSize: PAGE_SIZE,
-      sortField: 'priority',
-      sortOrder: 'asc'
-    })
-    if (res.data.code === 0 && res.data.data) {
-      const records = res.data.data.records || []
-      if (pageNum === 1) {
-        starApps.value = records
-      } else {
-        starApps.value = [...starApps.value, ...records]
-      }
-      starHasMore.value = records.length === PAGE_SIZE
-      starPage.value = pageNum
+    const res = await listStarAppVoByPage(
+      {
+        pageNum,
+        pageSize: PAGE_SIZE,
+        sortField: 'priority',
+        sortOrder: 'asc',
+      },
+      { signal: controller.signal },
+    )
+    if (requestId !== starRequestId) return
+    if (res.data.code !== 0 || !res.data.data) {
+      throw new Error(res.data.message || '精选产物加载失败')
+    }
+    const records = res.data.data.records || []
+    if (pageNum === 1) {
+      starApps.value = records
+    } else {
+      const knownIds = new Set(starApps.value.map((item) => String(item.id)))
+      starApps.value = [
+        ...starApps.value,
+        ...records.filter((item) => !knownIds.has(String(item.id))),
+      ]
+    }
+    starHasMore.value = records.length === PAGE_SIZE
+    starPage.value = pageNum
+  } catch (error) {
+    if (!isAbortError(error) && requestId === starRequestId) {
+      console.error('精选产物加载失败', error)
     }
   } finally {
-    starLoading.value = false
-    starLoadingMore.value = false
+    if (requestId === starRequestId) {
+      starLoading.value = false
+      starLoadingMore.value = false
+    }
   }
 }
 
-const loadMoreHot = () => fetchHotApps(hotPage.value + 1)
-const loadMoreStar = () => fetchStarApps(starPage.value + 1)
+const loadMoreHot = () => {
+  if (!hotLoading.value && !hotLoadingMore.value) void fetchHotApps(hotPage.value + 1)
+}
+const loadMoreStar = () => {
+  if (!starLoading.value && !starLoadingMore.value) void fetchStarApps(starPage.value + 1)
+}
 
 onMounted(() => {
-  fetchHotApps()
-  fetchStarApps()
+  void fetchHotApps()
+  void fetchStarApps()
+})
+
+onBeforeUnmount(() => {
+  hotRequestId += 1
+  starRequestId += 1
+  hotAbortController?.abort()
+  starAbortController?.abort()
 })
 </script>
 

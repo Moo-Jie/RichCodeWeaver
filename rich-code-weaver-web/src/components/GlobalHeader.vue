@@ -11,12 +11,12 @@
         </RouterLink>
       </a-col>
       <!-- 中间：导航菜单 -->
-      <a-col flex="auto" style="justify-content: center;">
+      <a-col flex="auto" style="justify-content: center">
         <a-menu
           v-model:selectedKeys="selectedKeys"
           :items="menuItems"
           mode="horizontal"
-          style="font-size: 16px;"
+          style="font-size: 16px"
           @click="handleMenuClick"
         />
       </a-col>
@@ -77,7 +77,7 @@ import {
   BorderlessTableOutlined,
   HomeOutlined,
   LogoutOutlined,
-  UserOutlined
+  UserOutlined,
 } from '@ant-design/icons-vue'
 
 const loginUserStore = useLoginUserStore()
@@ -105,7 +105,7 @@ const originItems = [
     key: '/',
     icon: () => h(HomeOutlined),
     label: '主页',
-    title: '主页'
+    title: '主页',
   },
   {
     key: '/admin',
@@ -117,21 +117,21 @@ const originItems = [
         key: '/admin/userManage',
         icon: () => h(BorderlessTableOutlined),
         label: '用户管理',
-        title: '用户管理'
+        title: '用户管理',
       },
       {
         key: '/admin/appManage',
         icon: () => h(BorderlessTableOutlined),
         label: '产物管理',
-        title: '产物管理'
+        title: '产物管理',
       },
       {
         key: '/admin/chatHistory',
         icon: () => h(AlignLeftOutlined),
         label: '对话历史管理',
-        title: '对话历史管理'
-      }
-    ]
+        title: '对话历史管理',
+      },
+    ],
   },
   {
     key: '/other',
@@ -143,28 +143,28 @@ const originItems = [
         key: '/other/about',
         icon: () => h(BorderlessTableOutlined),
         label: '关于',
-        title: '关于'
+        title: '关于',
       },
       {
         key: '/other/docs',
         icon: () => h(BorderlessTableOutlined),
         label: '文档',
-        title: '文档'
+        title: '文档',
       },
       {
         key: '/other/privacy',
         icon: () => h(BorderlessTableOutlined),
         label: '隐私政策',
-        title: '隐私政策'
+        title: '隐私政策',
       },
       {
         key: '/other/terms',
         icon: () => h(BorderlessTableOutlined),
         label: '服务条款',
-        title: '服务条款'
-      }
-    ]
-  }
+        title: '服务条款',
+      },
+    ],
+  },
 ]
 
 // 过滤菜单项
@@ -198,9 +198,7 @@ const handleMenuClick: MenuProps['onClick'] = (e) => {
 const doLogout = async () => {
   const res = await userLogout()
   if (res.data.code === 0) {
-    loginUserStore.setLoginUser({
-      userName: '未登录'
-    })
+    loginUserStore.clearLoginUser()
     message.success('退出登录成功')
     await router.push('/user/login')
   } else {
@@ -266,7 +264,8 @@ const doLogout = async () => {
   margin: 0;
   font-size: 2rem; /* 增大字体 */
   font-weight: 700;
-  font-family: 'Comic Neue', 'YouYuan', 'Microsoft YaHei UI', cursive, sans-serif; /* 可爱字体组合 */
+  font-family:
+    'Comic Neue', 'YouYuan', 'Microsoft YaHei UI', cursive, sans-serif; /* 可爱字体组合 */
   color: #6a7b8d;
   letter-spacing: 1px;
   text-shadow: 2px 2px 3px rgba(255, 255, 255, 0.8);
@@ -290,7 +289,8 @@ const doLogout = async () => {
 
 .ant-menu-item {
   font-size: 18px; /* 增大菜单字体 */
-  font-family: 'Comic Neue', 'YouYuan', 'Microsoft YaHei UI', cursive, sans-serif; /* 统一可爱字体 */
+  font-family:
+    'Comic Neue', 'YouYuan', 'Microsoft YaHei UI', cursive, sans-serif; /* 统一可爱字体 */
   font-weight: 700;
   color: #7a8b9c;
   border-radius: 25px !important; /* 增强菜单项圆角 */

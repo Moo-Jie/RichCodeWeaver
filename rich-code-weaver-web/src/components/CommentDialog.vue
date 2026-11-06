@@ -99,12 +99,12 @@ import {
   addAppComment,
   deleteAppComment,
   listAppCommentByPage,
-  toggleCommentLike
+  toggleCommentLike,
 } from '@/api/socialController'
 
 interface Props {
   open: boolean
-  appId: number | null
+  appId: number | string | null
 }
 
 const props = defineProps<Props>()
@@ -134,9 +134,9 @@ const fetchComments = async (reset = true) => {
   loading.value = true
   try {
     const res = await listAppCommentByPage({
-      appId: props.appId,
+      appId: props.appId as unknown as number,
       pageNum: pageNum.value,
-      pageSize
+      pageSize,
     })
     if (res.data.code === 0 && res.data.data) {
       const records = res.data.data.records || []
@@ -145,7 +145,7 @@ const fetchComments = async (reset = true) => {
       } else {
         comments.value = [...comments.value, ...records]
       }
-      totalComments.value = res.data.data.totalRow || 0
+      totalComments.value = Number(res.data.data.totalRow) || 0
       hasMore.value = comments.value.length < totalComments.value
     }
   } catch (e) {
@@ -175,8 +175,8 @@ const handleSubmitComment = async () => {
   submitting.value = true
   try {
     const res = await addAppComment({
-      appId: props.appId,
-      content: newComment.value.trim()
+      appId: props.appId as unknown as number,
+      content: newComment.value.trim(),
     })
     if (res.data.code === 0) {
       message.success('评论发布成功')
@@ -246,7 +246,7 @@ const handleDeleteComment = (comment: API.AppCommentVO) => {
       } catch (e) {
         message.error('删除失败，请重试')
       }
-    }
+    },
   })
 }
 
@@ -269,11 +269,14 @@ const formatTime = (time?: string): string => {
 }
 
 // 监听弹窗打开时加载评论
-watch(() => props.open, (val) => {
-  if (val && props.appId) {
-    fetchComments(true)
-  }
-})
+watch(
+  () => props.open,
+  (val) => {
+    if (val && props.appId) {
+      fetchComments(true)
+    }
+  },
+)
 </script>
 
 <style scoped>

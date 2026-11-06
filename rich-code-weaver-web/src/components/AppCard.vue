@@ -1,9 +1,9 @@
 <template>
   <div :class="{ 'app-card--featured': featured }" class="app-card">
     <div class="app-preview">
-      <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
+      <img v-if="app.cover" :alt="app.appName" :src="app.cover" loading="lazy" decoding="async" />
       <div v-else class="app-placeholder">
-        <img alt="数字产物封面"
+        <img alt="数字产物封面" loading="lazy" decoding="async"
              src="@/assets/logo.png"
              style="width: 100%; opacity: 0.8; margin: 0 auto; display: block;" />
       </div>

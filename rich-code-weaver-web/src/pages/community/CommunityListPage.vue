@@ -66,17 +66,14 @@
         </div>
 
         <div v-else-if="posts.length === 0" class="empty-card">
-          <p class="empty-title">{{ searchText ? '没有找到匹配帖子' : '还没有帖子，来发第一条吧' }}</p>
+          <p class="empty-title">
+            {{ searchText ? '没有找到匹配帖子' : '还没有帖子，来发第一条吧' }}
+          </p>
           <p class="empty-desc">你可以提问题、提建议，或者分享你用织码睿奇做出的作品</p>
         </div>
 
         <div v-else class="post-list">
-          <div
-            v-for="post in posts"
-            :key="post.id"
-            class="post-card"
-            @click="selectPost(post.id)"
-          >
+          <div v-for="post in posts" :key="post.id" class="post-card" @click="selectPost(post.id)">
             <div class="post-head">
               <div class="post-head-left">
                 <span v-if="post.isTop" class="top-badge">置顶</span>
@@ -110,7 +107,11 @@
 
             <div v-if="post.latestReplies?.length" class="latest-replies">
               <div class="latest-replies-title">最新评论</div>
-              <div v-for="reply in post.latestReplies.slice(0, 2)" :key="reply.id" class="latest-reply-item">
+              <div
+                v-for="reply in post.latestReplies.slice(0, 2)"
+                :key="reply.id"
+                class="latest-reply-item"
+              >
                 <a-avatar :size="20" :src="reply.user?.userAvatar" class="reply-avatar">
                   {{ reply.user?.userName?.charAt(0) || 'U' }}
                 </a-avatar>
@@ -186,7 +187,9 @@
               <span class="editor-assist-label">不知道怎么写？</span>
               <button class="assist-btn" @click="applyTemplate">帖子模板</button>
             </div>
-            <span class="editor-assist-text">建议写清楚场景、步骤、现象或你的结论，别人会更容易理解。</span>
+            <span class="editor-assist-text"
+              >建议写清楚场景、步骤、现象或你的结论，别人会更容易理解。</span
+            >
           </div>
           <div class="editor-container">
             <MdEditor
@@ -205,7 +208,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { MdEditor } from 'md-editor-v3'
@@ -230,7 +233,7 @@ const categoryOptions = [
   { label: '讨论', value: 'discuss' },
   { label: '问答', value: 'question' },
   { label: '反馈', value: 'feedback' },
-  { label: '分享', value: 'share' }
+  { label: '分享', value: 'share' },
 ]
 
 const sortOptions = [
@@ -238,7 +241,7 @@ const sortOptions = [
   { label: '最新发布', value: 'latest' },
   { label: '最多回复', value: 'replies' },
   { label: '最多点赞', value: 'likes' },
-  { label: '最多浏览', value: 'views' }
+  { label: '最多浏览', value: 'views' },
 ]
 
 const publishCategoryOptions = categoryOptions.slice(1)
@@ -246,20 +249,24 @@ const publishCategoryOptions = categoryOptions.slice(1)
 const templateMap: Record<string, { title: string; content: string }> = {
   question: {
     title: '请教一个使用问题：',
-    content: '### 当前场景\n- 我在做什么：\n- 相关配置 / 步骤：\n\n### 遇到的问题\n- 实际现象：\n- 已尝试的方法：\n\n### 希望得到的帮助\n- 期望结果：\n'
+    content:
+      '### 当前场景\n- 我在做什么：\n- 相关配置 / 步骤：\n\n### 遇到的问题\n- 实际现象：\n- 已尝试的方法：\n\n### 希望得到的帮助\n- 期望结果：\n',
   },
   feedback: {
     title: '功能反馈建议：',
-    content: '### 反馈背景\n- 我使用的场景：\n\n### 当前问题\n- 具体不便之处：\n\n### 建议方案\n- 希望如何优化：\n'
+    content:
+      '### 反馈背景\n- 我使用的场景：\n\n### 当前问题\n- 具体不便之处：\n\n### 建议方案\n- 希望如何优化：\n',
   },
   share: {
     title: '分享一个使用经验：',
-    content: '### 分享内容\n- 我完成了什么：\n\n### 关键做法\n- 核心步骤 / 提示词：\n\n### 经验总结\n- 适合哪些人参考：\n'
+    content:
+      '### 分享内容\n- 我完成了什么：\n\n### 关键做法\n- 核心步骤 / 提示词：\n\n### 经验总结\n- 适合哪些人参考：\n',
   },
   discuss: {
     title: '一起讨论一个想法：',
-    content: '### 想讨论的话题\n- 背景：\n\n### 我的看法\n- 目前思路：\n\n### 欢迎交流\n- 想听大家怎么看：\n'
-  }
+    content:
+      '### 想讨论的话题\n- 背景：\n\n### 我的看法\n- 目前思路：\n\n### 欢迎交流\n- 想听大家怎么看：\n',
+  },
 }
 
 const activeCategory = ref('')
@@ -273,33 +280,35 @@ const postsTotal = ref(0)
 const editorOpen = ref(false)
 const submittingPost = ref(false)
 const posts = ref<API.CommunityPostVO[]>([])
+let postsRequestId = 0
+let postsController: AbortController | null = null
 
 const postForm = reactive<PostFormState>({
   title: '',
   content: '',
-  category: ''
+  category: '',
 })
 
 const overviewCards = computed(() => {
-  const questionCount = posts.value.filter(item => item.category === 'question').length
-  const shareCount = posts.value.filter(item => item.category === 'share').length
-  const topCount = posts.value.filter(item => item.isTop).length
+  const questionCount = posts.value.filter((item) => item.category === 'question').length
+  const shareCount = posts.value.filter((item) => item.category === 'share').length
+  const topCount = posts.value.filter((item) => item.isTop).length
   return [
     {
       label: '当前话题',
       value: postsTotal.value || posts.value.length,
-      desc: '当前筛选条件下的帖子总量'
+      desc: '当前筛选条件下的帖子总量',
     },
     {
       label: '问答求助',
       value: questionCount,
-      desc: '社区内正在寻求帮助的问题帖'
+      desc: '社区内正在寻求帮助的问题帖',
     },
     {
       label: '经验分享',
       value: shareCount,
-      desc: `其中置顶内容 ${topCount} 条`
-    }
+      desc: `其中置顶内容 ${topCount} 条`,
+    },
   ]
 })
 
@@ -335,7 +344,7 @@ const getReplyPreview = (content?: string) => {
 }
 
 const getCategoryLabel = (category?: string) => {
-  return categoryOptions.find(item => item.value === category)?.label || '讨论'
+  return categoryOptions.find((item) => item.value === category)?.label || '讨论'
 }
 
 const formatTime = (time?: string) => {
@@ -394,36 +403,64 @@ const handleSearch = () => {
 }
 
 const fetchPosts = async (pageNum = 1) => {
+  if (pageNum > 1 && (loading.value || loadingMore.value || !hasMore.value)) return
+  const requestId = ++postsRequestId
+  postsController?.abort()
+  postsController = new AbortController()
   if (pageNum === 1) {
     loading.value = true
   } else {
     loadingMore.value = true
   }
   try {
-    const res = await listCommunityPostByPage({
-      pageNum,
-      pageSize: PAGE_SIZE,
-      category: activeCategory.value || undefined,
-      searchText: searchText.value.trim() || undefined,
-      sortField: activeSort.value,
-      sortOrder: 'descend'
-    })
-    if (res.data.code === 0 && res.data.data) {
-      const records = res.data.data.records || []
-      postsTotal.value = res.data.data.totalRow || 0
-      posts.value = pageNum === 1 ? records : [...posts.value, ...records]
-      page.value = pageNum
-      hasMore.value = records.length === PAGE_SIZE
+    const res = await listCommunityPostByPage(
+      {
+        pageNum,
+        pageSize: PAGE_SIZE,
+        category: activeCategory.value || undefined,
+        searchText: searchText.value.trim() || undefined,
+        sortField: activeSort.value,
+        sortOrder: 'descend',
+      },
+      { signal: postsController.signal },
+    )
+    if (requestId !== postsRequestId) return
+    if (res.data.code !== 0 || !res.data.data) {
+      throw new Error(res.data.message || '社区内容加载失败')
+    }
+    const records = res.data.data.records || []
+    postsTotal.value = Number(res.data.data.totalRow) || 0
+    if (pageNum === 1) {
+      posts.value = records
+    } else {
+      const knownIds = new Set(posts.value.map((item) => String(item.id)))
+      posts.value = [...posts.value, ...records.filter((item) => !knownIds.has(String(item.id)))]
+    }
+    page.value = pageNum
+    hasMore.value = records.length === PAGE_SIZE
+  } catch (error) {
+    if (
+      !(error instanceof DOMException && error.name === 'AbortError') &&
+      requestId === postsRequestId
+    ) {
+      message.error('社区内容加载失败，请稍后重试')
     }
   } finally {
-    loading.value = false
-    loadingMore.value = false
+    if (requestId === postsRequestId) {
+      loading.value = false
+      loadingMore.value = false
+    }
   }
 }
 
 const loadMorePosts = async () => {
   await fetchPosts(page.value + 1)
 }
+
+onBeforeUnmount(() => {
+  postsRequestId += 1
+  postsController?.abort()
+})
 
 const selectPost = (postId?: number | string) => {
   if (!postId) return
@@ -449,7 +486,7 @@ const submitPost = async () => {
     const res = await addCommunityPost({
       title: postForm.title.trim(),
       content: postForm.content.trim(),
-      category: postForm.category
+      category: postForm.category,
     })
     if (res.data.code === 0 && res.data.data) {
       message.success('发布成功')

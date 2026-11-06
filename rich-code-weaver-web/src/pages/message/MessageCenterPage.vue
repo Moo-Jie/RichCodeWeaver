@@ -51,7 +51,13 @@
           </div>
 
           <div class="list-scroll">
-            <div v-if="communicationStore.conversationsLoading" class="list-loading">
+            <div
+              v-if="
+                communicationStore.conversationsLoading &&
+                communicationStore.conversations.length === 0
+              "
+              class="list-loading"
+            >
               <a-skeleton v-for="index in 4" :key="index" avatar :paragraph="{ rows: 1 }" />
             </div>
             <div v-else-if="communicationStore.conversationsError" class="compact-state">
@@ -123,7 +129,10 @@
           </div>
 
           <div class="list-scroll">
-            <div v-if="communicationStore.friendsLoading" class="list-loading">
+            <div
+              v-if="communicationStore.friendsLoading && communicationStore.friends.length === 0"
+              class="list-loading"
+            >
               <a-skeleton v-for="index in 4" :key="index" avatar :paragraph="{ rows: 1 }" />
             </div>
             <div v-else-if="communicationStore.friendsError" class="compact-state">
@@ -385,7 +394,6 @@
                 allow-clear
                 size="large"
                 placeholder="输入用户名"
-                @press-enter="searchFriendUsers"
               >
                 <template #prefix><SearchOutlined /></template>
               </a-input>
@@ -662,6 +670,7 @@ const refreshing = ref(false)
 const messagesContainer = ref<HTMLElement | null>(null)
 const isNearBottom = ref(true)
 let searchRequestId = 0
+let conversationOpenSequence = 0
 let adjustingHistory = false
 
 const currentUser = computed(() => loginUserStore.loginUser)
@@ -769,6 +778,14 @@ function applyRouteState() {
   const conversationId = Number(route.query.conversationId)
   const friendId = Number(route.query.friendId)
   const notificationKey = String(route.query.notification || '')
+  if (
+    activeTab.value === 'messages' &&
+    !(Number.isFinite(conversationId) && conversationId > 0) &&
+    !(Number.isFinite(friendId) && friendId > 0)
+  ) {
+    conversationOpenSequence += 1
+    communicationStore.clearActiveConversation()
+  }
   const addFriendQuery = route.query.add === '1'
   if (activeTab.value === 'messages' && Number.isFinite(conversationId) && conversationId > 0) {
     const conversation = communicationStore.conversations.find(
@@ -820,15 +837,19 @@ function routeQueryWith(extra: Record<string, string | undefined>) {
 
 async function openConversation(conversation: API.ChatConversationVO, updateRoute = true) {
   if (!conversation.id) return
+  const sequence = ++conversationOpenSequence
   activeNotificationKey.value = ''
   await communicationStore.selectConversation(conversation.id)
+  if (sequence !== conversationOpenSequence) return
   communicationStore.activeConversationVisible = true
   const loaded = await communicationStore.loadMessages(conversation.id, 1)
+  if (sequence !== conversationOpenSequence) return
   if (loaded) {
     await nextTick()
-    scrollToLatest(false)
+    if (sequence !== conversationOpenSequence) return
+    await scrollToLatest(false)
   }
-  if (updateRoute) {
+  if (updateRoute && sequence === conversationOpenSequence) {
     await router.push({
       path: '/messages',
       query: routeQueryWith({ conversationId: String(conversation.id) }),
@@ -865,7 +886,11 @@ function handleMessageScroll() {
   const container = messagesContainer.value
   if (!container) return
   isNearBottom.value = container.scrollHeight - container.scrollTop - container.clientHeight < 120
-  if (isNearBottom.value) communicationStore.unseenRealtimeCount = 0
+  communicationStore.activeConversationAtBottom = isNearBottom.value
+  if (isNearBottom.value) {
+    communicationStore.unseenRealtimeCount = 0
+    communicationStore.scheduleMarkRead()
+  }
 }
 
 async function scrollToLatest(clearUnseen = true) {
@@ -984,6 +1009,7 @@ function closeAddFriend() {
 }
 
 async function searchFriendUsers() {
+  if (userSearching.value) return
   const keyword = userSearchKeyword.value.trim()
   if (!keyword) {
     message.warning('请输入用户名')

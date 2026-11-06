@@ -36,7 +36,11 @@
               class="avatar-uploader"
               name="avatar"
             >
-              <a-button class="upload-btn gradient-button">
+              <a-button
+                :disabled="uploadingAvatar"
+                :loading="uploadingAvatar"
+                class="upload-btn gradient-button"
+              >
                 <UploadOutlined />
                 更换头像
               </a-button>
@@ -64,8 +68,9 @@
             </div>
             <div class="detail-row">
               <label>用户身份</label>
-              <span>{{ identityLabelMap[userInfo.userIdentity] || userInfo.userIdentity || '未设置'
-                }}</span>
+              <span>{{
+                identityLabelMap[userInfo.userIdentity] || userInfo.userIdentity || '未设置'
+              }}</span>
             </div>
             <div class="detail-row">
               <label>行业领域</label>
@@ -103,9 +108,9 @@
           <div class="setting-item">
             <div>
               <h3>邮箱验证</h3>
-              <p>{{
-                  userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱'
-                }}</p>
+              <p>
+                {{ userInfo.email ? `已绑定邮箱: ${maskEmail(userInfo.email)}` : '未绑定邮箱' }}
+              </p>
             </div>
             <a-button class="gradient-button" type="primary" @click="handleEmail">
               {{ userInfo.email ? '更换邮箱' : '绑定邮箱' }}
@@ -114,7 +119,13 @@
         </div>
 
         <div class="logout-section">
-          <a-button class="logout-button" danger @click="handleLogout">
+          <a-button
+            :disabled="loggingOut"
+            :loading="loggingOut"
+            class="logout-button"
+            danger
+            @click="handleLogout"
+          >
             <template #icon>
               <LogoutOutlined />
             </template>
@@ -139,7 +150,8 @@
 
         <div class="ai-profile-tip">
           <p>
-            这份结构化画像会作为 AI 个性化生成的长期参考；当你在对话中明确表达稳定偏好时，AI 也可能自动增量完善它。
+            这份结构化画像会作为 AI 个性化生成的长期参考；当你在对话中明确表达稳定偏好时，AI
+            也可能自动增量完善它。
           </p>
         </div>
 
@@ -147,7 +159,9 @@
           <div v-if="hasAiProfileContent" class="ai-profile-grid">
             <div v-for="item in aiProfileDisplayItems" :key="item.label" class="ai-profile-item">
               <span class="ai-profile-label">{{ item.label }}</span>
-              <span :class="['ai-profile-value', { 'is-empty': !item.value }]">{{ item.value || '未设置' }}</span>
+              <span :class="['ai-profile-value', { 'is-empty': !item.value }]">{{
+                item.value || '未设置'
+              }}</span>
             </div>
           </div>
           <div v-else class="ai-profile-empty">
@@ -167,11 +181,12 @@
       :keyboard="false"
       :mask-closable="false"
       :ok-text="'提交'"
+      :confirm-loading="savingEdit"
       class="custom-modal"
       title="编辑个人信息"
       @ok="handleEditSubmit"
     >
-      <br>
+      <br />
       <a-form :label-col="{ span: 6 }" :model="editForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户昵称">
           <a-input v-model:value="editForm.userName" placeholder="请输入新昵称" />
@@ -205,11 +220,12 @@
     <!-- 修改密码模态框 -->
     <a-modal
       v-model:visible="passwordVisible"
+      :confirm-loading="savingPassword"
       class="custom-modal"
       title="修改登录密码"
       @ok="handlePasswordSubmit"
     >
-      <br>
+      <br />
       <a-form :label-col="{ span: 6 }" :model="passwordForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="原密码">
           <a-input-password v-model:value="passwordForm.oldPassword" placeholder="请输入当前密码" />
@@ -218,8 +234,10 @@
           <a-input-password v-model:value="passwordForm.newPassword" placeholder="请输入新密码" />
         </a-form-item>
         <a-form-item label="确认密码">
-          <a-input-password v-model:value="passwordForm.confirmPassword"
-                            placeholder="请确认新密码" />
+          <a-input-password
+            v-model:value="passwordForm.confirmPassword"
+            placeholder="请确认新密码"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -227,34 +245,40 @@
     <!-- 绑定邮箱模态框 -->
     <a-modal
       v-model:visible="emailVisible"
+      :confirm-loading="savingEmail"
       class="custom-modal"
       title="绑定邮箱"
       @ok="handleEmailSubmit"
     >
-      <br>
+      <br />
       <a-form :label-col="{ span: 6 }" :model="emailForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="邮箱地址">
-          <a-input
-            v-model:value="emailForm.email"
-            placeholder="请输入邮箱地址"
-          />
+          <a-input v-model:value="emailForm.email" placeholder="请输入邮箱地址" />
         </a-form-item>
         <a-form-item label="图形验证码">
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <a-input v-model:value="emailForm.captchaAnswer" placeholder="请输入计算结果" style="flex: 1;" />
+          <div style="display: flex; gap: 8px; align-items: center">
+            <a-input
+              v-model:value="emailForm.captchaAnswer"
+              placeholder="请输入计算结果"
+              style="flex: 1"
+            />
             <img
               v-if="emailCaptchaImage"
               :src="emailCaptchaImage"
               alt="验证码"
-              style="height: 40px; cursor: pointer; border-radius: 4px; border: 1px solid #f0f0f0;"
+              style="height: 40px; cursor: pointer; border-radius: 4px; border: 1px solid #f0f0f0"
               @click="refreshEmailCaptcha"
             />
             <a-button v-else size="small" @click="refreshEmailCaptcha">获取验证码</a-button>
           </div>
         </a-form-item>
         <a-form-item label="邮箱验证码">
-          <div style="display: flex; gap: 8px;">
-            <a-input v-model:value="emailForm.emailCode" placeholder="请输入邮箱验证码" style="flex: 1;" />
+          <div style="display: flex; gap: 8px">
+            <a-input
+              v-model:value="emailForm.emailCode"
+              placeholder="请输入邮箱验证码"
+              style="flex: 1"
+            />
             <a-button
               :disabled="emailCountdown > 0 || emailSendingCode"
               :loading="emailSendingCode"
@@ -316,7 +340,10 @@
           />
         </a-form-item>
         <a-form-item label="使用目标">
-          <a-input v-model:value="aiProfileForm.usageGoal" placeholder="例如：个人作品集、企业官网、课程作业" />
+          <a-input
+            v-model:value="aiProfileForm.usageGoal"
+            placeholder="例如：个人作品集、企业官网、课程作业"
+          />
         </a-form-item>
         <a-form-item label="技术水平">
           <a-select
@@ -345,7 +372,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { message } from 'ant-design-vue'
@@ -357,7 +384,7 @@ import {
   LogoutOutlined,
   RobotOutlined,
   UploadOutlined,
-  UserOutlined
+  UserOutlined,
 } from '@ant-design/icons-vue'
 import { getMyAiUserProfile, updateMyAiUserProfile } from '@/api/aiUserProfileController'
 import {
@@ -368,7 +395,7 @@ import {
   updateUser,
   updateUserAvatar,
   updateUserPassword,
-  userLogout
+  userLogout,
 } from '@/api/userController'
 import { identityLabelMap, identityOptions, industryOptions } from '@/constants/identityOptions'
 import { validateEmail } from '@/utils/emailUtil'
@@ -379,18 +406,18 @@ const loginUserStore = useLoginUserStore()
 const codeGenTypeLabelMap: Record<string, string> = {
   single_html: '单页 HTML',
   multi_file: '多文件项目',
-  vue_project: 'Vue 工程项目'
+  vue_project: 'Vue 工程项目',
 }
 
 const genModeLabelMap: Record<string, string> = {
   workflow: '工作流模式',
-  agent: 'Agent 模式'
+  agent: 'Agent 模式',
 }
 
 const experienceLevelLabelMap: Record<string, string> = {
   beginner: '初学者',
   intermediate: '中级',
-  advanced: '高级'
+  advanced: '高级',
 }
 
 const buildEmptyAiProfile = (): API.AiUserProfile => ({
@@ -402,7 +429,7 @@ const buildEmptyAiProfile = (): API.AiUserProfile => ({
   usageGoal: '',
   experienceLevel: '',
   preferredLanguage: '',
-  customNotes: ''
+  customNotes: '',
 })
 
 // 用户信息
@@ -416,7 +443,7 @@ const userInfo = reactive({
   userIndustry: '',
   email: '',
   phone: '',
-  createTime: new Date().toISOString()
+  createTime: new Date().toISOString(),
 })
 
 // 模态框状态
@@ -430,7 +457,46 @@ const emailCountdown = ref(0)
 const emailSendingCode = ref(false)
 const loadingAiProfile = ref(false)
 const savingAiProfile = ref(false)
+const savingEdit = ref(false)
+const savingPassword = ref(false)
+const savingEmail = ref(false)
+const uploadingAvatar = ref(false)
+const loggingOut = ref(false)
 let emailCountdownTimer: ReturnType<typeof setInterval> | null = null
+let disposed = false
+let userInfoRequestId = 0
+let userInfoController: AbortController | null = null
+let aiProfileRequestId = 0
+let aiProfileController: AbortController | null = null
+let emailCaptchaRequestId = 0
+let emailCaptchaController: AbortController | null = null
+
+const isAbortError = (error: unknown) => {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'ERR_CANCELED')
+  )
+}
+
+const clearEmailCountdown = () => {
+  if (emailCountdownTimer) {
+    clearInterval(emailCountdownTimer)
+    emailCountdownTimer = null
+  }
+}
+
+const startEmailCountdown = () => {
+  if (disposed) return
+  emailCountdown.value = 60
+  clearEmailCountdown()
+  emailCountdownTimer = setInterval(() => {
+    emailCountdown.value--
+    if (emailCountdown.value <= 0) clearEmailCountdown()
+  }, 1000)
+}
 
 const aiProfileInfo = reactive<API.AiUserProfile>(buildEmptyAiProfile())
 
@@ -443,7 +509,7 @@ const aiProfileForm = reactive<API.AiUserProfileUpdateRequest>({
   usageGoal: '',
   experienceLevel: '',
   preferredLanguage: '',
-  customNotes: ''
+  customNotes: '',
 })
 
 // 编辑表单
@@ -451,37 +517,37 @@ const editForm = reactive({
   userName: '',
   userProfile: '',
   userIdentity: '',
-  userIndustry: ''
+  userIndustry: '',
 })
 
-const identitySelectOptions = identityOptions.map(item => ({
+const identitySelectOptions = identityOptions.map((item) => ({
   value: item.value,
-  label: item.label
+  label: item.label,
 }))
 
 const codeGenTypeOptions = Object.entries(codeGenTypeLabelMap).map(([value, label]) => ({
   value,
-  label
+  label,
 }))
 
 const genModeOptions = Object.entries(genModeLabelMap).map(([value, label]) => ({
   value,
-  label
+  label,
 }))
 
 const experienceLevelOptions = Object.entries(experienceLevelLabelMap).map(([value, label]) => ({
   value,
-  label
+  label,
 }))
 
 const languageOptions = [
   { value: '中文', label: '中文' },
   { value: '英文', label: '英文' },
-  { value: '中英双语', label: '中英双语' }
+  { value: '中英双语', label: '中英双语' },
 ]
 
-const industryAutoOptions = industryOptions.map(item => ({
-  value: item
+const industryAutoOptions = industryOptions.map((item) => ({
+  value: item,
 }))
 
 const filterIndustry = (input: string, option: { value: string }) => {
@@ -491,58 +557,65 @@ const filterIndustry = (input: string, option: { value: string }) => {
 const aiProfileDisplayItems = computed(() => [
   {
     label: '偏好项目类型',
-    value: codeGenTypeLabelMap[aiProfileInfo.preferredCodeGenType || ''] || aiProfileInfo.preferredCodeGenType || ''
+    value:
+      codeGenTypeLabelMap[aiProfileInfo.preferredCodeGenType || ''] ||
+      aiProfileInfo.preferredCodeGenType ||
+      '',
   },
   {
     label: '偏好生成模式',
-    value: genModeLabelMap[aiProfileInfo.preferredGenMode || ''] || aiProfileInfo.preferredGenMode || ''
+    value:
+      genModeLabelMap[aiProfileInfo.preferredGenMode || ''] || aiProfileInfo.preferredGenMode || '',
   },
   {
     label: '技术栈偏好',
-    value: aiProfileInfo.techPreferences || ''
+    value: aiProfileInfo.techPreferences || '',
   },
   {
     label: '设计风格偏好',
-    value: aiProfileInfo.stylePreferences || ''
+    value: aiProfileInfo.stylePreferences || '',
   },
   {
     label: '不喜欢的模式',
-    value: aiProfileInfo.dislikedPatterns || ''
+    value: aiProfileInfo.dislikedPatterns || '',
   },
   {
     label: '使用目标',
-    value: aiProfileInfo.usageGoal || ''
+    value: aiProfileInfo.usageGoal || '',
   },
   {
     label: '技术水平',
-    value: experienceLevelLabelMap[aiProfileInfo.experienceLevel || ''] || aiProfileInfo.experienceLevel || ''
+    value:
+      experienceLevelLabelMap[aiProfileInfo.experienceLevel || ''] ||
+      aiProfileInfo.experienceLevel ||
+      '',
   },
   {
     label: '偏好语言',
-    value: aiProfileInfo.preferredLanguage || ''
+    value: aiProfileInfo.preferredLanguage || '',
   },
   {
     label: '补充备注',
-    value: aiProfileInfo.customNotes || ''
-  }
+    value: aiProfileInfo.customNotes || '',
+  },
 ])
 
 const hasAiProfileContent = computed(() => {
-  return aiProfileDisplayItems.value.some(item => !!item.value && item.value.trim().length > 0)
+  return aiProfileDisplayItems.value.some((item) => !!item.value && item.value.trim().length > 0)
 })
 
 // 密码表单
 const passwordForm = reactive({
   oldPassword: '',
   newPassword: '',
-  confirmPassword: ''
+  confirmPassword: '',
 })
 
 // 邮箱绑定表单
 const emailForm = reactive({
   email: '',
   captchaAnswer: '',
-  emailCode: ''
+  emailCode: '',
 })
 
 const applyAiProfileData = (profile?: API.AiUserProfile) => {
@@ -559,44 +632,65 @@ const syncAiProfileForm = () => {
     usageGoal: aiProfileInfo.usageGoal || '',
     experienceLevel: aiProfileInfo.experienceLevel || '',
     preferredLanguage: aiProfileInfo.preferredLanguage || '',
-    customNotes: aiProfileInfo.customNotes || ''
+    customNotes: aiProfileInfo.customNotes || '',
   })
 }
 
 // 获取用户信息
 const fetchUserInfo = async () => {
+  if (disposed) return
+  const requestId = ++userInfoRequestId
+  userInfoController?.abort()
+  const controller = new AbortController()
+  userInfoController = controller
   try {
-    const res = await getLoginUser()
+    const res = await getLoginUser({ signal: controller.signal })
+    if (disposed || requestId !== userInfoRequestId) return
     if (res.data.code === 0 && res.data.data) {
       Object.assign(userInfo, res.data.data)
       Object.assign(editForm, {
         userName: res.data.data.userName,
         userProfile: res.data.data.userProfile,
         userIdentity: res.data.data.userIdentity || '',
-        userIndustry: res.data.data.userIndustry || ''
+        userIndustry: res.data.data.userIndustry || '',
       })
     } else {
       message.error('获取用户信息失败:' + res.data.message)
     }
   } catch (error) {
-    console.error('获取用户信息失败：', error)
+    if (!disposed && requestId === userInfoRequestId && !isAbortError(error)) {
+      console.error('获取用户信息失败：', error)
+    }
+  } finally {
+    if (requestId === userInfoRequestId) userInfoController = null
   }
 }
 
 const fetchAiUserProfile = async () => {
+  if (disposed) return
+  const requestId = ++aiProfileRequestId
+  aiProfileController?.abort()
+  const controller = new AbortController()
+  aiProfileController = controller
   loadingAiProfile.value = true
   try {
-    const res = await getMyAiUserProfile()
+    const res = await getMyAiUserProfile({ signal: controller.signal })
+    if (disposed || requestId !== aiProfileRequestId) return
     if (res.data.code === 0) {
       applyAiProfileData(res.data.data)
     } else {
       message.error('获取 AI 用户画像失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (error) {
-    console.error('获取 AI 用户画像失败：', error)
-    message.error('获取 AI 用户画像失败，请稍后重试')
+    if (!disposed && requestId === aiProfileRequestId && !isAbortError(error)) {
+      console.error('获取 AI 用户画像失败：', error)
+      message.error('获取 AI 用户画像失败，请稍后重试')
+    }
   } finally {
-    loadingAiProfile.value = false
+    if (requestId === aiProfileRequestId) {
+      loadingAiProfile.value = false
+      aiProfileController = null
+    }
   }
 }
 
@@ -622,6 +716,7 @@ const normalizeAiProfilePayload = (): API.AiUserProfileUpdateRequest => {
 }
 
 const handleAiProfileSubmit = async () => {
+  if (savingAiProfile.value) return
   const payload = normalizeAiProfilePayload()
   if (Object.keys(payload).length === 0) {
     message.warning('请至少完善一项结构化画像信息')
@@ -647,10 +742,12 @@ const handleAiProfileSubmit = async () => {
 
 // 提交编辑信息
 const handleEditSubmit = async () => {
+  if (savingEdit.value) return
+  savingEdit.value = true
   try {
     const res = await updateUser({
       id: loginUserStore.loginUser.id,
-      ...editForm
+      ...editForm,
     })
 
     if (res.data.code === 0) {
@@ -665,6 +762,8 @@ const handleEditSubmit = async () => {
   } catch (error) {
     console.error('更新用户信息失败：', error)
     message.error('更新失败，请稍后重试')
+  } finally {
+    savingEdit.value = false
   }
 }
 
@@ -675,6 +774,7 @@ const showPasswordModal = () => {
 
 // 提交修改密码
 const handlePasswordSubmit = async () => {
+  if (savingPassword.value) return
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
     message.error('两次输入的新密码不一致')
     return
@@ -685,11 +785,12 @@ const handlePasswordSubmit = async () => {
     return
   }
 
+  savingPassword.value = true
   try {
     const res = await updateUserPassword({
       userId: loginUserStore.loginUser.id,
       oldPassword: passwordForm.oldPassword,
-      newPassword: passwordForm.newPassword
+      newPassword: passwordForm.newPassword,
     })
 
     if (res.data.code === 0) {
@@ -705,11 +806,14 @@ const handlePasswordSubmit = async () => {
   } catch (error) {
     console.error('修改密码失败：', error)
     message.error('修改失败，请稍后重试')
+  } finally {
+    savingPassword.value = false
   }
 }
 
 // 处理邮箱操作
 const handleEmail = async () => {
+  if (emailVisible.value) return
   emailForm.email = userInfo.email || ''
   emailForm.captchaAnswer = ''
   emailForm.emailCode = ''
@@ -719,19 +823,30 @@ const handleEmail = async () => {
 
 // 刷新邮箱绑定的图形验证码
 const refreshEmailCaptcha = async () => {
+  if (disposed) return
+  const requestId = ++emailCaptchaRequestId
+  emailCaptchaController?.abort()
+  const controller = new AbortController()
+  emailCaptchaController = controller
   try {
-    const res = await getMathCaptcha()
+    const res = await getMathCaptcha({ signal: controller.signal })
+    if (disposed || requestId !== emailCaptchaRequestId) return
     if (res.data.code === 0 && res.data.data) {
       emailCaptchaId.value = res.data.data.captchaId || ''
       emailCaptchaImage.value = res.data.data.captchaImage || ''
     }
-  } catch {
-    message.error('获取验证码失败')
+  } catch (error) {
+    if (!disposed && requestId === emailCaptchaRequestId && !isAbortError(error)) {
+      message.error('获取验证码失败')
+    }
+  } finally {
+    if (requestId === emailCaptchaRequestId) emailCaptchaController = null
   }
 }
 
 // 发送邮箱验证码
 const handleSendEmailCode = async () => {
+  if (emailSendingCode.value || emailCountdown.value > 0) return
   const emailResult = validateEmail(emailForm.email)
   if (!emailResult.valid) {
     message.warning(emailResult.message || '邮箱格式不正确')
@@ -750,25 +865,21 @@ const handleSendEmailCode = async () => {
     const res = await sendEmailCode({
       email: emailResult.normalizedEmail,
       captchaId: emailCaptchaId.value,
-      captchaAnswer: emailForm.captchaAnswer
+      captchaAnswer: emailForm.captchaAnswer,
     })
+    if (disposed) return
     if (res.data.code === 0) {
       message.success('验证码已发送，请查看邮箱')
-      emailCountdown.value = 60
-      emailCountdownTimer = setInterval(() => {
-        emailCountdown.value--
-        if (emailCountdown.value <= 0) {
-          clearInterval(emailCountdownTimer!)
-          emailCountdownTimer = null
-        }
-      }, 1000)
+      startEmailCountdown()
     } else {
       message.error(res.data.message || '发送失败')
       await refreshEmailCaptcha()
     }
-  } catch {
-    message.error('发送验证码失败')
-    await refreshEmailCaptcha()
+  } catch (error) {
+    if (!disposed && !isAbortError(error)) {
+      message.error('发送验证码失败')
+      await refreshEmailCaptcha()
+    }
   } finally {
     emailSendingCode.value = false
   }
@@ -776,6 +887,7 @@ const handleSendEmailCode = async () => {
 
 // 提交邮箱绑定
 const handleEmailSubmit = async () => {
+  if (savingEmail.value) return
   const emailResult = validateEmail(emailForm.email)
   if (!emailResult.valid) {
     message.error(emailResult.message || '请输入正确的邮箱格式')
@@ -787,6 +899,7 @@ const handleEmailSubmit = async () => {
   }
   const email = emailResult.normalizedEmail
 
+  savingEmail.value = true
   try {
     const res = await bindEmail({ email, emailCode: emailForm.emailCode })
     if (res.data.code === 0) {
@@ -802,11 +915,15 @@ const handleEmailSubmit = async () => {
   } catch (error) {
     console.error('绑定邮箱失败：', error)
     message.error('绑定失败，请稍后重试')
+  } finally {
+    savingEmail.value = false
   }
 }
 
 // 处理头像上传
 const handleAvatarUpload = async (file: File) => {
+  if (uploadingAvatar.value) return false
+  uploadingAvatar.value = true
   try {
     // 创建FormData对象
     const formData = new FormData()
@@ -815,8 +932,8 @@ const handleAvatarUpload = async (file: File) => {
     // 直接使用request发送multipart请求
     const res = await updateUserAvatar(formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     })
 
     if (res.data.code === 0) {
@@ -829,6 +946,8 @@ const handleAvatarUpload = async (file: File) => {
   } catch (error) {
     console.error('头像上传失败：', error)
     message.error('头像上传失败，请稍后重试')
+  } finally {
+    uploadingAvatar.value = false
   }
   return false // 阻止默认上传行为
 }
@@ -839,15 +958,22 @@ const handleAvatarCustomRequest = async (options: { file: File }) => {
 
 // 退出登录
 const handleLogout = async () => {
-  const res = await userLogout()
-  if (res.data.code === 0) {
-    loginUserStore.setLoginUser({
-      userName: '未登录'
-    })
-    message.success('退出登录成功')
-    await router.push('/user/login')
-  } else {
-    message.error('退出登录失败，' + res.data.message)
+  if (loggingOut.value) return
+  loggingOut.value = true
+  try {
+    const res = await userLogout()
+    if (res.data.code === 0) {
+      loginUserStore.clearLoginUser()
+      message.success('退出登录成功')
+      await router.push('/user/login')
+    } else {
+      message.error('退出登录失败，' + res.data.message)
+    }
+  } catch (error) {
+    console.error('退出登录失败：', error)
+    message.error('退出登录失败，请稍后重试')
+  } finally {
+    loggingOut.value = false
   }
 }
 
@@ -862,6 +988,17 @@ const maskEmail = (email: string) => {
 onMounted(() => {
   fetchUserInfo()
   fetchAiUserProfile()
+})
+
+onBeforeUnmount(() => {
+  disposed = true
+  userInfoRequestId++
+  aiProfileRequestId++
+  emailCaptchaRequestId++
+  userInfoController?.abort()
+  aiProfileController?.abort()
+  emailCaptchaController?.abort()
+  clearEmailCountdown()
 })
 </script>
 
@@ -898,7 +1035,9 @@ onMounted(() => {
   }
 }
 
-.info-card, .security-card, .ai-profile-card {
+.info-card,
+.security-card,
+.ai-profile-card {
   background: #fff;
   border-radius: 12px;
   border: 1px solid #f0f0f0;
@@ -1303,7 +1442,8 @@ onMounted(() => {
         }
       }
 
-      .ant-input, .ant-input-textarea {
+      .ant-input,
+      .ant-input-textarea {
         border-radius: 8px;
         border: 1px solid #f0f0f0;
         background: #fafafa;
@@ -1375,7 +1515,9 @@ onMounted(() => {
     }
   }
 
-  .info-card, .security-card, .ai-profile-card {
+  .info-card,
+  .security-card,
+  .ai-profile-card {
     padding: 16px;
   }
 

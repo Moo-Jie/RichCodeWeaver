@@ -30,11 +30,7 @@
           <a-spin size="large" tip="加载数字产物列表中..." />
         </div>
 
-        <a-empty
-          v-else-if="!appList.length"
-          class="empty-container"
-          description="暂无数字产物数据"
-        >
+        <a-empty v-else-if="!appList.length" class="empty-container" description="暂无数字产物数据">
           <template #image>
             <div class="magic-pattern">
               <div class="pattern-element pattern-1"></div>
@@ -121,15 +117,14 @@
               </div>
 
               <!-- 对话内容区域 -->
-              <div v-for="history in pagedHistory" :key="history.id"
-                   class="conversation-item">
+              <div v-for="history in pagedHistory" :key="history.id" class="conversation-item">
                 <div v-if="history.messageType === 'ai'" class="ai-message">
                   <div class="message-avatar">
                     <a-avatar :src="aiAvatar" class="ai-avatar" size="default" />
                     <span class="ai-label">AI</span>
                   </div>
                   <div class="message-content">
-                    <div :class="{ 'collapsed': history.collapsed }" class="message-content-inner">
+                    <div :class="{ collapsed: history.collapsed }" class="message-content-inner">
                       <markdown-renderer v-if="history.message" :content="history.message" />
                     </div>
                     <a-button
@@ -142,19 +137,29 @@
                       {{ history.collapsed ? '展开全部' : '收起' }}
                     </a-button>
                   </div>
-                  <a-button :aria-label="`删除AI消息 ${history.id}`" class="delete-icon"
-                            @click="deleteMessage(history.id)">
+                  <a-button
+                    :aria-label="`删除AI消息 ${history.id}`"
+                    :disabled="deletingMessageIds.has(history.id)"
+                    :loading="deletingMessageIds.has(history.id)"
+                    class="delete-icon"
+                    @click="deleteMessage(history.id)"
+                  >
                     <DeleteOutlined />
                   </a-button>
                 </div>
 
                 <div v-if="history.messageType === 'user'" class="user-message">
-                  <a-button :aria-label="`删除用户消息 ${history.id}`" class="delete-icon"
-                            @click="deleteMessage(history.id)">
+                  <a-button
+                    :aria-label="`删除用户消息 ${history.id}`"
+                    :disabled="deletingMessageIds.has(history.id)"
+                    :loading="deletingMessageIds.has(history.id)"
+                    class="delete-icon"
+                    @click="deleteMessage(history.id)"
+                  >
                     <DeleteOutlined />
                   </a-button>
                   <div class="message-content">
-                    <div :class="{ 'collapsed': history.collapsed }" class="message-content-inner">
+                    <div :class="{ collapsed: history.collapsed }" class="message-content-inner">
                       <div class="user-bubble">
                         {{ history.message }}
                       </div>
@@ -207,18 +212,18 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { ArrowRightOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { listAppVoByPageByAdmin as listAppsAdmin } from '@/api/appController'
 import {
   deleteById,
-  listAppChatHistoryByPageAdmin as listHistoryAdmin
+  listAppChatHistoryByPageAdmin as listHistoryAdmin,
 } from '@/api/chatHistoryController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 
 import aiAvatar from '@/assets/aiAvatar.png'
 import { formatTime } from '@/utils/timeUtil.ts'
@@ -230,25 +235,40 @@ type AdminAppRecord = API.AppVO & {
   appDescription?: string
 }
 
-// 删除单条对话历史
-const deleteMessage = async (messageId: number) => {
-  if (!selectedApp.value) return
+const deletingMessageIds = ref(new Set<number>())
+let historyRequestId = 0
 
-  try {
-    const res = await deleteById({
-      id: messageId
-    })
-    if (res.data.code === 0) {
-      message.success('删除成功')
-      // 重新加载当前页数据
-      await loadHistory()
-    } else {
-      message.error('删除失败: ' + res.data.message)
-    }
-  } catch (error) {
-    console.error('删除失败:', error)
-    message.error('删除失败，请重试')
-  }
+// 删除单条对话历史
+const deleteMessage = (messageId: number) => {
+  if (!selectedApp.value || deletingMessageIds.value.has(messageId)) return
+  deletingMessageIds.value.add(messageId)
+
+  Modal.confirm({
+    title: '确认删除这条对话记录？',
+    content: '删除后无法恢复，请确认这条记录不再需要。',
+    okText: '删除',
+    okType: 'danger',
+    cancelText: '取消',
+    centered: true,
+    onCancel: () => {
+      deletingMessageIds.value.delete(messageId)
+    },
+    onOk: async () => {
+      try {
+        const res = await deleteById({ id: messageId })
+        if (res.data.code !== 0) {
+          throw new Error(res.data.message || '删除失败')
+        }
+        message.success('删除成功')
+        await loadHistory()
+      } catch (error) {
+        console.error('删除失败:', error)
+        message.error(error instanceof Error ? error.message : '删除失败，请重试')
+      } finally {
+        deletingMessageIds.value.delete(messageId)
+      }
+    },
+  })
 }
 
 // 数字产物列表相关状态
@@ -271,7 +291,7 @@ const loadApps = async () => {
       current: currentPage.value,
       pageSize: 1000,
       sortField: 'updateTime',
-      sortOrder: 'descend'
+      sortOrder: 'descend',
     }
 
     const res = await listAppsAdmin(params)
@@ -296,31 +316,37 @@ const selectApp = async (app: AdminAppRecord) => {
 // 加载对话历史
 const loadHistory = async () => {
   if (!selectedApp.value) return
+  const targetAppId = selectedApp.value.id
+  const requestId = ++historyRequestId
 
   try {
     loadingHistory.value = true
     // 请求所有历史记录，不进行分页
     const params = {
-      appId: selectedApp.value.id,
+      appId: targetAppId,
       current: 1,
       pageSize: 1000, // 设置较大的pageSize获取所有记录
       sortField: 'createTime',
-      sortOrder: 'ascend'
+      sortOrder: 'ascend',
     }
 
     const res = await listHistoryAdmin(params)
-    if (res.data.code === 0 && res.data.data) {
-      // 初始化折叠状态和分页数据
-      allAppHistory.value = (res.data.data.records || []).map(item => ({
-        ...item,
-        collapsed: item.message && item.message.length > 300 // 长内容默认折叠
-      }))
+    if (requestId !== historyRequestId || selectedApp.value?.id !== targetAppId) return
+    if (res.data.code !== 0 || !res.data.data) {
+      throw new Error(res.data.message || '加载对话失败')
     }
+    allAppHistory.value = (res.data.data.records || []).map((item) => ({
+      ...item,
+      collapsed: item.message && item.message.length > 300, // 长内容默认折叠
+    }))
+    currentPage.value = Math.min(currentPage.value, Math.max(totalPages.value, 1))
   } catch (error) {
-    console.error('加载对话失败:', error)
-    message.error('加载对话失败，请稍后重试')
+    if (requestId === historyRequestId) {
+      console.error('加载对话失败:', error)
+      message.error('加载对话失败，请稍后重试')
+    }
   } finally {
-    loadingHistory.value = false
+    if (requestId === historyRequestId) loadingHistory.value = false
   }
 }
 
@@ -423,14 +449,7 @@ const navigateToApp = (appId?: number) => {
 const filteredAppList = computed(() => {
   if (!appSearch.value) return appList.value
   const searchLower = appSearch.value.toLowerCase()
-  return appList.value.filter(app =>
-    (app.appName ?? '').toLowerCase().includes(searchLower)
-  )
-})
-
-// 监听当前页变化，更新显示的数据
-watch(currentPage, (newPage) => {
-  // 这里不需要做额外处理，因为pagedHistory是计算属性，会自动更新
+  return appList.value.filter((app) => (app.appName ?? '').toLowerCase().includes(searchLower))
 })
 
 // 生命周期钩子
@@ -476,7 +495,8 @@ onMounted(() => {
   }
 }
 
-.app-section, .conversation-section {
+.app-section,
+.conversation-section {
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #f0f0f0;
@@ -733,7 +753,8 @@ onMounted(() => {
   background-color: #fafafa;
 }
 
-.ai-label, .user-label {
+.ai-label,
+.user-label {
   font-size: 12px;
   color: #999;
   margin-top: 4px;
@@ -745,7 +766,9 @@ onMounted(() => {
   top: 5px;
   right: 5px;
   opacity: 1;
-  transition: opacity 0.3s, transform 0.2s;
+  transition:
+    opacity 0.3s,
+    transform 0.2s;
   display: block;
 }
 
@@ -868,7 +891,8 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -1031,7 +1055,8 @@ onMounted(() => {
     }
   }
 
-  .ai-message, .user-message {
+  .ai-message,
+  .user-message {
     margin: 0 10px;
   }
 
@@ -1054,7 +1079,8 @@ onMounted(() => {
     padding: 10px 15px;
   }
 
-  .ai-label, .user-label {
+  .ai-label,
+  .user-label {
     font-size: 11px;
   }
 }

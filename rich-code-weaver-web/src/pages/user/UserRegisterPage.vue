@@ -47,7 +47,13 @@
           </div>
           <a-form :model="formState" autocomplete="off" name="basic" @finish="handleSubmit">
             <!-- 邮箱 -->
-            <a-form-item :rules="[{ required: true, message: '请输入邮箱' }, { validator: validateEmailField }]" name="email">
+            <a-form-item
+              :rules="[
+                { required: true, message: '请输入邮箱' },
+                { validator: validateEmailField },
+              ]"
+              name="email"
+            >
               <a-input v-model:value="formState.email" class="input-field" placeholder="请输入邮箱">
                 <template #prefix>
                   <MailOutlined style="color: #bbb" />
@@ -56,8 +62,18 @@
             </a-form-item>
 
             <!-- 用户昵称 -->
-            <a-form-item :rules="[{ required: true, message: '请输入昵称' }, { min: 1, max: 20, message: '昵称长度1-20位' }]" name="userName">
-              <a-input v-model:value="formState.userName" class="input-field" placeholder="请输入昵称">
+            <a-form-item
+              :rules="[
+                { required: true, message: '请输入昵称' },
+                { min: 1, max: 20, message: '昵称长度1-20位' },
+              ]"
+              name="userName"
+            >
+              <a-input
+                v-model:value="formState.userName"
+                class="input-field"
+                placeholder="请输入昵称"
+              >
                 <template #prefix>
                   <UserOutlined style="color: #bbb" />
                 </template>
@@ -65,27 +81,56 @@
             </a-form-item>
 
             <!-- 计算验证码 -->
-            <a-form-item :rules="[{ required: true, message: '请输入计算结果' }]" name="captchaAnswer">
+            <a-form-item
+              :rules="[{ required: true, message: '请输入计算结果' }]"
+              name="captchaAnswer"
+            >
               <div class="captcha-row">
-                <a-input v-model:value="formState.captchaAnswer" class="input-field captcha-input" placeholder="计算结果">
+                <a-input
+                  v-model:value="formState.captchaAnswer"
+                  class="input-field captcha-input"
+                  placeholder="计算结果"
+                >
                   <template #prefix>
                     <SafetyOutlined style="color: #bbb" />
                   </template>
                 </a-input>
-                <img v-if="captchaImage" :src="captchaImage" alt="验证码" class="captcha-img" @click="refreshCaptcha" />
+                <img
+                  v-if="captchaImage"
+                  :src="captchaImage"
+                  alt="验证码"
+                  class="captcha-img"
+                  @click="refreshCaptcha"
+                />
                 <div v-else class="captcha-placeholder" @click="refreshCaptcha">点击获取</div>
               </div>
             </a-form-item>
 
             <!-- 邮箱验证码 -->
-            <a-form-item :rules="[{ required: true, message: '请输入验证码' }, { len: 6, message: '验证码为6位' }]" name="emailCode">
+            <a-form-item
+              :rules="[
+                { required: true, message: '请输入验证码' },
+                { len: 6, message: '验证码为6位' },
+              ]"
+              name="emailCode"
+            >
               <div class="captcha-row">
-                <a-input v-model:value="formState.emailCode" :maxlength="6" class="input-field captcha-input" placeholder="邮箱验证码">
+                <a-input
+                  v-model:value="formState.emailCode"
+                  :maxlength="6"
+                  class="input-field captcha-input"
+                  placeholder="邮箱验证码"
+                >
                   <template #prefix>
                     <MailOutlined style="color: #bbb" />
                   </template>
                 </a-input>
-                <a-button :disabled="sendingCode || countdown > 0" :loading="sendingCode" class="send-code-btn" @click="handleSendCode">
+                <a-button
+                  :disabled="sendingCode || countdown > 0"
+                  :loading="sendingCode"
+                  class="send-code-btn"
+                  @click="handleSendCode"
+                >
                   {{ countdown > 0 ? countdown + 's' : '发送验证码' }}
                 </a-button>
               </div>
@@ -99,7 +144,11 @@
               ]"
               name="userPassword"
             >
-              <a-input-password v-model:value="formState.userPassword" class="input-field" placeholder="请输入密码">
+              <a-input-password
+                v-model:value="formState.userPassword"
+                class="input-field"
+                placeholder="请输入密码"
+              >
                 <template #prefix>
                   <LockOutlined style="color: #bbb" />
                 </template>
@@ -115,7 +164,11 @@
               ]"
               name="checkPassword"
             >
-              <a-input-password v-model:value="formState.checkPassword" class="input-field" placeholder="请确认密码">
+              <a-input-password
+                v-model:value="formState.checkPassword"
+                class="input-field"
+                placeholder="请确认密码"
+              >
                 <template #prefix>
                   <LockOutlined style="color: #bbb" />
                 </template>
@@ -146,14 +199,14 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   HomeOutlined,
   LockOutlined,
   MailOutlined,
   SafetyOutlined,
-  UserOutlined
+  UserOutlined,
 } from '@ant-design/icons-vue'
 import { getMathCaptcha, sendEmailCode, userRegister } from '@/api/userController'
 import { message } from 'ant-design-vue'
@@ -166,6 +219,27 @@ const countdown = ref(0)
 const captchaId = ref('')
 const captchaImage = ref('')
 let countdownTimer: ReturnType<typeof setInterval> | null = null
+let captchaRequestId = 0
+let captchaController: AbortController | null = null
+let submitController: AbortController | null = null
+let disposed = false
+
+const isAbortError = (error: unknown) => {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      error.code === 'ERR_CANCELED')
+  )
+}
+
+const clearCountdown = () => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+}
 
 const formState = reactive({
   email: '',
@@ -173,7 +247,7 @@ const formState = reactive({
   captchaAnswer: '',
   emailCode: '',
   userPassword: '',
-  checkPassword: ''
+  checkPassword: '',
 })
 
 const validateCheckPassword = (rule: unknown, value: string, callback: (error?: Error) => void) => {
@@ -192,18 +266,28 @@ const validateEmailField = async (_rule: unknown, value: string) => {
 }
 
 const refreshCaptcha = async () => {
+  if (disposed) return
+  const requestId = ++captchaRequestId
+  captchaController?.abort()
+  const controller = new AbortController()
+  captchaController = controller
   try {
-    const res = await getMathCaptcha()
+    const res = await getMathCaptcha({ signal: controller.signal })
+    if (disposed || requestId !== captchaRequestId) return
     if (res.data.code === 0 && res.data.data) {
       captchaId.value = res.data.data.captchaId || ''
       captchaImage.value = res.data.data.captchaImage || ''
     }
-  } catch {
+  } catch (error) {
+    if (disposed || requestId !== captchaRequestId || isAbortError(error)) return
     message.error('获取验证码失败')
+  } finally {
+    if (requestId === captchaRequestId) captchaController = null
   }
 }
 
 const handleSendCode = async () => {
+  if (sendingCode.value || countdown.value > 0) return
   const emailResult = validateEmail(formState.email)
   if (!emailResult.valid) {
     message.warning(emailResult.message || '邮箱格式不正确')
@@ -224,8 +308,9 @@ const handleSendCode = async () => {
     const res = await sendEmailCode({
       email: emailResult.normalizedEmail,
       captchaId: captchaId.value,
-      captchaAnswer: formState.captchaAnswer
+      captchaAnswer: formState.captchaAnswer,
     })
+    if (disposed) return
     if (res.data.code === 0) {
       message.success('验证码已发送，请查看邮箱')
       startCountdown()
@@ -233,27 +318,28 @@ const handleSendCode = async () => {
       message.error(res.data.message || '发送失败')
       await refreshCaptcha()
     }
-  } catch {
-    message.error('发送验证码失败')
-    await refreshCaptcha()
+  } catch (error) {
+    if (!disposed && !isAbortError(error)) {
+      message.error('发送验证码失败')
+      await refreshCaptcha()
+    }
   } finally {
     sendingCode.value = false
   }
 }
 
 const startCountdown = () => {
+  if (disposed) return
   countdown.value = 60
-  if (countdownTimer) clearInterval(countdownTimer)
+  clearCountdown()
   countdownTimer = setInterval(() => {
     countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(countdownTimer!)
-      countdownTimer = null
-    }
+    if (countdown.value <= 0) clearCountdown()
   }, 1000)
 }
 
 const handleSubmit = async () => {
+  if (submitting.value) return
   const emailResult = validateEmail(formState.email)
   if (!emailResult.valid) {
     message.warning(emailResult.message || '邮箱格式不正确')
@@ -261,33 +347,48 @@ const handleSubmit = async () => {
   }
   formState.email = emailResult.normalizedEmail
   submitting.value = true
+  submitController?.abort()
+  submitController = new AbortController()
   try {
-    const res = await userRegister({
-      email: emailResult.normalizedEmail,
-      userName: formState.userName,
-      emailCode: formState.emailCode,
-      userPassword: formState.userPassword,
-      checkPassword: formState.checkPassword
-    })
+    const res = await userRegister(
+      {
+        email: emailResult.normalizedEmail,
+        userName: formState.userName,
+        emailCode: formState.emailCode,
+        userPassword: formState.userPassword,
+        checkPassword: formState.checkPassword,
+      },
+      { signal: submitController.signal },
+    )
 
+    if (disposed) return
     if (res.data.code === 0) {
       message.success('注册成功')
       router.replace({
         path: '/user/login',
-        query: { email: emailResult.normalizedEmail }
+        query: { email: emailResult.normalizedEmail },
       })
     } else {
       message.error('注册失败：' + res.data.message)
     }
-  } catch {
-    message.error('注册过程中发生错误')
+  } catch (error) {
+    if (!disposed && !isAbortError(error)) message.error('注册过程中发生错误')
   } finally {
     submitting.value = false
+    submitController = null
   }
 }
 
 onMounted(() => {
   refreshCaptcha()
+})
+
+onBeforeUnmount(() => {
+  disposed = true
+  captchaRequestId++
+  captchaController?.abort()
+  submitController?.abort()
+  clearCountdown()
 })
 </script>
 
@@ -300,7 +401,8 @@ onMounted(() => {
   background: #fafafa;
   padding: 20px;
   position: relative;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .register-layout {

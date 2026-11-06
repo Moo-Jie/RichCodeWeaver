@@ -4,7 +4,7 @@ import { API_BASE_URL } from '@/config/env'
 import {
   getUnreadCount,
   listConversations,
-  sendMessage as sendMessageByHttp
+  sendMessage as sendMessageByHttp,
 } from '@/api/chatController'
 import { listFriends, listPendingRequests } from '@/api/friendController'
 
@@ -29,6 +29,22 @@ export const useChatStore = defineStore('chat', () => {
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   /** 重连次数 */
   let reconnectCount = 0
+  let reconnectSuppressed = false
+  let sessionGeneration = 0
+  let conversationsRequestId = 0
+  let friendsRequestId = 0
+  let pendingRequestId = 0
+  let unreadRequestId = 0
+  let conversationRefreshTimer: ReturnType<typeof setTimeout> | null = null
+  const WS_ACK_TIMEOUT = 12000
+  interface PendingWsSend {
+    receiverId: number
+    content: string
+    resolve: () => void
+    reject: (error: Error) => void
+    timer: ReturnType<typeof setTimeout>
+  }
+  const pendingWsSends = new Set<PendingWsSend>()
   /** 最大重连次数 */
   const MAX_RECONNECT = 5
 
@@ -73,52 +89,122 @@ export const useChatStore = defineStore('chat', () => {
    * 建立WebSocket连接
    * 使用当前页面域名和单体应用 WebSocket 入口
    */
-  function connectWebSocket() {
-    if (ws.value && ws.value.readyState === WebSocket.OPEN) {
+  function connectWebSocket(isRetry = false) {
+    if (!isRetry) {
+      reconnectCount = 0
+      reconnectSuppressed = false
+    }
+    if (reconnectSuppressed) return
+    if (
+      ws.value &&
+      (ws.value.readyState === WebSocket.OPEN || ws.value.readyState === WebSocket.CONNECTING)
+    ) {
       return
     }
     const wsUrl = buildWebSocketUrl()
 
     try {
-      ws.value = new WebSocket(wsUrl)
+      const socket = new WebSocket(wsUrl)
+      ws.value = socket
 
-      ws.value.onopen = () => {
+      socket.onopen = () => {
+        if (ws.value !== socket) return
         wsConnected.value = true
         reconnectCount = 0
         console.log('[WebSocket] 连接已建立')
       }
 
-      ws.value.onmessage = (event: MessageEvent) => {
+      socket.onmessage = (event: MessageEvent) => {
+        if (ws.value !== socket) return
         handleWsMessage(event.data)
       }
 
-      ws.value.onclose = () => {
+      socket.onclose = () => {
+        if (ws.value !== socket) return
+        ws.value = null
         wsConnected.value = false
+        rejectPendingWsSends('实时连接已断开，发送结果未知，请重试')
         console.log('[WebSocket] 连接已关闭')
         scheduleReconnect()
       }
 
-      ws.value.onerror = (error) => {
+      socket.onerror = (error) => {
+        if (ws.value !== socket) return
         console.error('[WebSocket] 连接错误', error)
         wsConnected.value = false
       }
     } catch (e) {
       console.error('[WebSocket] 创建连接失败', e)
+      scheduleReconnect()
     }
   }
 
   /**
    * 关闭WebSocket连接
    */
+  function rejectPendingWsSends(messageText: string) {
+    pendingWsSends.forEach((waiter) => {
+      clearTimeout(waiter.timer)
+      waiter.reject(new Error(messageText))
+    })
+    pendingWsSends.clear()
+  }
+
+  function settleWsSend(messageVO: API.ChatMessageVO) {
+    for (const waiter of pendingWsSends) {
+      const receiverMatches =
+        !messageVO.receiverId || sameId(messageVO.receiverId, waiter.receiverId)
+      if (!receiverMatches || waiter.content !== String(messageVO.content || '')) continue
+      clearTimeout(waiter.timer)
+      pendingWsSends.delete(waiter)
+      waiter.resolve()
+      break
+    }
+  }
+
+  function waitForWsAck(receiverId: number, content: string) {
+    let waiter: PendingWsSend
+    const promise = new Promise<void>((resolve, reject) => {
+      waiter = {
+        receiverId,
+        content,
+        resolve,
+        reject,
+        timer: setTimeout(() => {
+          pendingWsSends.delete(waiter)
+          reject(new Error('消息发送确认超时，请稍后重试'))
+        }, WS_ACK_TIMEOUT),
+      }
+      pendingWsSends.add(waiter)
+    })
+    return {
+      promise,
+      cancel: () => {
+        clearTimeout(waiter.timer)
+        pendingWsSends.delete(waiter)
+      },
+    }
+  }
+
   function disconnectWebSocket() {
+    reconnectSuppressed = true
+    rejectPendingWsSends('连接已关闭，发送结果未知，请重试')
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
     }
-    reconnectCount = MAX_RECONNECT // 阻止重连
-    if (ws.value) {
-      ws.value.close()
-      ws.value = null
+    if (conversationRefreshTimer) {
+      clearTimeout(conversationRefreshTimer)
+      conversationRefreshTimer = null
+    }
+    const currentSocket = ws.value
+    ws.value = null
+    if (currentSocket) {
+      currentSocket.onopen = null
+      currentSocket.onmessage = null
+      currentSocket.onerror = null
+      currentSocket.onclose = null
+      currentSocket.close()
     }
     wsConnected.value = false
   }
@@ -127,6 +213,7 @@ export const useChatStore = defineStore('chat', () => {
    * 定时重连逻辑，指数退避
    */
   function scheduleReconnect() {
+    if (reconnectSuppressed || reconnectTimer) return
     if (reconnectCount >= MAX_RECONNECT) {
       console.warn('[WebSocket] 已达最大重连次数，停止重连')
       return
@@ -135,7 +222,8 @@ export const useChatStore = defineStore('chat', () => {
     reconnectCount++
     console.log(`[WebSocket] ${delay}ms 后进行第 ${reconnectCount} 次重连`)
     reconnectTimer = setTimeout(() => {
-      connectWebSocket()
+      reconnectTimer = null
+      connectWebSocket(true)
     }, delay)
   }
 
@@ -152,7 +240,7 @@ export const useChatStore = defineStore('chat', () => {
           onNewMessage(msg.data)
           break
         case 'messageSent':
-          // 消息发送确认：追加到当前消息列表
+          settleWsSend(msg.data)
           onMessageSent(msg.data)
           break
         case 'friendNotification':
@@ -165,6 +253,7 @@ export const useChatStore = defineStore('chat', () => {
           break
         case 'error':
           console.error('[WebSocket] 服务端错误:', msg.message)
+          rejectPendingWsSends(msg.message || '消息发送失败')
           break
       }
     } catch (e) {
@@ -185,8 +274,7 @@ export const useChatStore = defineStore('chat', () => {
     }
     // 更新未读数
     totalUnreadCount.value++
-    // 刷新会话列表
-    fetchConversations()
+    scheduleConversationRefresh()
   }
 
   /**
@@ -205,7 +293,7 @@ export const useChatStore = defineStore('chat', () => {
     } else if (sameId(messageVO.conversationId, activeConversationId.value)) {
       // 已有会话：用真实消息替换乐观消息（按内容匹配），或去重添加
       const optimisticIdx = currentMessages.value.findIndex(
-        (m) => !m.id && m.content === messageVO.content
+        (m) => !m.id && m.content === messageVO.content,
       )
       if (optimisticIdx >= 0) {
         currentMessages.value.splice(optimisticIdx, 1, messageVO)
@@ -216,8 +304,7 @@ export const useChatStore = defineStore('chat', () => {
         }
       }
     }
-    // 刷新会话列表
-    fetchConversations()
+    scheduleConversationRefresh()
   }
 
   /**
@@ -226,13 +313,15 @@ export const useChatStore = defineStore('chat', () => {
   async function sendWsMessage(receiverId: number, content: string, messageType: string = 'text') {
     const payload = {
       type: 'chat',
-      payload: { receiverId, content, messageType }
+      payload: { receiverId, content, messageType },
     }
     if (ws.value && ws.value.readyState === WebSocket.OPEN) {
+      const ack = waitForWsAck(receiverId, content)
       try {
         ws.value.send(JSON.stringify(payload))
-        return
+        return await ack.promise
       } catch (error) {
+        ack.cancel()
         console.warn('[WebSocket] 发送失败，回退 HTTP 发送', error)
       }
     } else {
@@ -242,14 +331,17 @@ export const useChatStore = defineStore('chat', () => {
     await sendHttpMessage(receiverId, content, messageType)
   }
 
-  async function sendHttpMessage(receiverId: number, content: string, messageType: string = 'text') {
+  async function sendHttpMessage(
+    receiverId: number,
+    content: string,
+    messageType: string = 'text',
+  ) {
     try {
       const res = await sendMessageByHttp({ receiverId, content, messageType })
-      if (res.data.code === 0 && res.data.data) {
-        onMessageSent(res.data.data)
-      } else {
-        console.error('HTTP 发送消息失败', res.data.message)
+      if (res.data.code !== 0 || !res.data.data) {
+        throw new Error(res.data.message || '消息发送失败')
       }
+      onMessageSent(res.data.data)
     } catch (error) {
       console.error('HTTP 发送消息异常', error)
       throw error
@@ -264,60 +356,84 @@ export const useChatStore = defineStore('chat', () => {
       ws.value.send(
         JSON.stringify({
           type: 'read',
-          payload: { conversationId }
-        })
+          payload: { conversationId },
+        }),
       )
     }
   }
 
   // ===== 数据获取 =====
 
+  function scheduleConversationRefresh(delay = 180) {
+    if (conversationRefreshTimer) clearTimeout(conversationRefreshTimer)
+    conversationRefreshTimer = setTimeout(() => {
+      conversationRefreshTimer = null
+      void fetchConversations()
+    }, delay)
+  }
+
   /** 加载会话列表 */
   async function fetchConversations() {
+    const generation = sessionGeneration
+    const requestId = ++conversationsRequestId
     try {
       const res = await listConversations()
-      if (res.data.code === 0 && res.data.data) {
-        conversations.value = res.data.data
+      if (generation !== sessionGeneration || requestId !== conversationsRequestId) return
+      if (res.data.code !== 0 || !res.data.data) {
+        throw new Error(res.data.message || '会话加载失败')
       }
+      conversations.value = res.data.data
     } catch (e) {
-      console.error('获取会话列表失败', e)
+      if (generation === sessionGeneration) console.error('获取会话列表失败', e)
     }
   }
 
   /** 加载好友列表 */
   async function fetchFriends() {
+    const generation = sessionGeneration
+    const requestId = ++friendsRequestId
     try {
       const res = await listFriends()
-      if (res.data.code === 0 && res.data.data) {
-        friends.value = res.data.data
+      if (generation !== sessionGeneration || requestId !== friendsRequestId) return
+      if (res.data.code !== 0 || !res.data.data) {
+        throw new Error(res.data.message || '好友加载失败')
       }
+      friends.value = res.data.data
     } catch (e) {
-      console.error('获取好友列表失败', e)
+      if (generation === sessionGeneration) console.error('获取好友列表失败', e)
     }
   }
 
   /** 加载待处理好友申请列表 */
   async function fetchPendingRequests() {
+    const generation = sessionGeneration
+    const requestId = ++pendingRequestId
     try {
       const res = await listPendingRequests()
-      if (res.data.code === 0 && res.data.data) {
-        pendingRequests.value = res.data.data
-        pendingCount.value = res.data.data.length
+      if (generation !== sessionGeneration || requestId !== pendingRequestId) return
+      if (res.data.code !== 0 || !res.data.data) {
+        throw new Error(res.data.message || '好友申请加载失败')
       }
+      pendingRequests.value = res.data.data
+      pendingCount.value = res.data.data.length
     } catch (e) {
-      console.error('获取待处理好友申请失败', e)
+      if (generation === sessionGeneration) console.error('获取待处理好友申请失败', e)
     }
   }
 
   /** 加载未读消息数 */
   async function fetchUnreadCount() {
+    const generation = sessionGeneration
+    const requestId = ++unreadRequestId
     try {
       const res = await getUnreadCount()
-      if (res.data.code === 0 && res.data.data !== undefined) {
-        totalUnreadCount.value = res.data.data
+      if (generation !== sessionGeneration || requestId !== unreadRequestId) return
+      if (res.data.code !== 0 || res.data.data === undefined) {
+        throw new Error(res.data.message || '未读数加载失败')
       }
+      totalUnreadCount.value = res.data.data
     } catch (e) {
-      console.error('获取未读消息数失败', e)
+      if (generation === sessionGeneration) console.error('获取未读消息数失败', e)
     }
   }
 
@@ -375,6 +491,26 @@ export const useChatStore = defineStore('chat', () => {
    * 初始化聊天模块
    * 建立WebSocket连接并加载初始数据
    */
+  /** 清空旧账号的全部聊天缓存，避免 SPA 内切换账号时串数据。 */
+  function resetChatState() {
+    sessionGeneration += 1
+    conversationsRequestId += 1
+    friendsRequestId += 1
+    pendingRequestId += 1
+    unreadRequestId += 1
+    disconnectWebSocket()
+    conversations.value = []
+    activeConversationId.value = null
+    currentMessages.value = []
+    friends.value = []
+    pendingRequests.value = []
+    totalUnreadCount.value = 0
+    pendingCount.value = 0
+    friendDrawerVisible.value = false
+    chatDrawerVisible.value = false
+    pendingChatFriendId.value = null
+  }
+
   async function initChat() {
     connectWebSocket()
     await Promise.all([fetchUnreadCount(), fetchPendingRequests(), fetchConversations()])
@@ -409,6 +545,7 @@ export const useChatStore = defineStore('chat', () => {
     selectConversation,
     clearCurrentMessages,
     startChatWithFriend,
-    initChat
+    resetChatState,
+    initChat,
   }
 })

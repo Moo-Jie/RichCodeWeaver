@@ -76,6 +76,7 @@
       <a-table
         :columns="columns"
         :data-source="data"
+        :loading="loading"
         :pagination="pagination"
         :scroll="{ x: 1500 }"
         rowKey="id"
@@ -146,11 +147,13 @@
                 重置密码
               </a-button>
 
-              <a-popconfirm
-                title="确定删除此用户吗？操作不可恢复"
-                @confirm="doDelete(record.id)"
-              >
-                <a-button :aria-label="`删除用户 ${record.userName}`" danger size="small">
+              <a-popconfirm title="确定删除此用户吗？操作不可恢复" @confirm="doDelete(record.id)">
+                <a-button
+                  :aria-label="`删除用户 ${record.userName}`"
+                  :loading="!!record.id && deletingUserIds.has(record.id)"
+                  danger
+                  size="small"
+                >
                   <template #icon>
                     <DeleteOutlined />
                   </template>
@@ -168,6 +171,7 @@
       v-model:visible="editVisible"
       :cancel-text="'取消'"
       :keyboard="false"
+      :confirm-loading="editSubmitting"
       :mask-closable="false"
       :ok-text="'提交'"
       class="edit-modal"
@@ -176,15 +180,25 @@
     >
       <a-form :label-col="{ span: 6 }" :model="editForm" :wrapper-col="{ span: 18 }">
         <a-form-item label="用户账号">
-          <a-input v-model:value="editForm.userAccount" aria-label="用户账号（不可编辑）" disabled />
+          <a-input
+            v-model:value="editForm.userAccount"
+            aria-label="用户账号（不可编辑）"
+            disabled
+          />
         </a-form-item>
         <a-form-item label="用户昵称">
-          <a-input v-model:value="editForm.userName" aria-label="编辑用户昵称"
-                   placeholder="请输入用户昵称" />
+          <a-input
+            v-model:value="editForm.userName"
+            aria-label="编辑用户昵称"
+            placeholder="请输入用户昵称"
+          />
         </a-form-item>
         <a-form-item label="用户角色">
-          <a-select v-model:value="editForm.userRole" aria-label="选择用户角色"
-                    placeholder="请选择用户角色">
+          <a-select
+            v-model:value="editForm.userRole"
+            aria-label="选择用户角色"
+            placeholder="请选择用户角色"
+          >
             <a-select-option value="admin">管理员</a-select-option>
             <a-select-option value="user">普通用户</a-select-option>
           </a-select>
@@ -204,24 +218,28 @@
     <!-- 重置密码模态框 -->
     <a-modal
       v-model:visible="passwordVisible"
+      :confirm-loading="passwordSubmitting"
       class="password-modal"
       title="重置用户密码"
-      @ok="handlePasswordSubmit">
-      <br><br>
+      @ok="handlePasswordSubmit"
+    >
+      <br /><br />
       <a-alert
         message="重置后密码将更改为:  zmrq@[账户]"
         show-icon
-        style="margin-bottom: 20px;"
+        style="margin-bottom: 20px"
         type="info"
       />
-      <br>
-      <p>确定要重置用户 <strong>{{ passwordForm.userName }}</strong> 的密码吗？</p>
+      <br />
+      <p>
+        确定要重置用户 <strong>{{ passwordForm.userName }}</strong> 的密码吗？
+      </p>
     </a-modal>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   CalendarOutlined,
@@ -231,7 +249,7 @@ import {
   LockOutlined,
   ReloadOutlined,
   SearchOutlined,
-  UserOutlined
+  UserOutlined,
 } from '@ant-design/icons-vue'
 import { deleteUser, listUserVoByPage, resetUserPassword, updateUser } from '@/api/userController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
@@ -257,58 +275,63 @@ const columns = [
     dataIndex: 'id',
     width: 80,
     fixed: 'left',
-    sorter: true
+    sorter: true,
   },
   {
     title: '账号',
     dataIndex: 'userAccount',
     width: 120,
-    ellipsis: true
+    ellipsis: true,
   },
   {
     title: '用户名',
     dataIndex: 'userName',
     width: 120,
-    ellipsis: true
+    ellipsis: true,
   },
   {
     title: '头像',
     dataIndex: 'userAvatar',
-    width: 100
+    width: 100,
   },
   {
     title: '简介',
     dataIndex: 'userProfile',
     width: 200,
-    ellipsis: true
+    ellipsis: true,
   },
   {
     title: '用户角色',
     dataIndex: 'userRole',
-    width: 120
+    width: 120,
   },
   {
     title: '创建时间',
     dataIndex: 'createTime',
     width: 160,
-    sorter: true
+    sorter: true,
   },
   {
     title: '操作',
     key: 'action',
     width: 220,
-    fixed: 'right'
-  }
+    fixed: 'right',
+  },
 ]
 
 // 用户数据
 const data = ref<API.UserVO[]>([])
 const total = ref(0)
+const loading = ref(false)
+const editSubmitting = ref(false)
+const passwordSubmitting = ref(false)
+const deletingUserIds = reactive(new Set<number>())
+let fetchRequestId = 0
 
 // 搜索条件
 const searchParams = reactive<API.UserQueryRequest>({
   pageNum: 1,
-  pageSize: 10
+  pageSize: 10,
 })
 
 // 模态框状态
@@ -321,35 +344,42 @@ const editForm = reactive<UserEditForm>({
   userAccount: '',
   userName: '',
   userRole: '',
-  userProfile: ''
+  userProfile: '',
 })
 
 // 密码表单
 const passwordForm = reactive<PasswordForm>({
   id: undefined,
-  userName: ''
+  userName: '',
 })
 
 // 获取数据
 const fetchData = async () => {
+  const requestId = ++fetchRequestId
+  loading.value = true
   try {
     const res = await listUserVoByPage({
-      ...searchParams
+      ...searchParams,
     })
-    if (res.data.data) {
+    if (requestId !== fetchRequestId) return
+    if (res.data.code === 0 && res.data.data) {
       data.value = res.data.data.records ?? []
-      total.value = res.data.data.totalRow ?? 0
+      total.value = Number(res.data.data.totalRow) || 0
     } else {
-      message.error('获取用户数据失败，' + res.data.message)
+      message.error('获取用户数据失败，' + (res.data.message || '请稍后重试'))
     }
   } catch (error) {
+    if (requestId !== fetchRequestId) return
     console.error('获取用户数据失败：', error)
     message.error('获取数据失败，请稍后重试')
+  } finally {
+    if (requestId === fetchRequestId) loading.value = false
   }
 }
 
 // 默认头像图像
-const fallbackImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#f5f5f5"/><circle cx="200" cy="120" r="60" fill="%23999"/><circle cx="200" cy="320" r="120" fill="%23999"/></svg>'
+const fallbackImage =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#f5f5f5"/><circle cx="200" cy="120" r="60" fill="%23999"/><circle cx="200" cy="320" r="120" fill="%23999"/></svg>'
 
 // 分页参数
 const pagination = computed(() => {
@@ -359,7 +389,7 @@ const pagination = computed(() => {
     total: total.value,
     showSizeChanger: true,
     pageSizeOptions: ['10', '20', '30', '50'],
-    showTotal: (total: number) => `共 ${total} 条记录`
+    showTotal: (total: number) => `共 ${total} 条记录`,
   }
 })
 
@@ -387,22 +417,28 @@ const doSearch = () => {
 
 // 显示编辑模态框
 const showEditModal = (user: API.UserVO) => {
+  if (editSubmitting.value) {
+    message.warning('用户信息正在提交，请稍候')
+    return
+  }
   Object.assign(editForm, {
     id: user.id,
     userAccount: user.userAccount,
     userName: user.userName,
     userRole: user.userRole,
-    userProfile: user.userProfile
+    userProfile: user.userProfile,
   })
   editVisible.value = true
 }
 
 // 提交编辑信息
 const handleEditSubmit = async () => {
+  if (editSubmitting.value) return
   if (!editForm.id) {
     message.warning('用户ID不存在')
     return
   }
+  editSubmitting.value = true
   try {
     const res = await updateUser(editForm)
     if (res.data.code === 0) {
@@ -415,24 +451,32 @@ const handleEditSubmit = async () => {
   } catch (error) {
     console.error('更新用户信息失败：', error)
     message.error('更新失败，请稍后重试')
+  } finally {
+    editSubmitting.value = false
   }
 }
 
 // 显示重置密码模态框
 const showResetPasswordModal = (user: API.UserVO) => {
+  if (passwordSubmitting.value) {
+    message.warning('密码正在重置，请稍候')
+    return
+  }
   Object.assign(passwordForm, {
     id: user.id,
-    userName: user.userName
+    userName: user.userName,
   })
   passwordVisible.value = true
 }
 
 // 提交重置密码
 const handlePasswordSubmit = async () => {
+  if (passwordSubmitting.value) return
   if (!passwordForm.id) {
     message.warning('用户ID不存在')
     return
   }
+  passwordSubmitting.value = true
   try {
     const res = await resetUserPassword({ userId: passwordForm.id })
     if (res.data.code === 0) {
@@ -444,12 +488,15 @@ const handlePasswordSubmit = async () => {
   } catch (error) {
     console.error('重置密码失败：', error)
     message.error('重置失败，请稍后重试')
+  } finally {
+    passwordSubmitting.value = false
   }
 }
 
 // 删除用户
 const doDelete = async (id: number | undefined) => {
-  if (!id) return
+  if (!id || deletingUserIds.has(id)) return
+  deletingUserIds.add(id)
 
   try {
     const res = await deleteUser({ id })
@@ -462,12 +509,18 @@ const doDelete = async (id: number | undefined) => {
   } catch (error) {
     console.error('用户删除失败：', error)
     message.error('删除操作失败，请稍后重试')
+  } finally {
+    deletingUserIds.delete(id)
   }
 }
 
 // 页面加载时请求数据
 onMounted(() => {
   fetchData()
+})
+
+onBeforeUnmount(() => {
+  fetchRequestId += 1
 })
 </script>
 
@@ -494,7 +547,8 @@ onMounted(() => {
   }
 }
 
-.search-panel, .user-table {
+.search-panel,
+.user-table {
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #f0f0f0;
@@ -566,7 +620,6 @@ onMounted(() => {
     }
   }
 }
-
 
 .user-table {
   padding: 20px;
@@ -681,7 +734,8 @@ onMounted(() => {
 }
 
 // 模态框样式
-:deep(.edit-modal), :deep(.password-modal) {
+:deep(.edit-modal),
+:deep(.password-modal) {
   .ant-modal {
     border-radius: 14px;
   }
@@ -752,12 +806,15 @@ onMounted(() => {
         }
       }
 
-      .ant-input, .ant-input-textarea, .ant-select {
+      .ant-input,
+      .ant-input-textarea,
+      .ant-select {
         border-radius: 8px;
         border: 1px solid #e5e5e5;
         font-size: 14px;
 
-        &:focus, &:focus-within {
+        &:focus,
+        &:focus-within {
           border-color: #1a1a1a;
         }
 
@@ -776,7 +833,8 @@ onMounted(() => {
       gap: 18px;
     }
 
-    .search-item, .search-actions {
+    .search-item,
+    .search-actions {
       width: 100%;
       min-width: unset;
     }
@@ -846,7 +904,8 @@ onMounted(() => {
     }
   }
 
-  .search-panel, .user-table {
+  .search-panel,
+  .user-table {
     padding: 18px;
     margin-bottom: 20px;
 

@@ -25,9 +25,30 @@
 
     <div class="library-filter-row">
       <div class="library-tabs" role="tablist" aria-label="产物归属">
-        <button type="button" class="library-tab" :class="{ 'is-active': ownershipFilter === 'all' }" @click="ownershipFilter = 'all'">全部</button>
-        <button type="button" class="library-tab" :class="{ 'is-active': ownershipFilter === 'owned' }" @click="ownershipFilter = 'owned'">我创建的</button>
-        <button type="button" class="library-tab" :class="{ 'is-active': ownershipFilter === 'collab' }" @click="ownershipFilter = 'collab'">协作参与</button>
+        <button
+          type="button"
+          class="library-tab"
+          :class="{ 'is-active': ownershipFilter === 'all' }"
+          @click="ownershipFilter = 'all'"
+        >
+          全部
+        </button>
+        <button
+          type="button"
+          class="library-tab"
+          :class="{ 'is-active': ownershipFilter === 'owned' }"
+          @click="ownershipFilter = 'owned'"
+        >
+          我创建的
+        </button>
+        <button
+          type="button"
+          class="library-tab"
+          :class="{ 'is-active': ownershipFilter === 'collab' }"
+          @click="ownershipFilter = 'collab'"
+        >
+          协作参与
+        </button>
       </div>
       <span class="library-count">{{ filteredApps.length }} 个产物</span>
     </div>
@@ -38,7 +59,13 @@
 
     <div v-else-if="filteredApps.length === 0" class="library-empty">
       <h3>{{ searchKeyword ? '没有匹配的产物' : '还没有数字产物' }}</h3>
-      <p>{{ searchKeyword ? '搜索只作用于当前已加载内容。' : '从一个清晰的想法开始，创建第一个数字产物。' }}</p>
+      <p>
+        {{
+          searchKeyword
+            ? '搜索只作用于当前已加载内容。'
+            : '从一个清晰的想法开始，创建第一个数字产物。'
+        }}
+      </p>
       <button v-if="!searchKeyword" class="library-primary-btn" @click="router.push('/')">
         <PlusOutlined />
         新建数字产物
@@ -53,7 +80,10 @@
           :app="app"
           :variant="index === 0 ? 'hero' : 'grid'"
           :status="app.deployKey ? '已部署' : '未部署'"
-          :meta="[app.ownershipType === 'collaborator' ? '协作参与' : '我创建的', formatTime(app.createTime)]"
+          :meta="[
+            app.ownershipType === 'collaborator' ? '协作参与' : '我创建的',
+            formatTime(app.createTime),
+          ]"
           @open="goToApp"
         >
           <template #actions>
@@ -91,12 +121,12 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons-vue'
 import { useAppStore } from '@/stores/appStore'
-import { deleteApp, listMyAppVoByPage } from '@/api/appController'
+import { deleteApp } from '@/api/appController'
 import AppLibraryCard from '@/components/library/AppLibraryCard.vue'
 
 const router = useRouter()
@@ -108,6 +138,8 @@ const ownershipFilter = ref<'all' | 'owned' | 'collab'>('all')
 const loading = ref(false)
 const loadingMore = ref(false)
 const page = ref(1)
+let fetchRequestId = 0
+let fetchController: AbortController | null = null
 const hasMore = ref(false)
 
 const goToApp = (app: API.AppVO) => {
@@ -129,13 +161,13 @@ const filteredApps = computed(() => {
   // 搜索过滤
   if (searchKeyword.value.trim()) {
     const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(app => app.appName?.toLowerCase().includes(keyword))
+    result = result.filter((app) => app.appName?.toLowerCase().includes(keyword))
   }
 
   if (ownershipFilter.value === 'owned') {
-    result = result.filter(app => app.ownershipType !== 'collaborator')
+    result = result.filter((app) => app.ownershipType !== 'collaborator')
   } else if (ownershipFilter.value === 'collab') {
-    result = result.filter(app => app.ownershipType === 'collaborator')
+    result = result.filter((app) => app.ownershipType === 'collaborator')
   }
 
   // 排序
@@ -172,53 +204,62 @@ const handleDelete = (app: API.AppVO) => {
     async onOk() {
       try {
         const res = await deleteApp({ id: app.id })
-        if (res.data.code === 0) {
-          message.success('删除成功')
-          // 从列表中移除
-          appStore.myApps = appStore.myApps.filter(a => a.id !== app.id)
-          appStore.myAppsTotal = Math.max(0, appStore.myAppsTotal - 1)
+        if (res.data.code !== 0) {
+          throw new Error(res.data.message || '删除失败')
         }
+        message.success('删除成功')
+        await fetchApps(1)
       } catch (error) {
-        message.error('删除失败')
+        message.error(error instanceof Error ? error.message : '删除失败')
       }
-    }
+    },
   })
 }
 
 const fetchApps = async (pageNum = 1) => {
+  if (pageNum > 1 && (loading.value || loadingMore.value || !hasMore.value)) return
+  const requestId = ++fetchRequestId
+  fetchController?.abort()
+  fetchController = new AbortController()
   if (pageNum === 1) loading.value = true
   else loadingMore.value = true
 
   try {
-    const res = await listMyAppVoByPage({
-      pageNum,
-      pageSize: 20,
-      sortField: 'createTime',
-      sortOrder: 'desc'
+    const success = await appStore.loadMyApps(pageNum, 20, {
+      append: pageNum > 1,
+      signal: fetchController.signal,
     })
-    if (res.data.code === 0 && res.data.data) {
-      const records = res.data.data.records || []
-      if (pageNum === 1) {
-        appStore.myApps = records
-      } else {
-        appStore.myApps = [...appStore.myApps, ...records]
-      }
-      appStore.myAppsTotal = res.data.data.totalRow || 0
-      hasMore.value = records.length === 20
-      page.value = pageNum
+    if (requestId !== fetchRequestId) return
+    if (!success) throw new Error('产物列表加载失败')
+    hasMore.value = appStore.myApps.length < appStore.myAppsTotal
+    page.value = pageNum
+  } catch (error) {
+    if (
+      requestId === fetchRequestId &&
+      !(error instanceof DOMException && error.name === 'AbortError')
+    ) {
+      message.error('产物列表加载失败，请稍后重试')
     }
   } finally {
-    loading.value = false
-    loadingMore.value = false
+    if (requestId === fetchRequestId) {
+      loading.value = false
+      loadingMore.value = false
+    }
   }
 }
 
 const loadMore = () => {
-  fetchApps(page.value + 1)
+  void fetchApps(page.value + 1)
 }
 
 onMounted(() => {
   fetchApps()
+})
+
+onBeforeUnmount(() => {
+  fetchRequestId += 1
+  fetchController?.abort()
+  fetchController = null
 })
 </script>
 
@@ -551,7 +592,10 @@ onMounted(() => {
   color: #666;
   background: transparent;
   cursor: pointer;
-  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
 }
 
 .app-action-btn:hover {

@@ -91,6 +91,7 @@
       <a-table
         :columns="columns"
         :data-source="data"
+        :loading="loading"
         :pagination="pagination"
         :scroll="{ x: 1200 }"
         rowKey="id"
@@ -124,7 +125,13 @@
           <template v-else-if="column.dataIndex === 'codeGenType'">
             <a-tag :color="getTypeColor(record.codeGenType)">
               {{
-                record.codeGenType === 'single_html' ? '单文件结构' : record.codeGenType === 'multi_file' ? '多文件结构' : record.codeGenType === 'vue_project' ? 'VUE 项目工程' : formatCodeGenType(record.codeGenType)
+                record.codeGenType === 'single_html'
+                  ? '单文件结构'
+                  : record.codeGenType === 'multi_file'
+                    ? '多文件结构'
+                    : record.codeGenType === 'vue_project'
+                      ? 'VUE 项目工程'
+                      : formatCodeGenType(record.codeGenType)
               }}
             </a-tag>
           </template>
@@ -153,6 +160,7 @@
             <div class="rate-cell">
               <a-rate
                 :count="5"
+                :disabled="!!record.id && mutatingAppIds.has(record.id)"
                 :value="priorityToRate(record.priority)"
                 allow-half
                 @change="handleRateChange(record, $event)"
@@ -225,7 +233,12 @@
                 title="确定要删除这个数字产物吗？此操作不可恢复"
                 @confirm="doDeleteApp(record.id)"
               >
-                <a-button :aria-label="`删除数字产物 ${record.appName}`" danger size="small">删除
+                <a-button
+                  :aria-label="`删除数字产物 ${record.appName}`"
+                  :loading="!!record.id && mutatingAppIds.has(record.id)"
+                  danger
+                  size="small"
+                  >删除
                 </a-button>
               </a-popconfirm>
             </a-space>
@@ -235,16 +248,12 @@
     </a-card>
 
     <!-- 产物详情弹窗 -->
-    <AppInfo
-      v-model:open="appDetailVisible"
-      :app="currentApp"
-      :show-actions="false"
-    />
+    <AppInfo v-model:open="appDetailVisible" :app="currentApp" :show-actions="false" />
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -255,7 +264,7 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
   InfoCircleOutlined,
-  UserOutlined
+  UserOutlined,
 } from '@ant-design/icons-vue'
 import { deleteApp, listAppVoByPageByAdmin, updateAppByAdmin } from '@/api/appController'
 import { CODE_GEN_TYPE_OPTIONS, formatCodeGenType } from '@/enums/codeGenTypes.ts'
@@ -288,89 +297,98 @@ const columns = [
     dataIndex: 'id',
     width: 80,
     fixed: 'left',
-    sorter: true
+    sorter: true,
   },
   {
     title: '数字产物名称',
     dataIndex: 'appName',
     width: 150,
-    ellipsis: true
+    ellipsis: true,
   },
   {
     title: '封面',
     dataIndex: 'cover',
-    width: 100
+    width: 100,
   },
   {
     title: '初始提示词',
     dataIndex: 'initPrompt',
     width: 200,
-    ellipsis: true
+    ellipsis: true,
   },
   {
     title: '生成类型',
     dataIndex: 'codeGenType',
-    width: 120
+    width: 120,
   },
   {
     title: '产物评分',
     dataIndex: 'priority',
-    width: 200
+    width: 200,
   },
   {
     title: '部署密钥',
     dataIndex: 'deployKey',
-    width: 120
+    width: 120,
   },
   {
     title: '部署时间',
     dataIndex: 'deployedTime',
-    width: 160
+    width: 160,
   },
   {
     title: '创建者',
     dataIndex: 'user',
-    width: 120
+    width: 120,
   },
   {
     title: '创建时间',
     dataIndex: 'createTime',
     width: 160,
-    sorter: true
+    sorter: true,
   },
   {
     title: '操作',
     key: 'action',
     width: 230,
-    fixed: 'right'
-  }
+    fixed: 'right',
+  },
 ]
 
 // 数字产物数据
 const data = ref<API.AppVO[]>([])
 const total = ref(0)
+const loading = ref(false)
+const mutatingAppIds = reactive(new Set<number>())
+let fetchRequestId = 0
 
 // 搜索条件
 const searchParams = reactive<API.AppQueryRequest>({
   pageNum: 1,
-  pageSize: 10
+  pageSize: 10,
 })
 
 // 获取数据
 const fetchData = async () => {
+  const requestId = ++fetchRequestId
+  loading.value = true
   try {
     const res = await listAppVoByPageByAdmin({
-      ...searchParams
+      ...searchParams,
     })
-    if (res.data.data) {
+    if (requestId !== fetchRequestId) return
+    if (res.data.code === 0 && res.data.data) {
       data.value = res.data.data.records ?? []
-      total.value = res.data.data.totalRow ?? 0
+      total.value = Number(res.data.data.totalRow) || 0
     } else {
-      message.error('获取数据失败，' + res.data.message)
+      message.error('获取数据失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (error) {
+    if (requestId !== fetchRequestId) return
     console.error('获取数据失败：', error)
     message.error('获取数据失败，请稍后重试')
+  } finally {
+    if (requestId === fetchRequestId) loading.value = false
   }
 }
 
@@ -388,18 +406,19 @@ onMounted(() => {
 })
 
 // 默认封面图像
-const fallbackImage = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#f5f5f5"/><text x="50%" y="50%" font-family="Arial" font-size="20" text-anchor="middle" fill="#999">未提供封面</text></svg>'
+const fallbackImage =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><rect width="400" height="300" fill="#f5f5f5"/><text x="50%" y="50%" font-family="Arial" font-size="20" text-anchor="middle" fill="#999">未提供封面</text></svg>'
 
 // 根据生成类型获取标签颜色
 const getTypeColor = (type: string) => {
   const colors: Record<string, string> = {
-    'react': '#61dafb',
-    'vue': '#42b883',
-    'angular': '#dd0031',
-    'html': '#e34c26',
-    'nodejs': '#68a063',
-    'flutter': '#04599C',
-    'swift': '#ff2d55'
+    react: '#61dafb',
+    vue: '#42b883',
+    angular: '#dd0031',
+    html: '#e34c26',
+    nodejs: '#68a063',
+    flutter: '#04599C',
+    swift: '#ff2d55',
   }
   return colors[type] || 'blue'
 }
@@ -412,7 +431,7 @@ const pagination = computed(() => {
     total: total.value,
     showSizeChanger: true,
     pageSizeOptions: ['5', '10', '20'],
-    showTotal: (total: number) => `共 ${total} 条记录`
+    showTotal: (total: number) => `共 ${total} 条记录`,
   }
 })
 
@@ -458,51 +477,33 @@ const rateToPriority = (r: number): number => {
 
 // 产物评分变更（Rate 组件）
 const handleRateChange = async (app: API.AppVO, rateVal: number) => {
-  if (!app.id) return
+  if (!app.id || mutatingAppIds.has(app.id)) return
   const newPriority = rateToPriority(rateVal)
+  mutatingAppIds.add(app.id)
   try {
     const res = await updateAppByAdmin({
       id: app.id,
-      priority: newPriority
+      priority: newPriority,
     })
     if (res.data.code === 0) {
       app.priority = newPriority
-      message.success(rateVal >= 5 ? `「${app.appName}」已设为星选 (5星)` : `产物评分已更新为 ${rateVal} 星`)
+      message.success(
+        rateVal >= 5 ? `「${app.appName}」已设为星选 (5星)` : `产物评分已更新为 ${rateVal} 星`,
+      )
     } else {
       message.error('更新失败：' + res.data.message)
     }
   } catch {
     message.error('更新失败，请重试')
-  }
-}
-
-// 切换星选状态（保留兼容）
-const toggleFeatured = async (app: API.AppVO) => {
-  if (!app.id) return
-
-  const newPriority = app.priority === 99 ? 0 : 99
-
-  try {
-    const res = await updateAppByAdmin({
-      id: app.id,
-      priority: newPriority
-    })
-
-    if (res.data.code === 0) {
-      message.success(newPriority === 99 ? '已设为星选数字产物' : '已取消星选')
-      fetchData()
-    } else {
-      message.error('操作失败：' + res.data.message)
-    }
-  } catch (error) {
-    console.error('操作失败：', error)
-    message.error('操作失败，请稍后重试')
+  } finally {
+    mutatingAppIds.delete(app.id)
   }
 }
 
 // 删除数字产物
 const doDeleteApp = async (id: number | undefined) => {
-  if (!id) return
+  if (!id || mutatingAppIds.has(id)) return
+  mutatingAppIds.add(id)
 
   try {
     const res = await deleteApp({ id })
@@ -515,8 +516,14 @@ const doDeleteApp = async (id: number | undefined) => {
   } catch (error) {
     console.error('删除失败：', error)
     message.error('删除失败，请稍后重试')
+  } finally {
+    mutatingAppIds.delete(id)
   }
 }
+
+onBeforeUnmount(() => {
+  fetchRequestId += 1
+})
 </script>
 
 <style lang="less" scoped>
@@ -542,7 +549,8 @@ const doDeleteApp = async (id: number | undefined) => {
   }
 }
 
-.search-panel, .app-table {
+.search-panel,
+.app-table {
   background: #ffffff;
   border-radius: 14px;
   border: 1px solid #f0f0f0;
@@ -562,7 +570,6 @@ const doDeleteApp = async (id: number | undefined) => {
     font-weight: 600;
   }
 }
-
 
 .search-panel {
   padding: 20px;
@@ -668,7 +675,8 @@ const doDeleteApp = async (id: number | undefined) => {
     color: #666;
   }
 
-  .time-cell, .user-cell {
+  .time-cell,
+  .user-cell {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -738,7 +746,6 @@ const doDeleteApp = async (id: number | undefined) => {
   margin-top: 20px;
 }
 
-
 @media (max-width: 992px) {
   .search-panel {
     .ant-form {
@@ -746,7 +753,8 @@ const doDeleteApp = async (id: number | undefined) => {
       gap: 18px;
     }
 
-    .search-item, .search-actions {
+    .search-item,
+    .search-actions {
       width: 100%;
       min-width: unset;
     }
@@ -850,7 +858,8 @@ const doDeleteApp = async (id: number | undefined) => {
     }
   }
 
-  .search-panel, .app-table {
+  .search-panel,
+  .app-table {
     padding: 18px;
     margin-bottom: 20px;
 

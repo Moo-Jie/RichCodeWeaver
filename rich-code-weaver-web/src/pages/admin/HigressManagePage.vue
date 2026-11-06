@@ -29,12 +29,8 @@
           :sub-title="`无法连接到Higress管理界面: ${higressUrl}`"
         >
           <template #extra>
-            <a-button type="primary" @click="reloadIframe">
-              重新加载
-            </a-button>
-            <a-button @click="openInNewTab">
-              在新标签页中打开
-            </a-button>
+            <a-button type="primary" @click="reloadIframe"> 重新加载 </a-button>
+            <a-button @click="openInNewTab"> 在新标签页中打开 </a-button>
           </template>
         </a-result>
       </div>
@@ -43,7 +39,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 
@@ -51,14 +47,32 @@ const higressUrl = import.meta.env.VITE_HIGRESS_URL || 'http://localhost:8001'
 const loading = ref(true)
 const error = ref(false)
 const higressIframe = ref<HTMLIFrameElement>()
+let loadTimeoutId: number | undefined
+
+const clearLoadTimeout = () => {
+  if (loadTimeoutId !== undefined) {
+    window.clearTimeout(loadTimeoutId)
+    loadTimeoutId = undefined
+  }
+}
+
+const startLoadTimeout = () => {
+  clearLoadTimeout()
+  loadTimeoutId = window.setTimeout(() => {
+    loadTimeoutId = undefined
+    if (loading.value) handleIframeError()
+  }, 10000)
+}
 
 const handleIframeLoad = () => {
+  clearLoadTimeout()
   loading.value = false
   error.value = false
   message.success('Higress管理界面加载成功')
 }
 
 const handleIframeError = () => {
+  clearLoadTimeout()
   loading.value = false
   error.value = true
   message.error('Higress管理界面加载失败')
@@ -69,6 +83,7 @@ const reloadIframe = () => {
     loading.value = true
     error.value = false
     higressIframe.value.src = higressUrl
+    startLoadTimeout()
   }
 }
 
@@ -77,12 +92,11 @@ const openInNewTab = () => {
 }
 
 onMounted(() => {
-  // Set a timeout to show error if iframe doesn't load within 10 seconds
-  setTimeout(() => {
-    if (loading.value) {
-      handleIframeError()
-    }
-  }, 10000)
+  startLoadTimeout()
+})
+
+onBeforeUnmount(() => {
+  clearLoadTimeout()
 })
 </script>
 

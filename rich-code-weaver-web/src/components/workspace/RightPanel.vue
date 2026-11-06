@@ -10,12 +10,25 @@
         <!-- App Info -->
         <div v-if="app" class="panel-section panel-section-hero">
           <div class="app-brief">
-            <img v-if="app.cover" :src="app.cover" alt="" class="brief-cover" />
+            <img
+              v-if="app.cover"
+              :src="app.cover"
+              alt=""
+              class="brief-cover"
+              loading="lazy"
+              decoding="async"
+            />
             <img v-else alt="" class="brief-cover brief-cover--default" src="@/assets/logo.png" />
             <div class="brief-info">
               <div class="brief-topline">
                 <span class="brief-name">{{ app.appName || '未命名数字产物' }}</span>
-                <span v-if="ownershipLabel" :class="['brief-pill', `brief-pill--${app.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`]">
+                <span
+                  v-if="ownershipLabel"
+                  :class="[
+                    'brief-pill',
+                    `brief-pill--${app.ownershipType === 'collaborator' ? 'collaborator' : 'mine'}`,
+                  ]"
+                >
                   {{ ownershipLabel }}
                 </span>
               </div>
@@ -30,7 +43,9 @@
           <div class="section-label">数字产物操作</div>
           <button :disabled="!canEditApp" class="panel-btn" @click="$emit('toggleEdit')">
             <EditOutlined />
-            <span>{{ canEditApp ? (isEditMode ? '退出编辑' : '可视化编辑') : '暂无编辑权限' }}</span>
+            <span>{{
+              canEditApp ? (isEditMode ? '退出编辑' : '可视化编辑') : '暂无编辑权限'
+            }}</span>
           </button>
           <button v-if="previewUrl" class="panel-btn" @click="$emit('previewFullscreen')">
             <ExpandOutlined />
@@ -50,13 +65,22 @@
             <span>{{ refreshing ? '刷新中...' : '刷新产物' }}</span>
           </button>
           <template v-if="isDeployed">
-            <button :disabled="isGenerating || deploying" class="panel-btn" @click="$emit('reDeploy')">
+            <button
+              :disabled="isGenerating || deploying"
+              class="panel-btn"
+              @click="$emit('reDeploy')"
+            >
               <LoadingOutlined v-if="deploying" spin />
               <CloudUploadOutlined v-else />
               <span>{{ deploying ? '部署中...' : '重新部署' }}</span>
             </button>
           </template>
-          <button v-else :disabled="isGenerating || deploying" class="panel-btn" @click="$emit('deploy')">
+          <button
+            v-else
+            :disabled="isGenerating || deploying"
+            class="panel-btn"
+            @click="$emit('deploy')"
+          >
             <LoadingOutlined v-if="deploying" spin />
             <CloudUploadOutlined v-else />
             <span>{{ deploying ? '部署中...' : '部署网站' }}</span>
@@ -138,11 +162,12 @@ import {
   InfoCircleOutlined,
   LikeFilled,
   LikeOutlined,
+  LoadingOutlined,
   ReloadOutlined,
   ShareAltOutlined,
   StarFilled,
   StarOutlined,
-  TeamOutlined
+  TeamOutlined,
 } from '@ant-design/icons-vue'
 import AppTeamCard from '@/components/AppTeamCard.vue'
 
@@ -167,14 +192,24 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   isEditMode: false,
   canEditApp: false,
-  collaborators: () => []
+  collaborators: () => [],
 })
 
 defineEmits([
-  'toggle', 'showDetail', 'previewFullscreen', 'download',
-  'deploy', 'reDeploy', 'refreshApp', 'visitSite', 'toggleEdit',
-  'toggleLike', 'toggleFavorite', 'doShare', 'openComment',
-  'inviteCollab'
+  'toggle',
+  'showDetail',
+  'previewFullscreen',
+  'download',
+  'deploy',
+  'reDeploy',
+  'refreshApp',
+  'visitSite',
+  'toggleEdit',
+  'toggleLike',
+  'toggleFavorite',
+  'doShare',
+  'openComment',
+  'inviteCollab',
 ])
 
 const typeLabel = computed(() => {
@@ -191,7 +226,7 @@ const ownershipLabel = computed(() => {
   return ''
 })
 
-const deployLabel = computed(() => props.isDeployed ? '已部署网站' : '未部署网站')
+const deployLabel = computed(() => (props.isDeployed ? '已部署网站' : '未部署网站'))
 
 const collaboratorSummary = computed(() => {
   const count = props.collaborators.length
@@ -260,7 +295,10 @@ const collaboratorSummary = computed(() => {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .panel-section:hover {

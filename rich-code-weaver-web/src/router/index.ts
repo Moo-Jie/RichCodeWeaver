@@ -1,32 +1,32 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import GlobalLayout from '@/layouts/GlobalLayout.vue'
-import WorkspacePage from '@/pages/WorkspacePage.vue'
-import MessageCenterPage from '@/pages/message/MessageCenterPage.vue'
-import UserLoginPage from '@/pages/user/UserLoginPage.vue'
-import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
-import UserManagePage from '@/pages/admin/UserManagePage.vue'
-import AppManagePage from '@/pages/admin/AppManagePage.vue'
-import SystemManageDashboard from '@/pages/admin/SystemManageDashboard.vue'
-import AppEditPage from '@/pages/app/AppEditPage.vue'
-import MyAppsPage from '@/pages/app/MyAppsPage.vue'
-import AllAppsPage from '@/pages/app/AllAppsPage.vue'
-import MyFavoritesPage from '@/pages/app/MyFavoritesPage.vue'
-import UserCenterPage from '@/pages/user/UserCenterPage.vue'
-import ChatHistoryManagePage from '@/pages/admin/ChatHistoryManagePage.vue'
-import PromptTemplateManagePage from '@/pages/admin/PromptTemplateManagePage.vue'
-import SystemPromptManagePage from '@/pages/admin/SystemPromptManagePage.vue'
-import RagManagePage from '@/pages/admin/RagManagePage.vue'
-import MaterialManagePage from '@/pages/admin/MaterialManagePage.vue'
-import HigressManagePage from '@/pages/admin/HigressManagePage.vue'
-import GrafanaMonitorPage from '@/pages/admin/GrafanaMonitorPage.vue'
-import MyMaterialPage from '@/pages/material/MyMaterialPage.vue'
-import CommunityListPage from '@/pages/community/CommunityListPage.vue'
-import CommunityDetailPage from '@/pages/community/CommunityDetailPage.vue'
-import DocsPage from '@/pages/other/DocsPage.vue'
-import AboutPage from '@/pages/other/AboutPage.vue'
-import PrivacyPage from '@/pages/other/PrivacyPage.vue'
-import TermsPage from '@/pages/other/TermsPage.vue'
-import AiGeneratedContentPage from '@/pages/other/AiGeneratedContentPage.vue'
+const GlobalLayout = () => import('@/layouts/GlobalLayout.vue')
+const WorkspacePage = () => import('@/pages/WorkspacePage.vue')
+const MessageCenterPage = () => import('@/pages/message/MessageCenterPage.vue')
+const UserLoginPage = () => import('@/pages/user/UserLoginPage.vue')
+const UserRegisterPage = () => import('@/pages/user/UserRegisterPage.vue')
+const UserManagePage = () => import('@/pages/admin/UserManagePage.vue')
+const AppManagePage = () => import('@/pages/admin/AppManagePage.vue')
+const SystemManageDashboard = () => import('@/pages/admin/SystemManageDashboard.vue')
+const AppEditPage = () => import('@/pages/app/AppEditPage.vue')
+const MyAppsPage = () => import('@/pages/app/MyAppsPage.vue')
+const AllAppsPage = () => import('@/pages/app/AllAppsPage.vue')
+const MyFavoritesPage = () => import('@/pages/app/MyFavoritesPage.vue')
+const UserCenterPage = () => import('@/pages/user/UserCenterPage.vue')
+const ChatHistoryManagePage = () => import('@/pages/admin/ChatHistoryManagePage.vue')
+const PromptTemplateManagePage = () => import('@/pages/admin/PromptTemplateManagePage.vue')
+const SystemPromptManagePage = () => import('@/pages/admin/SystemPromptManagePage.vue')
+const RagManagePage = () => import('@/pages/admin/RagManagePage.vue')
+const MaterialManagePage = () => import('@/pages/admin/MaterialManagePage.vue')
+const HigressManagePage = () => import('@/pages/admin/HigressManagePage.vue')
+const GrafanaMonitorPage = () => import('@/pages/admin/GrafanaMonitorPage.vue')
+const MyMaterialPage = () => import('@/pages/material/MyMaterialPage.vue')
+const CommunityListPage = () => import('@/pages/community/CommunityListPage.vue')
+const CommunityDetailPage = () => import('@/pages/community/CommunityDetailPage.vue')
+const DocsPage = () => import('@/pages/other/DocsPage.vue')
+const AboutPage = () => import('@/pages/other/AboutPage.vue')
+const PrivacyPage = () => import('@/pages/other/PrivacyPage.vue')
+const TermsPage = () => import('@/pages/other/TermsPage.vue')
+const AiGeneratedContentPage = () => import('@/pages/other/AiGeneratedContentPage.vue')
 
 /**
  * 路由配置
@@ -43,146 +43,157 @@ const router = createRouter({
         {
           path: '',
           name: '主页',
-          component: WorkspacePage
+          component: WorkspacePage,
         },
         {
           path: 'messages',
           name: '消息中心',
-          component: MessageCenterPage
+          component: MessageCenterPage,
+          meta: { requiresAuth: true },
         },
         {
           path: 'app/chat/:id',
           name: '数字产物对话',
-          component: WorkspacePage
+          component: WorkspacePage,
         },
         {
           path: 'app/edit/:id',
           name: '编辑数字产物',
-          component: AppEditPage
+          component: AppEditPage,
+          meta: { requiresAuth: true },
         },
         {
           path: 'my/apps',
           name: '我的产物',
-          component: MyAppsPage
+          component: MyAppsPage,
+          meta: { requiresAuth: true },
         },
         {
           path: 'all/apps',
           name: '全部产物',
-          component: AllAppsPage
+          component: AllAppsPage,
         },
         {
           path: 'my/favorites',
           name: '我的收藏',
-          component: MyFavoritesPage
+          component: MyFavoritesPage,
+          meta: { requiresAuth: true },
         },
         {
           path: 'my/materials',
           name: '我的素材',
-          component: MyMaterialPage
+          component: MyMaterialPage,
+          meta: { requiresAuth: true },
         },
         {
           path: 'community',
           name: '交流社区',
-          component: CommunityListPage
+          component: CommunityListPage,
         },
         {
           path: 'community/post/:id',
           name: '社区帖子详情',
-          component: CommunityDetailPage
+          component: CommunityDetailPage,
         },
         {
           path: 'user/userCenter',
           name: '个人中心',
-          component: UserCenterPage
+          component: UserCenterPage,
+          meta: { requiresAuth: true },
         },
         {
           path: 'admin',
           name: '系统管理',
-          component: SystemManageDashboard
+          component: SystemManageDashboard,
         },
         {
           path: 'admin/userManage',
           name: '用户管理',
-          component: UserManagePage
+          component: UserManagePage,
         },
         {
           path: 'admin/appManage',
           name: '产物管理',
-          component: AppManagePage
+          component: AppManagePage,
         },
         {
           path: 'admin/chatHistory',
           name: '对话历史管理',
-          component: ChatHistoryManagePage
+          component: ChatHistoryManagePage,
         },
         {
           path: 'admin/promptTemplate',
           name: '提示词模板管理',
-          component: PromptTemplateManagePage
+          component: PromptTemplateManagePage,
         },
         {
           path: 'admin/systemPrompt',
           name: '系统提示词管理',
-          component: SystemPromptManagePage
+          component: SystemPromptManagePage,
         },
         {
           path: 'admin/ragManage',
           name: 'RAG知识库管理',
-          component: RagManagePage
+          component: RagManagePage,
         },
         {
           path: 'admin/materialManage',
           name: '素材管理',
-          component: MaterialManagePage
+          component: MaterialManagePage,
         },
         {
           path: 'admin/higressManage',
           name: '网关管理',
-          component: HigressManagePage
+          component: HigressManagePage,
         },
         {
           path: 'admin/grafanaMonitor',
           name: '系统监控',
-          component: GrafanaMonitorPage
+          component: GrafanaMonitorPage,
         },
         {
           path: 'other/docs',
           name: '文档',
-          component: DocsPage
+          component: DocsPage,
         },
         {
           path: 'other/about',
           name: '关于',
-          component: AboutPage
+          component: AboutPage,
         },
         {
           path: 'other/privacy',
           name: '用户隐私协议',
-          component: PrivacyPage
+          component: PrivacyPage,
         },
         {
           path: 'other/ai-generated-content',
           name: 'AI生成内容声明',
-          component: AiGeneratedContentPage
+          component: AiGeneratedContentPage,
         },
         {
           path: 'other/terms',
           name: '服务条款',
-          component: TermsPage
-        }
-      ]
+          component: TermsPage,
+        },
+      ],
     },
     {
       path: '/user/login',
       name: '用户登录',
-      component: UserLoginPage
+      component: UserLoginPage,
     },
     {
       path: '/user/register',
       name: '用户注册',
-      component: UserRegisterPage
-    }
-  ]
+      component: UserRegisterPage,
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: '未找到页面',
+      redirect: '/',
+    },
+  ],
 })
 
 export default router

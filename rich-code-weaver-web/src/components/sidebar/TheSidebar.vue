@@ -56,8 +56,10 @@
         <span v-show="!appStore.sidebarCollapsed" class="nav-label">其他</span>
       </transition>
       <transition name="fade-text">
-        <DownOutlined v-show="!appStore.sidebarCollapsed"
-                      :class="['nav-arrow', { expanded: aboutMenuExpanded }]" />
+        <DownOutlined
+          v-show="!appStore.sidebarCollapsed"
+          :class="['nav-arrow', { expanded: aboutMenuExpanded }]"
+        />
       </transition>
     </div>
     <transition name="submenu-slide">
@@ -148,15 +150,15 @@
           <a-menu>
             <a-menu-item v-if="loginUserStore.loginUser.id" @click="navigateTo('/user/userCenter')">
               <UserOutlined />
-              <span style="margin-left: 8px;">个人中心</span>
+              <span style="margin-left: 8px">个人中心</span>
             </a-menu-item>
             <a-menu-item v-if="loginUserStore.loginUser.id" @click="doLogout">
               <LogoutOutlined />
-              <span style="margin-left: 8px;">退出登录</span>
+              <span style="margin-left: 8px">退出登录</span>
             </a-menu-item>
             <a-menu-item v-if="!loginUserStore.loginUser.id" @click="navigateTo('/user/login')">
               <LoginOutlined />
-              <span style="margin-left: 8px;">登录</span>
+              <span style="margin-left: 8px">登录</span>
             </a-menu-item>
           </a-menu>
         </template>
@@ -178,7 +180,9 @@ import { message } from 'ant-design-vue'
 import { useAppStore } from '@/stores/appStore'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { useCommunicationStore } from '@/stores/communicationStore'
+import { useChatStore } from '@/stores/chatStore'
 import { userLogout } from '@/api/userController'
+import taskProgressService from '@/utils/taskProgressService'
 import { SYSTEM_MANAGE_PATH } from '@/constants/adminNavItems'
 import SidebarAppList from './SidebarAppList.vue'
 import {
@@ -201,16 +205,24 @@ import {
   SettingOutlined,
   StarOutlined,
   TeamOutlined,
-  UserOutlined
+  UserOutlined,
 } from '@ant-design/icons-vue'
 
 const appStore = useAppStore()
 const loginUserStore = useLoginUserStore()
 const communicationStore = useCommunicationStore()
+const chatStore = useChatStore()
+let activeAppOwnerId: number | undefined
 const router = useRouter()
 const route = useRoute()
 const aboutMenuExpanded = ref(false)
 const appsSectionExpanded = ref(true)
+
+const clearGenerationRecoveryMarkers = () => {
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith('rcw_generating_')) localStorage.removeItem(key)
+  }
+}
 
 const baseNavItems = [
   { path: '/', label: '主页', icon: HomeOutlined },
@@ -218,14 +230,14 @@ const baseNavItems = [
   { path: '/my/favorites', label: '我的收藏', icon: StarOutlined },
   { path: '/my/apps', label: '我的产物', icon: AppstoreOutlined },
   { path: '/my/materials', label: '我的素材', icon: PaperClipOutlined },
-  { path: '/community', label: '交流社区', icon: CommentOutlined }
+  { path: '/community', label: '交流社区', icon: CommentOutlined },
 ]
 
 const aboutNavItems = [
   { path: '/other/about', label: '关于', icon: FileTextOutlined },
   { path: '/other/privacy', label: '隐私政策', icon: SecurityScanOutlined },
   { path: '/other/ai-generated-content', label: 'AI生成声明', icon: AuditOutlined },
-  { path: '/other/terms', label: '用户协议', icon: SafetyOutlined }
+  { path: '/other/terms', label: '用户协议', icon: SafetyOutlined },
 ]
 
 const isAdmin = computed(() => loginUserStore.loginUser?.userRole === 'admin')
@@ -326,16 +338,29 @@ onUnmounted(() => {
 
 // 登录身份变化时重置并重新初始化通信状态。
 watch(
-  () => loginUserStore.loginUser,
-  (newUser) => {
-    if (newUser?.id) {
+  () => loginUserStore.loginUser.id,
+  (nextUserId) => {
+    if (nextUserId && activeAppOwnerId !== nextUserId) {
+      appStore.resetAppState()
+      chatStore.resetChatState()
+      communicationStore.resetCommunication()
+      taskProgressService.disconnect()
+      if (activeAppOwnerId !== undefined) clearGenerationRecoveryMarkers()
+      activeAppOwnerId = nextUserId
+    }
+    if (nextUserId) {
       appStore.loadMyApps()
       communicationStore.initCommunication()
     } else {
+      activeAppOwnerId = undefined
+      appStore.resetAppState()
+      chatStore.resetChatState()
+      taskProgressService.disconnect()
       communicationStore.resetCommunication()
+      clearGenerationRecoveryMarkers()
     }
   },
-  { deep: true, immediate: true }
+  { immediate: true },
 )
 
 watch(
@@ -345,7 +370,7 @@ watch(
       syncExpandedSectionWithRoute()
       ensureOneExpanded(route.path.startsWith('/other') ? 'about' : 'apps')
     }
-  }
+  },
 )
 
 watch(
@@ -356,14 +381,14 @@ watch(
       ensureOneExpanded(route.path.startsWith('/other') ? 'about' : 'apps')
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const doLogout = async () => {
   try {
     const res = await userLogout()
     if (res.data.code === 0) {
-      loginUserStore.setLoginUser({ userName: '未登录' })
+      loginUserStore.clearLoginUser()
       communicationStore.resetCommunication()
       message.success('退出登录成功')
       appStore.clearSelectedApp()

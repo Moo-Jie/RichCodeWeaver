@@ -8,7 +8,7 @@
         @click="handleSelect(app)"
       >
         <div class="app-cover">
-          <img v-if="app.cover" :alt="app.appName" :src="app.cover" />
+          <img v-if="app.cover" :alt="app.appName" :src="app.cover" loading="lazy" decoding="async" />
           <img v-else alt="默认封面" class="default-cover" src="@/assets/logo.png" />
         </div>
         <transition name="fade-text">

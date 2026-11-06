@@ -18,14 +18,28 @@
       <div
         v-for="msg in messages"
         :key="msg.id"
-        v-memo="[msg.id, msg.content, msg.loading, msg.type, msg.senderRoleLabel, collapseLongCode]"
+        v-memo="[
+          msg.id,
+          msg.content,
+          msg.loading,
+          msg.type,
+          msg.senderName,
+          msg.senderAvatar,
+          msg.senderRoleLabel,
+          msg.isSelf,
+          loginUser.userName,
+          loginUser.userAvatar,
+          collapseLongCode,
+        ]"
         class="message-row"
       >
         <div v-if="msg.type === 'user' && msg.isSelf" class="msg-user msg-user--self">
           <div class="msg-content-wrap msg-content-wrap--self">
             <div class="msg-meta msg-meta--self">
               <span class="msg-sender">{{ msg.senderName || loginUser.userName || '我' }}</span>
-              <span v-if="msg.senderRoleLabel" class="msg-role-pill">{{ msg.senderRoleLabel }}</span>
+              <span v-if="msg.senderRoleLabel" class="msg-role-pill">{{
+                msg.senderRoleLabel
+              }}</span>
             </div>
             <div class="msg-bubble msg-bubble--user">{{ msg.content }}</div>
           </div>
@@ -40,7 +54,9 @@
           <div class="msg-content-wrap">
             <div class="msg-meta">
               <span class="msg-sender">{{ msg.senderName || '协作者' }}</span>
-              <span v-if="msg.senderRoleLabel" class="msg-role-pill">{{ msg.senderRoleLabel }}</span>
+              <span v-if="msg.senderRoleLabel" class="msg-role-pill">{{
+                msg.senderRoleLabel
+              }}</span>
             </div>
             <div class="msg-bubble msg-bubble--other-user">{{ msg.content }}</div>
           </div>
@@ -112,22 +128,24 @@ const userScrolledUp = ref(false)
 let lastScrollHeight = 0
 let scrollTimeout: number | null = null
 let scrollFrameId: number | null = null
+let streamFollowFrameId: number | null = null
+let lastTaskScrollAt = 0
 
 // 检测用户是否主动向上滚动
 const handleScroll = () => {
   if (!containerRef.value) return
-  
+
   const { scrollTop, scrollHeight, clientHeight } = containerRef.value
   const distanceFromBottom = scrollHeight - scrollTop - clientHeight
-  
+
   // 如果用户距离底部超过 100px，认为用户主动向上滚动
   userScrolledUp.value = distanceFromBottom > 100
-  
+
   // 清除之前的定时器
   if (scrollTimeout) {
     clearTimeout(scrollTimeout)
   }
-  
+
   // 如果用户滚动到底部附近，重置标记
   scrollTimeout = window.setTimeout(() => {
     if (distanceFromBottom < 50) {
@@ -149,43 +167,64 @@ const scrollToBottom = (force = false) => {
     const currentContainer = containerRef.value
     if (!currentContainer) return
     currentContainer.scrollTop = currentContainer.scrollHeight
+    lastScrollHeight = currentContainer.scrollHeight
   })
 }
 
-// 监听消息变化（新消息）
-watch(() => props.messages.length, () => {
-  nextTick(() => scrollToBottom(true))
-})
+// 新消息仅在用户位于底部时跟随；加载历史或阅读旧消息时不抢滚动位置。
+watch(
+  () => props.messages.length,
+  (length, previousLength) => {
+    if (length < previousLength) {
+      lastScrollHeight = 0
+      userScrolledUp.value = false
+      return
+    }
+    if (length <= previousLength || props.loadingHistory || userScrolledUp.value) return
+    nextTick(() => scrollToBottom(true))
+  },
+  { flush: 'post' },
+)
 
-// 监听消息内容变化（流式更新）
-watch(() => props.messages[props.messages.length - 1]?.content || '', () => {
-  if (!containerRef.value) return
-  
-  const currentScrollHeight = containerRef.value.scrollHeight
-  
-  // 内容增长时的智能滚动
-  if (currentScrollHeight > lastScrollHeight) {
-    nextTick(() => scrollToBottom(false))
-  }
-  
-  lastScrollHeight = currentScrollHeight
-  
-  // 滚动到任务列表中的进行中任务
-  nextTick(() => {
-    const taskScrollTarget = containerRef.value?.querySelector('.task-scroll-target')
-    if (taskScrollTarget && !userScrolledUp.value) {
+// 流式内容高频更新时合并到单帧，避免每个 token 都触发布局查询与滚动。
+const scheduleStreamFollow = () => {
+  if (streamFollowFrameId !== null) return
+  streamFollowFrameId = requestAnimationFrame(() => {
+    streamFollowFrameId = null
+    const container = containerRef.value
+    if (!container || userScrolledUp.value) return
+
+    const currentScrollHeight = container.scrollHeight
+    if (currentScrollHeight > lastScrollHeight) {
+      container.scrollTop = currentScrollHeight
+    }
+    lastScrollHeight = currentScrollHeight
+
+    if (performance.now() - lastTaskScrollAt < 160) return
+    const taskScrollTarget = container.querySelector('.task-scroll-target')
+    if (taskScrollTarget) {
+      lastTaskScrollAt = performance.now()
       taskScrollTarget.scrollIntoView({ behavior: 'auto', block: 'nearest' })
     }
   })
+}
+
+watch(() => props.messages[props.messages.length - 1]?.content || '', scheduleStreamFollow, {
+  flush: 'post',
 })
 
 onUnmounted(() => {
-  if (scrollTimeout) {
-    clearTimeout(scrollTimeout)
-  }
   if (scrollFrameId !== null) {
     cancelAnimationFrame(scrollFrameId)
     scrollFrameId = null
+  }
+  if (streamFollowFrameId !== null) {
+    cancelAnimationFrame(streamFollowFrameId)
+    streamFollowFrameId = null
+  }
+  if (scrollTimeout !== null) {
+    clearTimeout(scrollTimeout)
+    scrollTimeout = null
   }
 })
 
@@ -498,7 +537,8 @@ defineExpose({ scrollToBottom })
 }
 
 @keyframes cw-stream-dot-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.45;
     transform: scale(0.8);
   }
@@ -509,7 +549,9 @@ defineExpose({ scrollToBottom })
 }
 
 @keyframes cw-stream-dots {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     opacity: 0.3;
     transform: translateY(0);
   }
@@ -546,7 +588,9 @@ defineExpose({ scrollToBottom })
 }
 
 @keyframes dotPulse {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     transform: scale(1);
     opacity: 0.6;
   }

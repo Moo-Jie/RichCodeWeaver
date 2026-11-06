@@ -72,7 +72,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { GlobalOutlined, HeartFilled } from '@ant-design/icons-vue'
@@ -80,6 +80,7 @@ import { useAppStore } from '@/stores/appStore'
 import AppLibraryCard from '@/components/library/AppLibraryCard.vue'
 import { getAppVoById } from '@/api/appController'
 import { listMyFavorites, toggleAppFavorite } from '@/api/socialController'
+import { isAbortError, runWithConcurrency } from '@/utils/asyncPool'
 
 const router = useRouter()
 const appStore = useAppStore()
@@ -91,6 +92,9 @@ const loadingMore = ref(false)
 const page = ref(1)
 const hasMore = ref(false)
 const apps = ref<(API.AppVO & { _favoriteTime?: string })[]>([])
+const pendingFavoriteIds = ref(new Set<number>())
+let favoritesRequestId = 0
+let favoritesController: AbortController | null = null
 
 const goToApp = (app: API.AppVO) => {
   if (app.id) {
@@ -111,7 +115,7 @@ const filteredApps = computed(() => {
   // 搜索过滤
   if (searchKeyword.value.trim()) {
     const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(app => app.appName?.toLowerCase().includes(keyword))
+    result = result.filter((app) => app.appName?.toLowerCase().includes(keyword))
   }
 
   // 排序
@@ -138,15 +142,19 @@ const handleUnfavorite = async (app: API.AppVO) => {
     message.warning('数字产物ID不存在')
     return
   }
+  if (pendingFavoriteIds.value.has(app.id)) return
+  pendingFavoriteIds.value.add(app.id)
   try {
     const res = await toggleAppFavorite({ appId: app.id })
-    if (res.data.code === 0) {
-      message.success('已取消收藏')
-      // 从列表中移除
-      apps.value = apps.value.filter(a => a.id !== app.id)
+    if (res.data.code !== 0) {
+      throw new Error(res.data.message || '操作失败')
     }
+    message.success('已取消收藏')
+    await fetchFavorites(1)
   } catch (error) {
-    message.error('操作失败')
+    message.error(error instanceof Error ? error.message : '操作失败')
+  } finally {
+    pendingFavoriteIds.value.delete(app.id)
   }
 }
 
@@ -154,46 +162,82 @@ const handleUnfavorite = async (app: API.AppVO) => {
  * 获取收藏列表并加载产物信息
  */
 const fetchFavorites = async (pageNum = 1) => {
+  if (pageNum > 1 && (loading.value || loadingMore.value || !hasMore.value)) return
+  const requestId = ++favoritesRequestId
+  favoritesController?.abort()
+  const controller = new AbortController()
+  favoritesController = controller
   if (pageNum === 1) loading.value = true
   else loadingMore.value = true
 
   try {
-    const res = await listMyFavorites({ pageNum, pageSize: 20 })
-    if (res.data.code === 0 && res.data.data) {
-      const records = res.data.data.records || []
-      // 批量获取产物信息
-      const appList: (API.AppVO & { _favoriteTime?: string })[] = []
-      for (const fav of records) {
-        if (!fav.appId) continue
+    const res = await listMyFavorites({ pageNum, pageSize: 20 }, { signal: controller.signal })
+    if (requestId !== favoritesRequestId) return
+    if (res.data.code !== 0 || !res.data.data) {
+      throw new Error(res.data.message || '收藏加载失败')
+    }
+    const records = res.data.data.records || []
+    const resolvedApps = new Array<(API.AppVO & { _favoriteTime?: string }) | undefined>(
+      records.length,
+    )
+
+    await runWithConcurrency(
+      records,
+      5,
+      async (favorite, index) => {
+        if (!favorite.appId || requestId !== favoritesRequestId) return
         try {
-          const appRes = await getAppVoById({ id: fav.appId })
-          if (appRes.data.code === 0 && appRes.data.data) {
-            appList.push({ ...appRes.data.data, _favoriteTime: fav.createTime })
+          const appRes = await getAppVoById({ id: favorite.appId }, { signal: controller.signal })
+          if (requestId === favoritesRequestId && appRes.data.code === 0 && appRes.data.data) {
+            resolvedApps[index] = {
+              ...appRes.data.data,
+              _favoriteTime: favorite.createTime,
+            }
           }
-        } catch {
-          // 产物可能已被删除，跳过
+        } catch (error) {
+          if (!isAbortError(error)) {
+            console.warn('收藏产物详情加载失败', favorite.appId, error)
+          }
         }
-      }
-      if (pageNum === 1) {
-        apps.value = appList
-      } else {
-        apps.value = [...apps.value, ...appList]
-      }
-      hasMore.value = records.length === 20
-      page.value = pageNum
+      },
+      () => requestId === favoritesRequestId && !controller.signal.aborted,
+    )
+
+    if (requestId !== favoritesRequestId) return
+    const appList = resolvedApps.filter((item): item is API.AppVO & { _favoriteTime?: string } =>
+      Boolean(item),
+    )
+    if (pageNum === 1) {
+      apps.value = appList
+    } else {
+      const knownIds = new Set(apps.value.map((item) => String(item.id)))
+      apps.value = [...apps.value, ...appList.filter((item) => !knownIds.has(String(item.id)))]
+    }
+    hasMore.value = records.length === 20
+    page.value = pageNum
+  } catch (error) {
+    if (!isAbortError(error) && requestId === favoritesRequestId) {
+      message.error('收藏加载失败，请稍后重试')
     }
   } finally {
-    loading.value = false
-    loadingMore.value = false
+    if (requestId === favoritesRequestId) {
+      loading.value = false
+      loadingMore.value = false
+    }
   }
 }
 
 const loadMore = () => {
-  fetchFavorites(page.value + 1)
+  void fetchFavorites(page.value + 1)
 }
 
 onMounted(() => {
-  fetchFavorites()
+  void fetchFavorites()
+})
+
+onBeforeUnmount(() => {
+  favoritesRequestId += 1
+  favoritesController?.abort()
 })
 </script>
 
@@ -260,7 +304,6 @@ onMounted(() => {
   padding: 60px 0;
   gap: 12px;
 }
-
 
 .empty-text {
   color: #999;
@@ -469,7 +512,10 @@ onMounted(() => {
   color: #666;
   background: transparent;
   cursor: pointer;
-  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
 }
 
 .favorite-remove-btn:hover {

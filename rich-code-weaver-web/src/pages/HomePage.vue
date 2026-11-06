@@ -15,7 +15,7 @@ import {
   PlayCircleOutlined,
   QuestionCircleOutlined,
   RobotOutlined,
-  RocketOutlined
+  RocketOutlined,
 } from '@ant-design/icons-vue'
 import { promptOptions } from '@/constants/prompts.ts'
 
@@ -30,26 +30,26 @@ const tourSteps = ref<TourProps['steps']>([
     title: '创意输入',
     description: '在这里输入您的数字产物创意描述，系统会根据描述生成完整数字产物',
     target: () => document.querySelector('.prompt-input') as HTMLElement,
-    placement: 'bottom'
+    placement: 'bottom',
   },
   {
     title: '热门提示词',
     description: '点击这里可以选择热门数字产物的提示词模板，快速开始创作',
     target: () => document.querySelector('.rich-select-button') as HTMLElement,
-    placement: 'bottom'
+    placement: 'bottom',
   },
   {
     title: '创建作品',
     description: '输入创意后点击这里创建您的数字产物作品',
     target: () => document.querySelector('.create-button') as HTMLElement,
-    placement: 'bottom'
+    placement: 'bottom',
   },
   {
     title: '我的创作空间',
     description: '这里展示您已创建的所有数字产物作品，可以随时查看和编辑',
     target: () => document.querySelector('.my-workspace') as HTMLElement,
-    placement: 'top'
-  }
+    placement: 'top',
+  },
 ])
 
 // 开始引导
@@ -87,13 +87,13 @@ const agentModeOptions = ref([
   {
     label: '系统分步执行模式',
     value: true,
-    desc: '基于一套工作流的系统分步执行模式会让 AI 有更强的分析和决策能力，构建出的数字产物更加完善、稳定'
+    desc: '基于一套工作流的系统分步执行模式会让 AI 有更强的分析和决策能力，构建出的数字产物更加完善、稳定',
   },
   {
     label: 'Agent智能生成模式',
     value: false,
-    desc: '基于训练后的 AI 模型直接构建数字产物，速度更快但可能不够完善'
-  }
+    desc: '基于训练后的 AI 模型直接构建数字产物，速度更快但可能不够完善',
+  },
 ])
 
 // 我的产物数据
@@ -101,7 +101,7 @@ const myApps = ref<API.AppVO[]>([])
 const myAppsPage = reactive({
   current: 1,
   pageSize: 6,
-  total: 0
+  total: 0,
 })
 const loadingMyApps = ref(false)
 const myAppsError = ref<string | null>(null)
@@ -111,7 +111,7 @@ const featuredApps = ref<API.AppVO[]>([])
 const featuredAppsPage = reactive({
   current: 1,
   pageSize: 6,
-  total: 0
+  total: 0,
 })
 
 // 设置提示词
@@ -137,7 +137,7 @@ const createApp = async () => {
     const res = await addApp({
       initPrompt: userPrompt.value.trim(),
       generatorType: generatorType.value,
-      genMode: useAgentMode.value ? 'workflow' : 'agent'
+      genMode: useAgentMode.value ? 'workflow' : 'agent',
     })
 
     if (res.data.code === 0 && res.data.data) {
@@ -147,7 +147,7 @@ const createApp = async () => {
       // 传递Agent模式参数
       await router.push({
         path: `/app/chat/${appId}`,
-        query: { useAgent: useAgentMode.value.toString() }
+        query: { useAgent: useAgentMode.value.toString() },
       })
     } else {
       message.error('创建失败：' + res.data.message)
@@ -174,12 +174,12 @@ const loadMyApps = async () => {
       pageNum: myAppsPage.current,
       pageSize: myAppsPage.pageSize,
       sortField: 'createTime',
-      sortOrder: 'desc'
+      sortOrder: 'desc',
     })
 
     if (res.data.code === 0 && res.data.data) {
       myApps.value = res.data.data.records || []
-      myAppsPage.total = res.data.data.totalRow || 0
+      myAppsPage.total = Number(res.data.data.totalRow) || 0
     } else {
       myAppsError.value = res.data.message || '加载失败'
     }
@@ -198,12 +198,12 @@ const loadFeaturedApps = async () => {
       pageNum: featuredAppsPage.current,
       pageSize: featuredAppsPage.pageSize,
       sortField: 'createTime',
-      sortOrder: 'desc'
+      sortOrder: 'desc',
     })
 
     if (res.data.code === 0 && res.data.data) {
       featuredApps.value = res.data.data.records || []
-      featuredAppsPage.total = res.data.data.totalRow || 0
+      featuredAppsPage.total = Number(res.data.data.totalRow) || 0
     }
   } catch (error) {
     console.error('加载星选数字产物失败：', error)
@@ -299,7 +299,6 @@ onMounted(() => {
               热门提示词
             </a-button>
 
-
             <!-- 创建作品按钮 -->
             <a-button
               :loading="creating"
@@ -337,7 +336,7 @@ onMounted(() => {
               class="prompt-card"
               @click="handlePromptSelect(option.value)"
             >
-              <div :style="{backgroundColor: option.color}" class="prompt-card-icon">
+              <div :style="{ backgroundColor: option.color }" class="prompt-card-icon">
                 <component :is="option.icon" />
               </div>
               <div class="prompt-card-content">
@@ -402,11 +401,7 @@ onMounted(() => {
               <span class="tab-icon">⭐</span>
               <span class="tab-text">星选灵感工坊</span>
             </div>
-            <div
-              :class="{ active: activeTab === 'my' }"
-              class="tab"
-              @click="activeTab = 'my'"
-            >
+            <div :class="{ active: activeTab === 'my' }" class="tab" @click="activeTab = 'my'">
               <span class="tab-icon">🎨</span>
               <span class="tab-text">我的创作空间</span>
             </div>
@@ -450,11 +445,7 @@ onMounted(() => {
                   :class="{ 'app-disabled': !isAppGenerated(app) }"
                   class="app-wrapper"
                 >
-                  <AppCard
-                    :app="app"
-                    @view-chat="viewChat"
-                    @view-work="viewWork"
-                  />
+                  <AppCard :app="app" @view-chat="viewChat" @view-work="viewWork" />
                   <div v-if="!isAppGenerated(app)" class="app-overlay-disabled">
                     <div class="overlay-content">
                       <a-spin size="small" />
@@ -493,7 +484,14 @@ onMounted(() => {
 @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@300;400;700&family=Nunito:wght@300;400;600;700&display=swap');
 
 #creativeStudio {
-  font-family: 'Nunito', 'Comic Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Nunito',
+    'Comic Neue',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   width: 100%;
   min-height: 100vh;
   background: #f8f9fa;
@@ -755,7 +753,11 @@ onMounted(() => {
 }
 
 @keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
     transform: translateY(0);
   }
   40% {
@@ -1068,7 +1070,9 @@ onMounted(() => {
 /* 过渡动画 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .fade-enter-from,
@@ -1092,7 +1096,6 @@ onMounted(() => {
 .pagination-wrapper :deep(.ant-pagination-next .ant-pagination-item-link) {
   border-radius: 10px;
 }
-
 
 /* 响应式设计 */
 @media (max-width: 768px) {

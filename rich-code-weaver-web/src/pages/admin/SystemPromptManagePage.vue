@@ -64,9 +64,12 @@
           </a-tooltip>
         </template>
         <template v-if="column.dataIndex === 'promptContent'">
-          <span
-            class="content-cell">{{ record.promptContent ? record.promptContent.substring(0, 60) + (record.promptContent.length > 60 ? '...' : '') : '-'
-            }}</span>
+          <span class="content-cell">{{
+            record.promptContent
+              ? record.promptContent.substring(0, 60) +
+                (record.promptContent.length > 60 ? '...' : '')
+              : '-'
+          }}</span>
         </template>
         <template v-if="column.dataIndex === 'description'">
           <span class="desc-cell">{{ record.description || '-' }}</span>
@@ -87,13 +90,18 @@
     <a-modal
       v-model:open="metaModalVisible"
       :cancel-text="'取消'"
+      :confirm-loading="metaSubmitting"
       :ok-text="'提交'"
       :title="isEdit ? '修改提示词信息' : '新增提示词'"
       width="560px"
       @ok="handleMetaSubmit"
     >
-      <a-form :label-col="{ span: 5 }" :model="metaForm" :wrapper-col="{ span: 19 }"
-              style="margin-top: 16px;">
+      <a-form
+        :label-col="{ span: 5 }"
+        :model="metaForm"
+        :wrapper-col="{ span: 19 }"
+        style="margin-top: 16px"
+      >
         <a-form-item label="提示词名称" required>
           <a-input v-model:value="metaForm.promptName" placeholder="如：HTML代码生成" />
         </a-form-item>
@@ -102,8 +110,11 @@
           <div class="form-tip">唯一标识，用于程序中定位该提示词</div>
         </a-form-item>
         <a-form-item label="描述">
-          <a-textarea v-model:value="metaForm.description" :rows="3"
-                      placeholder="提示词的简短描述" />
+          <a-textarea
+            v-model:value="metaForm.description"
+            :rows="3"
+            placeholder="提示词的简短描述"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -148,7 +159,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons-vue'
 import { MdEditor } from 'md-editor-v3'
@@ -157,12 +168,15 @@ import {
   addSystemPrompt,
   deleteSystemPrompt,
   listSystemPromptByPage,
-  updateSystemPrompt
+  updateSystemPrompt,
 } from '@/api/systemPromptController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 
 const loading = ref(false)
 const saving = ref(false)
+const metaSubmitting = ref(false)
+const deletingPromptIds = reactive(new Set<number>())
+let fetchRequestId = 0
 const dataList = ref<API.SystemPromptVO[]>([])
 const metaModalVisible = ref(false)
 const editorModalVisible = ref(false)
@@ -174,7 +188,7 @@ const searchParams = reactive<API.SystemPromptQueryRequest>({
   pageNum: 1,
   pageSize: 10,
   promptName: '',
-  promptKey: ''
+  promptKey: '',
 })
 
 const pagination = reactive({
@@ -182,14 +196,14 @@ const pagination = reactive({
   pageSize: 10,
   total: 0,
   showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`
+  showTotal: (total: number) => `共 ${total} 条`,
 })
 
 const metaForm = reactive({
   id: undefined as number | undefined,
   promptName: '',
   promptKey: '',
-  description: ''
+  description: '',
 })
 
 const columns = [
@@ -199,25 +213,31 @@ const columns = [
   { title: '内容预览', dataIndex: 'promptContent', width: 240, ellipsis: true },
   { title: '描述', dataIndex: 'description', width: 180, ellipsis: true },
   { title: '更新时间', dataIndex: 'updateTime', width: 170 },
-  { title: '操作', dataIndex: 'action', width: 200, fixed: 'right' as const }
+  { title: '操作', dataIndex: 'action', width: 200, fixed: 'right' as const },
 ]
 
 const fetchData = async () => {
+  const requestId = ++fetchRequestId
   loading.value = true
   try {
     const res = await listSystemPromptByPage({
       ...searchParams,
       pageNum: pagination.current,
-      pageSize: pagination.pageSize
+      pageSize: pagination.pageSize,
     })
+    if (requestId !== fetchRequestId) return
     if (res.data.code === 0 && res.data.data) {
       dataList.value = res.data.data.records || []
-      pagination.total = res.data.data.totalRow || 0
+      pagination.total = Number(res.data.data.totalRow) || 0
+    } else if (res.data.code !== 0) {
+      message.error('加载系统提示词列表失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (e) {
+    if (requestId !== fetchRequestId) return
     console.error('加载系统提示词列表失败', e)
+    message.error('加载系统提示词列表失败，请稍后重试')
   } finally {
-    loading.value = false
+    if (requestId === fetchRequestId) loading.value = false
   }
 }
 
@@ -232,9 +252,9 @@ const resetSearch = () => {
   doSearch()
 }
 
-const handleTableChange = (pag: any) => {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
+const handleTableChange = (pag: { current?: number; pageSize?: number }) => {
+  pagination.current = pag.current || 1
+  pagination.pageSize = pag.pageSize || 10
   fetchData()
 }
 
@@ -247,12 +267,20 @@ const resetMetaForm = () => {
 }
 
 const showAddModal = () => {
+  if (metaSubmitting.value) {
+    message.warning('提示词信息正在提交，请稍候')
+    return
+  }
   isEdit.value = false
   resetMetaForm()
   metaModalVisible.value = true
 }
 
 const showEditModal = (record: API.SystemPromptVO) => {
+  if (metaSubmitting.value) {
+    message.warning('提示词信息正在提交，请稍候')
+    return
+  }
   isEdit.value = true
   metaForm.id = record.id
   metaForm.promptName = record.promptName || ''
@@ -262,6 +290,7 @@ const showEditModal = (record: API.SystemPromptVO) => {
 }
 
 const handleMetaSubmit = async () => {
+  if (metaSubmitting.value) return
   if (!metaForm.promptName) {
     message.warning('提示词名称不能为空')
     return
@@ -271,13 +300,14 @@ const handleMetaSubmit = async () => {
     return
   }
 
+  metaSubmitting.value = true
   try {
     if (isEdit.value && metaForm.id) {
       const res = await updateSystemPrompt({
         id: metaForm.id,
         promptName: metaForm.promptName,
         promptKey: metaForm.promptKey,
-        description: metaForm.description
+        description: metaForm.description,
       })
       if (res.data.code === 0) {
         message.success('更新成功')
@@ -290,7 +320,7 @@ const handleMetaSubmit = async () => {
       const res = await addSystemPrompt({
         promptName: metaForm.promptName,
         promptKey: metaForm.promptKey,
-        description: metaForm.description
+        description: metaForm.description,
       })
       if (res.data.code === 0) {
         message.success('新增成功')
@@ -300,12 +330,16 @@ const handleMetaSubmit = async () => {
         message.error('新增失败：' + res.data.message)
       }
     }
-  } catch (e: any) {
-    message.error('操作失败：' + (e.message || '请重试'))
+  } catch (e: unknown) {
+    message.error('操作失败：' + (e instanceof Error ? e.message : '请重试'))
+  } finally {
+    metaSubmitting.value = false
   }
 }
 
 const handleDelete = async (id: number) => {
+  if (deletingPromptIds.has(id)) return
+  deletingPromptIds.add(id)
   try {
     const res = await deleteSystemPrompt({ id })
     if (res.data.code === 0) {
@@ -314,39 +348,45 @@ const handleDelete = async (id: number) => {
     } else {
       message.error('删除失败：' + res.data.message)
     }
-  } catch (e: any) {
-    message.error('删除失败：' + (e.message || '请重试'))
+  } catch (e: unknown) {
+    message.error('删除失败：' + (e instanceof Error ? e.message : '请重试'))
+  } finally {
+    deletingPromptIds.delete(id)
   }
 }
 
 // ===== 提示词内容编辑器 =====
 const openEditor = (record: API.SystemPromptVO) => {
+  if (saving.value || metaSubmitting.value) {
+    message.warning('提示词正在保存，请稍候')
+    return
+  }
   currentEditPrompt.value = record
   editorContent.value = record.promptContent || ''
   editorModalVisible.value = true
 }
 
 const handleSaveContent = async () => {
-  if (!currentEditPrompt.value?.id) return
+  if (saving.value || !currentEditPrompt.value?.id) return
 
   saving.value = true
   try {
     const res = await updateSystemPrompt({
       id: currentEditPrompt.value.id,
-      promptContent: editorContent.value
+      promptContent: editorContent.value,
     })
     if (res.data.code === 0) {
       message.success('保存成功')
       // 同步更新列表中的数据
-      const idx = dataList.value.findIndex(item => item.id === currentEditPrompt.value?.id)
+      const idx = dataList.value.findIndex((item) => item.id === currentEditPrompt.value?.id)
       if (idx !== -1) {
         dataList.value[idx].promptContent = editorContent.value
       }
     } else {
       message.error('保存失败：' + res.data.message)
     }
-  } catch (e: any) {
-    message.error('保存失败：' + (e.message || '请重试'))
+  } catch (e: unknown) {
+    message.error('保存失败：' + (e instanceof Error ? e.message : '请重试'))
   } finally {
     saving.value = false
   }
@@ -354,6 +394,10 @@ const handleSaveContent = async () => {
 
 onMounted(() => {
   fetchData()
+})
+
+onBeforeUnmount(() => {
+  fetchRequestId += 1
 })
 </script>
 

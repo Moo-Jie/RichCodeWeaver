@@ -21,7 +21,9 @@
             >
               {{ togglingTop ? '处理中...' : post?.isTop ? '取消置顶' : '设为置顶' }}
             </button>
-            <span class="detail-time">最后活跃 {{ formatDateTime(post?.updateTime || post?.createTime) }}</span>
+            <span class="detail-time"
+              >最后活跃 {{ formatDateTime(post?.updateTime || post?.createTime) }}</span
+            >
           </div>
         </div>
 
@@ -50,7 +52,11 @@
             <div class="detail-actions">
               <span class="stat-text">{{ post.viewCount || 0 }} 浏览</span>
               <span class="stat-text">{{ post.replyCount || 0 }} 回复</span>
-              <button :class="['like-btn', { liked: post.hasLiked }]" @click="handleLikePost">
+              <button
+                :class="['like-btn', { liked: post.hasLiked }]"
+                :disabled="likingPost"
+                @click="handleLikePost"
+              >
                 {{ post.hasLiked ? '已点赞' : '点赞帖子' }} · {{ post.likeCount || 0 }}
               </button>
             </div>
@@ -123,7 +129,11 @@
                       <span class="author-meta">{{ formatDateTime(reply.createTime) }}</span>
                     </div>
                   </div>
-                  <button :class="['icon-like-btn', { liked: reply.hasLiked }]" @click="handleLikeReply(reply)">
+                  <button
+                    :class="['icon-like-btn', { liked: reply.hasLiked }]"
+                    :disabled="pendingReplyLikeIds.has(String(reply.id))"
+                    @click="handleLikeReply(reply)"
+                  >
                     {{ reply.likeCount || 0 }} 赞
                   </button>
                 </div>
@@ -149,9 +159,9 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import {
   addCommunityReply,
   deleteCommunityPost,
@@ -160,7 +170,7 @@ import {
   listCommunityReplyByPage,
   toggleCommunityPostLike,
   toggleCommunityReplyLike,
-  updateCommunityPostTopStatus
+  updateCommunityPostTopStatus,
 } from '@/api/communityController'
 import CommunitySidebarCards from '@/components/community/CommunitySidebarCards.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
@@ -176,6 +186,9 @@ const submittingReply = ref(false)
 const replyContent = ref('')
 const togglingTop = ref(false)
 const deleting = ref(false)
+const likingPost = ref(false)
+const pendingReplyLikeIds = ref(new Set<string>())
+let dataRequestId = 0
 const post = ref<API.CommunityPostVO>()
 const replies = ref<API.CommunityReplyVO[]>([])
 const relatedPosts = ref<API.CommunityPostVO[]>([])
@@ -184,7 +197,7 @@ const categoryOptions = [
   { label: '讨论', value: 'discuss' },
   { label: '问答', value: 'question' },
   { label: '反馈', value: 'feedback' },
-  { label: '分享', value: 'share' }
+  { label: '分享', value: 'share' },
 ]
 
 const postId = computed(() => {
@@ -202,7 +215,7 @@ const canDelete = computed(() => {
 })
 
 const getCategoryLabel = (category?: string) => {
-  return categoryOptions.find(item => item.value === category)?.label || '讨论'
+  return categoryOptions.find((item) => item.value === category)?.label || '讨论'
 }
 
 const formatDateTime = (time?: string) => {
@@ -219,120 +232,150 @@ const ensureLogin = () => {
   return true
 }
 
-const fetchRelatedPosts = async () => {
+const fetchRelatedPosts = async (requestId: number, targetPostId: string) => {
   const res = await listCommunityPostByPage({
     pageNum: 1,
     pageSize: 10,
     sortField: 'lastActive',
-    sortOrder: 'descend'
+    sortOrder: 'descend',
   })
-  if (res.data.code === 0 && res.data.data) {
-    relatedPosts.value = (res.data.data.records || []).filter(item => String(item.id) !== String(postId.value))
-  }
+  if (requestId !== dataRequestId || String(postId.value) !== targetPostId) return false
+  if (res.data.code !== 0 || !res.data.data) throw new Error(res.data.message || '相关帖子加载失败')
+  relatedPosts.value = (res.data.data.records || []).filter(
+    (item) => String(item.id) !== targetPostId,
+  )
+  return true
 }
 
-const fetchPostDetail = async (increaseView = false) => {
-  if (!postId.value) return
-  loading.value = true
+const fetchPostDetail = async (requestId: number, targetPostId: string, increaseView = false) => {
+  const res = await getCommunityPostVOById({ id: targetPostId, increaseView })
+  if (requestId !== dataRequestId || String(postId.value) !== targetPostId) return false
+  if (res.data.code !== 0 || !res.data.data) throw new Error(res.data.message || '帖子加载失败')
+  post.value = res.data.data
+  return true
+}
+
+const fetchReplies = async (requestId: number, targetPostId: string) => {
+  const res = await listCommunityReplyByPage({ postId: targetPostId, pageNum: 1, pageSize: 50 })
+  if (requestId !== dataRequestId || String(postId.value) !== targetPostId) return false
+  if (res.data.code !== 0 || !res.data.data) throw new Error(res.data.message || '回复加载失败')
+  replies.value = res.data.data.records || []
+  return true
+}
+
+const loadPageData = async (increaseView = false, resetView = false) => {
+  const targetPostId = String(postId.value || '')
+  if (!targetPostId) return
+  const requestId = ++dataRequestId
+  if (resetView) {
+    post.value = undefined
+    replies.value = []
+    relatedPosts.value = []
+    loading.value = true
+    repliesLoading.value = true
+  }
   try {
-    const res = await getCommunityPostVOById({ id: postId.value, increaseView })
-    if (res.data.code === 0) {
-      post.value = res.data.data
+    const results = await Promise.allSettled([
+      fetchPostDetail(requestId, targetPostId, increaseView),
+      fetchReplies(requestId, targetPostId),
+      fetchRelatedPosts(requestId, targetPostId),
+    ])
+    if (requestId === dataRequestId && results.some((item) => item.status === 'rejected')) {
+      message.error('部分社区内容加载失败，请稍后重试')
     }
   } finally {
-    loading.value = false
-  }
-}
-
-const fetchReplies = async () => {
-  if (!postId.value) return
-  repliesLoading.value = true
-  try {
-    const res = await listCommunityReplyByPage({
-      postId: postId.value,
-      pageNum: 1,
-      pageSize: 50
-    })
-    if (res.data.code === 0 && res.data.data) {
-      replies.value = res.data.data.records || []
+    if (requestId === dataRequestId) {
+      loading.value = false
+      repliesLoading.value = false
     }
-  } finally {
-    repliesLoading.value = false
   }
-}
-
-const loadPageData = async (increaseView = false) => {
-  await Promise.all([fetchPostDetail(increaseView), fetchReplies(), fetchRelatedPosts()])
 }
 
 const handleLikePost = async () => {
-  if (!ensureLogin() || !post.value?.id) return
+  if (!ensureLogin() || !post.value?.id || likingPost.value) return
+  likingPost.value = true
   try {
     const res = await toggleCommunityPostLike({ postId: post.value.id })
-    if (res.data.code === 0) {
-      const liked = !!res.data.data
-      post.value.hasLiked = liked
-      post.value.likeCount = Math.max(0, (post.value.likeCount || 0) + (liked ? 1 : -1))
-    }
-  } catch {
-    message.error('操作失败')
+    if (res.data.code !== 0) throw new Error(res.data.message || '操作失败')
+    const liked = !!res.data.data
+    post.value.hasLiked = liked
+    post.value.likeCount = Math.max(0, (Number(post.value.likeCount) || 0) + (liked ? 1 : -1))
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '操作失败')
+  } finally {
+    likingPost.value = false
   }
 }
 
-const handleDeletePost = async () => {
-  if (!ensureLogin() || !post.value?.id || !canDelete.value) return
+const handleDeletePost = () => {
+  const targetPostId = post.value?.id
+  if (!ensureLogin() || !targetPostId || !canDelete.value || deleting.value) return
   deleting.value = true
-  try {
-    const res = await deleteCommunityPost({ postId: post.value.id })
-    if (res.data.code === 0) {
-      message.success('帖子已删除')
-      router.replace('/community')
-    } else {
-      message.error(res.data.message || '删除失败')
-    }
-  } catch {
-    message.error('删除失败')
-  } finally {
-    deleting.value = false
-  }
+  Modal.confirm({
+    title: '确认删除这篇帖子？',
+    content: '删除后帖子与全部回复将无法恢复。',
+    okText: '删除',
+    okType: 'danger',
+    cancelText: '取消',
+    centered: true,
+    onCancel: () => {
+      deleting.value = false
+    },
+    onOk: async () => {
+      try {
+        const res = await deleteCommunityPost({ postId: targetPostId })
+        if (res.data.code !== 0) throw new Error(res.data.message || '删除失败')
+        message.success('帖子已删除')
+        await router.replace('/community')
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : '删除失败')
+      } finally {
+        deleting.value = false
+      }
+    },
+  })
 }
 
 const handleToggleTop = async () => {
-  if (!ensureLogin() || !post.value?.id || !isAdmin.value) return
+  const targetPostId = post.value?.id
+  if (!ensureLogin() || !targetPostId || !isAdmin.value || togglingTop.value) return
   togglingTop.value = true
   try {
-    const nextTop = post.value.isTop ? 0 : 1
-    const res = await updateCommunityPostTopStatus({ postId: post.value.id, isTop: nextTop })
-    if (res.data.code === 0) {
-      post.value.isTop = nextTop
-      message.success(nextTop ? '已设为置顶' : '已取消置顶')
-      await fetchRelatedPosts()
-    } else {
-      message.error(res.data.message || '操作失败')
-    }
-  } catch {
-    message.error('操作失败')
+    const nextTop = post.value?.isTop ? 0 : 1
+    const res = await updateCommunityPostTopStatus({ postId: targetPostId, isTop: nextTop })
+    if (res.data.code !== 0) throw new Error(res.data.message || '操作失败')
+    if (String(postId.value) !== String(targetPostId)) return
+    if (post.value) post.value.isTop = nextTop
+    message.success(nextTop ? '已设为置顶' : '已取消置顶')
+    await loadPageData(false, false)
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '操作失败')
   } finally {
     togglingTop.value = false
   }
 }
 
 const handleLikeReply = async (reply: API.CommunityReplyVO) => {
-  if (!ensureLogin() || !reply.id) return
+  if (!reply.id) return
+  const replyId = String(reply.id)
+  if (!ensureLogin() || pendingReplyLikeIds.value.has(replyId)) return
+  pendingReplyLikeIds.value.add(replyId)
   try {
     const res = await toggleCommunityReplyLike({ replyId: reply.id })
-    if (res.data.code === 0) {
-      const liked = !!res.data.data
-      reply.hasLiked = liked
-      reply.likeCount = Math.max(0, (reply.likeCount || 0) + (liked ? 1 : -1))
-    }
-  } catch {
-    message.error('操作失败')
+    if (res.data.code !== 0) throw new Error(res.data.message || '操作失败')
+    const liked = !!res.data.data
+    reply.hasLiked = liked
+    reply.likeCount = Math.max(0, (Number(reply.likeCount) || 0) + (liked ? 1 : -1))
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '操作失败')
+  } finally {
+    pendingReplyLikeIds.value.delete(replyId)
   }
 }
 
 const submitReply = async () => {
-  if (!ensureLogin() || !post.value?.id) return
+  const targetPostId = post.value?.id
+  if (!ensureLogin() || !targetPostId || submittingReply.value) return
   if (!replyContent.value.trim()) {
     message.warning('请输入回复内容')
     return
@@ -340,18 +383,16 @@ const submitReply = async () => {
   submittingReply.value = true
   try {
     const res = await addCommunityReply({
-      postId: post.value.id,
-      content: replyContent.value.trim()
+      postId: targetPostId,
+      content: replyContent.value.trim(),
     })
-    if (res.data.code === 0) {
-      message.success('回复成功')
-      replyContent.value = ''
-      await Promise.all([fetchPostDetail(false), fetchReplies(), fetchRelatedPosts()])
-    } else {
-      message.error(res.data.message || '回复失败')
-    }
-  } catch {
-    message.error('回复失败')
+    if (res.data.code !== 0) throw new Error(res.data.message || '回复失败')
+    if (String(postId.value) !== String(targetPostId)) return
+    message.success('回复成功')
+    replyContent.value = ''
+    await loadPageData(false, false)
+  } catch (error) {
+    message.error(error instanceof Error ? error.message : '回复失败')
   } finally {
     submittingReply.value = false
   }
@@ -370,12 +411,17 @@ watch(
   () => route.params.id,
   async (value, oldValue) => {
     if (!value) return
-    await loadPageData(value !== oldValue)
-  }
+    await loadPageData(value !== oldValue, true)
+  },
 )
 
 onMounted(async () => {
-  await loadPageData(true)
+  await loadPageData(true, true)
+})
+
+onBeforeUnmount(() => {
+  dataRequestId += 1
+  pendingReplyLikeIds.value.clear()
 })
 </script>
 

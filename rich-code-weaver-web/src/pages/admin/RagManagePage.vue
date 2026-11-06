@@ -15,26 +15,40 @@
           <a-input v-model:value="searchParams.docTitle" allow-clear placeholder="输入标题关键词" />
         </a-form-item>
         <a-form-item class="search-item" label="业务类型">
-          <a-select v-model:value="searchParams.bizType" allow-clear
-                    placeholder="全部业务" style="width: 180px">
-            <a-select-option v-for="item in bizTypeOptions" :key="item.value"
-                             :value="item.value">
+          <a-select
+            v-model:value="searchParams.bizType"
+            allow-clear
+            placeholder="全部业务"
+            style="width: 180px"
+          >
+            <a-select-option v-for="item in bizTypeOptions" :key="item.value" :value="item.value">
               {{ item.label }}
             </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item class="search-item" label="适用类型">
-          <a-select v-model:value="searchParams.codeGenType" allow-clear
-                    placeholder="全部类型" style="width: 280px">
-            <a-select-option v-for="item in codeGenTypeOptions" :key="item.value"
-                             :value="item.value">
+          <a-select
+            v-model:value="searchParams.codeGenType"
+            allow-clear
+            placeholder="全部类型"
+            style="width: 280px"
+          >
+            <a-select-option
+              v-for="item in codeGenTypeOptions"
+              :key="item.value"
+              :value="item.value"
+            >
               {{ item.label }}
             </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item class="search-item" label="状态">
-          <a-select v-model:value="searchParams.isEnabled" allow-clear placeholder="全部"
-                    style="width: 100px">
+          <a-select
+            v-model:value="searchParams.isEnabled"
+            allow-clear
+            placeholder="全部"
+            style="width: 100px"
+          >
             <a-select-option :value="1">启用</a-select-option>
             <a-select-option :value="0">禁用</a-select-option>
           </a-select>
@@ -103,8 +117,10 @@
           <a-space>
             <a @click="showEditModal(record)">编辑信息</a>
             <a @click="openEditor(record)">编辑内容</a>
-            <a-popconfirm title="确定删除该文档？删除后需重新刷新混合索引才能生效。"
-                          @confirm="handleDelete(record.id)">
+            <a-popconfirm
+              title="确定删除该文档？删除后需重新刷新混合索引才能生效。"
+              @confirm="handleDelete(record.id)"
+            >
               <a class="danger-link">删除</a>
             </a-popconfirm>
           </a-space>
@@ -116,7 +132,9 @@
     <a-card :loading="paramsLoading" class="params-panel">
       <div class="params-header">
         <h2>RAG 参数配置</h2>
-        <p class="params-sub">动态调整向量化、检索和注入各阶段参数，修改后立即生效（无需重新索引）</p>
+        <p class="params-sub">
+          动态调整向量化、检索和注入各阶段参数，修改后立即生效（无需重新索引）
+        </p>
       </div>
 
       <div v-if="paramGroups.length > 0">
@@ -135,7 +153,9 @@
                 <div class="slider-wrap">
                   <a-slider
                     v-model:value="paramDrafts[param.paramKey || '']"
-                    :marks="{ 1: '1', 5: '5', 10: '10', 20: '20' }" :max="20" :min="1"
+                    :marks="{ 1: '1', 5: '5', 10: '10', 20: '20' }"
+                    :max="20"
+                    :min="1"
                     :step="1"
                     style="flex: 1; min-width: 180px"
                   />
@@ -146,7 +166,9 @@
                 <div class="slider-wrap">
                   <a-slider
                     v-model:value="paramDrafts[param.paramKey || '']"
-                    :marks="{ 0: '0', 0.5: '0.5', 1: '1' }" :max="1" :min="0"
+                    :marks="{ 0: '0', 0.5: '0.5', 1: '1' }"
+                    :max="1"
+                    :min="0"
                     :step="0.05"
                     style="flex: 1; min-width: 180px"
                   />
@@ -197,46 +219,62 @@
       v-model:open="metaModalVisible"
       :title="isEdit ? '编辑文档信息' : '新增知识库文档'"
       cancel-text="取消"
+      :confirm-loading="metaSubmitting"
       ok-text="提交"
       width="560px"
       @ok="handleMetaSubmit"
     >
-      <a-form :label-col="{ span: 5 }" :model="metaForm" :wrapper-col="{ span: 19 }"
-              style="margin-top: 16px;">
+      <a-form
+        :label-col="{ span: 5 }"
+        :model="metaForm"
+        :wrapper-col="{ span: 19 }"
+        style="margin-top: 16px"
+      >
         <a-form-item label="文档标题" required>
           <a-input v-model:value="metaForm.docTitle" placeholder="请输入文档标题" />
         </a-form-item>
         <a-form-item label="业务类型" required>
-          <a-select v-model:value="metaForm.bizType" placeholder="请选择文档业务类型"
-                    style="width: 220px">
-            <a-select-option v-for="item in bizTypeOptions" :key="item.value"
-                             :value="item.value">
+          <a-select
+            v-model:value="metaForm.bizType"
+            placeholder="请选择文档业务类型"
+            style="width: 220px"
+          >
+            <a-select-option v-for="item in bizTypeOptions" :key="item.value" :value="item.value">
               {{ item.label }}
             </a-select-option>
           </a-select>
           <div class="form-hint">AI 客服知识库只会被首页客服助手检索</div>
         </a-form-item>
         <a-form-item label="适用类型" required>
-          <a-select v-model:value="metaForm.codeGenType" placeholder="请选择适用的代码生成类型"
-                    style="width: 280px">
-            <a-select-option v-for="item in codeGenTypeOptions" :key="item.value"
-                             :value="item.value">
+          <a-select
+            v-model:value="metaForm.codeGenType"
+            placeholder="请选择适用的代码生成类型"
+            style="width: 280px"
+          >
+            <a-select-option
+              v-for="item in codeGenTypeOptions"
+              :key="item.value"
+              :value="item.value"
+            >
               {{ item.label }}
             </a-select-option>
           </a-select>
           <div class="form-hint">GENERAL 表示所有代码生成类型均使用该文档</div>
         </a-form-item>
         <a-form-item label="文档描述">
-          <a-textarea v-model:value="metaForm.description" :rows="2"
-                      placeholder="简短描述文档用途" />
+          <a-textarea
+            v-model:value="metaForm.description"
+            :rows="2"
+            placeholder="简短描述文档用途"
+          />
         </a-form-item>
         <a-form-item label="排序权重">
           <a-input-number v-model:value="metaForm.sortOrder" :max="9999" :min="0" />
-          <span class="form-hint" style="margin-left: 8px;">数字越小越靠前</span>
+          <span class="form-hint" style="margin-left: 8px">数字越小越靠前</span>
         </a-form-item>
         <a-form-item label="是否启用">
           <a-switch v-model:checked="metaFormEnabled" />
-          <span class="form-hint" style="margin-left: 8px;">禁用的文档不会被摄入向量库</span>
+          <span class="form-hint" style="margin-left: 8px">禁用的文档不会被摄入向量库</span>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -254,11 +292,16 @@
       <div class="editor-wrapper">
         <div class="editor-toolbar">
           <div class="editor-info">
-            <a-tag :color="bizTypeColorMap[getBizTypeValue(currentEditDoc || {})] || 'blue'" size="small">
+            <a-tag
+              :color="bizTypeColorMap[getBizTypeValue(currentEditDoc || {})] || 'blue'"
+              size="small"
+            >
               {{ bizTypeLabelMap[getBizTypeValue(currentEditDoc || {})] || '代码生成' }}
             </a-tag>
-            <a-tag :color="codeGenTypeColorMap[currentEditDoc?.codeGenType || ''] || 'default'"
-                   size="small">
+            <a-tag
+              :color="codeGenTypeColorMap[currentEditDoc?.codeGenType || ''] || 'default'"
+              size="small"
+            >
               {{ getCodeGenTypeLabel(currentEditDoc || {}) }}
             </a-tag>
             <span class="editor-char-count">{{ editorContent.length }} 字符</span>
@@ -294,6 +337,7 @@
       :title="reindexModalTitle"
       centered
       width="660px"
+      @cancel="closeReindexModal"
     >
       <!-- 确认阶段 -->
       <div v-if="reindexState === 'confirm'" class="reindex-confirm">
@@ -342,12 +386,16 @@
 
         <div class="reindex-confirm-note">
           <SyncOutlined />
-          <span>将触发索引重建任务；Milvus 与 Elasticsearch 的耗时当前为前端模拟，后端能力接入后以真实执行结果为准。</span>
+          <span
+            >将触发索引重建任务；Milvus 与 Elasticsearch
+            的耗时当前为前端模拟，后端能力接入后以真实执行结果为准。</span
+          >
         </div>
         <p class="reindex-confirm-sub">重建过程预计 3-10 秒，期间请勿关闭页面。</p>
         <div class="reindex-confirm-btns">
-          <a-button @click="reindexModalVisible = false">取消</a-button>
-          <a-button class="confirm-primary-btn" type="primary" @click="startReindex">确认重建
+          <a-button @click="closeReindexModal">取消</a-button>
+          <a-button class="confirm-primary-btn" type="primary" @click="startReindex"
+            >确认重建
           </a-button>
         </div>
       </div>
@@ -403,7 +451,9 @@
                   <span :style="{ width: `${getStepProgress('elasticsearch')}%` }"></span>
                 </span>
               </div>
-              <span v-if="getStepStatus('elasticsearch') === 'loading'" class="engine-parallel">并行</span>
+              <span v-if="getStepStatus('elasticsearch') === 'loading'" class="engine-parallel"
+                >并行</span
+              >
             </div>
           </div>
           <svg class="flow-connector" viewBox="0 0 66 138" aria-hidden="true">
@@ -443,8 +493,12 @@
             </div>
             <span class="step-status">
               {{ getStepStatusLabel(step.status) }}
-              <template v-if="step.status === 'loading' && step.eta"> · 预计 {{ step.eta }}</template>
-              <template v-else-if="step.status === 'done' && step.duration"> · {{ step.duration }}</template>
+              <template v-if="step.status === 'loading' && step.eta">
+                · 预计 {{ step.eta }}</template
+              >
+              <template v-else-if="step.status === 'done' && step.duration">
+                · {{ step.duration }}</template
+              >
             </span>
           </div>
         </div>
@@ -455,7 +509,7 @@
         </div>
 
         <div v-if="reindexState === 'done' || reindexState === 'error'" class="reindex-done-btn">
-          <a-button class="confirm-primary-btn" type="primary" @click="reindexModalVisible = false">
+          <a-button class="confirm-primary-btn" type="primary" @click="closeReindexModal">
             关闭
           </a-button>
         </div>
@@ -465,7 +519,7 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   ApartmentOutlined,
@@ -478,7 +532,7 @@ import {
   PlusOutlined,
   SaveOutlined,
   SearchOutlined,
-  SyncOutlined
+  SyncOutlined,
 } from '@ant-design/icons-vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
@@ -487,7 +541,7 @@ import {
   deleteRagDocument,
   listRagDocumentByPage,
   reindexRagDocuments,
-  updateRagDocument
+  updateRagDocument,
 } from '@/api/ragDocumentController'
 import AdminBackToDashboardButton from '@/components/admin/AdminBackToDashboardButton.vue'
 import { listRagParams, updateRagParam } from '@/api/ragParamController'
@@ -496,20 +550,24 @@ import { listRagParams, updateRagParam } from '@/api/ragParamController'
 const loading = ref(false)
 const dataList = ref<API.RagDocumentVO[]>([])
 const isEdit = ref(false)
+const metaSubmitting = ref(false)
+const deletingRagDocumentIds = reactive(new Set<number>())
+let dataRequestId = 0
+let paramsRequestId = 0
 
 const bizTypeOptions = [
   { value: 'CODE_GEN', label: '代码生成' },
-  { value: 'CUSTOMER_SERVICE', label: 'AI 客服' }
+  { value: 'CUSTOMER_SERVICE', label: 'AI 客服' },
 ]
 
 const bizTypeLabelMap: Record<string, string> = {
   CODE_GEN: '代码生成',
-  CUSTOMER_SERVICE: 'AI 客服'
+  CUSTOMER_SERVICE: 'AI 客服',
 }
 
 const bizTypeColorMap: Record<string, string> = {
   CODE_GEN: 'blue',
-  CUSTOMER_SERVICE: 'geekblue'
+  CUSTOMER_SERVICE: 'geekblue',
 }
 
 const codeGenTypeOptions = [
@@ -517,7 +575,7 @@ const codeGenTypeOptions = [
   { value: 'MULTI_FILE', label: 'MULTI_FILE — 多文件模式' },
   { value: 'VUE_PROJECT', label: 'VUE_PROJECT — Vue 项目模式' },
   { value: 'AGENT', label: 'AGENT — Agent 自主模式专用' },
-  { value: 'GENERAL', label: 'GENERAL — 通用（所有类型）' }
+  { value: 'GENERAL', label: 'GENERAL — 通用（所有类型）' },
 ]
 
 const codeGenTypeLabelMap: Record<string, string> = {
@@ -525,7 +583,7 @@ const codeGenTypeLabelMap: Record<string, string> = {
   MULTI_FILE: '多文件',
   VUE_PROJECT: 'Vue项目',
   AGENT: 'Agent专用',
-  GENERAL: '通用'
+  GENERAL: '通用',
 }
 
 const codeGenTypeColorMap: Record<string, string> = {
@@ -533,7 +591,7 @@ const codeGenTypeColorMap: Record<string, string> = {
   MULTI_FILE: 'purple',
   VUE_PROJECT: 'cyan',
   AGENT: 'green',
-  GENERAL: 'orange'
+  GENERAL: 'orange',
 }
 
 const getBizTypeValue = (record: Partial<API.RagDocumentVO>) => record.bizType || 'CODE_GEN'
@@ -568,7 +626,7 @@ const searchParams = reactive<API.RagDocumentQueryRequest>({
   bizType: undefined,
   docTitle: '',
   codeGenType: undefined,
-  isEnabled: undefined
+  isEnabled: undefined,
 })
 
 const pagination = reactive({
@@ -576,7 +634,7 @@ const pagination = reactive({
   pageSize: 10,
   total: 0,
   showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`
+  showTotal: (total: number) => `共 ${total} 条`,
 })
 
 // ── 表格列定义 ────────────────────────────────────────────
@@ -589,7 +647,7 @@ const columns = [
   { title: '描述', dataIndex: 'description', width: 180, ellipsis: true },
   { title: '排序', dataIndex: 'sortOrder', width: 70 },
   { title: '状态', dataIndex: 'isEnabled', width: 80 },
-  { title: '操作', dataIndex: 'action', width: 180, fixed: 'right' }
+  { title: '操作', dataIndex: 'action', width: 180, fixed: 'right' },
 ]
 
 // ── 元数据模态框 ──────────────────────────────────────────
@@ -602,14 +660,14 @@ const metaForm = reactive({
   codeGenType: 'GENERAL' as string,
   description: '',
   sortOrder: 0,
-  isEnabled: 1
+  isEnabled: 1,
 })
 
 const metaFormEnabled = computed({
   get: () => metaForm.isEnabled === 1,
   set: (val: boolean) => {
     metaForm.isEnabled = val ? 1 : 0
-  }
+  },
 })
 
 const resetMetaForm = () => {
@@ -623,12 +681,20 @@ const resetMetaForm = () => {
 }
 
 const showAddModal = () => {
+  if (metaSubmitting.value) {
+    message.warning('文档信息正在提交，请稍候')
+    return
+  }
   isEdit.value = false
   resetMetaForm()
   metaModalVisible.value = true
 }
 
 const showEditModal = (record: API.RagDocumentVO) => {
+  if (metaSubmitting.value) {
+    message.warning('文档信息正在提交，请稍候')
+    return
+  }
   isEdit.value = true
   metaForm.id = record.id
   metaForm.docTitle = record.docTitle || ''
@@ -641,6 +707,7 @@ const showEditModal = (record: API.RagDocumentVO) => {
 }
 
 const handleMetaSubmit = async () => {
+  if (metaSubmitting.value) return
   if (!metaForm.docTitle.trim()) {
     message.warning('文档标题不能为空')
     return
@@ -654,6 +721,7 @@ const handleMetaSubmit = async () => {
     return
   }
 
+  metaSubmitting.value = true
   try {
     if (isEdit.value && metaForm.id) {
       const res = await updateRagDocument({
@@ -663,7 +731,7 @@ const handleMetaSubmit = async () => {
         codeGenType: metaForm.codeGenType,
         description: metaForm.description,
         sortOrder: metaForm.sortOrder,
-        isEnabled: metaForm.isEnabled
+        isEnabled: metaForm.isEnabled,
       })
       if (res.data.code === 0) {
         message.success('信息更新成功，请点击"刷新混合索引"使改动生效')
@@ -680,7 +748,7 @@ const handleMetaSubmit = async () => {
         codeGenType: metaForm.codeGenType,
         description: metaForm.description,
         sortOrder: metaForm.sortOrder,
-        isEnabled: metaForm.isEnabled
+        isEnabled: metaForm.isEnabled,
       })
       if (res.data.code === 0) {
         message.success('新增成功，请在"编辑内容"中补充文档内容后刷新混合索引')
@@ -692,6 +760,8 @@ const handleMetaSubmit = async () => {
     }
   } catch (e: unknown) {
     message.error('操作失败：' + getErrorMessage(e))
+  } finally {
+    metaSubmitting.value = false
   }
 }
 
@@ -702,18 +772,22 @@ const editorContent = ref('')
 const saving = ref(false)
 
 const openEditor = (record: API.RagDocumentVO) => {
+  if (saving.value || metaSubmitting.value) {
+    message.warning('文档正在保存，请稍候')
+    return
+  }
   currentEditDoc.value = record
   editorContent.value = record.docContent || ''
   editorModalVisible.value = true
 }
 
 const handleSaveContent = async () => {
-  if (!currentEditDoc.value?.id) return
+  if (saving.value || !currentEditDoc.value?.id) return
   saving.value = true
   try {
     const res = await updateRagDocument({
       id: currentEditDoc.value.id,
-      docContent: editorContent.value
+      docContent: editorContent.value,
     })
     if (res.data.code === 0) {
       message.success('内容保存成功，请点击"刷新混合索引"使改动生效')
@@ -752,7 +826,7 @@ const reindexSteps = ref<ReindexStep[]>([
     engine: 'EMBEDDING',
     description: '读取启用文档并生成 text-embedding-v4 语义向量',
     status: 'pending',
-    progress: 0
+    progress: 0,
   },
   {
     id: 'milvus',
@@ -760,7 +834,7 @@ const reindexSteps = ref<ReindexStep[]>([
     engine: 'MILVUS',
     description: '建立 1536 维向量索引，支撑语义召回',
     status: 'pending',
-    progress: 0
+    progress: 0,
   },
   {
     id: 'elasticsearch',
@@ -768,7 +842,7 @@ const reindexSteps = ref<ReindexStep[]>([
     engine: 'ES',
     description: '写入 BM25 倒排索引，支撑关键词召回',
     status: 'pending',
-    progress: 0
+    progress: 0,
   },
   {
     id: 'rrf',
@@ -776,8 +850,8 @@ const reindexSteps = ref<ReindexStep[]>([
     engine: 'RRF',
     description: '合并向量与倒排两路排名，生成最终知识片段顺序',
     status: 'pending',
-    progress: 0
-  }
+    progress: 0,
+  },
 ])
 
 const reindexProgress = computed(() => {
@@ -785,17 +859,22 @@ const reindexProgress = computed(() => {
   return Math.min(100, Math.round(totalProgress / reindexSteps.value.length))
 })
 
-const reindexActiveSteps = computed(() => reindexSteps.value.filter(step => step.status === 'loading'))
+const reindexActiveSteps = computed(() =>
+  reindexSteps.value.filter((step) => step.status === 'loading'),
+)
 
 const reindexProgressCaption = computed(() => {
   if (reindexState.value === 'done') return '混合索引模拟完成'
   if (reindexState.value === 'error') return '索引重建已中断'
   const activeSteps = reindexActiveSteps.value
-  const parallelIndexing = activeSteps.filter(step => step.id === 'milvus' || step.id === 'elasticsearch')
+  const parallelIndexing = activeSteps.filter(
+    (step) => step.id === 'milvus' || step.id === 'elasticsearch',
+  )
   if (parallelIndexing.length === 2) return 'Milvus 与 Elasticsearch 正在并行构建'
   if (parallelIndexing.length === 1) {
-    const otherStep = reindexSteps.value.find(step =>
-      (step.id === 'milvus' || step.id === 'elasticsearch') && step.id !== parallelIndexing[0].id
+    const otherStep = reindexSteps.value.find(
+      (step) =>
+        (step.id === 'milvus' || step.id === 'elasticsearch') && step.id !== parallelIndexing[0].id,
     )
     return otherStep?.status === 'done'
       ? `${parallelIndexing[0].label}正在收尾，另一路已完成`
@@ -808,15 +887,15 @@ const reindexStatusLabels: Record<ReindexStep['status'], string> = {
   pending: '等待中',
   loading: '处理中',
   done: '已完成',
-  error: '失败'
+  error: '失败',
 }
 
 const getStepStatus = (id: string): ReindexStep['status'] => {
-  return reindexSteps.value.find(step => step.id === id)?.status || 'pending'
+  return reindexSteps.value.find((step) => step.id === id)?.status || 'pending'
 }
 
 const getStepProgress = (id: string) => {
-  return Math.round(reindexSteps.value.find(step => step.id === id)?.progress || 0)
+  return Math.round(reindexSteps.value.find((step) => step.id === id)?.progress || 0)
 }
 
 const getStepStatusLabel = (status: ReindexStep['status']) => reindexStatusLabels[status]
@@ -828,9 +907,30 @@ const reindexModalTitle = computed(() => {
   return '混合索引重建失败'
 })
 
+const reindexTimers = new Set<number>()
+const reindexStopHandlers = new Set<() => void>()
+let reindexAbortController: AbortController | null = null
+let reindexRunSequence = 0
+
+const cancelReindexRun = () => {
+  reindexRunSequence += 1
+  reindexAbortController?.abort()
+  reindexAbortController = null
+  reindexStopHandlers.forEach((stop) => stop())
+  reindexStopHandlers.clear()
+  reindexTimers.forEach((timer) => window.clearInterval(timer))
+  reindexTimers.clear()
+}
+
+const closeReindexModal = () => {
+  cancelReindexRun()
+  reindexModalVisible.value = false
+}
+
 const openReindexModal = () => {
+  cancelReindexRun()
   reindexState.value = 'confirm'
-  reindexSteps.value.forEach(s => {
+  reindexSteps.value.forEach((s) => {
     s.status = 'pending'
     s.progress = 0
     s.duration = undefined
@@ -842,12 +942,16 @@ const openReindexModal = () => {
 const startReindex = async () => {
   if (reindexState.value === 'progress') return
 
+  cancelReindexRun()
+  const runId = reindexRunSequence
+  const controller = new AbortController()
+  reindexAbortController = controller
   reindexState.value = 'progress'
   reindexErrorMsg.value = ''
 
   const steps = reindexSteps.value
   const getStep = (id: string) => {
-    const step = steps.find(item => item.id === id)
+    const step = steps.find((item) => item.id === id)
     if (!step) throw new Error(`未找到索引阶段：${id}`)
     return step
   }
@@ -862,19 +966,39 @@ const startReindex = async () => {
   // Milvus 与 Elasticsearch 独立计时并并发执行，RRF 等待两路完成后启动。
   const simulateStep = (step: ReindexStep, durationMs: number, maxProgress = 100) => {
     return new Promise<void>((resolve) => {
+      let timer = 0
+      let settled = false
+      const stop = () => {
+        if (settled) return
+        settled = true
+        window.clearInterval(timer)
+        reindexTimers.delete(timer)
+        reindexStopHandlers.delete(stop)
+        resolve()
+      }
+
+      if (runId !== reindexRunSequence) {
+        resolve()
+        return
+      }
+
+      reindexStopHandlers.add(stop)
       step.status = 'loading'
       step.progress = 0
       step.duration = undefined
       step.eta = `${(durationMs / 1000).toFixed(1)}s`
       const startedAt = performance.now()
-      let timer = 0
 
       const tick = () => {
+        if (settled || runId !== reindexRunSequence) return
         const elapsed = performance.now() - startedAt
         step.progress = Math.min(maxProgress, Math.round((elapsed / durationMs) * maxProgress))
         if (elapsed < durationMs) return
 
+        settled = true
         window.clearInterval(timer)
+        reindexTimers.delete(timer)
+        reindexStopHandlers.delete(stop)
         step.eta = undefined
         step.duration = `${(elapsed / 1000).toFixed(1)}s`
         if (maxProgress >= 100) {
@@ -885,31 +1009,35 @@ const startReindex = async () => {
       }
 
       timer = window.setInterval(tick, 100)
+      reindexTimers.add(timer)
       tick()
     })
   }
 
   const runSimulation = async () => {
     await simulateStep(prepareStep, randomMs(900, 1400))
+    if (runId !== reindexRunSequence) return
     await Promise.all([
       simulateStep(milvusStep, randomMs(4200, 7000)),
-      simulateStep(elasticsearchStep, randomMs(3600, 6200))
+      simulateStep(elasticsearchStep, randomMs(3600, 6200)),
     ])
+    if (runId !== reindexRunSequence) return
     await simulateStep(rrfStep, randomMs(1100, 1800), 95)
   }
 
-  const apiRequest = reindexRagDocuments()
-    .then(res => ({
+  const apiRequest = reindexRagDocuments({ signal: controller.signal })
+    .then((res) => ({
       status: 'response' as const,
-      res
+      res,
     }))
-    .catch(error => ({
+    .catch((error) => ({
       status: 'rejected' as const,
-      error
+      error,
     }))
 
   try {
     const [apiOutcome] = await Promise.all([apiRequest, runSimulation()])
+    if (runId !== reindexRunSequence) return
 
     if (apiOutcome.status === 'rejected') {
       rrfStep.status = 'error'
@@ -921,40 +1049,54 @@ const startReindex = async () => {
       reindexState.value = 'done'
     } else {
       rrfStep.status = 'error'
-      reindexErrorMsg.value = '混合索引重建失败：' +
-        (apiOutcome.res.data.message || '未知错误')
+      reindexErrorMsg.value = '混合索引重建失败：' + (apiOutcome.res.data.message || '未知错误')
       reindexState.value = 'error'
     }
   } catch (e: unknown) {
-    steps.filter(step => step.status === 'loading').forEach(step => {
-      step.status = 'error'
-      step.eta = undefined
-    })
+    if (runId !== reindexRunSequence) return
+    reindexStopHandlers.forEach((stop) => stop())
+    reindexStopHandlers.clear()
+    steps
+      .filter((step) => step.status === 'loading')
+      .forEach((step) => {
+        step.status = 'error'
+        step.eta = undefined
+      })
     reindexErrorMsg.value = '混合索引重建失败：' + getErrorMessage(e)
     reindexState.value = 'error'
+  } finally {
+    if (runId === reindexRunSequence) {
+      reindexAbortController = null
+    }
   }
 }
 
 // ── 数据操作 ──────────────────────────────────────────────
 const fetchData = async () => {
+  const requestId = ++dataRequestId
   loading.value = true
   try {
     const res = await listRagDocumentByPage({
       ...searchParams,
       pageNum: pagination.current,
-      pageSize: pagination.pageSize
+      pageSize: pagination.pageSize,
     })
+    if (requestId !== dataRequestId) return
     if (res.data.code === 0 && res.data.data) {
       dataList.value = (res.data.data.records || []).map((item) => ({
         ...item,
-        bizType: item.bizType || 'CODE_GEN'
+        bizType: item.bizType || 'CODE_GEN',
       }))
-      pagination.total = res.data.data.totalRow || 0
+      pagination.total = Number(res.data.data.totalRow) || 0
+    } else {
+      message.error('加载文档列表失败：' + (res.data.message || '请稍后重试'))
     }
   } catch (e) {
+    if (requestId !== dataRequestId) return
     console.error('加载文档列表失败', e)
+    message.error('加载文档列表失败，请稍后重试')
   } finally {
-    loading.value = false
+    if (requestId === dataRequestId) loading.value = false
   }
 }
 
@@ -978,6 +1120,8 @@ const handleTableChange = (pag: { current?: number; pageSize?: number }) => {
 }
 
 const handleDelete = async (id: number) => {
+  if (deletingRagDocumentIds.has(id)) return
+  deletingRagDocumentIds.add(id)
   try {
     const res = await deleteRagDocument({ id })
     if (res.data.code === 0) {
@@ -988,12 +1132,20 @@ const handleDelete = async (id: number) => {
     }
   } catch (e: unknown) {
     message.error('删除失败：' + getErrorMessage(e))
+  } finally {
+    deletingRagDocumentIds.delete(id)
   }
 }
 
 onMounted(() => {
   fetchData()
   fetchParams()
+})
+
+onBeforeUnmount(() => {
+  dataRequestId += 1
+  paramsRequestId += 1
+  cancelReindexRun()
 })
 
 // ── RAG 参数配置 ──────────────────────────────────────────
@@ -1006,31 +1158,31 @@ const groupMeta: Record<string, { label: string; color: string; desc: string }> 
   etl: {
     label: 'ETL 切分',
     color: 'blue',
-    desc: '文档收集与切片阶段参数（修改后需重新刷新混合索引才能生效）'
+    desc: '文档收集与切片阶段参数（修改后需重新刷新混合索引才能生效）',
   },
   retrieval: {
     label: '向量检索',
     color: 'purple',
-    desc: '向量搜索阶段参数（实时生效，无需重新索引）'
+    desc: '向量搜索阶段参数（实时生效，无需重新索引）',
   },
   injection: {
     label: '提示词注入',
     color: 'cyan',
-    desc: 'RAG 内容注入到提示词的模板（实时生效，无需重新索引）'
-  }
+    desc: 'RAG 内容注入到提示词的模板（实时生效，无需重新索引）',
+  },
 }
 
 const paramGroups = computed(() => {
   const groups: {
-    key: string;
-    label: string;
-    color: string;
-    desc: string;
+    key: string
+    label: string
+    color: string
+    desc: string
     params: API.RagParamVO[]
   }[] = []
   const order = ['etl', 'retrieval', 'injection']
   for (const key of order) {
-    const params = rawParams.value.filter(p => p.paramGroup === key)
+    const params = rawParams.value.filter((p) => p.paramGroup === key)
     if (params.length > 0) {
       groups.push({ key, ...groupMeta[key], params })
     }
@@ -1039,38 +1191,43 @@ const paramGroups = computed(() => {
 })
 
 const fetchParams = async () => {
+  const requestId = ++paramsRequestId
   paramsLoading.value = true
   try {
     const res = await listRagParams()
+    if (requestId !== paramsRequestId) return
     if (res.data.code === 0 && res.data.data) {
       rawParams.value = res.data.data
-      res.data.data.forEach(p => {
+      res.data.data.forEach((p) => {
         if (p.paramKey) {
-          paramDrafts[p.paramKey] = p.paramType === 'int'
-            ? Number(p.paramValue)
-            : p.paramType === 'double'
+          paramDrafts[p.paramKey] =
+            p.paramType === 'int'
               ? Number(p.paramValue)
-              : p.paramValue
+              : p.paramType === 'double'
+                ? Number(p.paramValue)
+                : p.paramValue
         }
       })
     }
   } catch (e) {
+    if (requestId !== paramsRequestId) return
     console.error('加载 RAG 参数失败', e)
+    message.error('加载 RAG 参数失败，请稍后重试')
   } finally {
-    paramsLoading.value = false
+    if (requestId === paramsRequestId) paramsLoading.value = false
   }
 }
 
 const handleSaveParam = async (param: API.RagParamVO) => {
   const key = param.paramKey
-  if (!key) return
+  if (!key || paramSaving[key]) return
   paramSaving[key] = true
   try {
     const newVal = String(paramDrafts[key])
     const res = await updateRagParam({ id: param.id, paramValue: newVal })
     if (res.data.code === 0) {
       message.success(`「${param.paramName}」已保存`)
-      const target = rawParams.value.find(p => p.paramKey === key)
+      const target = rawParams.value.find((p) => p.paramKey === key)
       if (target) target.paramValue = newVal
     } else {
       message.error('保存失败：' + res.data.message)
@@ -1355,7 +1512,10 @@ const handleSaveParam = async (param: API.RagParamVO) => {
   border: 1px solid #f0f0f0;
   border-radius: 8px;
   background: #fafafa;
-  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    border-color 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
 
   .engine-copy {
     display: flex;
@@ -1590,7 +1750,9 @@ const handleSaveParam = async (param: API.RagParamVO) => {
   border: 1px solid #f0f0f0;
   border-radius: 8px;
   background: #fafafa;
-  transition: border-color 0.25s ease, background 0.25s ease;
+  transition:
+    border-color 0.25s ease,
+    background 0.25s ease;
 
   &.loading {
     border-color: #d9d9d9;

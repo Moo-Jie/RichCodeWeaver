@@ -52,7 +52,9 @@
     </div>
 
     <div v-else-if="materials.length === 0" class="library-empty">
-      <h3>{{ searchText || filterType || filterCategoryId ? '没有匹配的素材' : '素材库还是空的' }}</h3>
+      <h3>
+        {{ searchText || filterType || filterCategoryId ? '没有匹配的素材' : '素材库还是空的' }}
+      </h3>
       <p>{{ searchText ? '尝试换一个关键词。' : '添加图片、视频、音频、链接或文本素材。' }}</p>
       <button class="library-primary-btn" @click="showAddModal">
         <PlusOutlined />
@@ -88,11 +90,14 @@
       <button :disabled="loading" class="library-load-more" @click="loadMore">
         {{ loading ? '加载中...' : '加载更多' }}
       </button>
-    </div>    <!-- 添加/编辑弹窗（非文本类型） -->
+    </div>
+    <!-- 添加/编辑弹窗（非文本类型） -->
     <a-modal
       v-model:open="modalVisible"
       :title="isEdit ? '编辑素材' : '添加素材'"
       :confirm-loading="submitLoading"
+      :ok-button-props="{ disabled: uploading }"
+      @cancel="cancelMaterialEdit"
       @ok="handleSubmit"
       width="600px"
     >
@@ -101,7 +106,11 @@
           <a-input v-model:value="formData.materialName" placeholder="请输入素材名称" />
         </a-form-item>
         <a-form-item label="分类" required>
-          <a-select v-model:value="formData.categoryId" placeholder="请选择分类" @change="handleCategoryChange">
+          <a-select
+            v-model:value="formData.categoryId"
+            placeholder="请选择分类"
+            @change="handleCategoryChange"
+          >
             <a-select-option v-for="cat in categories" :key="cat.id" :value="cat.id">
               {{ cat.categoryName }}
             </a-select-option>
@@ -112,7 +121,7 @@
         </a-form-item>
         <a-form-item v-if="formData.materialType !== 'text'" label="素材内容" required>
           <template v-if="['image', 'video', 'audio'].includes(formData.materialType || '')">
-            <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display: flex; flex-direction: column; gap: 8px">
               <a-upload
                 :before-upload="handleUpload"
                 :show-upload-list="false"
@@ -123,10 +132,7 @@
                   {{ uploading ? '上传中...' : '上传文件' }}
                 </a-button>
               </a-upload>
-              <a-input
-                v-model:value="formData.content"
-                :placeholder="getContentPlaceholder()"
-              />
+              <a-input v-model:value="formData.content" :placeholder="getContentPlaceholder()" />
               <img
                 v-if="formData.materialType === 'image' && formData.content"
                 :src="formData.content"
@@ -134,11 +140,7 @@
               />
             </div>
           </template>
-          <a-input
-            v-else
-            v-model:value="formData.content"
-            :placeholder="getContentPlaceholder()"
-          />
+          <a-input v-else v-model:value="formData.content" :placeholder="getContentPlaceholder()" />
         </a-form-item>
         <a-form-item v-if="formData.materialType === 'text'" label="素材内容" required>
           <a-button type="primary" @click="openTextEditor">
@@ -150,7 +152,11 @@
           </span>
         </a-form-item>
         <a-form-item label="描述">
-          <a-textarea v-model:value="formData.description" placeholder="素材描述/用途说明" :rows="2" />
+          <a-textarea
+            v-model:value="formData.description"
+            placeholder="素材描述/用途说明"
+            :rows="2"
+          />
         </a-form-item>
         <a-form-item label="标签">
           <a-select
@@ -158,7 +164,7 @@
             mode="tags"
             placeholder="输入标签后按 Enter 确认"
             :token-separators="[',']"
-            style="width:100%"
+            style="width: 100%"
           />
         </a-form-item>
       </a-form>
@@ -177,7 +183,9 @@
       <div class="text-editor-wrapper">
         <div class="text-editor-toolbar">
           <div class="toolbar-info">
-            <span class="char-count">{{ textEditorContent.length }} 字符 / {{ TEXT_MATERIAL_MAX_LENGTH }} 上限</span>
+            <span class="char-count"
+              >{{ textEditorContent.length }} 字符 / {{ TEXT_MATERIAL_MAX_LENGTH }} 上限</span
+            >
             <span class="toolbar-tip">支持 Markdown 语法</span>
           </div>
           <div class="toolbar-actions">
@@ -203,19 +211,22 @@
     </a-modal>
 
     <!-- 详情弹窗 -->
-    <a-modal
-      v-model:open="detailVisible"
-      title="素材详情"
-      :footer="null"
-      width="700px"
-    >
+    <a-modal v-model:open="detailVisible" title="素材详情" :footer="null" width="700px">
       <div class="detail-content" v-if="detailItem">
         <div class="detail-preview">
           <template v-if="detailItem.materialType === 'image'">
-            <img :src="detailItem.content || detailItem.thumbnailUrl" :alt="detailItem.materialName" style="max-width: 100%; max-height: 400px" />
+            <img
+              :src="detailItem.content || detailItem.thumbnailUrl"
+              :alt="detailItem.materialName"
+              style="max-width: 100%; max-height: 400px"
+            />
           </template>
           <template v-else-if="detailItem.materialType === 'video'">
-            <video :src="detailItem.content" controls style="max-width: 100%; max-height: 400px"></video>
+            <video
+              :src="detailItem.content"
+              controls
+              style="max-width: 100%; max-height: 400px"
+            ></video>
           </template>
           <template v-else-if="detailItem.materialType === 'audio'">
             <audio :src="detailItem.content" controls style="width: 100%"></audio>
@@ -224,18 +235,28 @@
             <div class="text-preview">{{ detailItem.content }}</div>
           </template>
           <template v-else>
-            <a :href="detailItem.content" target="_blank" rel="noopener">{{ detailItem.content }}</a>
+            <a :href="detailItem.content" target="_blank" rel="noopener">{{
+              detailItem.content
+            }}</a>
           </template>
         </div>
         <a-descriptions :column="2" style="margin-top: 16px">
           <a-descriptions-item label="名称">{{ detailItem.materialName }}</a-descriptions-item>
           <a-descriptions-item label="分类">{{ detailItem.categoryName }}</a-descriptions-item>
-          <a-descriptions-item label="类型">{{ getTypeLabel(detailItem.materialType) }}</a-descriptions-item>
+          <a-descriptions-item label="类型">{{
+            getTypeLabel(detailItem.materialType)
+          }}</a-descriptions-item>
           <a-descriptions-item label="使用次数">{{ detailItem.useCount }}</a-descriptions-item>
-          <a-descriptions-item label="是否公开">{{ detailItem.isPublic ? '是' : '否' }}</a-descriptions-item>
+          <a-descriptions-item label="是否公开">{{
+            detailItem.isPublic ? '是' : '否'
+          }}</a-descriptions-item>
           <a-descriptions-item label="创建时间">{{ detailItem.createTime }}</a-descriptions-item>
-          <a-descriptions-item label="描述" :span="2">{{ detailItem.description || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="标签" :span="2">{{ detailItem.tags || '-' }}</a-descriptions-item>
+          <a-descriptions-item label="描述" :span="2">{{
+            detailItem.description || '-'
+          }}</a-descriptions-item>
+          <a-descriptions-item label="标签" :span="2">{{
+            detailItem.tags || '-'
+          }}</a-descriptions-item>
         </a-descriptions>
       </div>
     </a-modal>
@@ -243,23 +264,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import { message } from 'ant-design-vue'
-import {
-  CheckOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  PlusOutlined,
-  UploadOutlined
-} from '@ant-design/icons-vue'
+import { CheckOutlined, EditOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons-vue'
 import {
   addMaterial,
   deleteMaterial,
   listEnabledCategories,
   listMyMaterialByPage,
-  updateMaterial
+  updateMaterial,
 } from '@/api/materialController'
 import { uploadFile } from '@/api/fileController'
 import MaterialAssetItem from '@/components/material/MaterialAssetItem.vue'
@@ -273,6 +288,8 @@ const loading = ref(false)
 const pageNum = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+let materialsRequestId = 0
+let materialsController: AbortController | null = null
 const hasMore = computed(() => materials.value.length < total.value)
 
 const materialTypeFilters: { label: string; value?: string }[] = [
@@ -281,7 +298,7 @@ const materialTypeFilters: { label: string; value?: string }[] = [
   { label: '视频', value: 'video' },
   { label: '音频', value: 'audio' },
   { label: '链接', value: 'link' },
-  { label: '文本', value: 'text' }
+  { label: '文本', value: 'text' },
 ]
 
 const materialGroups = [
@@ -289,16 +306,16 @@ const materialGroups = [
   { type: 'video', label: '视频', description: '可直接预览与播放的视频' },
   { type: 'audio', label: '音频', description: '用于对话、氛围或产品的音频' },
   { type: 'link', label: '链接', description: '参考网页与外部资源' },
-  { type: 'text', label: '文本与数据', description: '可复用的文字、表格与数据内容' }
+  { type: 'text', label: '文本与数据', description: '可复用的文字、表格与数据内容' },
 ]
 
 const groupedMaterials = computed(() => {
   return materialGroups
-    .map(group => ({
+    .map((group) => ({
       ...group,
-      items: materials.value.filter(item => (item.materialType || 'text') === group.type)
+      items: materials.value.filter((item) => (item.materialType || 'text') === group.type),
     }))
-    .filter(group => group.items.length > 0)
+    .filter((group) => group.items.length > 0)
 })
 
 // 筛选条件
@@ -315,6 +332,8 @@ const modalVisible = ref(false)
 const isEdit = ref(false)
 const submitLoading = ref(false)
 const uploading = ref(false)
+let uploadContextId = 0
+let uploadController: AbortController | null = null
 const formData = ref<API.MaterialAddRequest & { id?: number }>({})
 const tagsArray = ref<string[]>([])
 
@@ -352,7 +371,7 @@ const confirmTextEditor = () => {
 
 const getCategoryTypeById = (categoryId?: number) => {
   if (!categoryId) return undefined
-  return categories.value.find(cat => cat.id === categoryId)?.categoryCode
+  return categories.value.find((cat) => cat.id === categoryId)?.categoryCode
 }
 
 // 加载分类
@@ -368,67 +387,92 @@ const loadCategories = async () => {
 }
 
 // 加载素材
-const loadMaterials = async (reset = false) => {
-  if (reset) {
-    pageNum.value = 1
-    materials.value = []
-  }
+const loadMaterials = async (reset = false, targetPage = reset ? 1 : pageNum.value) => {
+  const requestId = ++materialsRequestId
+  materialsController?.abort()
+  const controller = new AbortController()
+  materialsController = controller
   loading.value = true
   try {
-    const res = await listMyMaterialByPage({
-      pageNum: pageNum.value,
-      pageSize: pageSize.value,
-      searchText: searchText.value || undefined,
-      categoryId: filterCategoryId.value,
-      materialType: filterType.value
-    })
-    if (res.data.code === 0) {
-      const data = res.data.data
-      if (reset) {
-        materials.value = data?.records || []
-      } else {
-        materials.value.push(...(data?.records || []))
-      }
-      total.value = data?.totalRow || 0
+    const res = await listMyMaterialByPage(
+      {
+        pageNum: targetPage,
+        pageSize: pageSize.value,
+        searchText: searchText.value || undefined,
+        categoryId: filterCategoryId.value,
+        materialType: filterType.value,
+      },
+      { signal: controller.signal },
+    )
+    if (requestId !== materialsRequestId) return
+    if (res.data.code !== 0 || !res.data.data) {
+      throw new Error(res.data.message || '素材加载失败')
     }
+    const records = res.data.data.records || []
+    if (reset) {
+      materials.value = records
+      pageNum.value = 1
+    } else {
+      const knownIds = new Set(materials.value.map((item) => String(item.id)))
+      materials.value.push(...records.filter((item) => !knownIds.has(String(item.id))))
+    }
+    total.value = Number(res.data.data.totalRow) || 0
+    pageNum.value = targetPage
   } catch (e) {
-    message.error('加载素材失败')
+    if (
+      !(e instanceof DOMException && e.name === 'AbortError') &&
+      requestId === materialsRequestId
+    ) {
+      message.error('加载素材失败')
+    }
   } finally {
-    loading.value = false
+    if (requestId === materialsRequestId) loading.value = false
   }
 }
 
 // 搜索
 const handleSearch = () => {
-  pageNum.value = 1
-  loadMaterials(true)
+  void loadMaterials(true)
 }
 
 // 加载更多
 const loadMore = () => {
-  pageNum.value++
-  loadMaterials()
+  if (!loading.value && hasMore.value) void loadMaterials(false, pageNum.value + 1)
 }
 
 // 上传文件
 const handleUpload = async (file: File) => {
+  if (uploading.value) return false
+  const contextId = uploadContextId
+  const controller = new AbortController()
+  uploadController = controller
   uploading.value = true
   try {
-    const res = await uploadFile(file)
-    if (res.data.code === 0) {
-      formData.value.content = res.data.data
-      formData.value.fileSize = file.size
-      message.success('上传成功')
-    } else {
-      message.error(res.data.message || '上传失败')
-    }
+    const res = await uploadFile(file, { signal: controller.signal })
+    if (contextId !== uploadContextId || !modalVisible.value) return false
+    if (res.data.code !== 0) throw new Error(res.data.message || '上传失败')
+    formData.value.content = res.data.data
+    formData.value.fileSize = file.size
+    message.success('上传成功')
   } catch (e) {
-    message.error('上传失败')
+    if (contextId === uploadContextId && !(e instanceof DOMException && e.name === 'AbortError')) {
+      message.error(e instanceof Error ? e.message : '上传失败')
+    }
   } finally {
-    uploading.value = false
+    if (contextId === uploadContextId) {
+      uploading.value = false
+      uploadController = null
+    }
   }
   return false
 }
+
+onBeforeUnmount(() => {
+  materialsRequestId += 1
+  materialsController?.abort()
+  materialsController = null
+  invalidateUpload()
+})
 
 const uploadAccept = computed(() => {
   if (formData.value.materialType === 'image') return 'image/*'
@@ -438,7 +482,20 @@ const uploadAccept = computed(() => {
 })
 
 // 显示添加弹窗
+const invalidateUpload = () => {
+  uploadContextId += 1
+  uploadController?.abort()
+  uploadController = null
+  uploading.value = false
+}
+
+const cancelMaterialEdit = () => {
+  invalidateUpload()
+  modalVisible.value = false
+}
+
 const showAddModal = () => {
+  invalidateUpload()
   isEdit.value = false
   formData.value = {}
   tagsArray.value = []
@@ -447,6 +504,7 @@ const showAddModal = () => {
 
 // 显示编辑弹窗
 const showEditModal = (item: API.MaterialVO) => {
+  invalidateUpload()
   isEdit.value = true
   formData.value = { ...item }
   formData.value.materialType = getCategoryTypeById(item.categoryId) || item.materialType
@@ -487,13 +545,14 @@ const getTypeLabel = (type?: string) => {
     text: '文本',
     video: '视频',
     audio: '音频',
-    link: '链接'
+    link: '链接',
   }
   return map[type || ''] || type
 }
 
 // 提交表单
 const handleSubmit = async () => {
+  if (submitLoading.value || uploading.value) return
   if (!formData.value.materialName) {
     message.warning('请输入素材名称')
     return
@@ -511,7 +570,10 @@ const handleSubmit = async () => {
     message.warning('请输入素材内容')
     return
   }
-  if (formData.value.materialType === 'text' && formData.value.content.length > TEXT_MATERIAL_MAX_LENGTH) {
+  if (
+    formData.value.materialType === 'text' &&
+    formData.value.content.length > TEXT_MATERIAL_MAX_LENGTH
+  ) {
     message.warning(`文本素材最多 ${TEXT_MATERIAL_MAX_LENGTH} 字符`)
     return
   }
@@ -538,7 +600,7 @@ const handleSubmit = async () => {
         message.error(res.data.message || '添加失败')
       }
     }
-  } catch (e) {
+  } catch {
     message.error('操作失败')
   } finally {
     submitLoading.value = false
@@ -556,7 +618,7 @@ const handleDelete = async (id?: number) => {
     } else {
       message.error(res.data.message || '删除失败')
     }
-  } catch (e) {
+  } catch {
     message.error('删除失败')
   }
 }
@@ -691,9 +753,15 @@ onMounted(() => {
   color: #999;
 }
 
-.preview-icon.video { color: #1890ff; }
-.preview-icon.audio { color: #52c41a; }
-.preview-icon.link { color: #722ed1; }
+.preview-icon.video {
+  color: #1890ff;
+}
+.preview-icon.audio {
+  color: #52c41a;
+}
+.preview-icon.link {
+  color: #722ed1;
+}
 
 .preview-text {
   padding: 12px;
